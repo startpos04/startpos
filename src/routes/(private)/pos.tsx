@@ -1,16 +1,19 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Search, Plus, Minus } from 'lucide-react'
+import { authClient } from '@/lib/better-auth/auth-client'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Minus, Plus, Search } from 'lucide-react'
 
 export const Route = createFileRoute('/(private)/pos')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
+  const navigate = useNavigate()
+
   return (
     <div className='flex h-screen w-full bg-slate-50 p-4 gap-4 font-sans text-slate-900'>
       {/* 1. Category Sidebar (The Quick-Nav) */}
@@ -25,6 +28,22 @@ function RouteComponent() {
           </Button>
           <Button variant='ghost' className='rounded-2xl p-4 h-14 w-14'>
             🥗
+          </Button>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => {
+              authClient.signOut(
+                {},
+                {
+                  onSuccess: () => {
+                    navigate({ to: '/', reloadDocument: true })
+                  },
+                },
+              )
+            }}
+          >
+            Logout
           </Button>
         </div>
       </nav>

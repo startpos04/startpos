@@ -1,4 +1,4 @@
-import { NavMain } from '@/components/nav-main'
+import { NavMain } from '@/components/custom/dashboard/nav-main'
 import { Sidebar, SidebarContent, SidebarHeader, SidebarRail } from '@/components/ui/sidebar'
 import { getRouteApi, useLocation } from '@tanstack/react-router'
 import { BookOpenIcon, BotIcon, GalleryVerticalEndIcon, TerminalSquareIcon } from 'lucide-react'

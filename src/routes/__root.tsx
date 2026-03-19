@@ -1,3 +1,4 @@
+import { ThemeProvider } from '@/components/custom/theme/theme-provider'
 import { geAuthUser } from '@/lib/better-auth/auth-server' // Import your server function
 import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import appCss from '../styles.css?url'
@@ -27,8 +28,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
-        <Scripts />
+        <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
+          {children}
+          <Scripts />
+        </ThemeProvider>
       </body>
     </html>
   )

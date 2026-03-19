@@ -6,5 +6,7 @@ export const Route = createFileRoute('/')({
     if (user) {
       throw redirect({ to: user.landingPage })
     }
+
+    throw redirect({ to: '/login' })
   },
 })

@@ -1,4 +1,5 @@
-import { AppSidebar } from '@/components/app-sidebar'
+import { AppSidebar } from '@/components/custom/dashboard/app-sidebar'
+import { ThemeToggle } from '@/components/custom/theme/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
@@ -37,6 +38,7 @@ function RouteComponent() {
               >
                 Logout
               </Button>
+              <ThemeToggle />
             </div>
           </header>
           <div className='flex flex-1 flex-col gap-4 p-4 pt-0'>
