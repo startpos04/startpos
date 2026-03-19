@@ -4,17 +4,10 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { authClient } from '@/lib/better-auth/auth-client'
-import { getUserId } from '@/lib/better-auth/auth-server'
-import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/(dashboard)')({
+export const Route = createFileRoute('/(private)/(dashboard)')({
   component: RouteComponent,
-  beforeLoad: async () => {
-    const userId = await getUserId()
-    if (!userId) {
-      throw redirect({ to: '/login' })
-    }
-  },
 })
 
 function RouteComponent() {

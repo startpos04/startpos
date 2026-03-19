@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { authClient } from '@/lib/better-auth/auth-client'
-import { getUserId } from '@/lib/better-auth/auth-server'
 import { useForm } from '@tanstack/react-form'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import z from 'zod'
@@ -13,12 +12,12 @@ export const loginValidator = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
-export const Route = createFileRoute('/(auth)/login')({
+export const Route = createFileRoute('/(public)/login')({
   component: LoginComponent,
-  beforeLoad: async () => {
-    const userId = await getUserId()
-    if (userId) {
-      throw redirect({ to: '/' })
+  beforeLoad: async ({ context }) => {
+    const { user } = context
+    if (user) {
+      throw redirect({ to: user.landingPage })
     }
   },
 })

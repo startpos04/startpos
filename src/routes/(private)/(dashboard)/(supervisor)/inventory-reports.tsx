@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { createFileRoute } from '@tanstack/react-router'
 
 const invoices = [
   {
@@ -46,7 +46,7 @@ const invoices = [
   },
 ]
 
-export const Route = createFileRoute('/(dashboard)/')({
+export const Route = createFileRoute('/(private)/(dashboard)/(supervisor)/inventory-reports')({
   component: RouteComponent,
 })
 

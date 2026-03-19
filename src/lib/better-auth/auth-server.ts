@@ -1,8 +1,20 @@
 import { createServerFn } from '@tanstack/react-start'
+import { Role } from 'prisma/generated/prisma/enums'
 import { authMiddleware } from './auth-middleware'
 
-export const getUserId = createServerFn({ method: 'GET' })
+const RoleLandingPages: Record<Role, string> = {
+  [Role.ADMIN]: '/employees',
+  [Role.SUPERVISOR]: '/sales-reports',
+  [Role.CASHIER]: '/pos',
+}
+
+export const geAuthUser = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
-    return context?.user?.id
+    if (!context || !context.user) return undefined
+    return {
+      id: context.user.id,
+      role: context.user.role as Role,
+      landingPage: RoleLandingPages[context.user.role as Role],
+    }
   })

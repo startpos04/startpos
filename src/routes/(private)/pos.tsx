@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Search, Plus, Minus } from 'lucide-react'
 
-export const Route = createFileRoute('/pos')({
+export const Route = createFileRoute('/(private)/pos')({
   component: RouteComponent,
 })
 

@@ -9,147 +9,197 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as PosRouteImport } from './routes/pos'
-import { Route as dashboardRouteRouteImport } from './routes/(dashboard)/route'
-import { Route as dashboardIndexRouteImport } from './routes/(dashboard)/index'
-import { Route as dashboardInventoryRouteImport } from './routes/(dashboard)/inventory'
-import { Route as dashboardEmployeesRouteImport } from './routes/(dashboard)/employees'
-import { Route as authLoginRouteImport } from './routes/(auth)/login'
+import { Route as privateRouteRouteImport } from './routes/(private)/route'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as publicLoginRouteImport } from './routes/(public)/login'
+import { Route as privatePosRouteImport } from './routes/(private)/pos'
+import { Route as privatedashboardRouteRouteImport } from './routes/(private)/(dashboard)/route'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as privatedashboardsupervisorRouteRouteImport } from './routes/(private)/(dashboard)/(supervisor)/route'
+import { Route as privatedashboardadminRouteRouteImport } from './routes/(private)/(dashboard)/(admin)/route'
+import { Route as privatedashboardsupervisorSalesReportsRouteImport } from './routes/(private)/(dashboard)/(supervisor)/sales-reports'
+import { Route as privatedashboardsupervisorInventoryReportsRouteImport } from './routes/(private)/(dashboard)/(supervisor)/inventory-reports'
+import { Route as privatedashboardadminInventoryRouteImport } from './routes/(private)/(dashboard)/(admin)/inventory'
+import { Route as privatedashboardadminEmployeesRouteImport } from './routes/(private)/(dashboard)/(admin)/employees'
 
-const PosRoute = PosRouteImport.update({
-  id: '/pos',
-  path: '/pos',
+const privateRouteRoute = privateRouteRouteImport.update({
+  id: '/(private)',
   getParentRoute: () => rootRouteImport,
 } as any)
-const dashboardRouteRoute = dashboardRouteRouteImport.update({
-  id: '/(dashboard)',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const dashboardIndexRoute = dashboardIndexRouteImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => dashboardRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-const dashboardInventoryRoute = dashboardInventoryRouteImport.update({
-  id: '/inventory',
-  path: '/inventory',
-  getParentRoute: () => dashboardRouteRoute,
-} as any)
-const dashboardEmployeesRoute = dashboardEmployeesRouteImport.update({
-  id: '/employees',
-  path: '/employees',
-  getParentRoute: () => dashboardRouteRoute,
-} as any)
-const authLoginRoute = authLoginRouteImport.update({
-  id: '/(auth)/login',
+const publicLoginRoute = publicLoginRouteImport.update({
+  id: '/(public)/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
+} as any)
+const privatePosRoute = privatePosRouteImport.update({
+  id: '/pos',
+  path: '/pos',
+  getParentRoute: () => privateRouteRoute,
+} as any)
+const privatedashboardRouteRoute = privatedashboardRouteRouteImport.update({
+  id: '/(dashboard)',
+  getParentRoute: () => privateRouteRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const privatedashboardsupervisorRouteRoute =
+  privatedashboardsupervisorRouteRouteImport.update({
+    id: '/(supervisor)',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardadminRouteRoute =
+  privatedashboardadminRouteRouteImport.update({
+    id: '/(admin)',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardsupervisorSalesReportsRoute =
+  privatedashboardsupervisorSalesReportsRouteImport.update({
+    id: '/sales-reports',
+    path: '/sales-reports',
+    getParentRoute: () => privatedashboardsupervisorRouteRoute,
+  } as any)
+const privatedashboardsupervisorInventoryReportsRoute =
+  privatedashboardsupervisorInventoryReportsRouteImport.update({
+    id: '/inventory-reports',
+    path: '/inventory-reports',
+    getParentRoute: () => privatedashboardsupervisorRouteRoute,
+  } as any)
+const privatedashboardadminInventoryRoute =
+  privatedashboardadminInventoryRouteImport.update({
+    id: '/inventory',
+    path: '/inventory',
+    getParentRoute: () => privatedashboardadminRouteRoute,
+  } as any)
+const privatedashboardadminEmployeesRoute =
+  privatedashboardadminEmployeesRouteImport.update({
+    id: '/employees',
+    path: '/employees',
+    getParentRoute: () => privatedashboardadminRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/pos': typeof PosRoute
-  '/login': typeof authLoginRoute
-  '/employees': typeof dashboardEmployeesRoute
-  '/inventory': typeof dashboardInventoryRoute
-  '/': typeof dashboardIndexRoute
+  '/': typeof IndexRoute
+  '/pos': typeof privatePosRoute
+  '/login': typeof publicLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/employees': typeof privatedashboardadminEmployeesRoute
+  '/inventory': typeof privatedashboardadminInventoryRoute
+  '/inventory-reports': typeof privatedashboardsupervisorInventoryReportsRoute
+  '/sales-reports': typeof privatedashboardsupervisorSalesReportsRoute
 }
 export interface FileRoutesByTo {
-  '/pos': typeof PosRoute
-  '/login': typeof authLoginRoute
-  '/employees': typeof dashboardEmployeesRoute
-  '/inventory': typeof dashboardInventoryRoute
-  '/': typeof dashboardIndexRoute
+  '/': typeof IndexRoute
+  '/pos': typeof privatePosRoute
+  '/login': typeof publicLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/employees': typeof privatedashboardadminEmployeesRoute
+  '/inventory': typeof privatedashboardadminInventoryRoute
+  '/inventory-reports': typeof privatedashboardsupervisorInventoryReportsRoute
+  '/sales-reports': typeof privatedashboardsupervisorSalesReportsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/(dashboard)': typeof dashboardRouteRouteWithChildren
-  '/pos': typeof PosRoute
-  '/(auth)/login': typeof authLoginRoute
-  '/(dashboard)/employees': typeof dashboardEmployeesRoute
-  '/(dashboard)/inventory': typeof dashboardInventoryRoute
-  '/(dashboard)/': typeof dashboardIndexRoute
+  '/': typeof IndexRoute
+  '/(private)': typeof privateRouteRouteWithChildren
+  '/(private)/(dashboard)': typeof privatedashboardRouteRouteWithChildren
+  '/(private)/pos': typeof privatePosRoute
+  '/(public)/login': typeof publicLoginRoute
+  '/(private)/(dashboard)/(admin)': typeof privatedashboardadminRouteRouteWithChildren
+  '/(private)/(dashboard)/(supervisor)': typeof privatedashboardsupervisorRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/(private)/(dashboard)/(admin)/employees': typeof privatedashboardadminEmployeesRoute
+  '/(private)/(dashboard)/(admin)/inventory': typeof privatedashboardadminInventoryRoute
+  '/(private)/(dashboard)/(supervisor)/inventory-reports': typeof privatedashboardsupervisorInventoryReportsRoute
+  '/(private)/(dashboard)/(supervisor)/sales-reports': typeof privatedashboardsupervisorSalesReportsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/pos'
     | '/login'
+    | '/api/auth/$'
     | '/employees'
     | '/inventory'
-    | '/'
-    | '/api/auth/$'
+    | '/inventory-reports'
+    | '/sales-reports'
   fileRoutesByTo: FileRoutesByTo
-  to: '/pos' | '/login' | '/employees' | '/inventory' | '/' | '/api/auth/$'
+  to:
+    | '/'
+    | '/pos'
+    | '/login'
+    | '/api/auth/$'
+    | '/employees'
+    | '/inventory'
+    | '/inventory-reports'
+    | '/sales-reports'
   id:
     | '__root__'
-    | '/(dashboard)'
-    | '/pos'
-    | '/(auth)/login'
-    | '/(dashboard)/employees'
-    | '/(dashboard)/inventory'
-    | '/(dashboard)/'
+    | '/'
+    | '/(private)'
+    | '/(private)/(dashboard)'
+    | '/(private)/pos'
+    | '/(public)/login'
+    | '/(private)/(dashboard)/(admin)'
+    | '/(private)/(dashboard)/(supervisor)'
     | '/api/auth/$'
+    | '/(private)/(dashboard)/(admin)/employees'
+    | '/(private)/(dashboard)/(admin)/inventory'
+    | '/(private)/(dashboard)/(supervisor)/inventory-reports'
+    | '/(private)/(dashboard)/(supervisor)/sales-reports'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  dashboardRouteRoute: typeof dashboardRouteRouteWithChildren
-  PosRoute: typeof PosRoute
-  authLoginRoute: typeof authLoginRoute
+  IndexRoute: typeof IndexRoute
+  privateRouteRoute: typeof privateRouteRouteWithChildren
+  publicLoginRoute: typeof publicLoginRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/pos': {
-      id: '/pos'
-      path: '/pos'
-      fullPath: '/pos'
-      preLoaderRoute: typeof PosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/(dashboard)': {
-      id: '/(dashboard)'
+    '/(private)': {
+      id: '/(private)'
       path: ''
       fullPath: ''
-      preLoaderRoute: typeof dashboardRouteRouteImport
+      preLoaderRoute: typeof privateRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/(dashboard)/': {
-      id: '/(dashboard)/'
+    '/': {
+      id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof dashboardIndexRouteImport
-      parentRoute: typeof dashboardRouteRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/(dashboard)/inventory': {
-      id: '/(dashboard)/inventory'
-      path: '/inventory'
-      fullPath: '/inventory'
-      preLoaderRoute: typeof dashboardInventoryRouteImport
-      parentRoute: typeof dashboardRouteRoute
-    }
-    '/(dashboard)/employees': {
-      id: '/(dashboard)/employees'
-      path: '/employees'
-      fullPath: '/employees'
-      preLoaderRoute: typeof dashboardEmployeesRouteImport
-      parentRoute: typeof dashboardRouteRoute
-    }
-    '/(auth)/login': {
-      id: '/(auth)/login'
+    '/(public)/login': {
+      id: '/(public)/login'
       path: '/login'
       fullPath: '/login'
-      preLoaderRoute: typeof authLoginRouteImport
+      preLoaderRoute: typeof publicLoginRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/(private)/pos': {
+      id: '/(private)/pos'
+      path: '/pos'
+      fullPath: '/pos'
+      preLoaderRoute: typeof privatePosRouteImport
+      parentRoute: typeof privateRouteRoute
+    }
+    '/(private)/(dashboard)': {
+      id: '/(private)/(dashboard)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof privatedashboardRouteRouteImport
+      parentRoute: typeof privateRouteRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -158,29 +208,119 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(private)/(dashboard)/(supervisor)': {
+      id: '/(private)/(dashboard)/(supervisor)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof privatedashboardsupervisorRouteRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/(admin)': {
+      id: '/(private)/(dashboard)/(admin)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof privatedashboardadminRouteRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/(supervisor)/sales-reports': {
+      id: '/(private)/(dashboard)/(supervisor)/sales-reports'
+      path: '/sales-reports'
+      fullPath: '/sales-reports'
+      preLoaderRoute: typeof privatedashboardsupervisorSalesReportsRouteImport
+      parentRoute: typeof privatedashboardsupervisorRouteRoute
+    }
+    '/(private)/(dashboard)/(supervisor)/inventory-reports': {
+      id: '/(private)/(dashboard)/(supervisor)/inventory-reports'
+      path: '/inventory-reports'
+      fullPath: '/inventory-reports'
+      preLoaderRoute: typeof privatedashboardsupervisorInventoryReportsRouteImport
+      parentRoute: typeof privatedashboardsupervisorRouteRoute
+    }
+    '/(private)/(dashboard)/(admin)/inventory': {
+      id: '/(private)/(dashboard)/(admin)/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof privatedashboardadminInventoryRouteImport
+      parentRoute: typeof privatedashboardadminRouteRoute
+    }
+    '/(private)/(dashboard)/(admin)/employees': {
+      id: '/(private)/(dashboard)/(admin)/employees'
+      path: '/employees'
+      fullPath: '/employees'
+      preLoaderRoute: typeof privatedashboardadminEmployeesRouteImport
+      parentRoute: typeof privatedashboardadminRouteRoute
+    }
   }
 }
 
-interface dashboardRouteRouteChildren {
-  dashboardEmployeesRoute: typeof dashboardEmployeesRoute
-  dashboardInventoryRoute: typeof dashboardInventoryRoute
-  dashboardIndexRoute: typeof dashboardIndexRoute
+interface privatedashboardadminRouteRouteChildren {
+  privatedashboardadminEmployeesRoute: typeof privatedashboardadminEmployeesRoute
+  privatedashboardadminInventoryRoute: typeof privatedashboardadminInventoryRoute
 }
 
-const dashboardRouteRouteChildren: dashboardRouteRouteChildren = {
-  dashboardEmployeesRoute: dashboardEmployeesRoute,
-  dashboardInventoryRoute: dashboardInventoryRoute,
-  dashboardIndexRoute: dashboardIndexRoute,
+const privatedashboardadminRouteRouteChildren: privatedashboardadminRouteRouteChildren =
+  {
+    privatedashboardadminEmployeesRoute: privatedashboardadminEmployeesRoute,
+    privatedashboardadminInventoryRoute: privatedashboardadminInventoryRoute,
+  }
+
+const privatedashboardadminRouteRouteWithChildren =
+  privatedashboardadminRouteRoute._addFileChildren(
+    privatedashboardadminRouteRouteChildren,
+  )
+
+interface privatedashboardsupervisorRouteRouteChildren {
+  privatedashboardsupervisorInventoryReportsRoute: typeof privatedashboardsupervisorInventoryReportsRoute
+  privatedashboardsupervisorSalesReportsRoute: typeof privatedashboardsupervisorSalesReportsRoute
 }
 
-const dashboardRouteRouteWithChildren = dashboardRouteRoute._addFileChildren(
-  dashboardRouteRouteChildren,
+const privatedashboardsupervisorRouteRouteChildren: privatedashboardsupervisorRouteRouteChildren =
+  {
+    privatedashboardsupervisorInventoryReportsRoute:
+      privatedashboardsupervisorInventoryReportsRoute,
+    privatedashboardsupervisorSalesReportsRoute:
+      privatedashboardsupervisorSalesReportsRoute,
+  }
+
+const privatedashboardsupervisorRouteRouteWithChildren =
+  privatedashboardsupervisorRouteRoute._addFileChildren(
+    privatedashboardsupervisorRouteRouteChildren,
+  )
+
+interface privatedashboardRouteRouteChildren {
+  privatedashboardadminRouteRoute: typeof privatedashboardadminRouteRouteWithChildren
+  privatedashboardsupervisorRouteRoute: typeof privatedashboardsupervisorRouteRouteWithChildren
+}
+
+const privatedashboardRouteRouteChildren: privatedashboardRouteRouteChildren = {
+  privatedashboardadminRouteRoute: privatedashboardadminRouteRouteWithChildren,
+  privatedashboardsupervisorRouteRoute:
+    privatedashboardsupervisorRouteRouteWithChildren,
+}
+
+const privatedashboardRouteRouteWithChildren =
+  privatedashboardRouteRoute._addFileChildren(
+    privatedashboardRouteRouteChildren,
+  )
+
+interface privateRouteRouteChildren {
+  privatedashboardRouteRoute: typeof privatedashboardRouteRouteWithChildren
+  privatePosRoute: typeof privatePosRoute
+}
+
+const privateRouteRouteChildren: privateRouteRouteChildren = {
+  privatedashboardRouteRoute: privatedashboardRouteRouteWithChildren,
+  privatePosRoute: privatePosRoute,
+}
+
+const privateRouteRouteWithChildren = privateRouteRoute._addFileChildren(
+  privateRouteRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  dashboardRouteRoute: dashboardRouteRouteWithChildren,
-  PosRoute: PosRoute,
-  authLoginRoute: authLoginRoute,
+  IndexRoute: IndexRoute,
+  privateRouteRoute: privateRouteRouteWithChildren,
+  publicLoginRoute: publicLoginRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

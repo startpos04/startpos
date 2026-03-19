@@ -13,16 +13,24 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  ADMIN
+  SUPERVISOR
+  CASHIER
+}
+
 model User {
-  id            String    @id
+  id            String  @id
   name          String
-  email         String    @unique
+  email         String  @unique
   emailVerified Boolean
   image         String?
-  createdAt     DateTime
-  updatedAt     DateTime
-  sessions      Session[]
-  accounts      Account[]
+  role          Role    @default(CASHIER)
+
+  createdAt DateTime
+  updatedAt DateTime
+  sessions  Session[]
+  accounts  Account[]
 
   @@map("users") // Correct attribute to name the table "users"
 }

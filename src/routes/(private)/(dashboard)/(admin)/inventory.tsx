@@ -35,7 +35,7 @@ const INVENTORY_DATA = [
   },
 ]
 
-export const Route = createFileRoute('/(dashboard)/inventory')({
+export const Route = createFileRoute('/(private)/(dashboard)/(admin)/inventory')({
   component: RouteComponent,
 })
 
@@ -76,7 +76,7 @@ function RouteComponent() {
                 </div>
                 <Progress
                   value={product.stock}
-                  className={`h-2 ${product.stock < 20 ? 'bg-red-100 [&>div]:bg-red-500' : 'bg-slate-100 [&>div]:bg-indigo-500'}`}
+                  className={`h-2 ${product.stock < 20 ? `bg-red-100 [&>div]:bg-red-500` : `bg-slate-100 [&>div]:bg-indigo-500`}`}
                 />
               </div>
 

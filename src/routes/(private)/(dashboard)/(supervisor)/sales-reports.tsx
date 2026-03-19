@@ -1,9 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { MoreHorizontal, Mail, Phone } from 'lucide-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { createFileRoute } from '@tanstack/react-router'
+import { Mail, MoreHorizontal } from 'lucide-react'
 
 // Updated data for Employees
 const employees = [
@@ -41,7 +41,7 @@ const employees = [
   },
 ]
 
-export const Route = createFileRoute('/(dashboard)/employees')({
+export const Route = createFileRoute('/(private)/(dashboard)/(supervisor)/sales-reports')({
   component: RouteComponent,
 })
 
@@ -94,7 +94,7 @@ function RouteComponent() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <span className={`text-sm ${emp.performance === 'Top Tier' ? 'text-indigo-600 font-bold' : 'text-slate-500'}`}>{emp.performance}</span>
+                  <span className={`text-sm ${emp.performance === `Top Tier` ? `text-indigo-600 font-bold` : `text-slate-500`}`}>{emp.performance}</span>
                 </TableCell>
                 <TableCell className='text-right pr-6'>
                   <div className='flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity'>

@@ -1,28 +1,21 @@
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
+import { geAuthUser } from '@/lib/better-auth/auth-server' // Import your server function
+import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import appCss from '../styles.css?url'
 
-export const Route = createRootRoute({
+interface MyRouterContext {
+  user: Awaited<ReturnType<typeof geAuthUser>> | undefined
+}
+
+export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
-    meta: [
-      {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        title: 'TanStack Start Starter',
-      },
-    ],
-    links: [
-      {
-        rel: 'stylesheet',
-        href: appCss,
-      },
-    ],
+    meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }, { title: 'POS & Inventory System' }],
+    links: [{ rel: 'stylesheet', href: appCss }],
   }),
+
+  beforeLoad: async () => {
+    const user = await geAuthUser()
+    return { user }
+  },
 
   shellComponent: RootDocument,
 })

@@ -1,5 +1,6 @@
 import { createMiddleware } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
+import { Session } from './auth'
 import { authClient } from './auth-client'
 
 export const authMiddleware = createMiddleware().server(async ({ next }) => {
@@ -11,7 +12,7 @@ export const authMiddleware = createMiddleware().server(async ({ next }) => {
 
   return await next({
     context: {
-      user: session?.user,
+      user: session?.user as Session['user'],
     },
   })
 })
