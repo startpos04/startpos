@@ -13,31 +13,41 @@ datasource db {
   provider = "postgresql"
 }
 
+// --- USER & ROLE MANAGEMENT ---
 enum Role {
   ADMIN
   SUPERVISOR
   CASHIER
+  SERVICE_PROVIDER // Doctor, Barber, Therapist, Housekeeping
 }
 
 model User {
-  id            String  @id
+  id            String  @id @default(cuid())
   name          String
   email         String  @unique
   emailVerified Boolean
   image         String?
   role          Role    @default(CASHIER)
 
-  createdAt DateTime
-  updatedAt DateTime
-  sessions  Session[]
-  accounts  Account[]
+  // Auth relations
+  sessions Session[]
+  accounts Account[]
 
-  @@map("users") // Correct attribute to name the table "users"
+  // Transactions handled as a Staff member
+  processedSales    Transaction[] @relation("CashierRelation")
+  performedServices Transaction[] @relation("ServiceProvider")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
 }
+
+// --- 6. AUTH SYSTEM ---
 
 // Need for better auth management, but can be extended for other purposes like tracking user sessions, devices, etc.
 model Session {
-  id        String   @id
+  id        String   @id @default(cuid())
   expiresAt DateTime
   token     String   @unique
   createdAt DateTime
@@ -47,12 +57,12 @@ model Session {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("session")
+  @@map("sessions")
 }
 
 // Need for better auth management, but can be extended for other purposes like tracking user accounts, providers, etc.
 model Account {
-  id         String   @id
+  id         String   @id @default(cuid())
   accountId  String
   providerId String
   userId     String
@@ -61,5 +71,159 @@ model Account {
   createdAt  DateTime
   updatedAt  DateTime
 
-  @@map("account")
+  @@map("accounts")
+}
+
+// --- PRODUCT & RESOURCE ENGINE ---
+enum ResourceType {
+  PHYSICAL_GOOD // Grocery, Hardware, Medicine
+  SERVICE // Room Stay, Consultation, Haircut
+  RAW_MATERIAL // Ingredients, Wood (Inventory only)
+  BUNDLE // Meal Kit, Gift Basket, Promo Pack
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id    String       @id @default(cuid())
+  name  String
+  sku   String?      @unique // Barcode/Universal Product Code
+  type  ResourceType @default(PHYSICAL_GOOD)
+  price Decimal      @db.Decimal(10, 2)
+
+  // Business Specific Flags
+  isAvailable     Boolean  @default(true)
+  hasExpiry       Boolean  @default(false) // Pharmacy/Food
+  requiresDeposit Boolean  @default(false) // LPG/Water/Bottles
+  depositAmount   Decimal? @db.Decimal(10, 2)
+  durationMinutes Int? // Service duration (Clinic/Spa)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  // Self-referencing relationship for Recipes/Bundles
+  // (e.g., A "Burger" consumes "Beef Patty")
+  ingredients Ingredient[] @relation("ParentProduct")
+  usedIn      Ingredient[] @relation("ComponentItem")
+
+  inventory  Inventory[]
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("products")
+}
+
+model Ingredient {
+  id              String  @id @default(cuid())
+  parentProductId String
+  parentProduct   Product @relation("ParentProduct", fields: [parentProductId], references: [id])
+
+  componentId String
+  component   Product @relation("ComponentItem", fields: [componentId], references: [id])
+
+  quantityUsed Decimal @db.Decimal(10, 3)
+
+  @@unique([parentProductId, componentId])
+  @@map("ingredients")
+}
+
+// --- INVENTORY & BATCH TRACKING ---
+model Inventory {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  batchNumber String? // Lot # for Drugstore/Medicine
+  expiryDate  DateTime?
+  quantity    Decimal   @db.Decimal(10, 3) // Supports kg, L, units
+  location    String? // Warehouse A, Aisle 4, Room 101
+
+  lastRestocked DateTime @default(now())
+
+  @@map("inventory")
+}
+
+// --- CUSTOMER / PATIENT RECORDS ---
+model Customer {
+  id          String    @id @default(cuid())
+  name        String
+  email       String?   @unique
+  phone       String?
+  dateOfBirth DateTime? // For Clinics/Age-restricted items
+
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+
+  @@map("customers")
+}
+
+// --- TRANSACTIONS & SALES ---
+enum TransactionType {
+  SALE
+  REFUND
+  BOOKING // Hotel/Resort/Clinic Appointment
+  ADJUSTMENT // Waste/Loss
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  CHECKED_IN
+}
+
+model Transaction {
+  id        String            @id @default(cuid())
+  invoiceNo String            @unique @default(cuid())
+  type      TransactionType   @default(SALE)
+  status    TransactionStatus @default(COMPLETED)
+
+  totalAmount Decimal @db.Decimal(10, 2)
+  taxAmount   Decimal @db.Decimal(10, 2)
+  discount    Decimal @default(0) @db.Decimal(10, 2)
+
+  // Timing (Hotels/Resorts/Appointments)
+  startTime DateTime?
+  endTime   DateTime?
+
+  // Contextual Data
+  notes       String? @db.Text // Clinical notes, room requests, etc.
+  queueNumber Int?    @default(autoincrement())
+
+  // Relationships
+  cashierId String
+  cashier   User   @relation("CashierRelation", fields: [cashierId], references: [id])
+
+  providerId String? // The Doctor, Barber, or Server
+  provider   User?   @relation("ServiceProvider", fields: [providerId], references: [id])
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  items     OrderItem[]
+  createdAt DateTime    @default(now())
+
+  @@map("transactions")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  quantity  Decimal @db.Decimal(10, 3)
+  unitPrice Decimal @db.Decimal(10, 2) // Snapshotted price at sale
+
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
 }

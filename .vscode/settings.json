@@ -11,7 +11,7 @@
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "cSpell.words": [],
+  "cSpell.words": ["CHED", "CHKN", "TOMA"],
   "eslint.workingDirectories": [
     {
       "mode": "auto"

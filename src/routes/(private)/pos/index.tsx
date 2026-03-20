@@ -7,7 +7,7 @@ import { authClient } from '@/lib/better-auth/auth-client'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Minus, Plus, Search } from 'lucide-react'
 
-export const Route = createFileRoute('/(private)/pos')({
+export const Route = createFileRoute('/(private)/pos/')({
   component: RouteComponent,
 })
 
