@@ -13,7 +13,8 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar'
 import { APP_NAME } from '@/lib/constants'
-import { getRouteApi, useLocation } from '@tanstack/react-router'
+// Changed: Added Link for better navigation
+import { getRouteApi, Link, useLocation } from '@tanstack/react-router'
 import { BookOpenIcon, BotIcon, ChevronRightIcon, GalleryVerticalEndIcon, TerminalSquareIcon } from 'lucide-react'
 import { Role } from 'prisma/generated/prisma/enums'
 import * as React from 'react'
@@ -37,6 +38,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = rootApi.useRouteContext()
   const location = useLocation()
 
+  // Helper to determine if a route is a match or a sub-path of the current location
+  const isRouteActive = React.useCallback(
+    (itemUrl: string) => {
+      if (itemUrl === '#' || !itemUrl) return false
+
+      const currentPath = location.pathname
+      // Exact match
+      if (currentPath === itemUrl) return true
+      // Nested match: check if current path starts with itemUrl
+      // Example: /employees/admin-1 starts with /employees
+      return currentPath.startsWith(itemUrl + '/')
+    },
+    [location.pathname],
+  )
+
   const { team, items } = React.useMemo(() => {
     const data = {
       team: {
@@ -49,7 +65,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           title: 'Admin',
           url: '#',
           icon: <TerminalSquareIcon />,
-          allowedRoles: [Role.ADMIN] as Role[],
+          allowedRoles: [Role.ADMIN],
           items: [
             { title: 'Employees', url: '/employees' },
             { title: 'Inventory', url: '/inventory' },
@@ -59,7 +75,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           title: 'Supervisor',
           url: '#',
           icon: <BotIcon />,
-          allowedRoles: [Role.ADMIN, Role.SUPERVISOR] as Role[],
+          allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
           items: [
             { title: 'Sales Report', url: '/sales-reports' },
             { title: 'Inventory Reports', url: '/inventory-reports' },
@@ -69,7 +85,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           title: 'POS',
           url: '/pos',
           icon: <BookOpenIcon />,
-          allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER] as Role[],
+          allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER],
         },
       ] as Items[],
     }
@@ -77,23 +93,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     data.items = data.items
       .filter(item => user && item.allowedRoles.includes(user.role as Role))
       .map(item => {
-        const items = item.items?.map(subItem => ({
+        // Map sub-items and check if any are active
+        const subItems = item.items?.map(subItem => ({
           ...subItem,
-          isActive: location.pathname === subItem.url,
+          isActive: isRouteActive(subItem.url),
         }))
 
-        const isChildActive = items?.some(child => child.isActive)
-        const isParentActive = location.pathname === item.url
+        const isChildActive = subItems?.some(child => child.isActive)
+        const isParentActive = isRouteActive(item.url)
 
         return {
           ...item,
-          items,
+          items: subItems,
           isActive: isParentActive || isChildActive,
         }
       })
 
     return data
-  }, [user, location.pathname])
+  }, [user, isRouteActive])
 
   return (
     <Sidebar collapsible='icon' {...props}>
@@ -125,9 +142,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         {item.items?.map(subItem => (
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton asChild isActive={subItem.isActive}>
-                              <a href={subItem.url}>
+                              {/* Changed to Link */}
+                              <Link to={subItem.url}>
                                 <span>{subItem.title}</span>
-                              </a>
+                              </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         ))}
@@ -136,14 +154,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </SidebarMenuItem>
                 </Collapsible>
               ) : (
-                <SidebarMenuSubItem key={item.title}>
-                  <SidebarMenuSubButton asChild>
-                    <a href={item.url}>
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={item.isActive} tooltip={item.title}>
+                    <Link to={item.url}>
                       {item.icon}
                       <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               ),
             )}
           </SidebarMenu>

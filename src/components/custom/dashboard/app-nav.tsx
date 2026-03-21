@@ -4,6 +4,7 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { authClient } from '@/lib/better-auth/auth-client'
 import { useNavigate } from '@tanstack/react-router'
+import { AppBreadcrumb } from './app-breadcrumb'
 
 function AppNav() {
   const navigate = useNavigate()
@@ -24,6 +25,7 @@ function AppNav() {
       <div className='flex items-center gap-2 px-4 w-full'>
         <SidebarTrigger size='lg' className='cursor-pointer' />
         <Separator orientation='vertical' className='mr-2 ' />
+        <AppBreadcrumb />
         <div className='flex items-center justify-end grow gap-4'>
           <ThemeToggle />
           <Button variant='outline' size='sm' onClick={handleLogout} className='cursor-pointer'>

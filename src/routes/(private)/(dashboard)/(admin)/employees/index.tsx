@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button'
 import { showModal } from '@/lib/Overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { Edit, Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
-import { CreateEmployeeDialog } from './-components/create'
+import { EditEmployeeDialog } from './$employeeId'
+import { CreateEmployeeDialog } from './create'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/')({
   component: RouteComponent,
@@ -21,6 +22,18 @@ function RouteComponent() {
       return await crudAPI({ data: { action: 'findMany', table: 'user' } })
     },
   })
+
+  const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    showModal(CreateEmployeeDialog)
+  }
+
+  const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, employeeId: string) => {
+    e.preventDefault()
+    showModal(EditEmployeeDialog, {
+      employeeId,
+    })
+  }
 
   const columns = useMemo(
     () =>
@@ -61,9 +74,11 @@ function RouteComponent() {
           header: () => <div className='text-right pr-4'>Actions</div>,
           cell: ({ row }) => (
             <div className='flex justify-end gap-2 pr-2 opacity-0 group-hover:opacity-100 transition-opacity'>
-              <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => console.log('Editing', row.original.id)}>
-                <Edit className='h-4 w-4' />
-              </Button>
+              <Link to='/employees/$employeeId' params={{ employeeId: row.original.id }} onClick={e => handleEdit(e, row.original.id)} className='contents'>
+                <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => console.log('Editing', row.original.id)}>
+                  <Edit className='h-4 w-4' />
+                </Button>
+              </Link>
               <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full text-destructive hover:text-destructive'>
                 <Trash2 className='h-4 w-4' />
               </Button>
@@ -74,10 +89,6 @@ function RouteComponent() {
     [data],
   )
 
-  const handleAdd = () => {
-    showModal(CreateEmployeeDialog)
-  }
-
   return (
     <>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
@@ -85,9 +96,11 @@ function RouteComponent() {
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Employees</h1>
           <p className='text-muted-foreground text-sm'>Manage your team and their workspace roles.</p>
         </div>
-        <Button className='rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer' onClick={handleAdd}>
-          <Plus className='h-4 w-4' /> Add Employee
-        </Button>
+        <a href='/employees/create' onClick={handleAdd} className='contents'>
+          <Button className='rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer'>
+            <Plus className='h-4 w-4' /> Add Employee
+          </Button>
+        </a>
       </div>
 
       <TableView data={data} isFetching={isFetching} columns={columns} />
