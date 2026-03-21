@@ -2,13 +2,15 @@ import { getColumns } from '@/components/custom/data-view'
 import { TableView } from '@/components/custom/data-view/table-view'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { showModal } from '@/lib/Overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Edit, Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
+import { CreateEmployeeDialog } from './-components/create'
 
-export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees')({
+export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/')({
   component: RouteComponent,
 })
 
@@ -72,6 +74,10 @@ function RouteComponent() {
     [data],
   )
 
+  const handleAdd = () => {
+    showModal(CreateEmployeeDialog)
+  }
+
   return (
     <>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
@@ -79,8 +85,8 @@ function RouteComponent() {
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Employees</h1>
           <p className='text-muted-foreground text-sm'>Manage your team and their workspace roles.</p>
         </div>
-        <Button className='rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
-          <Plus className='mr-2 h-4 w-4' /> Add Employee
+        <Button className='rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer' onClick={handleAdd}>
+          <Plus className='h-4 w-4' /> Add Employee
         </Button>
       </div>
 
