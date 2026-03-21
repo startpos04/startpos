@@ -37,8 +37,9 @@ model User {
   processedSales    Transaction[] @relation("CashierRelation")
   performedServices Transaction[] @relation("ServiceProvider")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  inventoryMovements InventoryMovement[]
 
   @@map("users")
 }
@@ -93,6 +94,7 @@ model Category {
 model Product {
   id    String       @id @default(cuid())
   name  String
+  image String?
   sku   String?      @unique // Barcode/Universal Product Code
   type  ResourceType @default(PHYSICAL_GOOD)
   price Decimal      @db.Decimal(10, 2)
@@ -115,8 +117,9 @@ model Product {
   inventory  Inventory[]
   orderItems OrderItem[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  inventoryMovements InventoryMovement[]
 
   @@map("products")
 }
@@ -136,6 +139,13 @@ model Ingredient {
 }
 
 // --- INVENTORY & BATCH TRACKING ---
+enum MovementType {
+  IN // Restock, Purchase
+  OUT // Sale, Usage
+  ADJUST // Manual Correction
+  WASTE // Damage, Expiry
+}
+
 model Inventory {
   id        String  @id @default(cuid())
   productId String
@@ -149,6 +159,23 @@ model Inventory {
   lastRestocked DateTime @default(now())
 
   @@map("inventory")
+}
+
+// This allows you to generate the "Inventory Reports" we built earlier
+model InventoryMovement {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+
+  type     MovementType
+  quantity Decimal      @db.Decimal(10, 3) // Positive for IN, Negative for OUT
+  reason   String? // "Sold in INV-102", "Expired", "Manual Restock"
+
+  createdAt DateTime @default(now())
+
+  @@map("inventory_movements")
 }
 
 // --- CUSTOMER / PATIENT RECORDS ---

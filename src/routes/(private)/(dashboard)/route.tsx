@@ -1,47 +1,21 @@
+import AppNav from '@/components/custom/dashboard/app-nav'
 import { AppSidebar } from '@/components/custom/dashboard/app-sidebar'
-import { ThemeToggle } from '@/components/custom/theme/theme-toggle'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { authClient } from '@/lib/better-auth/auth-client'
-import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/(private)/(dashboard)')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  const navigate = useNavigate()
   return (
     <TooltipProvider>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset>
-          <header className='flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12'>
-            <div className='flex items-center gap-2 px-4'>
-              <SidebarTrigger className='-ml-1' />
-              <Separator orientation='vertical' className='mr-2 data-[orientation=vertical]:h-4' />
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={() => {
-                  authClient.signOut(
-                    {},
-                    {
-                      onSuccess: () => {
-                        navigate({ to: '/', reloadDocument: true })
-                      },
-                    },
-                  )
-                }}
-              >
-                Logout
-              </Button>
-              <ThemeToggle />
-            </div>
-          </header>
-          <div className='flex flex-1 flex-col gap-4 p-4 pt-0'>
+        <SidebarInset className='flex flex-col h-screen overflow-hidden justify-start'>
+          <AppNav />
+          <div className='p-4 pt-0 grow h-1 flex flex-col gap-4'>
             <Outlet />
           </div>
         </SidebarInset>

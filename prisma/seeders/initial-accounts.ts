@@ -7,9 +7,27 @@ export async function initialAccounts(prisma: PrismaClient) {
   const now = new Date()
 
   const usersToSeed = [
-    { id: 'admin-1', email: 'admin@store.com', name: 'Admin User', role: Role.ADMIN },
-    { id: 'sup-1', email: 'supervisor@store.com', name: 'Supervisor User', role: Role.SUPERVISOR },
-    { id: 'cash-1', email: 'cashier@store.com', name: 'Cashier User', role: Role.CASHIER },
+    {
+      id: 'admin-1',
+      email: 'admin@store.com',
+      name: 'Admin User',
+      role: Role.ADMIN,
+      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+    },
+    {
+      id: 'sup-1',
+      email: 'supervisor@store.com',
+      name: 'Supervisor User',
+      role: Role.SUPERVISOR,
+      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sasha',
+    },
+    {
+      id: 'cash-1',
+      email: 'cashier@store.com',
+      name: 'Cashier User',
+      role: Role.CASHIER,
+      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka',
+    },
   ]
 
   console.log('🔄 Syncing users and updating credentials...')
@@ -17,7 +35,7 @@ export async function initialAccounts(prisma: PrismaClient) {
   for (const u of usersToSeed) {
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: { role: u.role, name: u.name },
+      update: u,
       create: {
         id: u.id,
         email: u.email,

@@ -1,116 +1,126 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { getColumns } from '@/components/custom/data-view'
+import TableView from '@/components/custom/data-view/table-view'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import dayjs from '@/lib/dayjs'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
+import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { Mail, MoreHorizontal } from 'lucide-react'
-
-// Updated data for Employees
-const employees = [
-  {
-    id: 'EMP001',
-    name: 'Alex Rivera',
-    role: 'Manager',
-    status: 'On Shift',
-    email: 'alex@brewpos.com',
-    performance: 'Top Tier',
-  },
-  {
-    id: 'EMP002',
-    name: 'Sarah Chen',
-    role: 'Barista',
-    status: 'Break',
-    email: 'sarah.c@brewpos.com',
-    performance: 'Consistent',
-  },
-  {
-    id: 'EMP003',
-    name: 'Jordan Smith',
-    role: 'Server',
-    status: 'Off Duty',
-    email: 'j.smith@brewpos.com',
-    performance: 'Improving',
-  },
-  {
-    id: 'EMP004',
-    name: 'Maria Garcia',
-    role: 'Barista',
-    status: 'On Shift',
-    email: 'm.garcia@brewpos.com',
-    performance: 'Top Tier',
-  },
-]
+import { Edit, Trash2 } from 'lucide-react'
+import { useMemo } from 'react'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(supervisor)/sales-reports')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
+  const { data, isFetching } = useQuery({
+    queryKey: ['inventory-reports'],
+    queryFn: async () => {
+      const response = await crudAPI({
+        data: {
+          action: 'findMany',
+          table: 'transaction',
+          args: {
+            include: {
+              cashier: true,
+              customer: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      })
+      return response as any[]
+    },
+  })
+
+  const columns = useMemo(
+    () =>
+      getColumns<NonNullable<typeof data>[number]>(h => [
+        h.display({
+          id: 'number',
+          maxSize: 20,
+          header: 'No.',
+          cell: info => <span className='text-xs font-mono text-muted-foreground/50'>{(info.row.index + 1).toString().padStart(2, '0')}</span>,
+        }),
+        h.accessor('invoiceNo', {
+          header: 'Invoice #',
+          cell: info => (
+            <div className='flex flex-col'>
+              <span className='font-bold text-foreground uppercase text-xs'>{info.row.original.invoiceNo.slice(-8)}</span>
+              <span className='text-[10px] text-muted-foreground'>{dayjs(info.row.original.createdAt).format('MMM DD, YYYY')}</span>
+            </div>
+          ),
+        }),
+        h.accessor('customer.name', {
+          header: 'Customer',
+          cell: info => info.row.original.customer?.name || 'Walk-in',
+        }),
+        h.accessor('status', {
+          header: 'Status',
+          cell: info => {
+            const status = info.getValue()
+            return (
+              <Badge variant={status === 'COMPLETED' ? 'secondary' : 'outline'} className='rounded-full font-medium text-[10px]'>
+                {status}
+              </Badge>
+            )
+          },
+        }),
+        h.accessor('paymentMethod', {
+          header: 'Method',
+          cell: info => <span className='capitalize text-muted-foreground italic'>{info.getValue() || 'N/A'}</span>,
+        }),
+        h.accessor('cashier.name', {
+          header: 'Processed By',
+          cell: info => (
+            <div className='flex items-center gap-2'>
+              <div className='h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary'>
+                {info.row.original.cashier?.name?.charAt(0)}
+              </div>
+              <span className='text-sm'>{info.row.original.cashier?.name}</span>
+            </div>
+          ),
+        }),
+        h.accessor('totalAmount', {
+          header: () => <div className='text-right'>Total</div>,
+          cell: info => <div className='text-right font-bold text-foreground'>₱{Number(info.getValue()).toLocaleString()}</div>,
+        }),
+        h.display({
+          id: 'actions',
+          maxSize: 60,
+          header: () => <div className='text-right pr-4'>Actions</div>,
+          cell: ({ row }) => (
+            <div className='flex justify-end gap-2 pr-2 opacity-0 group-hover:opacity-100 transition-opacity'>
+              <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => console.log('Viewing Invoice', row.original.id)}>
+                <Edit className='h-4 w-4' />
+              </Button>
+              <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full text-destructive hover:text-destructive'>
+                <Trash2 className='h-4 w-4' />
+              </Button>
+            </div>
+          ),
+        }),
+      ]),
+    [data],
+  )
+
   return (
     <>
-      <div className='flex justify-between items-center'>
-        <h1 className='text-2xl font-bold tracking-tight'>Team Members</h1>
-        <Button className='rounded-xl shadow-md'>+ Add Employee</Button>
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
+        <div>
+          <h1 className='text-3xl font-bold tracking-tight text-foreground'>Sales Reports</h1>
+          <p className='text-muted-foreground text-sm'>Financial overview and transaction history for supervisors.</p>
+        </div>
+        <div className='flex gap-4'>
+          <div className='bg-card border p-3 rounded-xl px-6'>
+            <p className='text-[10px] uppercase text-muted-foreground font-semibold'>Total Revenue</p>
+            <p className='text-xl font-bold text-emerald-500'>₱{data?.reduce((acc, curr) => acc + Number(curr.totalAmount), 0).toLocaleString() || 0}</p>
+          </div>
+        </div>
       </div>
 
-      <div className='bg-white rounded-[2rem] shadow-sm border overflow-hidden'>
-        <Table>
-          <TableHeader className='bg-slate-50/50'>
-            <TableRow className='hover:bg-transparent border-none'>
-              <TableHead className='w-[300px] pl-6'>Employee</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Performance</TableHead>
-              <TableHead className='text-right pr-6'>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {employees.map(emp => (
-              <TableRow key={emp.id} className='group border-slate-50 hover:bg-slate-50/50 transition-colors'>
-                <TableCell className='pl-6 py-4'>
-                  <div className='flex items-center gap-3'>
-                    <Avatar className='h-10 w-10 border-2 border-white shadow-sm'>
-                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.name}`} />
-                      <AvatarFallback>{emp.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className='flex flex-col'>
-                      <span className='font-semibold text-slate-900'>{emp.name}</span>
-                      <span className='text-xs text-slate-400 font-mono'>{emp.id}</span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className='font-medium text-slate-600'>{emp.role}</TableCell>
-                <TableCell>
-                  <Badge
-                    className={`rounded-full px-3 py-0.5 font-medium border-none ${
-                      emp.status === 'On Shift'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : emp.status === 'Break'
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-slate-100 text-slate-500'
-                    }`}
-                  >
-                    {emp.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <span className={`text-sm ${emp.performance === `Top Tier` ? `text-indigo-600 font-bold` : `text-slate-500`}`}>{emp.performance}</span>
-                </TableCell>
-                <TableCell className='text-right pr-6'>
-                  <div className='flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity'>
-                    <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full'>
-                      <Mail className='h-4 w-4' />
-                    </Button>
-                    <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full'>
-                      <MoreHorizontal className='h-4 w-4' />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <TableView data={data} columns={columns} isFetching={isFetching} emptyMessage='No transactions found for this period.' />
     </>
   )
 }
