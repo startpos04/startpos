@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+import { prisma } from '@/lib/prisma-client'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -41,7 +41,7 @@ async function main() {
         const seederTask = module.default || Object.values(module).find(val => typeof val === 'function')
 
         if (typeof seederTask === 'function') {
-          await seederTask(db)
+          await seederTask(prisma)
         } else {
           console.warn(`⚠️  Skipping ${file}: No exportable function found.`)
         }
@@ -61,5 +61,5 @@ main()
     process.exit(1)
   })
   .finally(async () => {
-    await db.$disconnect()
+    await prisma.$disconnect()
   })

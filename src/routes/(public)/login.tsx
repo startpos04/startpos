@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/custom/theme/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -49,7 +50,10 @@ function LoginComponent() {
     <div className='flex flex-col items-center justify-center min-h-screen p-4'>
       <Card className='w-full max-w-md'>
         <CardHeader>
-          <CardTitle className='text-2xl font-bold'>Login</CardTitle>
+          <div className='flex justify-between'>
+            <CardTitle className='text-2xl font-bold'>Login</CardTitle>
+            <ThemeToggle />
+          </div>
           <CardDescription>Enter your email below to login.</CardDescription>
         </CardHeader>
         <CardContent>

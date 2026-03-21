@@ -1,7 +1,7 @@
-import { db } from '@/lib/db'
+import { prisma } from '@/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 
-type DB = typeof db
+type DB = typeof prisma
 
 // Only keep Prisma model delegates
 type ModelName = {
@@ -22,7 +22,7 @@ type PrismaReturn<T extends ModelName, M extends DelegateMethods<DB[T]>> = DB[T]
 const crudServerFn = createServerFn({ method: 'POST' })
   .inputValidator((d: { table: ModelName; action: string; args?: unknown }) => d)
   .handler(async ({ data }) => {
-    const delegate = db[data.table] as any
+    const delegate = prisma[data.table] as any
     return delegate[data.action](data.args)
   })
 

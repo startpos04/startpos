@@ -2,10 +2,10 @@ import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { Role } from 'prisma/generated/prisma/enums'
-import { db } from '../db'
+import { prisma } from '../prisma-client'
 
 export const auth = betterAuth({
-  database: prismaAdapter(db, {
+  database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
   emailAndPassword: {

@@ -1,11 +1,8 @@
 import { ThemeProvider } from '@/components/custom/theme/theme-provider'
 import { geAuthUser } from '@/lib/better-auth/auth-server' // Import your server function
+import { MyRouterContext } from '@/router'
 import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import appCss from '../styles.css?url'
-
-interface MyRouterContext {
-  user: Awaited<ReturnType<typeof geAuthUser>> | undefined
-}
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({

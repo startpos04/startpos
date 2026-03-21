@@ -1,113 +1,126 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { MoreHorizontal, Mail, Phone } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
+import { useQuery } from '@tanstack/react-query'
+import { createFileRoute } from '@tanstack/react-router'
+import { ColumnDef, createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
+import { Edit, Trash2 } from 'lucide-react'
+import { useMemo } from 'react'
 
-// Updated data for Employees
-const employees = [
-  {
-    id: 'EMP001',
-    name: 'Alex Rivera',
-    role: 'Manager',
-    status: 'On Shift',
-    email: 'alex@brewpos.com',
-    performance: 'Top Tier',
-  },
-  {
-    id: 'EMP002',
-    name: 'Sarah Chen',
-    role: 'Barista',
-    status: 'Break',
-    email: 'sarah.c@brewpos.com',
-    performance: 'Consistent',
-  },
-  {
-    id: 'EMP003',
-    name: 'Jordan Smith',
-    role: 'Server',
-    status: 'Off Duty',
-    email: 'j.smith@brewpos.com',
-    performance: 'Improving',
-  },
-  {
-    id: 'EMP004',
-    name: 'Maria Garcia',
-    role: 'Barista',
-    status: 'On Shift',
-    email: 'm.garcia@brewpos.com',
-    performance: 'Top Tier',
-  },
-]
+export const getColumns = <T,>(columns: (helper: ReturnType<typeof createColumnHelper<T>>) => ColumnDef<T, any>[]) => {
+  const helper = createColumnHelper<T>()
+  return columns(helper)
+}
+
+const TableRowSkeleton = ({ columns }: { columns: number }) => (
+  <>
+    {Array.from({ length: 5 }).map((_, i) => (
+      <TableRow key={`skeleton-${i}`} className='group border-0 transition-colors even:bg-muted/30 hover:bg-muted/60 data-[state=selected]:bg-muted'>
+        {Array.from({ length: columns }).map((_, j) => (
+          <TableCell key={`cell-${j}`} className='h-10.25 py-1'>
+            <Skeleton className='w-full rounded-md bg-muted animate-pulse h-4' />
+          </TableCell>
+        ))}
+      </TableRow>
+    ))}
+  </>
+)
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
+  const { data, isFetching } = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => {
+      return await crudAPI({ data: { action: 'findMany', table: 'user' } })
+    },
+  })
+
+  const columns = useMemo(
+    () =>
+      getColumns<NonNullable<typeof data>[number]>(h => [
+        h.display({
+          id: 'number',
+          header: 'No.',
+          cell: info => <span className='text-xs font-mono text-muted-foreground/50'>{(info.row.index + 1).toString().padStart(2, '0')}</span>,
+        }),
+        h.accessor('name', {
+          header: 'Employee',
+        }),
+        h.accessor('role', {
+          header: 'Role',
+          cell: info => <span className='capitalize text-slate-600'>{info.getValue()}</span>,
+        }),
+        h.display({
+          id: 'actions',
+          header: () => <div className='text-right pr-4'>Actions</div>,
+          cell: ({ row }) => (
+            <div className='flex justify-end gap-2 pr-2 opacity-0 group-hover:opacity-100 transition-opacity'>
+              <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => console.log('Editing', row.original.id)}>
+                <Edit className='h-4 w-4' />
+              </Button>
+              <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full text-destructive hover:text-destructive'>
+                <Trash2 className='h-4 w-4' />
+              </Button>
+            </div>
+          ),
+        }),
+      ]),
+    [data],
+  )
+
+  const table = useReactTable({
+    data: data ?? [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  })
+
   return (
     <>
-      <div className='flex justify-between items-center'>
-        <h1 className='text-2xl font-bold tracking-tight'>Team Members</h1>
-        <Button className='rounded-xl shadow-md'>+ Add Employee</Button>
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
+        <div>
+          <h1 className='text-3xl font-bold tracking-tight text-foreground'>Employees</h1>
+          <p className='text-muted-foreground text-sm'>Manage your team and their workspace roles.</p>
+        </div>
+        <Button className='rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>+ Add Employee</Button>
       </div>
 
-      <div className='bg-white rounded-[2rem] shadow-sm border overflow-hidden'>
+      <div className='rounded-md border border-border bg-card shadow-sm overflow-hidden'>
         <Table>
-          <TableHeader className='bg-slate-50/50'>
-            <TableRow className='hover:bg-transparent border-none'>
-              <TableHead className='w-[300px] pl-6'>Employee</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Performance</TableHead>
-              <TableHead className='text-right pr-6'>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {employees.map(emp => (
-              <TableRow key={emp.id} className='group border-slate-50 hover:bg-slate-50/50 transition-colors'>
-                <TableCell className='pl-6 py-4'>
-                  <div className='flex items-center gap-3'>
-                    <Avatar className='h-10 w-10 border-2 border-white shadow-sm'>
-                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.name}`} />
-                      <AvatarFallback>{emp.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className='flex flex-col'>
-                      <span className='font-semibold text-slate-900'>{emp.name}</span>
-                      <span className='text-xs text-slate-400 font-mono'>{emp.id}</span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className='font-medium text-slate-600'>{emp.role}</TableCell>
-                <TableCell>
-                  <Badge
-                    className={`rounded-full px-3 py-0.5 font-medium border-none ${
-                      emp.status === 'On Shift'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : emp.status === 'Break'
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-slate-100 text-slate-500'
-                    }`}
-                  >
-                    {emp.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <span className={`text-sm ${emp.performance === `Top Tier` ? `text-indigo-600 font-bold` : `text-slate-500`}`}>{emp.performance}</span>
-                </TableCell>
-                <TableCell className='text-right pr-6'>
-                  <div className='flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity'>
-                    <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full'>
-                      <Mail className='h-4 w-4' />
-                    </Button>
-                    <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full'>
-                      <MoreHorizontal className='h-4 w-4' />
-                    </Button>
-                  </div>
-                </TableCell>
+          <TableHeader className='bg-muted/50'>
+            {table.getHeaderGroups().map(headerGroup => (
+              <TableRow key={headerGroup.id} className='hover:bg-transparent border-0'>
+                {headerGroup.headers.map(header => (
+                  <TableHead key={header.id} className='text-muted-foreground font-semibold h-10.25 py-1'>
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
+          </TableHeader>
+          <TableBody>
+            {isFetching ? (
+              <TableRowSkeleton columns={columns.length} />
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map(row => (
+                <TableRow key={row.id} className='group border-0 transition-colors even:bg-muted/30 hover:bg-muted/60 data-[state=selected]:bg-muted'>
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id} className='h-10.25 py-1'>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className='text-center text-muted-foreground'>
+                  No employees found in the database.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

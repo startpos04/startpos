@@ -25,15 +25,13 @@ export function ThemeToggle() {
 
   return (
     <div className='relative inline-flex items-center scale-150'>
-      {/* scale-125 makes the Switch ~55px wide and 30px tall */}
       <Switch
         id='theme-mode'
         checked={isDark}
         onCheckedChange={toggleTheme}
-        className='data-[state=checked]:bg-slate-900 data-[state=unchecked]:bg-slate-200'
+        className='data-[state=checked]:bg-slate-900 data-[state=unchecked]:bg-slate-200 cursor-pointer'
       />
 
-      {/* Icon Container positioned precisely over the thumb */}
       <div
         className={`pointer-events-none absolute left-0.75 flex h-5 w-5 items-center justify-center transition-transform duration-200 ease-in-out ${
           isDark ? 'translate-x-2' : '-translate-x-1.25'
