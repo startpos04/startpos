@@ -13,7 +13,6 @@ interface ImageUploaderProps {
 }
 
 export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
-  const [tempImage, setTempImage] = useState<string | null>(null)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -39,8 +38,7 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
     setIsCameraOpen(true)
   }
 
-  const handleCameraCapture = (base64: string) => {
-    setTempImage(base64)
+  const handleCameraCapture = (tempImage: string) => {
     showModal(CropImage, { tempImage, onCrop: onChange })
     setIsCameraOpen(false)
   }

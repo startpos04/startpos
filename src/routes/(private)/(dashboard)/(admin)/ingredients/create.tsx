@@ -1,14 +1,30 @@
 import { ImageInput } from '@/components/custom/form/image-input'
+import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
+import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
 import { useForm } from '@tanstack/react-form'
+import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Info, Save, Warehouse } from 'lucide-react'
 import { z } from 'zod'
+
+const ingredientSchema = z.object({
+  name: z.string().min(2, 'Name required'),
+  sku: z.string().min(1, 'SKU required'),
+  image: z.string(),
+  categoryId: z.string().min(1, 'Category required'),
+  type: z.literal('RAW_MATERIAL'),
+  price: z.number().min(0),
+  isAvailable: z.boolean(),
+  hasExpiry: z.boolean(),
+})
+type FormData = z.infer<typeof ingredientSchema>
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients/create')({
   component: () => <RouteComponent />,
@@ -18,27 +34,56 @@ export function CreateIngredientDialog({ open, onClose }: { open: boolean; onClo
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className='sm:max-w-4xl'>
-        <RouteComponent />
+        <RouteComponent onClose={onClose} />
       </DialogContent>
     </Dialog>
   )
 }
 
-function RouteComponent() {
+function RouteComponent({ onClose }: { onClose?: () => void }) {
+  const queryClient = useQueryClient()
+  const navigate = Route.useNavigate()
+
+  const { data: categoryOptions = [] } = fetchCategoryOptions()
+
+  const handleSubmit = async ({ value }: { value: FormData }) => {
+    console.log(value)
+    try {
+      await crudAPI({
+        data: {
+          action: 'create',
+          table: 'product',
+          args: {
+            data: {
+              ...value,
+              image: value.image || null,
+            },
+          },
+        },
+      })
+
+      await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
+      onClose?.() || navigate({ to: '..' })
+    } catch (error) {
+      console.error('Failed to create employee:', error)
+    }
+  }
+
   const form = useForm({
     defaultValues: {
       name: '',
-      sku: '', // e.g., ING-BEEF
+      sku: '',
       image: '',
-      categoryId: '', // Usually the 'Pantry' ID from your seeder
       type: 'RAW_MATERIAL',
-      price: 0, // Ingredients usually have 0 sale price in your schema
-      isAvailable: false, // Usually false for POS since you don't sell raw flour
-      hasExpiry: true, // Based on your seeder logic
+      categoryId: '',
+      price: 0,
+      isAvailable: false,
+      hasExpiry: true,
     },
-    onSubmit: async ({ value }) => {
-      console.log('Creating Raw Material:', value)
-      // Logic: crudAPI.post('/products', value)
+    onSubmit: handleSubmit,
+    validators: {
+      onBlur: ingredientSchema,
+      onSubmit: ingredientSchema,
     },
   })
 
@@ -60,16 +105,11 @@ function RouteComponent() {
               </CardTitle>
             </CardHeader>
             <CardContent className='space-y-4'>
-              <form.Field
-                name='name'
-                validators={{ onChange: z.string().min(2, 'Name required') }}
-                children={field => <TextInput field={field} label='Ingredient Name' placeholder='e.g. Whole Milk' />}
-              />
-              <form.Field
-                name='sku'
-                validators={{ onChange: z.string().min(1, 'SKU required') }}
-                children={field => <TextInput field={field} label='Internal SKU' placeholder='ING-001' />}
-              />
+              <form.Field name='name' children={field => <TextInput field={field} label='Ingredient Name' placeholder='e.g. Whole Milk' />} />
+              <div className='grid grid-cols-2 gap-4'>
+                <form.Field name='sku' children={field => <TextInput field={field} label='Internal SKU' placeholder='ING-001' />} />
+                <form.Field name='categoryId' children={field => <SelectInput field={field} label='Category' options={categoryOptions} />} />
+              </div>
 
               <form.Field name='image' children={field => <ImageInput label='Ingredient Photo' field={field} />} />
             </CardContent>

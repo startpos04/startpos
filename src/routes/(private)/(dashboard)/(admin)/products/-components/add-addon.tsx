@@ -1,3 +1,4 @@
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -42,9 +43,15 @@ export function AddAddonModal({ open, onClose, onAdd }: any) {
                     selectedId === item.id ? 'border-primary bg-primary/5 shadow-sm' : 'border-transparent hover:bg-muted',
                   )}
                 >
-                  <div className='flex flex-col'>
-                    <span className='text-sm font-medium'>{item.name}</span>
-                    <span className='text-[10px] text-muted-foreground'>{item.sku}</span>
+                  <div className='flex gap-2'>
+                    <Avatar className='h-9 w-9 border border-border/50 shadow-sm'>
+                      <AvatarImage src={item.image ?? ''} alt={item.name} />
+                      <AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>{item.name?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className='flex flex-col grow'>
+                      <span className='text-sm font-medium'>{item.name}</span>
+                      <span className='text-[10px] text-muted-foreground'>{item.sku}</span>
+                    </div>
                   </div>
                   {selectedId === item.id && <Check className='h-4 w-4 text-primary' />}
                 </div>

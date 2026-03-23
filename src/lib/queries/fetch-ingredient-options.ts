@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { crudAPI } from '../prisma-client/crud-api'
 
-export const fetchIngredientsOptions = async () =>
+export const fetchIngredientOptions = () =>
   useQuery({
     queryKey: ['ingredientOptions'],
     queryFn: async () => {
