@@ -4,16 +4,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import Overlay from '@/lib/Overlay'
+import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { cn } from '@/lib/utils'
 import { Check, Search, Utensils } from 'lucide-react'
 import * as React from 'react'
-
-// Mock data - in real app, fetch this from your 'allProducts' query
-const SUGGESTIONS = [
-  { id: '1', name: 'Beef Patty', sku: 'ING-BEEF' },
-  { id: '2', name: 'Brioche Bun', sku: 'ING-BUN' },
-  { id: '3', name: 'Cheddar Slice', sku: 'ING-CHED' },
-]
 
 interface AddIngredientModalProps extends Overlay {
   open: boolean
@@ -22,14 +16,15 @@ interface AddIngredientModalProps extends Overlay {
 }
 
 export function AddIngredientModal({ open, onClose, onAdd }: AddIngredientModalProps) {
+  const { data = [] } = fetchIngredients()
   const [search, setSearch] = React.useState('')
   const [selectedId, setSelectedId] = React.useState<string | null>(null)
   const [quantity, setQuantity] = React.useState(1)
 
-  const filtered = SUGGESTIONS.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = data.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
 
   const handleAdd = () => {
-    const item = SUGGESTIONS.find(s => s.id === selectedId)
+    const item = data.find(s => s.id === selectedId)
     if (item) {
       onAdd({ id: item.id, name: item.name, quantity })
       onClose()

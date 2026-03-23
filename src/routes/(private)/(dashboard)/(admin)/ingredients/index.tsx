@@ -3,8 +3,7 @@ import { TableView } from '@/components/custom/data-view/table-view'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { showModal } from '@/lib/Overlay'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useQuery } from '@tanstack/react-query'
+import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Edit, Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
@@ -14,29 +13,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients
 })
 
 function RouteComponent() {
-  const { data, isFetching } = useQuery({
-    queryKey: ['ingredients'],
-    queryFn: async () => {
-      return await crudAPI({
-        data: {
-          action: 'findMany',
-          table: 'product',
-          args: {
-            where: {
-              type: 'RAW_MATERIAL',
-              variantOfId: null,
-            },
-            include: {
-              category: true,
-              ingredients: { include: { material: true } },
-              allowedAddons: { include: { addon: true } },
-              variants: true,
-            },
-          },
-        },
-      })
-    },
-  })
+  const { data, isFetching } = fetchIngredients()
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()

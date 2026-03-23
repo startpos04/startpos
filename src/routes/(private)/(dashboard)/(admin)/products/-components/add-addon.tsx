@@ -3,23 +3,18 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { cn } from '@/lib/utils'
 import { Check, DollarSign, PlusCircle, Search } from 'lucide-react'
 import * as React from 'react'
 
 export function AddAddonModal({ open, onClose, onAdd }: any) {
+  const { data = [] } = fetchIngredients()
   const [search, setSearch] = React.useState('')
   const [selectedId, setSelectedId] = React.useState<string | null>(null)
   const [priceOverride, setPriceOverride] = React.useState(0)
 
-  // Mock list - filter these from your 'RAW_MATERIAL' products
-  const SUGGESTIONS = [
-    { id: '101', name: 'Extra Bacon', sku: 'ADD-BACON' },
-    { id: '102', name: 'Extra Cheese', sku: 'ADD-CHED' },
-    { id: '103', name: 'Egg Patty', sku: 'ADD-EGG' },
-  ]
-
-  const filtered = SUGGESTIONS.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = data.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -73,7 +68,7 @@ export function AddAddonModal({ open, onClose, onAdd }: any) {
           <Button
             disabled={!selectedId}
             onClick={() => {
-              const item = SUGGESTIONS.find(s => s.id === selectedId)
+              const item = data.find(s => s.id === selectedId)
               onAdd({ ...item, priceOverride })
               onClose
             }}
