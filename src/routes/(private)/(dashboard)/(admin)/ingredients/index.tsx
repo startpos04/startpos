@@ -2,12 +2,14 @@ import { getColumns } from '@/components/custom/data-view'
 import { TableView } from '@/components/custom/data-view/table-view'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { showModal } from '@/lib/Overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Edit, Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
-export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients')({
+import { CreateIngredientDialog } from './create'
+export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients/')({
   component: RouteComponent,
 })
 
@@ -38,6 +40,7 @@ function RouteComponent() {
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
+    showModal(CreateIngredientDialog)
   }
 
   const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, employeeId: string) => {

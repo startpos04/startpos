@@ -1,5 +1,4 @@
 import { ImageInput } from '@/components/custom/form/image-input'
-import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,7 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { showModal } from '@/lib/Overlay'
 import { useForm } from '@tanstack/react-form'
 import { createFileRoute } from '@tanstack/react-router'
-import { ChevronLeft, Layers, Package, Plus, PlusCircle, Save, Utensils } from 'lucide-react'
+import { Layers, Package, Plus, PlusCircle, Save, Utensils, Warehouse } from 'lucide-react'
 import { z } from 'zod'
 import { AddAddonModal } from './-components/add-addon'
 import { AddIngredientModal } from './-components/add-ingredient'
@@ -30,8 +29,6 @@ export function CreateProductDialog({ open, onClose }: { open: boolean; onClose:
 }
 
 function RouteComponent() {
-  const navigate = Route.useNavigate()
-
   const form = useForm({
     defaultValues: {
       name: '',
@@ -62,32 +59,11 @@ function RouteComponent() {
   }
 
   return (
-    <div className='flex flex-col gap-6 max-w-5xl mx-auto pb-20'>
+    <div className='flex flex-col gap-6 max-w-5xl mx-auto'>
       {/* Header */}
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
-        <div className='flex items-center gap-4'>
-          <Button variant='outline' size='icon' className='rounded-full' onClick={() => navigate({ to: '..' })}>
-            <ChevronLeft className='h-4 w-4' />
-          </Button>
-          <div>
-            <h1 className='text-3xl font-bold tracking-tight'>New Product</h1>
-            <p className='text-muted-foreground text-sm'>Define your item, recipe, and variants.</p>
-          </div>
-        </div>
-        <form.Subscribe
-          selector={state => [state.canSubmit, state.isSubmitting]}
-          children={([canSubmit, isSubmitting]) => (
-            <Button onClick={() => form.handleSubmit()} disabled={!canSubmit} className='px-8 shadow-lg shadow-primary/20'>
-              {isSubmitting ? (
-                'Creating...'
-              ) : (
-                <>
-                  <Save className='w-4 h-4 mr-2' /> Save Product
-                </>
-              )}
-            </Button>
-          )}
-        />
+      <div>
+        <h1 className='text-3xl font-bold tracking-tight'>New Product</h1>
+        <p className='text-muted-foreground text-sm'>Define your item, recipe, and variants.</p>
       </div>
 
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
@@ -141,25 +117,11 @@ function RouteComponent() {
         <div className='space-y-6'>
           <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
             <CardHeader>
-              <CardTitle className='text-lg'>Classification</CardTitle>
+              <CardTitle className='text-lg flex items-center gap-2'>
+                <Warehouse className='w-5 h-5 text-emerald-500' /> Inventory Logic
+              </CardTitle>
             </CardHeader>
             <CardContent className='space-y-4'>
-              <form.Field
-                name='type'
-                children={field => (
-                  <SelectInput
-                    field={field}
-                    label='Resource Type'
-                    containerClass='flex items-center justify-between'
-                    options={[
-                      { label: 'Bundle (Meal)', value: 'BUNDLE' },
-                      { label: 'Physical Good', value: 'PHYSICAL_GOOD' },
-                      { label: 'Ingredient', value: 'RAW_MATERIAL' },
-                      { label: 'Service', value: 'SERVICE' },
-                    ]}
-                  />
-                )}
-              />
               <form.Field
                 name='isAvailable'
                 children={field => (
@@ -212,6 +174,20 @@ function RouteComponent() {
           </Card>
         </div>
       </div>
+      <form.Subscribe
+        selector={state => [state.canSubmit, state.isSubmitting]}
+        children={([canSubmit, isSubmitting]) => (
+          <Button onClick={() => form.handleSubmit()} disabled={!canSubmit} className='px-8 shadow-lg shadow-primary/20'>
+            {isSubmitting ? (
+              'Creating...'
+            ) : (
+              <>
+                <Save className='w-4 h-4 mr-2' /> Save Product
+              </>
+            )}
+          </Button>
+        )}
+      />
     </div>
   )
 }
