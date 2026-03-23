@@ -14,7 +14,7 @@ const TableRowSkeleton = ({ columns }: { columns: number }) => (
     {Array.from({ length: 5 }).map((_, i) => (
       <TableRow key={`skeleton-${i}`} className='border-0 even:bg-muted/30'>
         {Array.from({ length: columns }).map((_, j) => (
-          <TableCell key={`cell-${j}`} className='h-12 py-2'>
+          <TableCell key={`cell-${j}`} className='h-12 py-0.5'>
             <Skeleton className='w-full rounded-md h-4' />
           </TableCell>
         ))}
@@ -52,7 +52,7 @@ export function TableView<T>({ data, isFetching, columns, emptyMessage = 'No rec
             table.getRowModel().rows.map(row => (
               <TableRow key={row.id} className='group border-0 transition-colors even:bg-muted/20 hover:bg-muted/50'>
                 {row.getVisibleCells().map(cell => (
-                  <TableCell key={cell.id} className='h-11 py-2'>
+                  <TableCell key={cell.id} className='h-11 py-0.5'>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}

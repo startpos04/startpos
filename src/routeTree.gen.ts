@@ -19,9 +19,10 @@ import { Route as privatedashboardsupervisorRouteRouteImport } from './routes/(p
 import { Route as privatedashboardadminRouteRouteImport } from './routes/(private)/(dashboard)/(admin)/route'
 import { Route as privatedashboardsupervisorSalesReportsRouteImport } from './routes/(private)/(dashboard)/(supervisor)/sales-reports'
 import { Route as privatedashboardsupervisorInventoryReportsRouteImport } from './routes/(private)/(dashboard)/(supervisor)/inventory-reports'
-import { Route as privatedashboardadminInventoryIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/inventory/index'
+import { Route as privatedashboardadminIngredientsRouteImport } from './routes/(private)/(dashboard)/(admin)/ingredients'
+import { Route as privatedashboardadminProductsIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/products/index'
 import { Route as privatedashboardadminEmployeesIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/index'
-import { Route as privatedashboardadminInventoryCreateRouteImport } from './routes/(private)/(dashboard)/(admin)/inventory/create'
+import { Route as privatedashboardadminProductsCreateRouteImport } from './routes/(private)/(dashboard)/(admin)/products/create'
 import { Route as privatedashboardadminEmployeesCreateRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/create'
 import { Route as privatedashboardadminEmployeesEmployeeIdRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/$employeeId'
 
@@ -75,10 +76,16 @@ const privatedashboardsupervisorInventoryReportsRoute =
     path: '/inventory-reports',
     getParentRoute: () => privatedashboardsupervisorRouteRoute,
   } as any)
-const privatedashboardadminInventoryIndexRoute =
-  privatedashboardadminInventoryIndexRouteImport.update({
-    id: '/inventory/',
-    path: '/inventory/',
+const privatedashboardadminIngredientsRoute =
+  privatedashboardadminIngredientsRouteImport.update({
+    id: '/ingredients',
+    path: '/ingredients',
+    getParentRoute: () => privatedashboardadminRouteRoute,
+  } as any)
+const privatedashboardadminProductsIndexRoute =
+  privatedashboardadminProductsIndexRouteImport.update({
+    id: '/products/',
+    path: '/products/',
     getParentRoute: () => privatedashboardadminRouteRoute,
   } as any)
 const privatedashboardadminEmployeesIndexRoute =
@@ -87,10 +94,10 @@ const privatedashboardadminEmployeesIndexRoute =
     path: '/employees/',
     getParentRoute: () => privatedashboardadminRouteRoute,
   } as any)
-const privatedashboardadminInventoryCreateRoute =
-  privatedashboardadminInventoryCreateRouteImport.update({
-    id: '/inventory/create',
-    path: '/inventory/create',
+const privatedashboardadminProductsCreateRoute =
+  privatedashboardadminProductsCreateRouteImport.update({
+    id: '/products/create',
+    path: '/products/create',
     getParentRoute: () => privatedashboardadminRouteRoute,
   } as any)
 const privatedashboardadminEmployeesCreateRoute =
@@ -111,26 +118,28 @@ export interface FileRoutesByFullPath {
   '/login': typeof publicLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/pos/': typeof privatePosIndexRoute
+  '/ingredients': typeof privatedashboardadminIngredientsRoute
   '/inventory-reports': typeof privatedashboardsupervisorInventoryReportsRoute
   '/sales-reports': typeof privatedashboardsupervisorSalesReportsRoute
   '/employees/$employeeId': typeof privatedashboardadminEmployeesEmployeeIdRoute
   '/employees/create': typeof privatedashboardadminEmployeesCreateRoute
-  '/inventory/create': typeof privatedashboardadminInventoryCreateRoute
+  '/products/create': typeof privatedashboardadminProductsCreateRoute
   '/employees/': typeof privatedashboardadminEmployeesIndexRoute
-  '/inventory/': typeof privatedashboardadminInventoryIndexRoute
+  '/products/': typeof privatedashboardadminProductsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof publicLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/pos': typeof privatePosIndexRoute
+  '/ingredients': typeof privatedashboardadminIngredientsRoute
   '/inventory-reports': typeof privatedashboardsupervisorInventoryReportsRoute
   '/sales-reports': typeof privatedashboardsupervisorSalesReportsRoute
   '/employees/$employeeId': typeof privatedashboardadminEmployeesEmployeeIdRoute
   '/employees/create': typeof privatedashboardadminEmployeesCreateRoute
-  '/inventory/create': typeof privatedashboardadminInventoryCreateRoute
+  '/products/create': typeof privatedashboardadminProductsCreateRoute
   '/employees': typeof privatedashboardadminEmployeesIndexRoute
-  '/inventory': typeof privatedashboardadminInventoryIndexRoute
+  '/products': typeof privatedashboardadminProductsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -142,13 +151,14 @@ export interface FileRoutesById {
   '/(private)/(dashboard)/(supervisor)': typeof privatedashboardsupervisorRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/(private)/pos/': typeof privatePosIndexRoute
+  '/(private)/(dashboard)/(admin)/ingredients': typeof privatedashboardadminIngredientsRoute
   '/(private)/(dashboard)/(supervisor)/inventory-reports': typeof privatedashboardsupervisorInventoryReportsRoute
   '/(private)/(dashboard)/(supervisor)/sales-reports': typeof privatedashboardsupervisorSalesReportsRoute
   '/(private)/(dashboard)/(admin)/employees/$employeeId': typeof privatedashboardadminEmployeesEmployeeIdRoute
   '/(private)/(dashboard)/(admin)/employees/create': typeof privatedashboardadminEmployeesCreateRoute
-  '/(private)/(dashboard)/(admin)/inventory/create': typeof privatedashboardadminInventoryCreateRoute
+  '/(private)/(dashboard)/(admin)/products/create': typeof privatedashboardadminProductsCreateRoute
   '/(private)/(dashboard)/(admin)/employees/': typeof privatedashboardadminEmployeesIndexRoute
-  '/(private)/(dashboard)/(admin)/inventory/': typeof privatedashboardadminInventoryIndexRoute
+  '/(private)/(dashboard)/(admin)/products/': typeof privatedashboardadminProductsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,26 +167,28 @@ export interface FileRouteTypes {
     | '/login'
     | '/api/auth/$'
     | '/pos/'
+    | '/ingredients'
     | '/inventory-reports'
     | '/sales-reports'
     | '/employees/$employeeId'
     | '/employees/create'
-    | '/inventory/create'
+    | '/products/create'
     | '/employees/'
-    | '/inventory/'
+    | '/products/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/api/auth/$'
     | '/pos'
+    | '/ingredients'
     | '/inventory-reports'
     | '/sales-reports'
     | '/employees/$employeeId'
     | '/employees/create'
-    | '/inventory/create'
+    | '/products/create'
     | '/employees'
-    | '/inventory'
+    | '/products'
   id:
     | '__root__'
     | '/'
@@ -187,13 +199,14 @@ export interface FileRouteTypes {
     | '/(private)/(dashboard)/(supervisor)'
     | '/api/auth/$'
     | '/(private)/pos/'
+    | '/(private)/(dashboard)/(admin)/ingredients'
     | '/(private)/(dashboard)/(supervisor)/inventory-reports'
     | '/(private)/(dashboard)/(supervisor)/sales-reports'
     | '/(private)/(dashboard)/(admin)/employees/$employeeId'
     | '/(private)/(dashboard)/(admin)/employees/create'
-    | '/(private)/(dashboard)/(admin)/inventory/create'
+    | '/(private)/(dashboard)/(admin)/products/create'
     | '/(private)/(dashboard)/(admin)/employees/'
-    | '/(private)/(dashboard)/(admin)/inventory/'
+    | '/(private)/(dashboard)/(admin)/products/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -275,11 +288,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardsupervisorInventoryReportsRouteImport
       parentRoute: typeof privatedashboardsupervisorRouteRoute
     }
-    '/(private)/(dashboard)/(admin)/inventory/': {
-      id: '/(private)/(dashboard)/(admin)/inventory/'
-      path: '/inventory'
-      fullPath: '/inventory/'
-      preLoaderRoute: typeof privatedashboardadminInventoryIndexRouteImport
+    '/(private)/(dashboard)/(admin)/ingredients': {
+      id: '/(private)/(dashboard)/(admin)/ingredients'
+      path: '/ingredients'
+      fullPath: '/ingredients'
+      preLoaderRoute: typeof privatedashboardadminIngredientsRouteImport
+      parentRoute: typeof privatedashboardadminRouteRoute
+    }
+    '/(private)/(dashboard)/(admin)/products/': {
+      id: '/(private)/(dashboard)/(admin)/products/'
+      path: '/products'
+      fullPath: '/products/'
+      preLoaderRoute: typeof privatedashboardadminProductsIndexRouteImport
       parentRoute: typeof privatedashboardadminRouteRoute
     }
     '/(private)/(dashboard)/(admin)/employees/': {
@@ -289,11 +309,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardadminEmployeesIndexRouteImport
       parentRoute: typeof privatedashboardadminRouteRoute
     }
-    '/(private)/(dashboard)/(admin)/inventory/create': {
-      id: '/(private)/(dashboard)/(admin)/inventory/create'
-      path: '/inventory/create'
-      fullPath: '/inventory/create'
-      preLoaderRoute: typeof privatedashboardadminInventoryCreateRouteImport
+    '/(private)/(dashboard)/(admin)/products/create': {
+      id: '/(private)/(dashboard)/(admin)/products/create'
+      path: '/products/create'
+      fullPath: '/products/create'
+      preLoaderRoute: typeof privatedashboardadminProductsCreateRouteImport
       parentRoute: typeof privatedashboardadminRouteRoute
     }
     '/(private)/(dashboard)/(admin)/employees/create': {
@@ -314,25 +334,28 @@ declare module '@tanstack/react-router' {
 }
 
 interface privatedashboardadminRouteRouteChildren {
+  privatedashboardadminIngredientsRoute: typeof privatedashboardadminIngredientsRoute
   privatedashboardadminEmployeesEmployeeIdRoute: typeof privatedashboardadminEmployeesEmployeeIdRoute
   privatedashboardadminEmployeesCreateRoute: typeof privatedashboardadminEmployeesCreateRoute
-  privatedashboardadminInventoryCreateRoute: typeof privatedashboardadminInventoryCreateRoute
+  privatedashboardadminProductsCreateRoute: typeof privatedashboardadminProductsCreateRoute
   privatedashboardadminEmployeesIndexRoute: typeof privatedashboardadminEmployeesIndexRoute
-  privatedashboardadminInventoryIndexRoute: typeof privatedashboardadminInventoryIndexRoute
+  privatedashboardadminProductsIndexRoute: typeof privatedashboardadminProductsIndexRoute
 }
 
 const privatedashboardadminRouteRouteChildren: privatedashboardadminRouteRouteChildren =
   {
+    privatedashboardadminIngredientsRoute:
+      privatedashboardadminIngredientsRoute,
     privatedashboardadminEmployeesEmployeeIdRoute:
       privatedashboardadminEmployeesEmployeeIdRoute,
     privatedashboardadminEmployeesCreateRoute:
       privatedashboardadminEmployeesCreateRoute,
-    privatedashboardadminInventoryCreateRoute:
-      privatedashboardadminInventoryCreateRoute,
+    privatedashboardadminProductsCreateRoute:
+      privatedashboardadminProductsCreateRoute,
     privatedashboardadminEmployeesIndexRoute:
       privatedashboardadminEmployeesIndexRoute,
-    privatedashboardadminInventoryIndexRoute:
-      privatedashboardadminInventoryIndexRoute,
+    privatedashboardadminProductsIndexRoute:
+      privatedashboardadminProductsIndexRoute,
   }
 
 const privatedashboardadminRouteRouteWithChildren =

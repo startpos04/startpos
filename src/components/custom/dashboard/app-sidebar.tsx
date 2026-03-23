@@ -68,7 +68,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           allowedRoles: [Role.ADMIN],
           items: [
             { title: 'Employees', url: '/employees' },
-            { title: 'Inventory', url: '/inventory' },
+            { title: 'Products', url: '/products' },
+            { title: 'Ingredients', url: '/ingredients' },
           ],
         },
         {

@@ -13,7 +13,7 @@ import { Coffee, Layers, Leaf, MoreVertical, Plus, PlusCircle } from 'lucide-rea
 import { useMemo } from 'react'
 import { CreateProductDialog } from './create'
 
-export const Route = createFileRoute('/(private)/(dashboard)/(admin)/inventory/')({
+export const Route = createFileRoute('/(private)/(dashboard)/(admin)/products/')({
   component: RouteComponent,
 })
 
@@ -68,10 +68,10 @@ function RouteComponent() {
     <>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
         <div>
-          <h1 className='text-3xl font-bold tracking-tight text-foreground'>Inventory</h1>
-          <p className='text-muted-foreground text-sm'>Monitor stock levels and manage product recipes.</p>
+          <h1 className='text-3xl font-bold tracking-tight text-foreground'>Products</h1>
+          <p className='text-muted-foreground text-sm'>Configure product bundles, define ingredient recipes, and manage available add-ons.</p>
         </div>
-        <a href='/inventory/create' onClick={handleAdd} className='contents'>
+        <a href='/products/create' onClick={handleAdd} className='contents'>
           <Button className='rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer'>
             <Plus className='h-4 w-4' /> Add Product
           </Button>

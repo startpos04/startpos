@@ -15,7 +15,7 @@ import { AddAddonModal } from './-components/add-addon'
 import { AddIngredientModal } from './-components/add-ingredient'
 import { AddVariantModal } from './-components/add-variant'
 
-export const Route = createFileRoute('/(private)/(dashboard)/(admin)/inventory/create')({
+export const Route = createFileRoute('/(private)/(dashboard)/(admin)/products/create')({
   component: () => <RouteComponent />,
 })
 
@@ -204,7 +204,7 @@ function RouteComponent() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className='text-xs text-muted-foreground mb-4'>Define optional extras like "Extra Cheese".</p>
+              <p className='text-xs text-muted-foreground mb-4'>Define optional extras like 'Extra Cheese'.</p>
               <Button variant='outline' className='w-full rounded-xl border-dashed' onClick={handleAddAddons}>
                 Manage Add-ons
               </Button>
