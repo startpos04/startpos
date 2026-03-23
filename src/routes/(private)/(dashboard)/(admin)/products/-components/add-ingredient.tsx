@@ -4,11 +4,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import Overlay from '@/lib/Overlay'
+import Overlay, { showModal } from '@/lib/Overlay'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { cn } from '@/lib/utils'
 import { Check, Search, Utensils } from 'lucide-react'
 import * as React from 'react'
+import { CreateIngredientDialog } from '../../ingredients/create'
 
 interface AddIngredientModalProps extends Overlay {
   open: boolean
@@ -35,6 +36,10 @@ export function AddIngredientModal({ open, onClose, onAdd }: AddIngredientModalP
     }
   }
 
+  const handleCreateIngredient = () => {
+    showModal(CreateIngredientDialog)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className='sm:max-w-106.25 border-none shadow-2xl'>
@@ -46,10 +51,13 @@ export function AddIngredientModal({ open, onClose, onAdd }: AddIngredientModalP
           <DialogDescription>Search for a raw material to add to this recipe.</DialogDescription>
         </DialogHeader>
 
-        <div className='grid gap-4 py-4'>
-          <div className='relative flex items-center'>
-            <Search className='absolute left-2 h-4 w-4 text-muted-foreground' />
-            <Input placeholder='Search pantry...' value={search} onChange={e => setSearch(e.target.value)} className='pl-7' />
+        <div className='grid gap-4'>
+          <div className='flex gap-2'>
+            <div className='relative flex items-center grow'>
+              <Search className='absolute left-2 h-4 w-4 text-muted-foreground' />
+              <Input placeholder='Search ingredients...' value={search} onChange={e => setSearch(e.target.value)} className='pl-7' />
+            </div>
+            <Button onClick={handleCreateIngredient}>Create</Button>
           </div>
 
           <ScrollArea className='h-50'>

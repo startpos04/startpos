@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Info, Layers, Plus, Trash2 } from 'lucide-react'
+import { Layers, Plus, Trash2 } from 'lucide-react'
 import * as React from 'react'
 
 interface OptionRow {
@@ -57,14 +57,6 @@ export function AddVariantModal({ open, onClose, onAdd, parentName, parentSku }:
         </DialogHeader>
 
         <div className='space-y-4 py-4'>
-          <div className='bg-amber-500/5 p-3 rounded-md border border-amber-500/10 flex gap-2'>
-            <Info className='w-4 h-4 text-amber-500 shrink-0 mt-0.5' />
-            <p className='text-[10px] text-amber-700 leading-tight'>
-              Define a type (e.g. Size) and add multiple options. This will create individual linked products for{' '}
-              <strong>{parentName || 'this product'}</strong>.
-            </p>
-          </div>
-
           {/* Variant Type Input */}
           <div className='space-y-2'>
             <Label className='text-xs'>Variant Type</Label>
@@ -100,11 +92,11 @@ export function AddVariantModal({ open, onClose, onAdd, parentName, parentSku }:
                     <Label className='text-[10px]'>Price</Label>
                     <Input type='number' value={opt.price} onChange={e => updateRow(opt.id, 'price', Number(e.target.value))} />
                   </div>
-                  <div className='col-span-1 pb-1'>
+                  <div className='col-span-1'>
                     <Button
                       variant='ghost'
                       size='icon'
-                      className='h-9 w-9 text-muted-foreground hover:text-destructive'
+                      className='h-8 w-9 text-muted-foreground hover:text-destructive'
                       onClick={() => removeRow(opt.id)}
                       disabled={options.length === 1}
                     >

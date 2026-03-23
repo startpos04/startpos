@@ -4,10 +4,12 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { showModal } from '@/lib/Overlay'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { cn } from '@/lib/utils'
 import { Check, DollarSign, PlusCircle, Search } from 'lucide-react'
 import * as React from 'react'
+import { CreateIngredientDialog } from '../../ingredients/create'
 
 export function AddAddonModal({ open, onClose, onAdd }: any) {
   const { data = [] } = fetchIngredients()
@@ -16,6 +18,10 @@ export function AddAddonModal({ open, onClose, onAdd }: any) {
   const [priceOverride, setPriceOverride] = React.useState(0)
 
   const filtered = data.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
+
+  const handleCreateIngredient = () => {
+    showModal(CreateIngredientDialog)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -27,9 +33,12 @@ export function AddAddonModal({ open, onClose, onAdd }: any) {
         </DialogHeader>
 
         <div className='grid gap-4 py-4'>
-          <div className='relative flex items-center'>
-            <Search className='absolute left-2 h-4 w-4 text-muted-foreground' />
-            <Input placeholder='Search pantry...' value={search} onChange={e => setSearch(e.target.value)} className='pl-7' />
+          <div className='flex gap-2'>
+            <div className='relative flex items-center grow'>
+              <Search className='absolute left-2 h-4 w-4 text-muted-foreground' />
+              <Input placeholder='Search ingredients...' value={search} onChange={e => setSearch(e.target.value)} className='pl-7' />
+            </div>
+            <Button onClick={handleCreateIngredient}>Create</Button>
           </div>
 
           <ScrollArea className='h-50'>
