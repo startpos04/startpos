@@ -1,0 +1,88 @@
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
+import { Check, DollarSign, PlusCircle, Search } from 'lucide-react'
+import * as React from 'react'
+
+export function AddAddonModal({ open, onClose, onAdd }: any) {
+  const [search, setSearch] = React.useState('')
+  const [selectedId, setSelectedId] = React.useState<string | null>(null)
+  const [priceOverride, setPriceOverride] = React.useState(0)
+
+  // Mock list - filter these from your 'RAW_MATERIAL' products
+  const SUGGESTIONS = [
+    { id: '101', name: 'Extra Bacon', sku: 'ADD-BACON' },
+    { id: '102', name: 'Extra Cheese', sku: 'ADD-CHED' },
+    { id: '103', name: 'Egg Patty', sku: 'ADD-EGG' },
+  ]
+
+  const filtered = SUGGESTIONS.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className='sm:max-w-106.25  border-none shadow-2xl'>
+        <DialogHeader>
+          <DialogTitle className='flex items-center gap-2'>
+            <PlusCircle className='w-5 h-5 text-blue-500' /> Add Optional Extra
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className='grid gap-4 py-4'>
+          <div className='relative flex items-center'>
+            <Search className='absolute left-2 h-4 w-4 text-muted-foreground' />
+            <Input placeholder='Search pantry...' value={search} onChange={e => setSearch(e.target.value)} className='pl-7' />
+          </div>
+
+          <ScrollArea className='h-50'>
+            <div className='space-y-2'>
+              {filtered.map(item => (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedId(item.id)}
+                  className={cn(
+                    'flex items-center justify-between p-1 rounded-md cursor-pointer border transition-all',
+                    selectedId === item.id ? 'border-primary bg-primary/5 shadow-sm' : 'border-transparent hover:bg-muted',
+                  )}
+                >
+                  <div className='flex flex-col'>
+                    <span className='text-sm font-medium'>{item.name}</span>
+                    <span className='text-[10px] text-muted-foreground'>{item.sku}</span>
+                  </div>
+                  {selectedId === item.id && <Check className='h-4 w-4 text-primary' />}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+
+          <div className='space-y-2'>
+            <Label className='text-xs text-muted-foreground'>Upsell Price (Extra charge)</Label>
+            <div className='relative flex items-center'>
+              <DollarSign className='absolute left-2 h-4 w-4 text-muted-foreground' />
+              <Input type='number' value={priceOverride} onChange={e => setPriceOverride(Number(e.target.value))} className='pl-7' />
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant='ghost' onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!selectedId}
+            onClick={() => {
+              const item = SUGGESTIONS.find(s => s.id === selectedId)
+              onAdd({ ...item, priceOverride })
+              onClose
+            }}
+            className=' bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20'
+          >
+            Link Add-on
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

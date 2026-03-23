@@ -33,7 +33,7 @@ function RouteComponent() {
           },
         },
       })
-      return response as any[]
+      return response
     },
   })
 
@@ -57,7 +57,7 @@ function RouteComponent() {
       staffSales[staffName].total += Number(t.totalAmount)
       staffSales[staffName].count += 1
 
-      t.items?.forEach((item: any) => {
+      t.items?.forEach(item => {
         const catName = item.product?.category?.name || 'Uncategorized'
         categorySales[catName] = (categorySales[catName] || 0) + Number(item.unitPrice) * Number(item.quantity)
       })
@@ -108,7 +108,7 @@ function RouteComponent() {
         <StatsCard title='Tax Collected' value={reportData?.totals.tax} icon={<BarChart3 className='text-purple-500' />} trend='On track' />
         <StatsCard
           title='Avg. Order Value'
-          value={reportData?.totals.gross / (reportData?.totals.count || 1)}
+          value={reportData?.totals.gross! / (reportData?.totals.count || 1)}
           icon={<Users className='text-orange-500' />}
           trend='-2% vs yesterday'
         />
@@ -122,7 +122,7 @@ function RouteComponent() {
             <CardTitle>Revenue Trend</CardTitle>
             <CardDescription>Daily gross sales over the last active period.</CardDescription>
           </CardHeader>
-          <CardContent className='h-[300px]'>
+          <CardContent className='h-75'>
             <ResponsiveContainer width='100%' height='100%'>
               <LineChart data={reportData?.trend}>
                 <CartesianGrid strokeDasharray='3 3' vertical={false} stroke='#e5e7eb' />
@@ -141,7 +141,7 @@ function RouteComponent() {
             <CardTitle>Sales by Category</CardTitle>
             <CardDescription>Top revenue contributing categories.</CardDescription>
           </CardHeader>
-          <CardContent className='h-[300px]'>
+          <CardContent className='h-75'>
             <ResponsiveContainer width='100%' height='100%'>
               <PieChart>
                 <Pie data={reportData?.categories} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey='value'>
@@ -178,7 +178,7 @@ function RouteComponent() {
             <CardContent>
               <TableView
                 data={data}
-                columns={getColumns(h => [
+                columns={getColumns<NonNullable<typeof data>[number]>(h => [
                   h.accessor('invoiceNo', { header: 'Invoice', cell: i => <span className='font-mono text-xs font-bold'>{i.getValue().slice(-6)}</span> }),
                   h.accessor('cashier.name', { header: 'Staff' }),
                   h.accessor('totalAmount', { header: 'Total', cell: i => `₱${Number(i.getValue()).toLocaleString()}` }),

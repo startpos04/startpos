@@ -77,7 +77,7 @@ function RouteComponent() {
           >
             <Utensils className='w-6 h-6' />
           </Button>
-          {categories?.map((cat: any) => (
+          {categories?.map(cat => (
             <Button
               key={cat.id}
               variant={activeCategory === cat.id ? 'default' : 'ghost'}

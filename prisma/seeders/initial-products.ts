@@ -1,7 +1,7 @@
 import { PrismaClient, ResourceType } from 'prisma/generated/prisma/client'
 
 export async function initialProducts(prisma: PrismaClient) {
-  console.log('🍔 Populating Food Store data...')
+  console.log('🍔 Populating full Food Store with Images, Ingredients, Variants, and Add-ons...')
 
   // 1. Ensure Categories exist
   const categories = {
@@ -11,83 +11,23 @@ export async function initialProducts(prisma: PrismaClient) {
     sides: await prisma.category.upsert({ where: { name: 'Sides' }, update: {}, create: { name: 'Sides' } }),
   }
 
-  // 2. Define Raw Materials (Ingredients) - 12 items
-  const rawMaterials = [
-    {
-      name: 'Brioche Bun',
-      sku: 'ING-BUN',
-      categoryId: categories.pantry.id,
-      image: 'https://images.unsplash.com/photo-1603532648955-039310d9ed75?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      name: 'Beef Patty (150g)',
-      sku: 'ING-BEEF',
-      categoryId: categories.pantry.id,
-      image: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      name: 'Cheddar Slice',
-      sku: 'ING-CHED',
-      categoryId: categories.pantry.id,
-      image: 'https://images.unsplash.com/photo-1618164435735-413d3b066c9a?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      name: 'Lettuce Leaf',
-      sku: 'ING-LETT',
-      categoryId: categories.pantry.id,
-      image: 'https://images.unsplash.com/photo-1622206141855-662584282b99?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      name: 'Tomato Slice',
-      sku: 'ING-TOMA',
-      categoryId: categories.pantry.id,
-      image: 'https://images.unsplash.com/photo-1518977822534-7049a61ee0c2?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      name: 'Bacon Strip',
-      sku: 'ING-BACON',
-      categoryId: categories.pantry.id,
-      image: 'https://images.unsplash.com/photo-1606851091851-e8c8c0fca5ba?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      name: 'Potato (Raw)',
-      sku: 'ING-POTATO',
-      categoryId: categories.pantry.id,
-      image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      name: 'Cooking Oil',
-      sku: 'ING-OIL',
-      categoryId: categories.pantry.id,
-      image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      name: 'Chicken Breast',
-      sku: 'ING-CHKN',
-      categoryId: categories.pantry.id,
-      image: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      name: 'Soda Syrup',
-      sku: 'ING-SYRUP',
-      categoryId: categories.pantry.id,
-      image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      name: 'Carbonated Water',
-      sku: 'ING-WATER',
-      categoryId: categories.pantry.id,
-      image: 'https://images.unsplash.com/photo-1551731589-35a0980070bc?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      name: 'Pickles',
-      sku: 'ING-PICKLE',
-      categoryId: categories.pantry.id,
-      image: 'https://images.unsplash.com/photo-1589135398302-383bc370461b?q=80&w=200&auto=format&fit=crop',
-    },
-  ]
+  const productMap: Record<string, string> = {}
 
-  const ingredientMap: Record<string, string> = {}
+  // 2. Define ALL Raw Materials (Ingredients/Add-ons) - 12 items
+  const rawMaterials = [
+    { name: 'Brioche Bun', sku: 'ING-BUN', image: 'https://images.unsplash.com/photo-1603532648955-039310d9ed75?q=80&w=200&auto=format&fit=crop' },
+    { name: 'Beef Patty (150g)', sku: 'ING-BEEF', image: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?q=80&w=200&auto=format&fit=crop' },
+    { name: 'Cheddar Slice', sku: 'ING-CHED', image: 'https://images.unsplash.com/photo-1618164435735-413d3b066c9a?q=80&w=200&auto=format&fit=crop' },
+    { name: 'Lettuce Leaf', sku: 'ING-LETT', image: 'https://images.unsplash.com/photo-1622206141855-662584282b99?q=80&w=200&auto=format&fit=crop' },
+    { name: 'Tomato Slice', sku: 'ING-TOMA', image: 'https://images.unsplash.com/photo-1518977822534-7049a61ee0c2?q=80&w=200&auto=format&fit=crop' },
+    { name: 'Bacon Strip', sku: 'ING-BACON', image: 'https://images.unsplash.com/photo-1606851091851-e8c8c0fca5ba?q=80&w=200&auto=format&fit=crop' },
+    { name: 'Potato (Raw)', sku: 'ING-POTATO', image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?q=80&w=200&auto=format&fit=crop' },
+    { name: 'Cooking Oil', sku: 'ING-OIL', image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=200&auto=format&fit=crop' },
+    { name: 'Chicken Breast', sku: 'ING-CHKN', image: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?q=80&w=200&auto=format&fit=crop' },
+    { name: 'Soda Syrup', sku: 'ING-SYRUP', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=200&auto=format&fit=crop' },
+    { name: 'Carbonated Water', sku: 'ING-WATER', image: 'https://images.unsplash.com/photo-1551731589-35a0980070bc?q=80&w=200&auto=format&fit=crop' },
+    { name: 'Pickles', sku: 'ING-PICKLE', image: 'https://images.unsplash.com/photo-1589135398302-383bc370461b?q=80&w=200&auto=format&fit=crop' },
+  ]
 
   for (const item of rawMaterials) {
     const product = await prisma.product.upsert({
@@ -97,13 +37,14 @@ export async function initialProducts(prisma: PrismaClient) {
         ...item,
         type: ResourceType.RAW_MATERIAL,
         price: 0,
+        categoryId: categories.pantry.id,
         hasExpiry: true,
       },
     })
-    ingredientMap[item.sku] = product.id
+    productMap[item.sku] = product.id
   }
 
-  // 3. Define Finished Products (Bundles) - 10 items
+  // 3. Define Finished Bundles - 10 items
   const bundles = [
     {
       name: 'Classic Cheeseburger',
@@ -189,38 +130,63 @@ export async function initialProducts(prisma: PrismaClient) {
 
   for (const bundle of bundles) {
     const { ingredients, ...productData } = bundle
-
-    // Create the Product
     const createdBundle = await prisma.product.upsert({
       where: { sku: productData.sku },
       update: productData,
-      create: {
-        ...productData,
-        type: ResourceType.BUNDLE,
-      },
+      create: { ...productData, type: ResourceType.BUNDLE },
     })
 
-    // Link Ingredients
+    // Link Recipe Ingredients
     for (const sku of ingredients) {
-      const ingredientId = ingredientMap[sku]
+      const ingredientId = productMap[sku]
       if (ingredientId) {
-        await prisma.ingredient.upsert({
-          where: {
-            parentProductId_componentId: {
-              parentProductId: createdBundle.id,
-              componentId: ingredientId,
-            },
-          },
+        await prisma.productIngredient.upsert({
+          where: { hostId_materialId: { hostId: createdBundle.id, materialId: ingredientId } },
           update: { quantityUsed: 1.0 },
-          create: {
-            parentProductId: createdBundle.id,
-            componentId: ingredientId,
-            quantityUsed: 1.0,
-          },
+          create: { hostId: createdBundle.id, materialId: ingredientId, quantityUsed: 1.0 },
         })
+      }
+    }
+
+    // Add logical Add-ons to Burgers (Cheese & Bacon)
+    if (productData.categoryId === categories.burgers.id) {
+      const addonSkus = ['ING-CHED', 'ING-BACON', 'ING-PICKLE']
+      for (const asku of addonSkus) {
+        const aid = productMap[asku]
+        if (aid) {
+          await prisma.productAddon.upsert({
+            where: { hostId_addonId: { hostId: createdBundle.id, addonId: aid } },
+            update: {},
+            create: { hostId: createdBundle.id, addonId: aid, priceOverride: 25.0 },
+          })
+        }
       }
     }
   }
 
-  console.log(`✅ Food data synced. Created ${rawMaterials.length + bundles.length} products total.`)
+  // 4. Create Variants (Cola Sizes)
+  // We use the 'Classic Cola' (DRK-CO-01) as the Master
+  const colaMaster = await prisma.product.findUnique({ where: { sku: 'DRK-CO-01' } })
+  if (colaMaster) {
+    const sizes = [
+      { name: 'Cola (Regular)', sku: 'DRK-CO-REG', price: 45 },
+      { name: 'Cola (Large)', sku: 'DRK-CO-LRG', price: 65 },
+      { name: 'Cola (Monster)', sku: 'DRK-CO-MON', price: 95 },
+    ]
+    for (const size of sizes) {
+      await prisma.product.upsert({
+        where: { sku: size.sku },
+        update: size,
+        create: {
+          ...size,
+          type: ResourceType.PHYSICAL_GOOD,
+          categoryId: categories.drinks.id,
+          variantOfId: colaMaster.id,
+          image: colaMaster.image,
+        },
+      })
+    }
+  }
+
+  console.log(`✅ Success! Synced 12 Materials, 10 Bundles, and added Variants/Add-ons.`)
 }

@@ -36,7 +36,7 @@ export function AppBreadcrumb() {
                   <BreadcrumbPage className='capitalize'>{label}</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
-                    <Link to={fullPath as any}>{label}</Link>
+                    <Link to={fullPath}>{label}</Link>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>

@@ -36,7 +36,7 @@ function InventoryReportComponent() {
           },
         },
       })
-      return resp as any[]
+      return resp
     },
   })
 
@@ -50,13 +50,13 @@ function InventoryReportComponent() {
     const cats: Record<string, number> = {}
 
     data.forEach(p => {
-      const stock = p.inventory?.reduce((acc: number, curr: any) => acc + Number(curr.quantity), 0) || 0
+      const stock = p.inventory?.reduce((acc: number, curr) => acc + Number(curr.quantity), 0) || 0
       value += stock * Number(p.price)
 
       if (stock < 15) lowStock++
 
       if (p.hasExpiry) {
-        const hasExpiring = p.inventory?.some((i: any) => i.expiryDate && dayjs(i.expiryDate).isBefore(dayjs().add(30, 'days')))
+        const hasExpiring = p.inventory?.some(i => i.expiryDate && dayjs(i.expiryDate).isBefore(dayjs().add(30, 'days')))
         if (hasExpiring) expiring++
       }
 
@@ -76,14 +76,14 @@ function InventoryReportComponent() {
 
   const columns = useMemo(
     () =>
-      getColumns<any>(h => [
+      getColumns<NonNullable<typeof data>[number]>(h => [
         // ... (Your existing Number, Avatar, and Product columns)
         h.accessor('name', {
           header: 'Product Item',
           cell: info => (
             <div className='flex items-center gap-3'>
               <Avatar className='h-8 w-8 rounded-lg'>
-                <AvatarImage src={info.row.original.image} />
+                <AvatarImage src={info.row.original.image!} />
                 <AvatarFallback className='text-[10px]'>{info.row.original.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className='flex flex-col'>
@@ -97,7 +97,7 @@ function InventoryReportComponent() {
           id: 'stock_level',
           header: 'Stock Level',
           cell: ({ row }) => {
-            const stock = row.original.inventory?.reduce((a: any, c: any) => a + Number(c.quantity), 0) || 0
+            const stock = row.original.inventory?.reduce((a, c) => a + Number(c.quantity), 0) || 0
             const percentage = Math.min((stock / 100) * 100, 100)
             return (
               <div className='w-32 space-y-1'>
@@ -114,7 +114,7 @@ function InventoryReportComponent() {
           id: 'valuation',
           header: 'Total Value',
           cell: ({ row }) => {
-            const stock = row.original.inventory?.reduce((a: any, c: any) => a + Number(c.quantity), 0) || 0
+            const stock = row.original.inventory?.reduce((a, c) => a + Number(c.quantity), 0) || 0
             const val = stock * Number(row.original.price)
             return <span className='font-mono font-semibold'>₱{val.toLocaleString()}</span>
           },

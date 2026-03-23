@@ -109,10 +109,20 @@ model Product {
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
+  // --- THE VARIANT SYSTEM ---
+  // If this is null, it's a "Master" or "Standalone" product.
+  // If this has an ID, this product is a variant of another product.
+  variantOfId String?
+  variantOf   Product?  @relation("ProductVariants", fields: [variantOfId], references: [id])
+  variants    Product[] @relation("ProductVariants")
+
   // Self-referencing relationship for Recipes/Bundles
   // (e.g., A "Burger" consumes "Beef Patty")
-  ingredients Ingredient[] @relation("ParentProduct")
-  usedIn      Ingredient[] @relation("ComponentItem")
+  ingredients ProductIngredient[] @relation("ParentProduct")
+  usedIn      ProductIngredient[] @relation("ComponentItem")
+
+  allowedAddons ProductAddon[] @relation("HostProduct")
+  usedAsAddonIn ProductAddon[] @relation("AddonComponent")
 
   inventory  Inventory[]
   orderItems OrderItem[]
@@ -120,22 +130,36 @@ model Product {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   inventoryMovements InventoryMovement[]
+  orderItemAddons    OrderItemAddon[]    @relation("AddonToOrderItem")
 
   @@map("products")
 }
 
-model Ingredient {
-  id              String  @id @default(cuid())
-  parentProductId String
-  parentProduct   Product @relation("ParentProduct", fields: [parentProductId], references: [id])
-
-  componentId String
-  component   Product @relation("ComponentItem", fields: [componentId], references: [id])
+model ProductIngredient {
+  id         String @id @default(cuid())
+  hostId     String
+  materialId String
 
   quantityUsed Decimal @db.Decimal(10, 3)
+  host         Product @relation("ParentProduct", fields: [hostId], references: [id])
+  material     Product @relation("ComponentItem", fields: [materialId], references: [id])
 
-  @@unique([parentProductId, componentId])
-  @@map("ingredients")
+  @@unique([hostId, materialId])
+  @@map("product_ingredients")
+}
+
+model ProductAddon {
+  id              String  @id @default(cuid())
+  hostId          String
+  addonId         String
+  priceOverride   Decimal @db.Decimal(10, 2)
+  defaultQuantity Decimal @default(1) @db.Decimal(10, 3)
+
+  host  Product @relation("HostProduct", fields: [hostId], references: [id])
+  addon Product @relation("AddonComponent", fields: [addonId], references: [id])
+
+  @@unique([hostId, addonId])
+  @@map("product_addons")
 }
 
 // --- INVENTORY & BATCH TRACKING ---
@@ -243,14 +267,30 @@ model Transaction {
 
 model OrderItem {
   id        String  @id @default(cuid())
+  productId String // The Main Product (e.g., Ramen)
   quantity  Decimal @db.Decimal(10, 3)
-  unitPrice Decimal @db.Decimal(10, 2) // Snapshotted price at sale
+  unitPrice Decimal @db.Decimal(10, 2) // Price of the Ramen itself
+
+  // This is where we track the EXTRA revenue
+  selectedAddons OrderItemAddon[]
 
   transactionId String
-  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  product       Product     @relation(fields: [productId], references: [id])
 
   @@map("order_items")
+}
+
+model OrderItemAddon {
+  id          String    @id @default(cuid())
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+
+  addonId String // The "Fried Egg" Product ID
+  addon   Product @relation("AddonToOrderItem", fields: [addonId], references: [id])
+
+  quantity    Decimal @db.Decimal(10, 3)
+  priceAtSale Decimal @db.Decimal(10, 2) // The $1.50 revenue for the egg
+
+  @@map("order_item_addons")
 }
