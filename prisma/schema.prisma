@@ -109,6 +109,9 @@ model Product {
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
+  baseUnitId String
+  baseUnit   Unit   @relation("ProductBaseUnit", fields: [baseUnitId], references: [id])
+
   // --- THE VARIANT SYSTEM ---
   // If this is null, it's a "Master" or "Standalone" product.
   // If this has an ID, this product is a variant of another product.
@@ -131,18 +134,21 @@ model Product {
   updatedAt          DateTime            @updatedAt
   inventoryMovements InventoryMovement[]
   orderItemAddons    OrderItemAddon[]    @relation("AddonToOrderItem")
+  productUnits       ProductUnit[]
 
   @@map("products")
 }
 
 model ProductIngredient {
-  id         String @id @default(cuid())
-  hostId     String
-  materialId String
-
+  id           String  @id @default(cuid())
+  hostId       String
+  materialId   String
+  unitId       String
   quantityUsed Decimal @db.Decimal(10, 3)
-  host         Product @relation("ParentProduct", fields: [hostId], references: [id])
-  material     Product @relation("ComponentItem", fields: [materialId], references: [id])
+
+  unit     Unit    @relation(fields: [unitId], references: [id])
+  host     Product @relation("ParentProduct", fields: [hostId], references: [id])
+  material Product @relation("ComponentItem", fields: [materialId], references: [id])
 
   @@unique([hostId, materialId])
   @@map("product_ingredients")
@@ -162,6 +168,55 @@ model ProductAddon {
   @@map("product_addons")
 }
 
+enum UnitType {
+  WEIGHT // kg, g, lbs, oz
+  VOLUME // L, ml, fl-oz (Liquid)
+  VOLUME_DRY // Bushel, Cup (Dry measurement)
+  LENGTH // m, cm, ft, in
+  AREA // sq-m, sq-ft (Flooring, Roofing, Fabric)
+  COUNT // pcs, box, pack, dozen
+  TIME // min, hour, day
+}
+
+model Unit {
+  id           String   @id @default(cuid())
+  name         String   @unique // e.g., "Kilogram"
+  abbreviation String   @unique // e.g., "kg"
+  type         UnitType
+
+  // For future-proofing: Base Conversion
+  // Example: If 'Gram' is the base, 'Kilogram' has factor 1000
+  conversionFactor Decimal @default(1) @db.Decimal(12, 4)
+  isBaseUnit       Boolean @default(false)
+
+  products           Product[]           @relation("ProductBaseUnit")
+  ingredients        ProductIngredient[]
+  inventory          Inventory[]
+  inventoryMovements InventoryMovement[]
+  orderItems         OrderItem[]
+  productUnits       ProductUnit[]
+
+  @@map("units")
+}
+
+model ProductUnit {
+  id        String @id @default(cuid())
+  productId String
+  unitId    String
+
+  // Is this the unit the supplier uses?
+  isPurchaseUnit Boolean @default(false)
+
+  // Is this the unit shown on the POS?
+  isSalesUnit Boolean @default(true)
+
+  product Product @relation(fields: [productId], references: [id])
+  unit    Unit    @relation(fields: [unitId], references: [id])
+
+  @@unique([productId, unitId])
+  @@map("product_units")
+}
+
 // --- INVENTORY & BATCH TRACKING ---
 enum MovementType {
   IN // Restock, Purchase
@@ -174,6 +229,9 @@ model Inventory {
   id        String  @id @default(cuid())
   productId String
   product   Product @relation(fields: [productId], references: [id])
+
+  unitId String // The unit this specific batch is stored in
+  unit   Unit   @relation(fields: [unitId], references: [id])
 
   batchNumber String? // Lot # for Drugstore/Medicine
   expiryDate  DateTime?
@@ -196,6 +254,9 @@ model InventoryMovement {
   type     MovementType
   quantity Decimal      @db.Decimal(10, 3) // Positive for IN, Negative for OUT
   reason   String? // "Sold in INV-102", "Expired", "Manual Restock"
+
+  unitId String
+  unit   Unit   @relation(fields: [unitId], references: [id])
 
   createdAt DateTime @default(now())
 
@@ -270,6 +331,9 @@ model OrderItem {
   productId String // The Main Product (e.g., Ramen)
   quantity  Decimal @db.Decimal(10, 3)
   unitPrice Decimal @db.Decimal(10, 2) // Price of the Ramen itself
+
+  unitId String
+  unit   Unit   @relation(fields: [unitId], references: [id])
 
   // This is where we track the EXTRA revenue
   selectedAddons OrderItemAddon[]

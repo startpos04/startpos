@@ -1,12 +1,14 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
+import { ReactNode } from 'react'
 
 interface TableViewProps<T> {
   data: T[] | undefined
   isFetching: boolean
   columns: ColumnDef<T, any>[]
   emptyMessage?: string
+  renderEmpty?: () => ReactNode
 }
 
 const TableRowSkeleton = ({ columns }: { columns: number }) => (
@@ -23,7 +25,7 @@ const TableRowSkeleton = ({ columns }: { columns: number }) => (
   </>
 )
 
-export function TableView<T>({ data, isFetching, columns, emptyMessage = 'No records found.' }: TableViewProps<T>) {
+export function TableView<T>({ data, isFetching, columns, renderEmpty, emptyMessage = 'No records found.' }: TableViewProps<T>) {
   const table = useReactTable({
     data: data ?? [],
     columns,
@@ -62,7 +64,9 @@ export function TableView<T>({ data, isFetching, columns, emptyMessage = 'No rec
         </TableBody>
       </Table>
       {(isFetching && !data?.length) || table.getRowModel().rows?.length ? null : (
-        <div className='h-full text-center text-muted-foreground absolute inset-0 flex items-center justify-center'>{emptyMessage}</div>
+        <div className='h-full text-center text-muted-foreground absolute inset-0 flex items-center justify-center'>
+          {renderEmpty ? renderEmpty() : emptyMessage}
+        </div>
       )}
     </div>
   )

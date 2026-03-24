@@ -1,27 +1,26 @@
 import { getColumns } from '@/components/custom/data-view'
 import { TableView } from '@/components/custom/data-view/table-view'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge' // Assuming you have a Badge component
 import { Button } from '@/components/ui/button'
 import { showModal } from '@/lib/Overlay'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { Edit, Plus, Trash2 } from 'lucide-react'
+import { createFileRoute } from '@tanstack/react-router'
+import { Edit, Package, Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { CreateIngredientDialog } from './create'
+
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients/')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
   const { data, isFetching } = fetchIngredients()
+  console.log('data', data)
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     showModal(CreateIngredientDialog)
-  }
-
-  const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, employeeId: string) => {
-    e.preventDefault()
   }
 
   const columns = useMemo(
@@ -35,13 +34,13 @@ function RouteComponent() {
         }),
         h.accessor('image', {
           header: 'Avatar',
-          maxSize: 20,
+          maxSize: 40,
           cell: info => {
-            const user = info.row.original
+            const item = info.row.original
             return (
               <Avatar className='h-9 w-9 border border-border/50 shadow-sm'>
-                <AvatarImage src={user.image ?? ''} alt={user.name} />
-                <AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>{user.name?.charAt(0)}</AvatarFallback>
+                <AvatarImage src={item.image ?? ''} alt={item.name} />
+                <AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>{item.name?.charAt(0)}</AvatarFallback>
               </Avatar>
             )
           },
@@ -49,17 +48,39 @@ function RouteComponent() {
         h.accessor('name', {
           header: 'Ingredient',
         }),
+        h.accessor('baseUnit.abbreviation', {
+          header: 'Unit',
+          maxSize: 60,
+          cell: info => (
+            <Badge variant='secondary' className='rounded-md font-medium px-2 py-0 text-[11px] bg-secondary/50'>
+              {info.getValue() ?? 'pcs'}
+            </Badge>
+          ),
+        }),
+        h.display({
+          id: 'stock',
+          header: 'Stock Level',
+          cell: info => {
+            const item = info.row.original
+            const totalStock = item.inventory?.reduce((acc, curr) => acc + Number(curr.quantity), 0) ?? 0
+
+            return (
+              <div className='flex items-center gap-2'>
+                <span className={`text-sm font-semibold ${totalStock <= 0 ? 'text-destructive' : 'text-foreground'}`}>{totalStock.toLocaleString()}</span>
+                <span className='text-xs text-muted-foreground'>{item.baseUnit?.abbreviation}</span>
+              </div>
+            )
+          },
+        }),
         h.display({
           maxSize: 100,
           id: 'actions',
           header: () => <div className='text-right pr-4'>Actions</div>,
           cell: ({ row }) => (
             <div className='flex justify-end gap-2 pr-2 opacity-0 group-hover:opacity-100 transition-opacity'>
-              <Link to='/employees/$employeeId' params={{ employeeId: row.original.id }} onClick={e => handleEdit(e, row.original.id)} className='contents'>
-                <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => console.log('Editing', row.original.id)}>
-                  <Edit className='h-4 w-4' />
-                </Button>
-              </Link>
+              <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => console.log('Editing', row.original.id)}>
+                <Edit className='h-4 w-4' />
+              </Button>
               <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full text-destructive hover:text-destructive'>
                 <Trash2 className='h-4 w-4' />
               </Button>
@@ -72,19 +93,30 @@ function RouteComponent() {
 
   return (
     <>
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6'>
         <div>
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Ingredients</h1>
-          <p className='text-muted-foreground text-sm'>Manage raw materials, stock levels, and supply items for your products.</p>
+          <p className='text-muted-foreground text-sm'>Manage raw materials and track stock levels by weight, volume, or count.</p>
         </div>
-        <a href='/employees/create' onClick={handleAdd} className='contents'>
+        <a href='/ingredients/create' onClick={handleAdd} className='contents'>
           <Button className='rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer'>
-            <Plus className='h-4 w-4' /> Add Ingredient
+            <Plus className='h-4 w-4 mr-2' /> Add Ingredient
           </Button>
         </a>
       </div>
 
-      <TableView data={data} isFetching={isFetching} columns={columns} />
+      <TableView
+        data={data}
+        isFetching={isFetching}
+        columns={columns}
+        renderEmpty={() => (
+          <div className='flex flex-col items-center justify-center py-20 text-center'>
+            <Package className='h-12 w-12 text-muted-foreground/20 mb-4' />
+            <h3 className='text-lg font-medium'>No ingredients found</h3>
+            <p className='text-sm text-muted-foreground'>Start by adding your first raw material.</p>
+          </div>
+        )}
+      />
     </>
   )
 }

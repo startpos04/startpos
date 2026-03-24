@@ -97,7 +97,7 @@ function RouteComponent() {
           <p className='text-muted-foreground text-sm'>Manage your team and their workspace roles.</p>
         </div>
         <a href='/employees/create' onClick={handleAdd} className='contents'>
-          <Button className='rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer'>
+          <Button className='rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
             <Plus className='h-4 w-4' /> Add Employee
           </Button>
         </a>

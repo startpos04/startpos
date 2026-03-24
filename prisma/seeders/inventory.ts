@@ -1,9 +1,9 @@
 import { PrismaClient, ResourceType } from 'prisma/generated/prisma/client'
 
 export async function initialInventory(prisma: PrismaClient) {
-  console.log('📦 Initializing physical inventory for raw materials...')
+  console.log('📦 Initializing physical inventory for raw materials with Unit tracking...')
 
-  // 1. Fetch all Raw Materials we created in the previous step
+  // 1. Fetch all Raw Materials (including their baseUnitId which is required now)
   const rawMaterials = await prisma.product.findMany({
     where: { type: ResourceType.RAW_MATERIAL },
   })
@@ -16,20 +16,20 @@ export async function initialInventory(prisma: PrismaClient) {
   const now = new Date()
 
   for (const item of rawMaterials) {
-    // We will create TWO batches for each item to simulate real-world stock management
-    // Batch 1: Expiring sooner (1 month from now)
-    // Batch 2: Expiring later (6 months from now)
-
+    // 2. Define our simulated batches
+    // We use the item.baseUnitId to ensure the inventory matches the product's primary unit
     const batches = [
       {
         batchNumber: `BATCH-${item.sku}-A`,
         quantity: 50.0,
+        // Expiring in 1 month
         expiryDate: new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()),
         location: 'Primary Chiller',
       },
       {
         batchNumber: `BATCH-${item.sku}-B`,
         quantity: 150.0,
+        // Expiring in 6 months
         expiryDate: new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()),
         location: 'Back Warehouse',
       },
@@ -41,13 +41,17 @@ export async function initialInventory(prisma: PrismaClient) {
           productId: item.id,
           batchNumber: batch.batchNumber,
           quantity: batch.quantity,
+
+          // --- THE FIX: Pass the unitId from the product's base unit ---
+          unitId: item.baseUnitId,
+
           expiryDate: item.hasExpiry ? batch.expiryDate : null,
           location: batch.location,
           lastRestocked: now,
         },
       })
     }
-    console.log(`✅ Stocked 200 units for: ${item.name} (${item.sku})`)
+    console.log(`✅ Stocked 200 units for: ${item.name} (${item.sku}) in its base unit.`)
   }
 
   console.log('✨ Inventory initialization complete.')

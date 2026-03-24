@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { crudAPI } from '../prisma-client/crud-api'
 
-export const fetchCategoryOptions = () =>
+export const fetchUnitOptions = () =>
   useQuery({
-    queryKey: ['categoryOptions'],
+    queryKey: ['unitOptions'],
     queryFn: async () => {
       const result = await crudAPI({
         data: {
           action: 'findMany',
-          table: 'category',
+          table: 'unit',
         },
       })
 

@@ -26,4 +26,6 @@ export const fetchIngredientOptions = () =>
 
       return result.map(item => ({ label: item.name, value: item }))
     },
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   })

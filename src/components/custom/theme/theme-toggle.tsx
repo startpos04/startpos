@@ -29,7 +29,7 @@ export function ThemeToggle() {
         id='theme-mode'
         checked={isDark}
         onCheckedChange={toggleTheme}
-        className='data-[state=checked]:bg-slate-900 data-[state=unchecked]:bg-slate-200 cursor-pointer'
+        className='data-[state=checked]:bg-slate-900 data-[state=unchecked]:bg-slate-200 '
       />
 
       <div

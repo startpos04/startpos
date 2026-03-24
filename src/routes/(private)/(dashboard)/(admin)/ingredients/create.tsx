@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
+import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { useForm } from '@tanstack/react-form'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -19,6 +20,7 @@ const ingredientSchema = z.object({
   sku: z.string().min(1, 'SKU required'),
   image: z.string(),
   categoryId: z.string().min(1, 'Category required'),
+  baseUnitId: z.string().min(1, 'Base unit required'),
   type: z.literal('RAW_MATERIAL'),
   price: z.number().min(0),
   isAvailable: z.boolean(),
@@ -33,7 +35,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients
 export function CreateIngredientDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-4xl'>
+      <DialogContent className='sm:max-w-3xl'>
         <RouteComponent onClose={onClose} />
       </DialogContent>
     </Dialog>
@@ -45,9 +47,9 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
   const navigate = Route.useNavigate()
 
   const { data: categoryOptions = [] } = fetchCategoryOptions()
+  const { data: unitOptions = [] } = fetchUnitOptions()
 
   const handleSubmit = async ({ value }: { value: FormData }) => {
-    console.log(value)
     try {
       await crudAPI({
         data: {
@@ -65,7 +67,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
       await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
       onClose?.() || navigate({ to: '..' })
     } catch (error) {
-      console.error('Failed to create employee:', error)
+      console.error('Failed to create ingredient:', error)
     }
   }
 
@@ -74,8 +76,9 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
       name: '',
       sku: '',
       image: '',
-      type: 'RAW_MATERIAL',
+      type: 'RAW_MATERIAL' as const,
       categoryId: '',
+      baseUnitId: '',
       price: 0,
       isAvailable: false,
       hasExpiry: true,
@@ -92,7 +95,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
       {/* Header */}
       <div>
         <h1 className='text-3xl font-bold'>New Ingredient</h1>
-        <p className='text-muted-foreground'>Add a raw material to your pantry inventory.</p>
+        <p className='text-muted-foreground'>Register a new raw material and define its tracking units.</p>
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
@@ -105,11 +108,20 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
               </CardTitle>
             </CardHeader>
             <CardContent className='space-y-4'>
-              <form.Field name='name' children={field => <TextInput field={field} label='Ingredient Name' placeholder='e.g. Whole Milk' />} />
+              <form.Field name='name' children={field => <TextInput field={field} label='Ingredient Name' placeholder='e.g. Beef Patty' />} />
+
               <div className='grid grid-cols-2 gap-4'>
-                <form.Field name='sku' children={field => <TextInput field={field} label='Internal SKU' placeholder='ING-001' />} />
+                <form.Field name='sku' children={field => <TextInput field={field} label='Internal SKU' placeholder='ING-BEEF-01' />} />
                 <form.Field name='categoryId' children={field => <SelectInput field={field} label='Category' options={categoryOptions} />} />
               </div>
+
+              {/* Unit Selection - Critical for Recipe Math */}
+              <form.Field
+                name='baseUnitId'
+                children={field => (
+                  <SelectInput field={field} label='Inventory Base Unit' placeholder='Select Unit (e.g. Grams, Pieces)' options={unitOptions} />
+                )}
+              />
 
               <form.Field name='image' children={field => <ImageInput label='Ingredient Photo' field={field} />} />
             </CardContent>
@@ -131,7 +143,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
                   <div className='flex items-center justify-between'>
                     <div className='space-y-0.5'>
                       <Label>Track Expiry</Label>
-                      <p className='text-[0.7rem] text-muted-foreground'>Requires date on restock.</p>
+                      <p className='text-[0.7rem] text-muted-foreground tracking-tight'>Monitors shelf-life per batch.</p>
                     </div>
                     <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
                   </div>
@@ -143,19 +155,13 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
                 children={field => (
                   <div className='flex items-center justify-between'>
                     <div className='space-y-0.5'>
-                      <Label>Sellable Item</Label>
-                      <p className='text-[0.7rem] text-muted-foreground'>Can be sold directly at POS.</p>
+                      <Label>Direct Sale</Label>
+                      <p className='text-[0.7rem] text-muted-foreground tracking-tight'>Can be sold as a standalone item.</p>
                     </div>
                     <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
                   </div>
                 )}
               />
-
-              <div className='pt-4 border-t border-dashed'>
-                <p className='text-[0.7rem] text-muted-foreground italic text-center'>
-                  Note: Ingredients are tracked in the <b>Inventory Movements</b> table when restocked.
-                </p>
-              </div>
             </CardContent>
           </Card>
         </div>

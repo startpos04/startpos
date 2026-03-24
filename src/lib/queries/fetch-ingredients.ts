@@ -18,10 +18,14 @@ export const fetchIngredients = () =>
               category: true,
               ingredients: { include: { material: true } },
               allowedAddons: { include: { addon: true } },
+              inventory: true,
+              baseUnit: true,
               variants: true,
             },
           },
         },
       })
     },
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   })
