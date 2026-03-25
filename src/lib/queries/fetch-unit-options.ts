@@ -12,7 +12,7 @@ export const fetchUnitOptions = () =>
         },
       })
 
-      return result.map(item => ({ label: item.name, value: item.id }))
+      return result.map(item => ({ label: `${item.name} (${item.abbreviation})`, value: item.id }))
     },
     refetchOnWindowFocus: false,
     refetchOnMount: false,

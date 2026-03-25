@@ -1,4 +1,5 @@
 import { ImageInput } from '@/components/custom/form/image-input'
+import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -6,9 +7,17 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { showModal } from '@/lib/Overlay'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
+import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
+import { feIngredient } from '@/lib/queries/fetch-ingredients'
+import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
+import { Prettify } from '@/lib/types'
 import { useForm } from '@tanstack/react-form'
+import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { Layers, Package, Plus, PlusCircle, Save, Utensils, Warehouse } from 'lucide-react'
+import { Layers, Package, Plus, PlusCircle, Save, Utensils, Warehouse, X } from 'lucide-react'
+import numeral from 'numeral'
+import { ResourceType } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
 import { AddAddonModal } from './-components/add-addon'
 import { AddIngredientModal } from './-components/add-ingredient'
@@ -22,40 +31,138 @@ export function CreateProductDialog({ open, onClose }: { open: boolean; onClose:
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className='sm:max-w-4xl'>
-        <RouteComponent />
+        <RouteComponent onClose={onClose} />
       </DialogContent>
     </Dialog>
   )
 }
 
-function RouteComponent() {
+function RouteComponent({ onClose }: { onClose?: () => void }) {
+  const queryClient = useQueryClient()
+  const navigate = Route.useNavigate()
+  const { data: categoryOptions = [] } = fetchCategoryOptions()
+  const { data: unitOptions = [] } = fetchUnitOptions()
+
   const form = useForm({
     defaultValues: {
       name: '',
       sku: '',
       price: 0,
-      type: 'BUNDLE',
+      type: 'BUNDLE' as ResourceType,
       categoryId: '',
+      baseUnitId: '',
       image: '',
       isAvailable: true,
       hasExpiry: false,
+      ingredients: [] as Prettify<feIngredient & { quantityUsed: number }>[],
+      variants: [] as { variantType: string; variantValue: string; sku: string; price: number }[],
+      allowedAddons: [] as Prettify<feIngredient & { defaultQuantity: number; priceOverride: number }>[],
     },
     onSubmit: async ({ value }) => {
       console.log('Submit Product:', value)
-      // Logic for crudAPI create goes here
+      const { variants, ingredients, allowedAddons, ...product } = value
+
+      console.log({
+        data: {
+          action: 'create',
+          table: 'product',
+          args: {
+            data: {
+              ...product,
+              ingredients: {
+                createMany: {
+                  data: ingredients.map(ingredient => ({ materialId: ingredient.id, quantityUsed: ingredient.quantityUsed, unitId: ingredient.baseUnitId })),
+                },
+              },
+              allowedAddons: {
+                createMany: {
+                  data: allowedAddons.map(addon => ({ addonId: addon.id, priceOverride: addon.priceOverride, defaultQuantity: addon.defaultQuantity })),
+                },
+              },
+              variants: {
+                createMany: {
+                  data: variants.map(variant => ({
+                    ...product,
+                    variantType: variant.variantType,
+                    variantValue: variant.variantValue,
+                    sku: variant.sku,
+                    price: variant.price,
+                  })),
+                },
+              },
+            },
+          },
+        },
+      })
+      try {
+        await crudAPI({
+          data: {
+            action: 'create',
+            table: 'product',
+            args: {
+              data: {
+                ...product,
+                ingredients: {
+                  createMany: {
+                    data: ingredients.map(ingredient => ({ materialId: ingredient.id, quantityUsed: ingredient.quantityUsed, unitId: ingredient.baseUnitId })),
+                  },
+                },
+                allowedAddons: {
+                  createMany: {
+                    data: allowedAddons.map(addon => ({ addonId: addon.id, priceOverride: addon.priceOverride, defaultQuantity: addon.defaultQuantity })),
+                  },
+                },
+                variants: {
+                  createMany: {
+                    data: variants.map(variant => ({
+                      ...product,
+                      variantType: variant.variantType,
+                      variantValue: variant.variantValue,
+                      sku: `${product.sku}-${variant.sku}`,
+                      price: variant.price,
+                    })),
+                  },
+                },
+              },
+            },
+          },
+        })
+
+        await queryClient.invalidateQueries({ queryKey: ['products'] })
+        onClose?.() || navigate({ to: '..' })
+      } catch (error) {
+        console.error('Failed to create product:', error)
+      }
     },
   })
 
   const handleAddIngredient = () => {
-    showModal(AddIngredientModal)
+    showModal(AddIngredientModal, {
+      onAdd: ingredient => {
+        form.pushFieldValue('ingredients', ingredient)
+      },
+    })
   }
 
   const handleAddVariants = () => {
-    showModal(AddVariantModal)
+    showModal(AddVariantModal, {
+      variants: form.getFieldValue('variants'),
+      onAdd: variants => {
+        form.setFieldValue('variants', variants)
+      },
+    })
   }
 
   const handleAddAddons = () => {
-    showModal(AddAddonModal)
+    showModal(AddAddonModal, {
+      onAdd: addon => {
+        form.pushFieldValue('allowedAddons', addon)
+      },
+    })
+  }
+
+  const removeItem = (field: 'ingredients' | 'variants' | 'allowedAddons', index: number) => {
+    form.setFieldValue(field, (prev: any[]) => prev.filter((_, i) => i !== index))
   }
 
   return (
@@ -84,7 +191,18 @@ function RouteComponent() {
 
               <div className='grid grid-cols-2 gap-4'>
                 <form.Field name='sku' children={field => <TextInput field={field} label='SKU / Barcode' placeholder='BRG-001' />} />
-                <form.Field name='sku' children={field => <TextInput field={field} label='Base Price' type='number' />} />
+                <form.Field name='price' children={field => <TextInput field={field} label='Base Price' type='number' />} />
+              </div>
+              <div className='grid grid-cols-2 gap-4'>
+                <form.Field
+                  name='categoryId'
+                  children={field => <SelectInput field={field} label='Category' placeholder='Select Category...' options={categoryOptions} />}
+                />
+
+                <form.Field
+                  name='baseUnitId'
+                  children={field => <SelectInput field={field} label='Base Unit (e.g., pc, kg)' placeholder='Select Unit...' options={unitOptions} />}
+                />
               </div>
 
               <form.Field name='image' children={field => <ImageInput label='Drag product image here' field={field} />} />
@@ -105,10 +223,38 @@ function RouteComponent() {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className='bg-muted/30 rounded-2xl p-8 border-2 border-dashed border-muted flex flex-col items-center justify-center text-center'>
-                <Utensils className='w-10 h-10 text-muted-foreground/20 mb-2' />
-                <p className='text-sm text-muted-foreground'>Search and add products from your pantry.</p>
-              </div>
+              <form.Subscribe
+                selector={state => state.values.ingredients}
+                children={ingredients => (
+                  <div className='space-y-2'>
+                    {ingredients.length > 0 ? (
+                      ingredients.map((ing, idx) => (
+                        <div key={idx} className='flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/50'>
+                          <div className='flex flex-col'>
+                            <span className='font-medium text-sm'>{ing.name}</span>
+                            <span className='text-xs text-muted-foreground'>
+                              {ing.quantityUsed} {ing.baseUnit.abbreviation}
+                            </span>
+                          </div>
+                          <Button
+                            variant='ghost'
+                            size='icon'
+                            className='h-8 w-8 rounded-full text-muted-foreground hover:text-destructive'
+                            onClick={() => removeItem('ingredients', idx)}
+                          >
+                            <X className='w-4 h-4' />
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className='bg-muted/30 rounded-2xl p-8 border-2 border-dashed border-muted flex flex-col items-center justify-center text-center'>
+                        <Utensils className='w-10 h-10 text-muted-foreground/20 mb-2' />
+                        <p className='text-sm text-muted-foreground'>Search and add products from your pantry.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              />
             </CardContent>
           </Card>
         </div>
@@ -152,9 +298,28 @@ function RouteComponent() {
             </CardHeader>
             <CardContent>
               <p className='text-xs text-muted-foreground mb-4'>Create size or color variations of this product.</p>
-              <Button variant='outline' className='w-full rounded-xl border-dashed' onClick={handleAddVariants}>
-                Configure Variants
-              </Button>
+              <div className='space-y-4'>
+                <form.Subscribe
+                  selector={state => state.values.variants}
+                  children={variants => (
+                    <div className='space-y-2'>
+                      {variants.map((v, idx) => (
+                        <div key={idx} className='flex items-center justify-between p-2 bg-background/50 rounded-lg border border-border/40 text-sm'>
+                          <span>
+                            {v.variantValue} {v.price ? <span className='text-muted-foreground ml-2'>{numeral(v.price).format('$0,0.00')}</span> : null}
+                          </span>
+                          <Button variant='ghost' size='icon' className='h-6 w-6' onClick={() => removeItem('variants', idx)}>
+                            <X className='w-3 h-3' />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                />
+                <Button variant='outline' className='w-full rounded-xl border-dashed' onClick={handleAddVariants}>
+                  <Plus className='w-4 h-4 mr-2' /> Configure Variants
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -167,13 +332,47 @@ function RouteComponent() {
             </CardHeader>
             <CardContent>
               <p className='text-xs text-muted-foreground mb-4'>Define optional extras like 'Extra Cheese'.</p>
-              <Button variant='outline' className='w-full rounded-xl border-dashed' onClick={handleAddAddons}>
-                Manage Add-ons
-              </Button>
+              <div className='space-y-4'>
+                <form.Subscribe
+                  selector={state => state.values.allowedAddons}
+                  children={addons => (
+                    <div className='space-y-3'>
+                      {addons.map((a, idx) => (
+                        <div
+                          key={idx}
+                          className='group flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors rounded-xl border border-border/50 shadow-sm'
+                        >
+                          {/* Left Side: Info */}
+                          <div className='flex flex-col gap-0.5'>
+                            <span className='font-medium text-foreground leading-none'>{a.name}</span>
+                            <span className='text-xs text-muted-foreground'>
+                              {a.defaultQuantity} {a.baseUnit.abbreviation} • Base Rate
+                            </span>
+                          </div>
+
+                          {/* Right Side: Price & Action */}
+                          <div className='flex items-center gap-4'>
+                            <span className='font-mono font-semibold text-sm'>{numeral(a.priceOverride).format('$0,0.00')}</span>
+
+                            <Button variant='destructive' size='icon' className='h-7 w-7' onClick={() => removeItem('allowedAddons', idx)}>
+                              <X className='w-3.5 h-3.5' />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                />
+                <Button variant='outline' className='w-full rounded-xl border-dashed' onClick={handleAddAddons}>
+                  <Plus className='w-4 h-4 mr-2' /> Add Add-ons
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Submit Button */}
       <form.Subscribe
         selector={state => [state.canSubmit, state.isSubmitting]}
         children={([canSubmit, isSubmitting]) => (

@@ -115,9 +115,11 @@ model Product {
   // --- THE VARIANT SYSTEM ---
   // If this is null, it's a "Master" or "Standalone" product.
   // If this has an ID, this product is a variant of another product.
-  variantOfId String?
-  variantOf   Product?  @relation("ProductVariants", fields: [variantOfId], references: [id])
-  variants    Product[] @relation("ProductVariants")
+  variantOfId  String?
+  variantOf    Product?  @relation("ProductVariants", fields: [variantOfId], references: [id])
+  variants     Product[] @relation("ProductVariants")
+  variantType  String? // e.g., "Color-Size" or "Material"
+  variantValue String? // e.g., "Red-XL" or "Stainless"
 
   // Self-referencing relationship for Recipes/Bundles
   // (e.g., A "Burger" consumes "Beef Patty")

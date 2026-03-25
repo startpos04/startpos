@@ -16,7 +16,6 @@ export const fetchIngredients = () =>
             },
             include: {
               category: true,
-              ingredients: { include: { material: true } },
               allowedAddons: { include: { addon: true } },
               inventory: true,
               baseUnit: true,
@@ -29,3 +28,6 @@ export const fetchIngredients = () =>
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   })
+
+type IngredientData = ReturnType<typeof fetchIngredients>['data']
+export type feIngredient = NonNullable<IngredientData>[number]

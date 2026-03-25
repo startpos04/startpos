@@ -21,6 +21,15 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "noUncheckedIndexedAccess": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "erasableSyntaxOnly": true,
+
+    "exactOptionalPropertyTypes": true,
+    "noErrorTruncation": false,
+
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

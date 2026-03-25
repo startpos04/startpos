@@ -16,7 +16,6 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients
 
 function RouteComponent() {
   const { data, isFetching } = fetchIngredients()
-  console.log('data', data)
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()

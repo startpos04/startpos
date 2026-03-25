@@ -80,6 +80,9 @@ importers:
       nitro:
         specifier: latest
         version: 3.0.1-alpha.2(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(lru-cache@11.2.6)(mongodb@7.1.0)(mysql2@3.15.3)(rollup@4.57.1)(vite@7.3.1(@types/node@22.19.11)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0))
+      numeral:
+        specifier: ^2.0.6
+        version: 2.0.6
       pg:
         specifier: 8.18.0
         version: 8.18.0
@@ -141,6 +144,9 @@ importers:
       '@types/node':
         specifier: ^22.10.2
         version: 22.19.11
+      '@types/numeral':
+        specifier: ^2.0.5
+        version: 2.0.5
       '@types/pg':
         specifier: 8.11.11
         version: 8.11.11
@@ -2520,6 +2526,9 @@ packages:
   '@types/node@22.19.11':
     resolution: {integrity: sha512-BH7YwL6rA93ReqeQS1c4bsPpcfOmJasG+Fkr6Y59q83f9M1WcBRHR2vM+P9eOisYRcN3ujQoiZY8uk5W+1WL8w==}
 
+  '@types/numeral@2.0.5':
+    resolution: {integrity: sha512-kH8I7OSSwQu9DS9JYdFWbuvhVzvFRoCPCkGxNwoGgaPeDfEPJlcxNvEOypZhQ3XXHsGbfIuYcxcJxKUfJHnRfw==}
+
   '@types/pg@8.11.11':
     resolution: {integrity: sha512-kGT1qKM8wJQ5qlawUrEkXgvMSXoV213KfMGXcwfDwUIfUHXqXYXOfS1nE1LINRJVVVx5wCm70XnFlMHaIcQAfw==}
 
@@ -4370,6 +4379,9 @@ packages:
 
   nth-check@2.1.1:
     resolution: {integrity: sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w==}
+
+  numeral@2.0.6:
+    resolution: {integrity: sha512-qaKRmtYPZ5qdw4jWJD6bxEf1FJEqllJrwxCLIm0sQU/A7v2/czigzOb+C2uSiFsa9lBUzeH7M1oK+Q+OLxL3kA==}
 
   nypm@0.6.5:
     resolution: {integrity: sha512-K6AJy1GMVyfyMXRVB88700BJqNUkByijGJM8kEHpLdcAt+vSQAVfkWWHYzuRXHSY6xA2sNc5RjTj0p9rE2izVQ==}
@@ -7928,6 +7940,8 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/numeral@2.0.5': {}
+
   '@types/pg@8.11.11':
     dependencies:
       '@types/node': 22.19.11
@@ -9689,6 +9703,8 @@ snapshots:
   nth-check@2.1.1:
     dependencies:
       boolbase: 1.0.0
+
+  numeral@2.0.6: {}
 
   nypm@0.6.5:
     dependencies:

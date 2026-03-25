@@ -1,126 +1,136 @@
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Layers, Plus, Trash2 } from 'lucide-react'
-import * as React from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useForm, useStore } from '@tanstack/react-form'
+import { Layers } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { DefineVariantsStep } from './add-variant-step-1'
+import { ReviewVariantsStep } from './add-variant-step-2'
 
-interface OptionRow {
-  id: string
-  value: string
+export interface VariantPreview {
+  enabled: boolean
+  variantType: string
+  variantValue: string
   sku: string
   price: number
 }
 
-export function AddVariantModal({ open, onClose, onAdd, parentName, parentSku }: any) {
-  const [variantType, setVariantType] = React.useState('Size')
-  const [options, setOptions] = React.useState<OptionRow[]>([{ id: crypto.randomUUID(), value: '', sku: '', price: 0 }])
+interface AddVariantModalProps {
+  open: boolean
+  onClose: () => void
+  onAdd: (variants: Omit<VariantPreview, 'enabled'>[]) => void
+  variants: Omit<VariantPreview, 'enabled'>[]
+}
 
-  const addRow = () => {
-    setOptions([...options, { id: crypto.randomUUID(), value: '', sku: '', price: 0 }])
-  }
+export function AddVariantModal({ open, onClose, onAdd, variants }: AddVariantModalProps) {
+  const [step, setStep] = useState<'define' | 'review'>('define')
+  const [previews, setPreviews] = useState<VariantPreview[]>([])
+  const [tempInputs, setTempInputs] = useState<Record<number, string>>({})
 
-  const removeRow = (id: string) => {
-    if (options.length > 1) {
-      setOptions(options.filter(opt => opt.id !== id))
+  const restructuredAttributes = useMemo(() => {
+    if (!variants || variants.length === 0) {
+      return [{ variantType: '', values: [] }]
     }
-  }
 
-  const updateRow = (id: string, field: keyof OptionRow, val: any) => {
-    setOptions(options.map(opt => (opt.id === id ? { ...opt, [field]: val } : opt)))
-  }
+    const attrMap: Record<string, Record<string, number>> = {}
 
-  const handleAdd = () => {
-    const validOptions = options.filter(opt => opt.value.trim() !== '')
+    variants.forEach(v => {
+      const types = v.variantType.split('-')
+      const names = v.variantValue.split('-')
 
-    // Map to your schema's product structure
-    const generatedVariants = validOptions.map(opt => ({
-      name: `${parentName} (${opt.value})`,
-      sku: opt.sku || `${parentSku || 'SKU'}-${opt.value.toUpperCase().substring(0, 3)}`,
-      price: opt.price,
+      types.forEach((type: string, index: number) => {
+        if (!type) return
+        if (!attrMap[type]) attrMap[type] = {}
+
+        const valueName = names[index]
+        if (valueName) {
+          if (!(valueName in attrMap[type]) || v.price > 0) {
+            attrMap[type][valueName] = v.price
+          }
+        }
+      })
+    })
+
+    return Object.entries(attrMap).map(([variantType, valueObj]) => ({
+      variantType,
+      values: Object.entries(valueObj).map(([variantValue, price]) => ({
+        variantValue,
+        price,
+      })),
     }))
+  }, [variants])
 
-    onAdd(generatedVariants)
+  const form = useForm({
+    defaultValues: {
+      attributes: restructuredAttributes,
+    },
+    onSubmit: async ({ value }) => {
+      const activeAttrs = value.attributes.filter(a => a.variantType.trim() !== '' && a.values.length > 0)
+      if (activeAttrs.length === 0) return
+
+      const combinations = activeAttrs.reduce(
+        (acc, attr) => {
+          if (acc.length === 0) {
+            return attr.values.map(v => ({
+              variantType: attr.variantType,
+              variantValue: v.variantValue,
+              price: v.price || 0,
+            }))
+          }
+
+          return acc.flatMap(prev =>
+            attr.values.map(v => ({
+              variantType: `${prev.variantType}-${attr.variantType}`,
+              variantValue: `${prev.variantValue}-${v.variantValue}`,
+              price: v.price || 0,
+            })),
+          )
+        },
+        [] as { variantType: string; variantValue: string; price: number }[],
+      )
+
+      const generated: VariantPreview[] = combinations.map(combo => {
+        return {
+          enabled: variants?.length ? variants.some(variant => variant.variantType === combo.variantType) : true,
+          variantType: combo.variantType,
+          variantValue: combo.variantValue,
+          sku: combo.variantValue,
+          price: combo.price,
+        }
+      })
+
+      setPreviews(generated)
+      setStep('review')
+    },
+  })
+
+  const handleSave = () => {
+    onAdd(previews.filter(p => p.enabled))
     onClose()
-    // Reset state
-    setVariantType('Size')
-    setOptions([{ id: crypto.randomUUID(), value: '', sku: '', price: 0 }])
   }
+
+  const attributes = useStore(form.store, s => s.values.attributes)
+  const canPreview = useMemo(() => attributes.some(a => a.values.length > 0), [attributes])
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-4xl max-h-[90vh] overflow-y-auto'>
+    <Dialog
+      open={open}
+      onOpenChange={v => {
+        if (!v) onClose()
+        setStep('define')
+      }}
+    >
+      <DialogContent className='sm:max-w-3xl max-h-[90vh] flex flex-col bg-background border-border shadow-2xl overflow-hidden'>
         <DialogHeader>
           <DialogTitle className='flex items-center gap-2'>
-            <Layers className='w-5 h-5 text-amber-500' /> New Variations
+            <Layers className='w-5 h-5 text-amber-500' />
+            {step === 'define' ? 'Step 1: Define Variants' : 'Step 2: Review Combinations'}
           </DialogTitle>
         </DialogHeader>
 
-        <div className='space-y-4 py-4'>
-          {/* Variant Type Input */}
-          <div className='space-y-2'>
-            <Label className='text-xs'>Variant Type</Label>
-            <Input placeholder='e.g. Size, Color, Volume' value={variantType} onChange={e => setVariantType(e.target.value)} />
-          </div>
-
-          <div className='space-y-3'>
-            <div className='flex justify-between items-center'>
-              <Label className='text-[10px] font-bold uppercase text-muted-foreground tracking-wider'>Options</Label>
-              <Button
-                type='button'
-                variant='outline'
-                size='sm'
-                onClick={addRow}
-                className='h-7 text-[10px] border-amber-500/20 text-amber-600 hover:bg-amber-50'
-              >
-                <Plus className='w-3 h-3 mr-1' /> Add Option
-              </Button>
-            </div>
-
-            <div className='space-y-2 max-h-60 overflow-y-auto pr-1'>
-              {options.map(opt => (
-                <div key={opt.id} className='grid grid-cols-12 gap-2 items-end'>
-                  <div className='col-span-4 space-y-1'>
-                    <Label className='text-[10px]'>Option Value</Label>
-                    <Input placeholder='e.g. Small' value={opt.value} onChange={e => updateRow(opt.id, 'value', e.target.value)} />
-                  </div>
-                  <div className='col-span-4 space-y-1'>
-                    <Label className='text-[10px]'>Specific SKU</Label>
-                    <Input placeholder='V-SKU' value={opt.sku} onChange={e => updateRow(opt.id, 'sku', e.target.value)} />
-                  </div>
-                  <div className='col-span-3 space-y-1'>
-                    <Label className='text-[10px]'>Price</Label>
-                    <Input type='number' value={opt.price} onChange={e => updateRow(opt.id, 'price', Number(e.target.value))} />
-                  </div>
-                  <div className='col-span-1'>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='h-8 w-9 text-muted-foreground hover:text-destructive'
-                      onClick={() => removeRow(opt.id)}
-                      disabled={options.length === 1}
-                    >
-                      <Trash2 className='w-4 h-4' />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant='ghost' onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            disabled={!options.some(o => o.value.trim() !== '')}
-            onClick={handleAdd}
-            className='bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-500/20 px-6'
-          >
-            Create {options.filter(o => o.value !== '').length} Variants
-          </Button>
-        </DialogFooter>
+        {step === 'define' ? (
+          <DefineVariantsStep form={form} tempInputs={tempInputs} setTempInputs={setTempInputs} canPreview={canPreview} />
+        ) : (
+          <ReviewVariantsStep previews={previews} setPreviews={setPreviews} onBack={() => setStep('define')} onSave={handleSave} />
+        )}
       </DialogContent>
     </Dialog>
   )
