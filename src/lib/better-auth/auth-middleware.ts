@@ -10,9 +10,16 @@ export const authMiddleware = createMiddleware().server(async ({ next }) => {
     },
   })
 
+  if (!session?.user) {
+    return await next({
+      context: { user: undefined as unknown as Session['user'] },
+    })
+  }
+
+  const user = session?.user as Session['user']
+  const sessionData = session.session as Session['session']
+
   return await next({
-    context: {
-      user: session?.user as Session['user'],
-    },
+    context: { user: { ...user, organizationId: sessionData.organizationId, branchId: sessionData.branchId } },
   })
 })

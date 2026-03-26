@@ -1,7 +1,8 @@
-import { prisma } from '@/lib/prisma-client'
+import { getTenantPrisma, prisma } from '@/lib/prisma-client'
 import { Decimal } from '@prisma/client/runtime/client'
 import { createServerFn } from '@tanstack/react-start'
 import { Prisma } from 'prisma/generated/prisma/browser'
+import { authMiddleware } from '../better-auth/auth-middleware'
 
 type DB = typeof prisma
 
@@ -40,8 +41,10 @@ function decimalToNumber(obj: any): any {
 }
 
 const crudServerFn = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
   .inputValidator((d: { table: ModelName; action: DelegateMethods; args?: any }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ context, data }) => {
+    const prisma = getTenantPrisma(context.user.organizationId, context.user.branchId!)
     const delegate = (prisma as any)[data.table]
     const result = await delegate[data.action](data.args)
     return decimalToNumber(result)

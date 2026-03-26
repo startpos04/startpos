@@ -50,8 +50,6 @@ function RouteComponent() {
       }),
   })
 
-  console.log('products', products)
-
   const handleLogout = () => {
     authClient.signOut(
       {},

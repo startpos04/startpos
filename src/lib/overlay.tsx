@@ -35,33 +35,31 @@ interface IOverlayState {
 interface IOverlayProps {}
 
 class Overlay extends Component<IOverlayProps, IOverlayState> {
-  static instance: Overlay = null as any
+  static instance: Overlay | null = null
 
   constructor(props: IOverlayProps) {
     super(props)
 
-    const defaultState = {
+    this.state = {
       dialogs: [],
       isMounted: false,
     }
 
-    if (Overlay.instance) {
-      const dialogs = Overlay.instance.state.dialogs.map(dialog => ({
-        ...dialog,
-        open: false,
-        key: undefined,
-      }))
-
-      Overlay.instance.state = { ...defaultState, ...props, dialogs }
-      return Overlay.instance
-    }
-
-    this.state = { ...defaultState, ...props }
     Overlay.instance = this
   }
 
+  componentDidMount() {
+    this.setState({ isMounted: true })
+  }
+
+  componentWillUnmount() {
+    if (Overlay.instance === this) {
+      Overlay.instance = null
+    }
+  }
+
   showDialog<T extends React.FC<ComponentProps<T>>>(Component: T, options?: IOptions<Omit<ComponentProps<T>, 'open' | 'onClose'>>): string {
-    const id = uuid().split('-')[0]
+    const id = uuid().split('-')[0] || ''
     const { key, ...props } = options || {}
 
     const [...dialogs] = this.state.dialogs.filter(({ key, open }) => open || key)
@@ -70,7 +68,7 @@ class Overlay extends Component<IOverlayProps, IOverlayState> {
 
     if (dialogIndex > -1) {
       const dialog = dialogs.splice(dialogIndex, 1)[0]
-      dialogs.push({ ...dialog, open: true, props })
+      if (dialog) dialogs.push({ ...dialog, open: true, props })
     } else dialogs.push({ Component, props, open: true, key, id })
 
     this.setState({ dialogs })
@@ -132,9 +130,14 @@ export const showModal = async <T extends React.FC<ComponentProps<T>>>(
     localStorage.removeItem(activeKey)
   }
 
+  if (!Overlay.instance) {
+    console.error('Overlay instance not found. Make sure <Overlay /> is mounted in your App root.')
+    return ''
+  }
+
   return Overlay.instance.showDialog(Component, options)
 }
-export const delModal = (id: string) => Overlay.instance.delDialog(id)
+export const delModal = (id: string) => Overlay.instance?.delDialog(id)
 export const clearModals = () => Overlay.instance?.clear()
 export const delChildModals = (id: string) => Overlay.instance?.deleteChildDialog(id)
 

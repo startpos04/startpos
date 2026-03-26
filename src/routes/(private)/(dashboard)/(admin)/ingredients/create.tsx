@@ -50,6 +50,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
   const { data: unitOptions = [] } = fetchUnitOptions()
 
   const handleSubmit = async ({ value }: { value: FormData }) => {
+    console.log('value', value)
     try {
       await crudAPI({
         data: {
@@ -58,6 +59,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
           args: {
             data: {
               ...value,
+              organizationId: '',
               image: value.image || null,
             },
           },

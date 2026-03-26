@@ -59,41 +59,8 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
       allowedAddons: [] as Prettify<feIngredient & { defaultQuantity: number; priceOverride: number }>[],
     },
     onSubmit: async ({ value }) => {
-      console.log('Submit Product:', value)
       const { variants, ingredients, allowedAddons, ...product } = value
 
-      console.log({
-        data: {
-          action: 'create',
-          table: 'product',
-          args: {
-            data: {
-              ...product,
-              ingredients: {
-                createMany: {
-                  data: ingredients.map(ingredient => ({ materialId: ingredient.id, quantityUsed: ingredient.quantityUsed, unitId: ingredient.baseUnitId })),
-                },
-              },
-              allowedAddons: {
-                createMany: {
-                  data: allowedAddons.map(addon => ({ addonId: addon.id, priceOverride: addon.priceOverride, defaultQuantity: addon.defaultQuantity })),
-                },
-              },
-              variants: {
-                createMany: {
-                  data: variants.map(variant => ({
-                    ...product,
-                    variantType: variant.variantType,
-                    variantValue: variant.variantValue,
-                    sku: variant.sku,
-                    price: variant.price,
-                  })),
-                },
-              },
-            },
-          },
-        },
-      })
       try {
         await crudAPI({
           data: {
@@ -102,6 +69,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
             args: {
               data: {
                 ...product,
+                organizationId: '',
                 ingredients: {
                   createMany: {
                     data: ingredients.map(ingredient => ({ materialId: ingredient.id, quantityUsed: ingredient.quantityUsed, unitId: ingredient.baseUnitId })),
@@ -116,6 +84,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
                   createMany: {
                     data: variants.map(variant => ({
                       ...product,
+                      organizationId: '',
                       variantType: variant.variantType,
                       variantValue: variant.variantValue,
                       sku: `${product.sku}-${variant.sku}`,

@@ -38,6 +38,7 @@ export async function initialInventory(prisma: PrismaClient) {
     for (const batch of batches) {
       await prisma.inventory.create({
         data: {
+          branchId: 'branch-1',
           productId: item.id,
           batchNumber: batch.batchNumber,
           quantity: batch.quantity,

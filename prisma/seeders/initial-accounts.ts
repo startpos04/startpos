@@ -6,6 +6,28 @@ export async function initialAccounts(prisma: PrismaClient) {
   const newPasswordHash = await hashPassword('123qwe123!1')
   const now = new Date()
 
+  // Create a Test Organization
+  const org = await prisma.organization.upsert({
+    where: { slug: 'main-store' },
+    update: {},
+    create: {
+      id: 'org-1',
+      name: 'Main Retail Group',
+      slug: 'main-store',
+    },
+  })
+
+  // Create a Test Branch
+  const branch = await prisma.branch.upsert({
+    where: { id: 'branch-1' },
+    update: {},
+    create: {
+      id: 'branch-1',
+      name: 'Downtown Outlet',
+      organizationId: org.id,
+    },
+  })
+
   const usersToSeed = [
     {
       id: 'admin-1',
@@ -30,9 +52,10 @@ export async function initialAccounts(prisma: PrismaClient) {
     },
   ]
 
-  console.log('🔄 Syncing users and updating credentials...')
+  console.log('🔄 Syncing users, memberships, and credentials...')
 
   for (const u of usersToSeed) {
+    // Upsert User
     const user = await prisma.user.upsert({
       where: { email: u.email },
       update: u,
@@ -47,6 +70,22 @@ export async function initialAccounts(prisma: PrismaClient) {
       },
     })
 
+    // Create Membership (Crucial for Multi-tenancy)
+    // This links the User to the Org and sets their Role within that Org
+    await prisma.membership.upsert({
+      where: {
+        userId_organizationId: { userId: user.id, organizationId: org.id },
+      },
+      update: { role: u.role, branchId: branch.id },
+      create: {
+        userId: user.id,
+        organizationId: org.id,
+        branchId: branch.id,
+        role: u.role,
+      },
+    })
+
+    // Handle Better Auth Credentials
     const existingAccount = await prisma.account.findFirst({
       where: { userId: user.id, providerId: 'credential' },
     })
@@ -56,7 +95,7 @@ export async function initialAccounts(prisma: PrismaClient) {
         where: { id: existingAccount.id },
         data: { password: newPasswordHash, updatedAt: now },
       })
-      console.log(`✅ Updated password for: ${u.email}`)
+      console.log(`✅ Updated: ${u.email}`)
     } else {
       await prisma.account.create({
         data: {
@@ -69,7 +108,7 @@ export async function initialAccounts(prisma: PrismaClient) {
           updatedAt: now,
         },
       })
-      console.log(`✨ Created new account for: ${u.email}`)
+      console.log(`✨ Created: ${u.email}`)
     }
   }
 }

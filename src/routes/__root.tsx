@@ -16,12 +16,33 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     return { user }
   },
 
+  notFoundComponent: () => {
+    return (
+      <div className='flex flex-col items-center justify-center h-screen'>
+        <h1 className='text-4xl font-bold'>404</h1>
+        <p>The page you are looking for does not exist.</p>
+        <a href='/' className='mt-4 text-blue-500 underline'>
+          Go Home
+        </a>
+      </div>
+    )
+  },
+
+  errorComponent: ({ error }) => {
+    return (
+      <div className='p-4 bg-red-100 text-red-700'>
+        <h2 className='font-bold'>Something went wrong!</h2>
+        <pre className='text-sm'>{error.message}</pre>
+      </div>
+    )
+  },
+
   shellComponent: RootDocument,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang='en'>
+    <html lang='en' suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

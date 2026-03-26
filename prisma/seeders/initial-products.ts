@@ -8,36 +8,36 @@ export async function initialProducts(prisma: PrismaClient) {
     pcs: await prisma.unit.upsert({
       where: { abbreviation: 'pcs' },
       update: {},
-      create: { name: 'Pieces', abbreviation: 'pcs', type: UnitType.COUNT, isBaseUnit: true },
+      create: { organizationId: 'org-1', name: 'Pieces', abbreviation: 'pcs', type: UnitType.COUNT, isBaseUnit: true },
     }),
     g: await prisma.unit.upsert({
       where: { abbreviation: 'g' },
       update: {},
-      create: { name: 'Grams', abbreviation: 'g', type: UnitType.WEIGHT, isBaseUnit: true },
+      create: { organizationId: 'org-1', name: 'Grams', abbreviation: 'g', type: UnitType.WEIGHT, isBaseUnit: true },
     }),
     kg: await prisma.unit.upsert({
       where: { abbreviation: 'kg' },
       update: {},
-      create: { name: 'Kilograms', abbreviation: 'kg', type: UnitType.WEIGHT, conversionFactor: 1000 },
+      create: { organizationId: 'org-1', name: 'Kilograms', abbreviation: 'kg', type: UnitType.WEIGHT, conversionFactor: 1000 },
     }),
     ml: await prisma.unit.upsert({
       where: { abbreviation: 'ml' },
       update: {},
-      create: { name: 'Milliliters', abbreviation: 'ml', type: UnitType.VOLUME, isBaseUnit: true },
+      create: { organizationId: 'org-1', name: 'Milliliters', abbreviation: 'ml', type: UnitType.VOLUME, isBaseUnit: true },
     }),
     l: await prisma.unit.upsert({
       where: { abbreviation: 'L' },
       update: {},
-      create: { name: 'Liters', abbreviation: 'L', type: UnitType.VOLUME, conversionFactor: 1000 },
+      create: { organizationId: 'org-1', name: 'Liters', abbreviation: 'L', type: UnitType.VOLUME, conversionFactor: 1000 },
     }),
   }
 
   // 2. Ensure Categories
   const categories = {
-    pantry: await prisma.category.upsert({ where: { name: 'Pantry' }, update: {}, create: { name: 'Pantry' } }),
-    burgers: await prisma.category.upsert({ where: { name: 'Burgers' }, update: {}, create: { name: 'Burgers' } }),
-    drinks: await prisma.category.upsert({ where: { name: 'Drinks' }, update: {}, create: { name: 'Drinks' } }),
-    sides: await prisma.category.upsert({ where: { name: 'Sides' }, update: {}, create: { name: 'Sides' } }),
+    pantry: await prisma.category.upsert({ where: { name: 'Pantry' }, update: {}, create: { organizationId: 'org-1', name: 'Pantry' } }),
+    burgers: await prisma.category.upsert({ where: { name: 'Burgers' }, update: {}, create: { organizationId: 'org-1', name: 'Burgers' } }),
+    drinks: await prisma.category.upsert({ where: { name: 'Drinks' }, update: {}, create: { organizationId: 'org-1', name: 'Drinks' } }),
+    sides: await prisma.category.upsert({ where: { name: 'Sides' }, update: {}, create: { organizationId: 'org-1', name: 'Sides' } }),
   }
 
   const productMap: Record<string, string> = {}
@@ -127,6 +127,7 @@ export async function initialProducts(prisma: PrismaClient) {
         baseUnitId: item.uId,
       },
       create: {
+        organizationId: 'org-1',
         name: item.name,
         sku: item.sku,
         image: item.img,
@@ -281,7 +282,7 @@ export async function initialProducts(prisma: PrismaClient) {
     const createdBundle = await prisma.product.upsert({
       where: { sku: productData.sku },
       update: productData,
-      create: { ...productData, type: ResourceType.BUNDLE },
+      create: { ...productData, organizationId: 'org-1', type: ResourceType.BUNDLE },
     })
 
     for (const ingredient of recipe) {
@@ -329,6 +330,7 @@ export async function initialProducts(prisma: PrismaClient) {
         update: size,
         create: {
           ...size,
+          organizationId: 'org-1',
           type: ResourceType.PHYSICAL_GOOD,
           categoryId: categories.drinks.id,
           variantOfId: colaMaster.id,

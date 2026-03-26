@@ -13,6 +13,64 @@ datasource db {
   provider = "postgresql"
 }
 
+// --- MULTI TENANCY ---
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Global to the Business
+  members    Membership[]
+  branches   Branch[]
+  products   Product[]
+  categories Category[]
+  units      Unit[]
+  customers  Customer[]
+
+  @@map("organizations")
+}
+
+model Membership {
+  id   String @id @default(cuid())
+  role Role   @default(CASHIER)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Link a staff member to a specific "Home" branch
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
+
+  @@unique([userId, organizationId])
+  @@map("memberships")
+}
+
+model Branch {
+  id      String  @id @default(cuid())
+  name    String
+  address String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Branch-specific data
+  members      Membership[]
+  inventory    Inventory[]
+  transactions Transaction[]
+  movements    InventoryMovement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("branches")
+}
+
 // --- USER & ROLE MANAGEMENT ---
 enum Role {
   ADMIN
@@ -40,11 +98,12 @@ model User {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   inventoryMovements InventoryMovement[]
+  memberships        Membership[]
 
   @@map("users")
 }
 
-// --- 6. AUTH SYSTEM ---
+// --- AUTH SYSTEM ---
 
 // Need for better auth management, but can be extended for other purposes like tracking user sessions, devices, etc.
 model Session {
@@ -57,6 +116,9 @@ model Session {
   userAgent String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  branchId       String
 
   @@map("sessions")
 }
@@ -84,9 +146,11 @@ enum ResourceType {
 }
 
 model Category {
-  id       String    @id @default(cuid())
-  name     String    @unique
-  products Product[]
+  id             String       @id @default(cuid())
+  name           String       @unique
+  products       Product[]
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
 
   @@map("categories")
 }
@@ -137,6 +201,8 @@ model Product {
   inventoryMovements InventoryMovement[]
   orderItemAddons    OrderItemAddon[]    @relation("AddonToOrderItem")
   productUnits       ProductUnit[]
+  organization       Organization        @relation(fields: [organizationId], references: [id])
+  organizationId     String
 
   @@map("products")
 }
@@ -197,6 +263,8 @@ model Unit {
   inventoryMovements InventoryMovement[]
   orderItems         OrderItem[]
   productUnits       ProductUnit[]
+  organization       Organization        @relation(fields: [organizationId], references: [id])
+  organizationId     String
 
   @@map("units")
 }
@@ -241,6 +309,8 @@ model Inventory {
   location    String? // Warehouse A, Aisle 4, Room 101
 
   lastRestocked DateTime @default(now())
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  branchId      String
 
   @@map("inventory")
 }
@@ -261,6 +331,8 @@ model InventoryMovement {
   unit   Unit   @relation(fields: [unitId], references: [id])
 
   createdAt DateTime @default(now())
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  branchId  String
 
   @@map("inventory_movements")
 }
@@ -273,8 +345,10 @@ model Customer {
   phone       String?
   dateOfBirth DateTime? // For Clinics/Age-restricted items
 
-  transactions Transaction[]
-  createdAt    DateTime      @default(now())
+  transactions   Transaction[]
+  createdAt      DateTime      @default(now())
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  organizationId String
 
   @@map("customers")
 }
@@ -324,6 +398,8 @@ model Transaction {
 
   items     OrderItem[]
   createdAt DateTime    @default(now())
+  branch    Branch      @relation(fields: [branchId], references: [id])
+  branchId  String
 
   @@map("transactions")
 }

@@ -18,6 +18,37 @@ export const auth = betterAuth({
         required: false,
         defaultValue: Role.CASHIER,
       },
+      organizationId: { type: 'string', required: true },
+      branchId: { type: 'string', required: false },
+    },
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        before: async session => {
+          const membership = await prisma.membership.findFirst({
+            where: { userId: session.userId },
+          })
+
+          if (membership) {
+            return {
+              data: {
+                ...session,
+                organizationId: membership.organizationId,
+                branchId: membership.branchId,
+              },
+            }
+          }
+
+          return { data: session }
+        },
+      },
+    },
+  },
+  session: {
+    additionalFields: {
+      organizationId: { type: 'string' },
+      branchId: { type: 'string' },
     },
   },
   plugins: [tanstackStartCookies()],
