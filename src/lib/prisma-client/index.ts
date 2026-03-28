@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
-import { Prisma, PrismaClient } from 'prisma/generated/prisma/client'
+import { Prisma } from 'prisma/generated/prisma/browser'
+import { PrismaClient } from 'prisma/generated/prisma/client'
 
 const pool = new pg.Pool({
   connectionString: process.env['DATABASE_URL'],
@@ -22,6 +23,8 @@ export const getTenantPrisma = (organizationId: string, branchId?: string) => {
           // Skip Auth for system-level models
           const systemModels = ['Organization', 'User', 'Account', 'Session']
           if (systemModels.includes(model)) return query(args)
+          const hasOrganizationIdField = 'organizationId' in (Prisma as any)[`${model}ScalarFieldEnum`]
+          const hasBranchIdField = 'branchId' in (Prisma as any)[`${model}ScalarFieldEnum`]
 
           // CREATE: Inject and Validate
           if (operation.includes('create')) {
@@ -31,11 +34,11 @@ export const getTenantPrisma = (organizationId: string, branchId?: string) => {
             }
 
             // Auto-inject the IDs
-            args.data = {
-              ...args.data,
-              organizationId,
-              // Only inject branchId if the model actually has it
-              ...(branchId && 'branchId' in (Prisma as any)[`${model}ScalarFieldEnum`] ? { branchId } : {}),
+            if (hasOrganizationIdField) {
+              args.data = { ...args.data, organizationId }
+            }
+            if (hasBranchIdField) {
+              args.data = { ...args.data, branchId }
             }
           }
 
@@ -48,16 +51,12 @@ export const getTenantPrisma = (organizationId: string, branchId?: string) => {
               throw new Error(`Unauthorized access to Organization ${args.where.organizationId}`)
             }
 
-            // Merge our tenant scope into the user's where clause
-            args.where = {
-              ...args.where,
-              organizationId,
+            // Auto-inject the IDs
+            if (hasOrganizationIdField) {
+              args.where = { ...args.where, organizationId }
             }
-
-            // Strict branch isolation for specific operational models
-            const branchScopedModels = ['Inventory', 'Transaction', 'InventoryMovement']
-            if (branchId && branchScopedModels.includes(model)) {
-              args.where.branchId = branchId
+            if (hasBranchIdField) {
+              args.where = { ...args.where, branchId }
             }
           }
 
