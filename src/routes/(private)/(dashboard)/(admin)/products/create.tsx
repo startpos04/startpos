@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { CURRENCY } from '@/lib/constants'
 import { showModal } from '@/lib/Overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
@@ -275,7 +276,8 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
                       {variants.map((v, idx) => (
                         <div key={idx} className='flex items-center justify-between p-2 bg-background/50 rounded-lg border border-border/40 text-sm'>
                           <span>
-                            {v.variantValue} {v.price ? <span className='text-muted-foreground ml-2'>{numeral(v.price).format('$0,0.00')}</span> : null}
+                            {v.variantValue}{' '}
+                            {v.price ? <span className='text-muted-foreground ml-2'>{`${CURRENCY}${numeral(v.price).format('0,0.00')}`}</span> : null}
                           </span>
                           <Button variant='ghost' size='icon' className='h-6 w-6' onClick={() => removeItem('variants', idx)}>
                             <X className='w-3 h-3' />

@@ -1,0 +1,45 @@
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Prettify } from '@/lib/types'
+import { CheckCircle2 } from 'lucide-react'
+import { ReactNode } from 'react'
+
+const successPromptSchema = {
+  title: 'Action Successful' as String | ReactNode,
+  description: 'Your changes have been saved to the database. You can now continue your workflow.' as unknown as String | ReactNode,
+  btnText: 'OK' as String,
+}
+
+export type SuccessPromptProps = Prettify<
+  {
+    open: boolean
+    onClose: (open: boolean) => void
+  } & Partial<typeof successPromptSchema>
+>
+
+export function SuccessPrompt(props: SuccessPromptProps) {
+  const { open, onClose, title, description, btnText } = { ...props, ...successPromptSchema }
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className='sm:max-w-106.25  text-center fixed top-[20%] left-[50%] -translate-x-[50%] -translate-y-[30%] mt-8'>
+        <DialogHeader className='flex flex-col items-center justify-center gap-4'>
+          <div className='rounded-full bg-green-100 p-3 dark:bg-green-900/20'>
+            <CheckCircle2 className='h-24 w-24 text-green-600 dark:text-green-400' />
+          </div>
+
+          <DialogTitle className='text-2xl font-bold'>{title}</DialogTitle>
+          <DialogDescription className='text-center'>{description}</DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter className='sm:justify-center'>
+          <DialogClose asChild>
+            <Button type='button' className='w-full sm:w-32 bg-green-600 hover:bg-green-700 text-white'>
+              {btnText}
+            </Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

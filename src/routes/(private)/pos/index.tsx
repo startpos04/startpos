@@ -1,6 +1,8 @@
+import { SuccessPrompt } from '@/components/custom/prompt/success-prompt'
 import { useAppForm } from '@/hooks/form'
+import { showModal } from '@/lib/Overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { createPosTransaction } from '@/lib/server-fn/transaction'
+import { createPosTransaction } from '@/lib/server-fn/create-pos-transaction'
 import { formOptions } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -88,7 +90,11 @@ function POSPage() {
           },
         })
 
-        alert(`Success! Invoice: ${result.data.invoiceNo}`)
+        showModal(SuccessPrompt, {
+          title: 'Transaction Completed',
+          description: 'Payment processed and order logged.',
+          btnText: 'Next Customer',
+        })
         form.reset()
       } catch (error) {
         console.error('Sale failed', error)

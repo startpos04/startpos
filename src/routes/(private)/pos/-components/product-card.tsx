@@ -1,8 +1,10 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CURRENCY } from '@/lib/constants'
 import { showModal } from '@/lib/Overlay'
 import { Coffee, Layers, Sparkles } from 'lucide-react'
+import numeral from 'numeral'
 import { posItem, PosProduct } from '..'
 import { ProductDialog } from './product-dialog'
 
@@ -61,7 +63,7 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
                   variant='secondary'
                   className='rounded-lg border-blue-200/50 bg-background/50 px-2 py-0 text-[10px] font-semibold dark:border-blue-800/30'
                 >
-                  {item.addon.name} <span className='ml-1 text-blue-600'>+${Number(item.priceOverride).toFixed(2)}</span>
+                  {item.addon.name} <span className='ml-1 text-blue-600'>{`+${CURRENCY}${numeral(item.priceOverride).format('0,0.00')}`}</span>
                 </Badge>
               ))}
             </div>

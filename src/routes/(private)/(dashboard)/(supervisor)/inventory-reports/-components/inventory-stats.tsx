@@ -1,5 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card'
+import { CURRENCY } from '@/lib/constants'
 import { Archive, Box, ShieldAlert, TrendingDown } from 'lucide-react'
+import numeral from 'numeral'
 
 interface StatsProps {
   audit: {
@@ -15,7 +17,7 @@ export function InventoryStats({ audit, productCount }: StatsProps) {
     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
       <StatCard
         title='Warehouse Value'
-        value={`₱${audit.totalValue.toLocaleString()}`}
+        value={`${CURRENCY}${numeral(audit.totalValue).format('0,0.00')}`}
         sub='Total capital in stock'
         icon={<Archive className='text-blue-500' />}
       />

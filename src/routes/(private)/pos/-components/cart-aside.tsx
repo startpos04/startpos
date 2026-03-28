@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { withForm } from '@/hooks/form'
+import { CURRENCY } from '@/lib/constants'
 import { Minus, Plus, UserPlus } from 'lucide-react'
 import numeral from 'numeral'
 import { posFormOpts } from '..'
@@ -43,7 +44,7 @@ export const CartAside = withForm({
                     <div className='flex items-start gap-3'>
                       <div className='flex-1'>
                         <p className='font-bold text-sm leading-none'>{item.variant?.name || item.product.name}</p>
-                        <p className='text-[10px] text-muted-foreground mt-1'>{numeral(item.variant?.price || item.product.price).format('$0,0.00')}</p>
+                        <p className='text-[10px] text-muted-foreground mt-1'>{`${CURRENCY}${numeral(item.variant?.price || item.product.price).format('0,0.00')}`}</p>
                         {item.addons && item.addons.length > 0 && (
                           <div className='mt-2 space-y-1 ml-2 border-l-2 border-muted pl-2'>
                             {Object.values(
@@ -67,7 +68,7 @@ export const CartAside = withForm({
                                 </span>
                                 <div className='flex items-center gap-2'>
                                   <span className='text-muted-foreground/70'>
-                                    {numeral(Number(groupedAddon.priceOverride) * groupedAddon.count).format('$0.00')}
+                                    {`${CURRENCY}${numeral(Number(groupedAddon.priceOverride) * groupedAddon.count).format('0,0.00')}`}
                                   </span>
                                   <button
                                     type='button'

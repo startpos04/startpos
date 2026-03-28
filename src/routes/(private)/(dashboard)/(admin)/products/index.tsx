@@ -5,11 +5,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { CURRENCY } from '@/lib/constants'
 import { showModal } from '@/lib/Overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Coffee, Layers, Leaf, Plus, Sparkles } from 'lucide-react'
+import numeral from 'numeral'
 import { useMemo } from 'react'
 import { CreateProductDialog } from './create'
 
@@ -61,7 +63,7 @@ function RouteComponent() {
         h.accessor('category.name', { header: 'Category' }),
         h.accessor('price', {
           header: 'Base Price',
-          cell: info => <span className='font-mono'>${info.getValue().toFixed(2)}</span>,
+          cell: info => <span className='font-mono'>{`${CURRENCY}${numeral(info.getValue()).format('0,0.00')}`}</span>,
         }),
       ]),
     [],
@@ -123,7 +125,7 @@ function RouteComponent() {
               <CardHeader className='pb-2'>
                 <div className='flex justify-between items-start'>
                   <CardTitle className='text-xl font-bold line-clamp-1'>{product.name}</CardTitle>
-                  <span className='font-bold text-primary'>${Number(product.price).toFixed(2)}</span>
+                  <span className='font-bold text-primary'>{`${CURRENCY}${numeral(product.price).format('0,0.00')}`}</span>
                 </div>
                 <div className='flex items-center gap-2'>
                   <Badge variant='outline' className='text-[9px] uppercase font-bold py-0 h-4'>
@@ -170,7 +172,7 @@ function RouteComponent() {
                       {product.variants.map(variant => (
                         <div key={variant.id} className='flex justify-between items-center text-[11px]'>
                           <span className='text-foreground/80'>{variant.name}</span>
-                          <span className='font-mono font-medium'>${Number(variant.price).toFixed(2)}</span>
+                          <span className='font-mono font-medium'>{`+${CURRENCY}${numeral(variant.price).format('0,0.00')}`}</span>
                         </div>
                       ))}
                     </div>
@@ -190,7 +192,7 @@ function RouteComponent() {
                           variant='secondary'
                           className='rounded-lg border-blue-200/50 bg-background/50 px-2 py-0 text-[10px] font-semibold dark:border-blue-800/30'
                         >
-                          {item.addon.name} <span className='ml-1 text-blue-600'>+${Number(item.priceOverride).toFixed(2)}</span>
+                          {item.addon.name} <span className='ml-1 text-blue-600'>{`+${CURRENCY}${numeral(item.priceOverride).format('0,0.00')}`}</span>
                         </Badge>
                       ))}
                     </div>
