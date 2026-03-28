@@ -163,3 +163,6 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
       },
     }
   })
+
+type CreatePosTransactionFn = typeof createPosTransaction
+export type CreatePosTransactionResponse = Awaited<ReturnType<CreatePosTransactionFn>>

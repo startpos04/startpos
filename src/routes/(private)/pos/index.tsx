@@ -3,11 +3,13 @@ import { useAppForm } from '@/hooks/form'
 import { showModal } from '@/lib/Overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { createPosTransaction } from '@/lib/server-fn/create-pos-transaction'
+import { pdf } from '@react-pdf/renderer'
 import { formOptions } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { CartAside } from './-components/cart-aside'
 import { ProductGrid } from './-components/product-grid'
+import { ReceiptPDF } from './-components/receipt-ticket'
 import { Sidebar } from './-components/sidebar'
 
 export const fetchPosProducts = (searchQuery: string, activeCategory: string) =>
@@ -87,6 +89,24 @@ function POSPage() {
                   quantity: 1,
                 })) || [],
             })),
+          },
+        })
+
+        const doc = <ReceiptPDF transaction={result} data={value} />
+        const asBlob = await pdf(doc).toBlob()
+        const url = URL.createObjectURL(asBlob)
+
+        const printJS = (await import('print-js-updated')).default
+
+        printJS({
+          printable: url,
+          type: 'pdf',
+          onPrintDialogClose: () => {
+            URL.revokeObjectURL(url)
+          },
+          onError: err => {
+            console.error('Print failed:', err)
+            URL.revokeObjectURL(url)
           },
         })
 
