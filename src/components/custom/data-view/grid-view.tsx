@@ -1,4 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import { ColumnDef, getCoreRowModel, Row, useReactTable } from '@tanstack/react-table'
 
 interface GridViewProps<T> {
@@ -7,6 +8,7 @@ interface GridViewProps<T> {
   columns: ColumnDef<T, any>[]
   renderCard: (row: Row<T>) => React.ReactNode
   emptyMessage?: string
+  className?: string
 }
 
 const GridSkeleton = () => (
@@ -17,7 +19,7 @@ const GridSkeleton = () => (
   </div>
 )
 
-export function GridView<T>({ data, isFetching, columns, renderCard, emptyMessage = 'No records found.' }: GridViewProps<T>) {
+export function GridView<T>({ data, isFetching, columns, renderCard, className, emptyMessage = 'No records found.' }: GridViewProps<T>) {
   const table = useReactTable({
     data: data ?? [],
     columns,
@@ -25,7 +27,7 @@ export function GridView<T>({ data, isFetching, columns, renderCard, emptyMessag
   })
 
   return (
-    <div className='grow h-1 overflow-auto'>
+    <div className={cn('grow h-1 overflow-auto', className)}>
       {isFetching && !data?.length ? (
         <GridSkeleton />
       ) : table.getRowModel().rows?.length ? (

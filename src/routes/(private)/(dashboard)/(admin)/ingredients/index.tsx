@@ -8,6 +8,7 @@ import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { createFileRoute } from '@tanstack/react-router'
 import { Edit, Package, Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
+import { RestockIngredientDialog } from './-components/restock'
 import { CreateIngredientDialog } from './create'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients/')({
@@ -20,6 +21,10 @@ function RouteComponent() {
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     showModal(CreateIngredientDialog)
+  }
+
+  const handleRestock = (ingredient: NonNullable<typeof data>[number]) => {
+    showModal(RestockIngredientDialog, { ingredient })
   }
 
   const columns = useMemo(
@@ -77,7 +82,7 @@ function RouteComponent() {
           header: () => <div className='text-right pr-4'>Actions</div>,
           cell: ({ row }) => (
             <div className='flex justify-end gap-2 pr-2 opacity-0 group-hover:opacity-100 transition-opacity'>
-              <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => console.log('Editing', row.original.id)}>
+              <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => handleRestock(row.original)}>
                 <Edit className='h-4 w-4' />
               </Button>
               <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full text-destructive hover:text-destructive'>
@@ -91,8 +96,8 @@ function RouteComponent() {
   )
 
   return (
-    <>
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6'>
+    <div className='flex flex-col grow gap-4 px-4'>
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
         <div>
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Ingredients</h1>
           <p className='text-muted-foreground text-sm'>Manage raw materials and track stock levels by weight, volume, or count.</p>
@@ -116,6 +121,6 @@ function RouteComponent() {
           </div>
         )}
       />
-    </>
+    </div>
   )
 }

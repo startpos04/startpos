@@ -69,7 +69,7 @@ function RouteComponent() {
 
   return (
     <>
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8'>
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 px-4'>
         <div>
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Products</h1>
           <p className='text-muted-foreground text-sm'>Manage recipes and real-time availability based on ingredient stock.</p>
@@ -85,6 +85,7 @@ function RouteComponent() {
         data={data}
         isFetching={isFetching}
         columns={columns}
+        className='px-4'
         renderCard={row => {
           const product = row.original
 

@@ -18,7 +18,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as privatedashboardsupervisorRouteRouteImport } from './routes/(private)/(dashboard)/(supervisor)/route'
 import { Route as privatedashboardadminRouteRouteImport } from './routes/(private)/(dashboard)/(admin)/route'
 import { Route as privatedashboardsupervisorSalesReportsRouteImport } from './routes/(private)/(dashboard)/(supervisor)/sales-reports'
-import { Route as privatedashboardsupervisorInventoryReportsRouteImport } from './routes/(private)/(dashboard)/(supervisor)/inventory-reports'
+import { Route as privatedashboardsupervisorInventoryReportsIndexRouteImport } from './routes/(private)/(dashboard)/(supervisor)/inventory-reports/index'
 import { Route as privatedashboardadminProductsIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/products/index'
 import { Route as privatedashboardadminIngredientsIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/ingredients/index'
 import { Route as privatedashboardadminEmployeesIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/index'
@@ -71,10 +71,10 @@ const privatedashboardsupervisorSalesReportsRoute =
     path: '/sales-reports',
     getParentRoute: () => privatedashboardsupervisorRouteRoute,
   } as any)
-const privatedashboardsupervisorInventoryReportsRoute =
-  privatedashboardsupervisorInventoryReportsRouteImport.update({
-    id: '/inventory-reports',
-    path: '/inventory-reports',
+const privatedashboardsupervisorInventoryReportsIndexRoute =
+  privatedashboardsupervisorInventoryReportsIndexRouteImport.update({
+    id: '/inventory-reports/',
+    path: '/inventory-reports/',
     getParentRoute: () => privatedashboardsupervisorRouteRoute,
   } as any)
 const privatedashboardadminProductsIndexRoute =
@@ -125,7 +125,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof publicLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/pos/': typeof privatePosIndexRoute
-  '/inventory-reports': typeof privatedashboardsupervisorInventoryReportsRoute
   '/sales-reports': typeof privatedashboardsupervisorSalesReportsRoute
   '/employees/$employeeId': typeof privatedashboardadminEmployeesEmployeeIdRoute
   '/employees/create': typeof privatedashboardadminEmployeesCreateRoute
@@ -134,13 +133,13 @@ export interface FileRoutesByFullPath {
   '/employees/': typeof privatedashboardadminEmployeesIndexRoute
   '/ingredients/': typeof privatedashboardadminIngredientsIndexRoute
   '/products/': typeof privatedashboardadminProductsIndexRoute
+  '/inventory-reports/': typeof privatedashboardsupervisorInventoryReportsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof publicLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/pos': typeof privatePosIndexRoute
-  '/inventory-reports': typeof privatedashboardsupervisorInventoryReportsRoute
   '/sales-reports': typeof privatedashboardsupervisorSalesReportsRoute
   '/employees/$employeeId': typeof privatedashboardadminEmployeesEmployeeIdRoute
   '/employees/create': typeof privatedashboardadminEmployeesCreateRoute
@@ -149,6 +148,7 @@ export interface FileRoutesByTo {
   '/employees': typeof privatedashboardadminEmployeesIndexRoute
   '/ingredients': typeof privatedashboardadminIngredientsIndexRoute
   '/products': typeof privatedashboardadminProductsIndexRoute
+  '/inventory-reports': typeof privatedashboardsupervisorInventoryReportsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -160,7 +160,6 @@ export interface FileRoutesById {
   '/(private)/(dashboard)/(supervisor)': typeof privatedashboardsupervisorRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/(private)/pos/': typeof privatePosIndexRoute
-  '/(private)/(dashboard)/(supervisor)/inventory-reports': typeof privatedashboardsupervisorInventoryReportsRoute
   '/(private)/(dashboard)/(supervisor)/sales-reports': typeof privatedashboardsupervisorSalesReportsRoute
   '/(private)/(dashboard)/(admin)/employees/$employeeId': typeof privatedashboardadminEmployeesEmployeeIdRoute
   '/(private)/(dashboard)/(admin)/employees/create': typeof privatedashboardadminEmployeesCreateRoute
@@ -169,6 +168,7 @@ export interface FileRoutesById {
   '/(private)/(dashboard)/(admin)/employees/': typeof privatedashboardadminEmployeesIndexRoute
   '/(private)/(dashboard)/(admin)/ingredients/': typeof privatedashboardadminIngredientsIndexRoute
   '/(private)/(dashboard)/(admin)/products/': typeof privatedashboardadminProductsIndexRoute
+  '/(private)/(dashboard)/(supervisor)/inventory-reports/': typeof privatedashboardsupervisorInventoryReportsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -177,7 +177,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/api/auth/$'
     | '/pos/'
-    | '/inventory-reports'
     | '/sales-reports'
     | '/employees/$employeeId'
     | '/employees/create'
@@ -186,13 +185,13 @@ export interface FileRouteTypes {
     | '/employees/'
     | '/ingredients/'
     | '/products/'
+    | '/inventory-reports/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/api/auth/$'
     | '/pos'
-    | '/inventory-reports'
     | '/sales-reports'
     | '/employees/$employeeId'
     | '/employees/create'
@@ -201,6 +200,7 @@ export interface FileRouteTypes {
     | '/employees'
     | '/ingredients'
     | '/products'
+    | '/inventory-reports'
   id:
     | '__root__'
     | '/'
@@ -211,7 +211,6 @@ export interface FileRouteTypes {
     | '/(private)/(dashboard)/(supervisor)'
     | '/api/auth/$'
     | '/(private)/pos/'
-    | '/(private)/(dashboard)/(supervisor)/inventory-reports'
     | '/(private)/(dashboard)/(supervisor)/sales-reports'
     | '/(private)/(dashboard)/(admin)/employees/$employeeId'
     | '/(private)/(dashboard)/(admin)/employees/create'
@@ -220,6 +219,7 @@ export interface FileRouteTypes {
     | '/(private)/(dashboard)/(admin)/employees/'
     | '/(private)/(dashboard)/(admin)/ingredients/'
     | '/(private)/(dashboard)/(admin)/products/'
+    | '/(private)/(dashboard)/(supervisor)/inventory-reports/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -294,11 +294,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardsupervisorSalesReportsRouteImport
       parentRoute: typeof privatedashboardsupervisorRouteRoute
     }
-    '/(private)/(dashboard)/(supervisor)/inventory-reports': {
-      id: '/(private)/(dashboard)/(supervisor)/inventory-reports'
+    '/(private)/(dashboard)/(supervisor)/inventory-reports/': {
+      id: '/(private)/(dashboard)/(supervisor)/inventory-reports/'
       path: '/inventory-reports'
-      fullPath: '/inventory-reports'
-      preLoaderRoute: typeof privatedashboardsupervisorInventoryReportsRouteImport
+      fullPath: '/inventory-reports/'
+      preLoaderRoute: typeof privatedashboardsupervisorInventoryReportsIndexRouteImport
       parentRoute: typeof privatedashboardsupervisorRouteRoute
     }
     '/(private)/(dashboard)/(admin)/products/': {
@@ -387,16 +387,16 @@ const privatedashboardadminRouteRouteWithChildren =
   )
 
 interface privatedashboardsupervisorRouteRouteChildren {
-  privatedashboardsupervisorInventoryReportsRoute: typeof privatedashboardsupervisorInventoryReportsRoute
   privatedashboardsupervisorSalesReportsRoute: typeof privatedashboardsupervisorSalesReportsRoute
+  privatedashboardsupervisorInventoryReportsIndexRoute: typeof privatedashboardsupervisorInventoryReportsIndexRoute
 }
 
 const privatedashboardsupervisorRouteRouteChildren: privatedashboardsupervisorRouteRouteChildren =
   {
-    privatedashboardsupervisorInventoryReportsRoute:
-      privatedashboardsupervisorInventoryReportsRoute,
     privatedashboardsupervisorSalesReportsRoute:
       privatedashboardsupervisorSalesReportsRoute,
+    privatedashboardsupervisorInventoryReportsIndexRoute:
+      privatedashboardsupervisorInventoryReportsIndexRoute,
   }
 
 const privatedashboardsupervisorRouteRouteWithChildren =

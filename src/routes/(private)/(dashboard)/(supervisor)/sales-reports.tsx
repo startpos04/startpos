@@ -81,7 +81,7 @@ function RouteComponent() {
   const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444']
 
   return (
-    <>
+    <div className='flex flex-col gap-4 px-4  overflow-auto'>
       {/* HEADER */}
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
         <div>
@@ -214,7 +214,7 @@ function RouteComponent() {
           </CardContent>
         </Card>
       </div>
-    </>
+    </div>
   )
 }
 
