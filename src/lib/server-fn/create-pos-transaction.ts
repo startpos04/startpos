@@ -1,4 +1,4 @@
-import { Decimal } from '@prisma/client/runtime/client'
+import { authStore } from '@/store/auth-store'
 import { createServerFn } from '@tanstack/react-start'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { getTenantPrisma } from '../prisma-client'
@@ -9,9 +9,11 @@ interface SaleItem {
   quantity: number
   unitId: string
   price: number
+  costPrice: number
   addons: {
     addonId: string
     price: number
+    costPrice: number
     quantity: number
   }[]
 }
@@ -26,20 +28,24 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
   .inputValidator((d: CreateSaleInput) => d)
   .handler(async ({ context, data }) => {
     const prisma = getTenantPrisma(context.user.organizationId, context.user.branchId!)
+    const { user } = authStore.state
 
     const result = await prisma.$transaction(async tx => {
       // --- 1. COMPUTATIONS ---
       let totalTaxAmount = 0
       let totalDiscount = 0
       let grandTotal = 0
+      let totalCost = 0
       const TAX_RATE = 0.12 // 12% VAT example
 
       // Calculate totals from items and addons
       data.items.forEach(item => {
         const itemBasePrice = item.price
         const addonsPrice = item.addons.reduce((sum, a) => sum + a.price * a.quantity, 0)
+        const addonsCost = item.addons.reduce((sum, a) => sum + a.costPrice * a.quantity, 0)
 
         const lineSubtotal = (itemBasePrice + addonsPrice) * item.quantity
+        const lineCost = (item.costPrice + addonsCost) * item.quantity
 
         // If you implement per-item discounts in the future, apply them here
         const lineTax = lineSubtotal * TAX_RATE
@@ -48,6 +54,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
         // Accumulate for the main transaction record
         totalTaxAmount += lineTax
         grandTotal += lineTotal
+        totalCost += lineCost
 
         return {
           ...item,
@@ -65,6 +72,8 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
           totalAmount: grandTotal,
           taxAmount: totalTaxAmount,
           discount: totalDiscount,
+          totalCost: totalCost,
+          bufferRate: user.branch.bufferRate,
           status: 'COMPLETED',
           type: 'SALE',
           items: {
@@ -72,6 +81,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
               productId: item.variantId || item.productId, // Use variant ID if exists
               quantity: item.quantity,
               unitPrice: item.price,
+              unitCost: item.costPrice,
               unitId: item.unitId,
               selectedAddons: {
                 create: item.addons.map(addon => ({
@@ -113,7 +123,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
             branchId: '',
             userId: context.user.id,
             type: 'OUT',
-            quantity: new Decimal(item.quantity).negated(),
+            quantity: item.quantity,
             reason: `Sale: ${transaction.invoiceNo}`,
             unitId: item.unitId,
           },
@@ -132,7 +142,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
               branchId: '',
               userId: context.user.id,
               type: 'OUT',
-              quantity: new Decimal(addon.quantity).negated(),
+              quantity: addon.quantity,
               reason: `Addon for Sale: ${transaction.invoiceNo}`,
               unitId: item.unitId, // Or the addon's specific unit
             },
@@ -144,23 +154,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
     })
 
     return {
-      data: {
-        ...result,
-        invoiceNo: result.invoiceNo,
-        totalAmount: Number(result.totalAmount),
-        taxAmount: Number(result.taxAmount),
-        discount: Number(result.discount),
-        items: result.items.map(item => ({
-          ...item,
-          quantity: Number(item.quantity),
-          unitPrice: Number(item.unitPrice),
-          selectedAddons: item.selectedAddons.map(addon => ({
-            ...addon,
-            quantity: Number(addon.quantity),
-            priceAtSale: Number(addon.priceAtSale),
-          })),
-        })),
-      },
+      data: result,
     }
   })
 

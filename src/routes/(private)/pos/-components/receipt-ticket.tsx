@@ -1,3 +1,4 @@
+import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import { CreatePosTransactionResponse } from '@/lib/server-fn/create-pos-transaction'
 import { authStore } from '@/store/auth-store'
@@ -96,7 +97,7 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
                 {item.variant ? ` (${item.variant.name})` : ''}
               </Text>
               <Text style={styles.columnQty}>{item.quantity}</Text>
-              <Text style={styles.columnPrice}>{(Number(item.variant?.price || item.product.price) * item.quantity).toFixed(2)}</Text>
+              <Text style={styles.columnPrice}>{PriceEngine.toDollars(Number(item.variant?.price || item.product.price) * item.quantity).toFixed(2)}</Text>
             </View>
 
             {/* Render Add-ons */}
@@ -104,7 +105,7 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
               <View key={ai} style={styles.addonRow}>
                 <Text style={styles.columnItem}>+ {addon.addon.name}</Text>
                 <Text style={styles.columnQty}>1</Text>
-                <Text style={styles.columnPrice}>{Number(addon.priceOverride).toFixed(2)}</Text>
+                <Text style={styles.columnPrice}>{PriceEngine.toDollars(Number(addon.priceOverride)).toFixed(2)}</Text>
               </View>
             ))}
           </View>
@@ -116,15 +117,17 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
         <View style={styles.totalsContainer}>
           <View style={styles.infoRow}>
             <Text>Vatable Sales</Text>
-            <Text>{(t.totalAmount / 1.12).toFixed(2)}</Text>
+            <Text>{PriceEngine.toDollars(t.totalAmount / 1.12).toFixed(2)}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text>VAT Amount (12%)</Text>
-            <Text>{t.taxAmount.toFixed(2)}</Text>
+            <Text>{PriceEngine.toDollars(t.taxAmount).toFixed(2)}</Text>
           </View>
           <View style={[styles.infoRow, styles.totalText]}>
             <Text>TOTAL AMOUNT</Text>
-            <Text>PHP {t.totalAmount.toFixed(2)}</Text>
+            <Text>
+              {user.branch.currency} {PriceEngine.toDollars(t.totalAmount).toFixed(2)}
+            </Text>
           </View>
         </View>
 

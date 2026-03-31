@@ -82,10 +82,12 @@ function POSPage() {
               quantity: item.quantity,
               unitId: item.product.baseUnitId,
               price: item.variant?.price || item.product.price,
+              costPrice: item.variant?.costPrice || item.product.costPrice,
               addons:
                 item.addons?.map(a => ({
                   addonId: a.addonId,
                   price: a.priceOverride,
+                  costPrice: a.addon.costPrice,
                   quantity: 1,
                 })) || [],
             })),
