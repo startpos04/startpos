@@ -13,12 +13,24 @@ datasource db {
   provider = "postgresql"
 }
 
+enum VatType {
+  VAT
+  NON_VAT
+}
+
 // --- MULTI TENANCY ---
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  logo      String?
+  id   String  @id @default(cuid())
+  name String
+  slug String  @unique
+  logo String?
+
+  tin               String?
+  businessStyle     String?
+  vatType           VatType @default(VAT) // VAT or NON_VAT
+  permitToUse       String? // BIR PTU number
+  accreditedPrinter String? // BIR Accredited Printer number
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -31,6 +43,35 @@ model Organization {
   customers  Customer[]
 
   @@map("organizations")
+}
+
+model Branch {
+  id      String  @id @default(cuid())
+  name    String
+  address String?
+
+  serialNumber String? // SN (printed receipts requirement)
+  minInvoiceNo Int? // for OR range tracking
+  maxInvoiceNo Int?
+
+  bufferRate Int     @default(20) // Percentage markup for profit calculations (e.g., 20 for 20%)
+  locale     String? // For future localization needs (e.g., "en-US", "fr-FR")
+  currency   String? // For future multi-currency support (e.g., "USD", "EUR")
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Branch-specific data  
+  members      Membership[]
+  inventory    Inventory[]
+  transactions Transaction[]
+  movements    InventoryMovement[]
+  purchases    Purchase[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("branches")
 }
 
 model Membership {
@@ -51,26 +92,6 @@ model Membership {
   @@map("memberships")
 }
 
-model Branch {
-  id      String  @id @default(cuid())
-  name    String
-  address String?
-
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  // Branch-specific data
-  members      Membership[]
-  inventory    Inventory[]
-  transactions Transaction[]
-  movements    InventoryMovement[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("branches")
-}
-
 // --- USER & ROLE MANAGEMENT ---
 enum Role {
   ADMIN
@@ -87,18 +108,15 @@ model User {
   image         String?
   role          Role    @default(CASHIER)
 
-  // Auth relations
-  sessions Session[]
-  accounts Account[]
-
-  // Transactions handled as a Staff member
-  processedSales    Transaction[] @relation("CashierRelation")
-  performedServices Transaction[] @relation("ServiceProvider")
-
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  sessions           Session[]
+  accounts           Account[]
+  processedSales     Transaction[]       @relation("CashierRelation")
+  performedServices  Transaction[]       @relation("ServiceProvider")
   inventoryMovements InventoryMovement[]
   memberships        Membership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
@@ -107,16 +125,15 @@ model User {
 
 // Need for better auth management, but can be extended for other purposes like tracking user sessions, devices, etc.
 model Session {
-  id        String   @id @default(cuid())
-  expiresAt DateTime
-  token     String   @unique
-  createdAt DateTime
-  updatedAt DateTime
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id             String   @id @default(cuid())
+  expiresAt      DateTime
+  token          String   @unique
+  createdAt      DateTime
+  updatedAt      DateTime
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   organizationId String
   branchId       String
 
@@ -156,18 +173,19 @@ model Category {
 }
 
 model Product {
-  id    String       @id @default(cuid())
-  name  String
-  image String?
-  sku   String?      @unique // Barcode/Universal Product Code
-  type  ResourceType @default(PHYSICAL_GOOD)
-  price Decimal      @db.Decimal(10, 2)
+  id        String       @id @default(cuid())
+  name      String
+  image     String?
+  sku       String?      @unique // Barcode/Universal Product Code
+  type      ResourceType @default(PHYSICAL_GOOD)
+  price     Int          @db.Integer // Price charged to customers (in cents to avoid float issues)
+  costPrice Int          @default(0) @db.Integer // Cost to acquire/make the product (in cents)
 
   // Business Specific Flags
-  isAvailable     Boolean  @default(true)
-  hasExpiry       Boolean  @default(false) // Pharmacy/Food
-  requiresDeposit Boolean  @default(false) // LPG/Water/Bottles
-  depositAmount   Decimal? @db.Decimal(10, 2)
+  isAvailable     Boolean @default(true)
+  hasExpiry       Boolean @default(false) // Pharmacy/Food
+  requiresDeposit Boolean @default(false) // LPG/Water/Bottles
+  depositAmount   Int?    @db.Integer // Deposit amount if requiresDeposit is true (in cents)
   durationMinutes Int? // Service duration (Clinic/Spa)
 
   categoryId String
@@ -193,26 +211,28 @@ model Product {
   allowedAddons ProductAddon[] @relation("HostProduct")
   usedAsAddonIn ProductAddon[] @relation("AddonComponent")
 
-  inventory  Inventory[]
-  orderItems OrderItem[]
-
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  inventory          Inventory[]
+  orderItems         OrderItem[]
   inventoryMovements InventoryMovement[]
   orderItemAddons    OrderItemAddon[]    @relation("AddonToOrderItem")
   productUnits       ProductUnit[]
-  organization       Organization        @relation(fields: [organizationId], references: [id])
-  organizationId     String
+  purchaseItems      PurchaseItem[]
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("products")
 }
 
 model ProductIngredient {
-  id           String  @id @default(cuid())
+  id           String @id @default(cuid())
   hostId       String
   materialId   String
   unitId       String
-  quantityUsed Decimal @db.Decimal(10, 3)
+  quantityUsed Float // How much of the material is used in the host product (e.g., 0.25 kg of Beef in a Burger)
 
   unit     Unit    @relation(fields: [unitId], references: [id])
   host     Product @relation("ParentProduct", fields: [hostId], references: [id])
@@ -223,11 +243,11 @@ model ProductIngredient {
 }
 
 model ProductAddon {
-  id              String  @id @default(cuid())
+  id              String @id @default(cuid())
   hostId          String
   addonId         String
-  priceOverride   Decimal @db.Decimal(10, 2)
-  defaultQuantity Decimal @default(1) @db.Decimal(10, 3)
+  priceOverride   Int // If the addon has a different price than its standalone price (in cents)
+  defaultQuantity Float  @default(1) // Default quantity of the addon when added to the host product
 
   host  Product @relation("HostProduct", fields: [hostId], references: [id])
   addon Product @relation("AddonComponent", fields: [addonId], references: [id])
@@ -254,7 +274,7 @@ model Unit {
 
   // For future-proofing: Base Conversion
   // Example: If 'Gram' is the base, 'Kilogram' has factor 1000
-  conversionFactor Decimal @default(1) @db.Decimal(12, 4)
+  conversionFactor Float   @default(1) // How many of this unit equals one base unit (e.g., 1000 for kg if g is base)
   isBaseUnit       Boolean @default(false)
 
   products           Product[]           @relation("ProductBaseUnit")
@@ -265,6 +285,7 @@ model Unit {
   productUnits       ProductUnit[]
   organization       Organization        @relation(fields: [organizationId], references: [id])
   organizationId     String
+  purchaseItems      PurchaseItem[]
 
   @@map("units")
 }
@@ -287,6 +308,39 @@ model ProductUnit {
   @@map("product_units")
 }
 
+// --- PURCHASING (EXPENDITURE TRACKING) ---
+model Purchase {
+  id         String   @id @default(cuid())
+  sourceName String? // e.g. "Wholesale Mart", "Vendor X"
+  totalCost  Int // Total cost of the purchase (in cents)
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  items PurchaseItem[]
+
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id         String   @id @default(cuid())
+  purchaseId String
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity Float // Supports kg, L, units
+  unitId   String // e.g., "Sack", "Box", "KG"
+  unit     Unit   @relation(fields: [unitId], references: [id])
+
+  unitCost Int // Cost per unit (in cents) at the time of purchase. This allows us to track cost changes over time for profit analysis.
+
+  @@map("purchase_items")
+}
+
 // --- INVENTORY & BATCH TRACKING ---
 enum MovementType {
   IN // Restock, Purchase
@@ -296,36 +350,39 @@ enum MovementType {
 }
 
 model Inventory {
-  id        String  @id @default(cuid())
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-
-  unitId String // The unit this specific batch is stored in
-  unit   Unit   @relation(fields: [unitId], references: [id])
-
+  id          String    @id @default(cuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  unitId      String // The unit this specific batch is stored in
+  unit        Unit      @relation(fields: [unitId], references: [id])
   batchNumber String? // Lot # for Drugstore/Medicine
   expiryDate  DateTime?
-  quantity    Decimal   @db.Decimal(10, 3) // Supports kg, L, units
-  location    String? // Warehouse A, Aisle 4, Room 101
+  quantity    Float // Current quantity in stock for this batch (e.g., 100.5 kg, 50 units)
+
+  // Track cost per batch for accurate profit reporting
+  costPrice Int @default(0) // Cost per unit (in cents) for this specific batch
+
+  location String? // Warehouse A, Aisle 4, Room 101
 
   lastRestocked DateTime @default(now())
   branch        Branch   @relation(fields: [branchId], references: [id])
   branchId      String
+
+  createdAt DateTime @default(now())
 
   @@map("inventory")
 }
 
 // This allows you to generate the "Inventory Reports" we built earlier
 model InventoryMovement {
-  id        String  @id @default(cuid())
+  id        String       @id @default(cuid())
   productId String
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product      @relation(fields: [productId], references: [id])
   userId    String
-  user      User    @relation(fields: [userId], references: [id])
-
-  type     MovementType
-  quantity Decimal      @db.Decimal(10, 3) // Positive for IN, Negative for OUT
-  reason   String? // "Sold in INV-102", "Expired", "Manual Restock"
+  user      User         @relation(fields: [userId], references: [id])
+  type      MovementType
+  quantity  Float // How much was moved in or out (e.g., 10 kg, 5 units)
+  reason    String? // "Sold in INV-102", "Expired", "Manual Restock"
 
   unitId String
   unit   Unit   @relation(fields: [unitId], references: [id])
@@ -337,7 +394,7 @@ model InventoryMovement {
   @@map("inventory_movements")
 }
 
-// --- CUSTOMER / PATIENT RECORDS ---
+// --- CUSTOMER RECORDS ---
 model Customer {
   id          String    @id @default(cuid())
   name        String
@@ -374,9 +431,13 @@ model Transaction {
   type      TransactionType   @default(SALE)
   status    TransactionStatus @default(COMPLETED)
 
-  totalAmount Decimal @db.Decimal(10, 2)
-  taxAmount   Decimal @db.Decimal(10, 2)
-  discount    Decimal @default(0) @db.Decimal(10, 2)
+  // --- REVENUE VS COST (Line Graph Source) ---
+  totalAmount Int // Total charged to the customer (in cents)
+  totalCost   Int // Total cost of goods/services sold (in cents), calculated from OrderItems at time of sale
+  bufferRate  Int // Snapshot of Branch buffer rate at time of transaction for profit analysis
+
+  taxAmount Int // Tax amount (in cents)
+  discount  Int @default(0) // Discount amount (in cents)
 
   // Timing (Hotels/Resorts/Appointments)
   startTime DateTime?
@@ -405,20 +466,21 @@ model Transaction {
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  productId String // The Main Product (e.g., Ramen)
-  quantity  Decimal @db.Decimal(10, 3)
-  unitPrice Decimal @db.Decimal(10, 2) // Price of the Ramen itself
+  id        String @id @default(cuid())
+  productId String
+  quantity  Float // Supports kg, L, units
+
+  // Snapshots for Profit Analysis
+  unitPrice Int // Price charged to customer per unit (in cents) at time of sale
+  unitCost  Int @default(0) // Cost per unit (in cents) at time of sale, calculated from Product costPrice + Branch buffer
 
   unitId String
   unit   Unit   @relation(fields: [unitId], references: [id])
 
-  // This is where we track the EXTRA revenue
   selectedAddons OrderItemAddon[]
-
-  transactionId String
-  transaction   Transaction @relation(fields: [transactionId], references: [id])
-  product       Product     @relation(fields: [productId], references: [id])
+  transactionId  String
+  transaction    Transaction      @relation(fields: [transactionId], references: [id])
+  product        Product          @relation(fields: [productId], references: [id])
 
   @@map("order_items")
 }
@@ -428,11 +490,11 @@ model OrderItemAddon {
   orderItemId String
   orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
 
-  addonId String // The "Fried Egg" Product ID
-  addon   Product @relation("AddonToOrderItem", fields: [addonId], references: [id])
-
-  quantity    Decimal @db.Decimal(10, 3)
-  priceAtSale Decimal @db.Decimal(10, 2) // The $1.50 revenue for the egg
+  addonId     String // The "Fried Egg" Product ID
+  addon       Product @relation("AddonToOrderItem", fields: [addonId], references: [id])
+  quantity    Float // How much was added (e.g., 2 units)
+  priceAtSale Int // Price charged for this addon at time of sale (in cents)
+  costAtSale  Int     @default(0) // Cost of this addon at time of sale (in cents)
 
   @@map("order_item_addons")
 }

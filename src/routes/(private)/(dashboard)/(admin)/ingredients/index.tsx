@@ -3,10 +3,12 @@ import { TableView } from '@/components/custom/data-view/table-view'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge' // Assuming you have a Badge component
 import { Button } from '@/components/ui/button'
+import { CURRENCY } from '@/lib/constants'
 import { showModal } from '@/lib/Overlay'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { createFileRoute } from '@tanstack/react-router'
 import { Edit, Package, Plus, Trash2 } from 'lucide-react'
+import numeral from 'numeral'
 import { useMemo } from 'react'
 import { RestockIngredientDialog } from './-components/restock'
 import { CreateIngredientDialog } from './create'
@@ -75,6 +77,10 @@ function RouteComponent() {
               </div>
             )
           },
+        }),
+        h.accessor('costPrice', {
+          header: 'Cost per Unit',
+          cell: info => <span className='font-mono'>{`${CURRENCY}${numeral(info.getValue()).format('0,0.00')}`}</span>,
         }),
         h.display({
           maxSize: 100,

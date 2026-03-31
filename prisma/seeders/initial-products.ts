@@ -8,27 +8,27 @@ export async function initialProducts(prisma: PrismaClient) {
     pcs: await prisma.unit.upsert({
       where: { abbreviation: 'pcs' },
       update: {},
-      create: { organizationId: 'org-1', name: 'Pieces', abbreviation: 'pcs', type: UnitType.COUNT, isBaseUnit: true },
+      create: { organizationId: 'org-1', name: 'Pieces', abbreviation: 'pcs', type: UnitType.COUNT, isBaseUnit: true, conversionFactor: 1 },
     }),
     g: await prisma.unit.upsert({
       where: { abbreviation: 'g' },
       update: {},
-      create: { organizationId: 'org-1', name: 'Grams', abbreviation: 'g', type: UnitType.WEIGHT, isBaseUnit: true },
+      create: { organizationId: 'org-1', name: 'Grams', abbreviation: 'g', type: UnitType.WEIGHT, isBaseUnit: true, conversionFactor: 1 },
     }),
     kg: await prisma.unit.upsert({
       where: { abbreviation: 'kg' },
-      update: {},
-      create: { organizationId: 'org-1', name: 'Kilograms', abbreviation: 'kg', type: UnitType.WEIGHT, conversionFactor: 1000 },
+      update: { conversionFactor: 1000 },
+      create: { organizationId: 'org-1', name: 'Kilograms', abbreviation: 'kg', type: UnitType.WEIGHT, isBaseUnit: false, conversionFactor: 1000 },
     }),
     ml: await prisma.unit.upsert({
       where: { abbreviation: 'ml' },
       update: {},
-      create: { organizationId: 'org-1', name: 'Milliliters', abbreviation: 'ml', type: UnitType.VOLUME, isBaseUnit: true },
+      create: { organizationId: 'org-1', name: 'Milliliters', abbreviation: 'ml', type: UnitType.VOLUME, isBaseUnit: true, conversionFactor: 1 },
     }),
     l: await prisma.unit.upsert({
       where: { abbreviation: 'L' },
-      update: {},
-      create: { organizationId: 'org-1', name: 'Liters', abbreviation: 'L', type: UnitType.VOLUME, conversionFactor: 1000 },
+      update: { conversionFactor: 1000 },
+      create: { organizationId: 'org-1', name: 'Liters', abbreviation: 'L', type: UnitType.VOLUME, isBaseUnit: false, conversionFactor: 1000 },
     }),
   }
 
@@ -51,7 +51,7 @@ export async function initialProducts(prisma: PrismaClient) {
       img: 'https://images.unsplash.com/photo-1603532648955-039310d9ed75?q=80&w=200&auto=format&fit=crop',
     },
     {
-      name: 'Beef Patty (150g)',
+      name: 'Beef Patty',
       sku: 'ING-BEEF',
       uId: units.g.id,
       img: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?q=80&w=200&auto=format&fit=crop',
@@ -147,7 +147,7 @@ export async function initialProducts(prisma: PrismaClient) {
     {
       name: 'Classic Cheeseburger',
       sku: 'MEAL-CB-01',
-      price: 185,
+      price: 18500,
       categoryId: categories.burgers.id,
       image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=400&auto=format&fit=crop',
       baseUnitId: units.pcs.id,
@@ -160,7 +160,7 @@ export async function initialProducts(prisma: PrismaClient) {
     {
       name: 'Bacon Double Cheese',
       sku: 'MEAL-BC-02',
-      price: 245,
+      price: 24500,
       categoryId: categories.burgers.id,
       image: 'https://images.unsplash.com/photo-1553979459-d2229ba7433b?q=80&w=400&auto=format&fit=crop',
       baseUnitId: units.pcs.id,
@@ -174,7 +174,7 @@ export async function initialProducts(prisma: PrismaClient) {
     {
       name: 'Chicken Sandwich',
       sku: 'MEAL-CH-03',
-      price: 165,
+      price: 16500,
       categoryId: categories.burgers.id,
       image: 'https://images.unsplash.com/photo-1513185041617-8ab03f83d6c5?auto=format&fit=crop&q=80&w=400',
       baseUnitId: units.pcs.id,
@@ -187,7 +187,7 @@ export async function initialProducts(prisma: PrismaClient) {
     {
       name: 'Garden Burger',
       sku: 'MEAL-GB-04',
-      price: 155,
+      price: 15500,
       categoryId: categories.burgers.id,
       image: 'https://images.unsplash.com/photo-1525059696034-4967a8e1dca2?q=80&w=400&auto=format&fit=crop',
       baseUnitId: units.pcs.id,
@@ -201,7 +201,7 @@ export async function initialProducts(prisma: PrismaClient) {
     {
       name: 'French Fries',
       sku: 'SIDE-FF-01',
-      price: 75,
+      price: 7500,
       categoryId: categories.sides.id,
       image: 'https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?q=80&w=400&auto=format&fit=crop',
       baseUnitId: units.pcs.id,
@@ -213,7 +213,7 @@ export async function initialProducts(prisma: PrismaClient) {
     {
       name: 'Loaded Fries',
       sku: 'SIDE-LF-02',
-      price: 120,
+      price: 12000,
       categoryId: categories.sides.id,
       image: 'https://images.unsplash.com/photo-1585109649139-366815a0d713?q=80&w=400&auto=format&fit=crop',
       baseUnitId: units.pcs.id,
@@ -226,7 +226,7 @@ export async function initialProducts(prisma: PrismaClient) {
     {
       name: 'Classic Cola',
       sku: 'DRK-CO-01',
-      price: 45,
+      price: 4500,
       categoryId: categories.drinks.id,
       image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=400&auto=format&fit=crop',
       baseUnitId: units.pcs.id,
@@ -238,7 +238,7 @@ export async function initialProducts(prisma: PrismaClient) {
     {
       name: 'Diet Soda',
       sku: 'DRK-DS-02',
-      price: 45,
+      price: 4500,
       categoryId: categories.drinks.id,
       image: 'https://images.unsplash.com/photo-1629203851020-9dd4aa08e9d9?q=80&w=400&auto=format&fit=crop',
       baseUnitId: units.pcs.id,
@@ -250,7 +250,7 @@ export async function initialProducts(prisma: PrismaClient) {
     {
       name: 'BLT Burger',
       sku: 'MEAL-BLT-05',
-      price: 195,
+      price: 19500,
       categoryId: categories.burgers.id,
       image: 'https://images.unsplash.com/photo-1619096279114-426162da9562?q=80&w=400&auto=format&fit=crop',
       baseUnitId: units.pcs.id,
@@ -264,7 +264,7 @@ export async function initialProducts(prisma: PrismaClient) {
     {
       name: 'Ultimate Platter',
       sku: 'MEAL-UP-06',
-      price: 450,
+      price: 45000,
       categoryId: categories.burgers.id,
       image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?q=80&w=400&auto=format&fit=crop',
       baseUnitId: units.pcs.id,
@@ -309,7 +309,7 @@ export async function initialProducts(prisma: PrismaClient) {
           await prisma.productAddon.upsert({
             where: { hostId_addonId: { hostId: createdBundle.id, addonId: aid } },
             update: {},
-            create: { hostId: createdBundle.id, addonId: aid, priceOverride: 25.0, defaultQuantity: 1 },
+            create: { hostId: createdBundle.id, addonId: aid, priceOverride: 2500, defaultQuantity: 1 },
           })
         }
       }
@@ -320,9 +320,9 @@ export async function initialProducts(prisma: PrismaClient) {
   const colaMaster = await prisma.product.findUnique({ where: { sku: 'DRK-CO-01' } })
   if (colaMaster) {
     const sizes = [
-      { name: 'Cola (Regular)', sku: 'DRK-CO-REG', price: 45 },
-      { name: 'Cola (Large)', sku: 'DRK-CO-LRG', price: 65 },
-      { name: 'Cola (Monster)', sku: 'DRK-CO-MON', price: 95 },
+      { name: 'Cola (Regular)', sku: 'DRK-CO-REG', price: 4500 },
+      { name: 'Cola (Large)', sku: 'DRK-CO-LRG', price: 6500 },
+      { name: 'Cola (Monster)', sku: 'DRK-CO-MON', price: 9500 },
     ]
     for (const size of sizes) {
       await prisma.product.upsert({

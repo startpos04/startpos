@@ -1,5 +1,6 @@
 import dayjs from '@/lib/dayjs'
 import { CreatePosTransactionResponse } from '@/lib/server-fn/create-pos-transaction'
+import { rootApi } from '@/routes/__root'
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { posFormOpts } from '..'
 
@@ -33,6 +34,7 @@ const styles = StyleSheet.create({
 })
 
 export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransactionResponse; data: NonNullable<(typeof posFormOpts)['defaultValues']> }) => {
+  const { user } = rootApi.useRouteContext()
   const t = transaction.data
 
   // --- DYNAMIC HEIGHT CALCULATION (in points) ---
@@ -54,9 +56,9 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
       <Page size={[204, totalHeight]} style={styles.page}>
         {/* Header - Typical PH Style */}
         <View style={styles.header}>
-          <Text style={styles.storeName}>YOUR STORE NAME</Text>
-          <Text style={styles.address}>123 Rizal Ave, Makati City</Text>
-          <Text style={styles.address}>VAT REG TIN: 000-123-456-000</Text>
+          <Text style={styles.storeName}>{user?.branch.name}</Text>
+          <Text style={styles.address}>{user?.branch.address}</Text>
+          <Text style={styles.address}>VAT REG TIN: {user?.organization.tin}</Text>
           <Text style={styles.address}>SN: {t.invoiceNo}</Text>
         </View>
 

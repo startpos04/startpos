@@ -4,7 +4,7 @@ export const Route = createFileRoute('/(private)')({
   component: RouteComponent,
   beforeLoad: async ({ context }) => {
     const { user } = context
-    if (user) return
+    if (user) return { user }
 
     throw redirect({ to: '/login' })
   },

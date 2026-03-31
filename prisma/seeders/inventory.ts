@@ -1,59 +1,70 @@
-import { PrismaClient, ResourceType } from 'prisma/generated/prisma/client'
+import { PriceEngine } from '@/lib/conversion/price-engine'
+import { UnitEngine } from '@/lib/conversion/unit-engine'
+import { MovementType, PrismaClient, ResourceType } from 'prisma/generated/prisma/client'
 
 export async function initialInventory(prisma: PrismaClient) {
-  console.log('📦 Initializing physical inventory for raw materials with Unit tracking...')
+  console.log('📦 Normalizing Costs & Seeding Inventory...')
 
-  // 1. Fetch all Raw Materials (including their baseUnitId which is required now)
-  const rawMaterials = await prisma.product.findMany({
-    where: { type: ResourceType.RAW_MATERIAL },
+  // 1. Get a real user first to avoid Foreign Key errors
+  const adminUser = await prisma.user.findFirst({
+    where: { role: 'ADMIN' },
   })
 
-  if (rawMaterials.length === 0) {
-    console.warn('⚠️ No raw materials found. Please run initialProducts first.')
-    return
+  if (!adminUser) {
+    throw new Error('❌ Seed Error: No Admin user found. Please seed users before inventory.')
   }
 
-  const now = new Date()
+  const rawMaterials = await prisma.product.findMany({
+    where: { type: ResourceType.RAW_MATERIAL },
+    include: { baseUnit: true },
+  })
+
+  const kgUnit = await prisma.unit.findFirst({ where: { abbreviation: 'kg' } })
+  const literUnit = await prisma.unit.findFirst({ where: { abbreviation: 'L' } })
 
   for (const item of rawMaterials) {
-    // 2. Define our simulated batches
-    // We use the item.baseUnitId to ensure the inventory matches the product's primary unit
-    const batches = [
-      {
-        batchNumber: `BATCH-${item.sku}-A`,
-        quantity: 50.0,
-        // Expiring in 1 month
-        expiryDate: new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()),
-        location: 'Primary Chiller',
-      },
-      {
-        batchNumber: `BATCH-${item.sku}-B`,
-        quantity: 150.0,
-        // Expiring in 6 months
-        expiryDate: new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()),
-        location: 'Back Warehouse',
-      },
-    ]
+    await prisma.$transaction(async tx => {
+      let purchaseUnit = item.baseUnit
+      if (item.baseUnit.abbreviation === 'g' && kgUnit) purchaseUnit = kgUnit
+      if (item.baseUnit.abbreviation === 'ml' && literUnit) purchaseUnit = literUnit
 
-    for (const batch of batches) {
-      await prisma.inventory.create({
+      // Calculation logic
+      const bulkPriceCents = PriceEngine.toCents(150.0)
+      const normalizedCostPriceCents = Math.round(PriceEngine.costPerBase(bulkPriceCents, purchaseUnit))
+      const purchaseQty = 10
+      const totalInBaseUnits = UnitEngine.toBase(purchaseQty, purchaseUnit)
+
+      // 2. Update Product
+      await tx.product.update({
+        where: { id: item.id },
+        data: { costPrice: normalizedCostPriceCents },
+      })
+
+      // 3. Create Inventory
+      await tx.inventory.create({
         data: {
           branchId: 'branch-1',
           productId: item.id,
-          batchNumber: batch.batchNumber,
-          quantity: batch.quantity,
-
-          // --- THE FIX: Pass the unitId from the product's base unit ---
           unitId: item.baseUnitId,
-
-          expiryDate: item.hasExpiry ? batch.expiryDate : null,
-          location: batch.location,
-          lastRestocked: now,
+          quantity: totalInBaseUnits,
+          costPrice: normalizedCostPriceCents,
+          batchNumber: `INIT-${item.sku}`,
         },
       })
-    }
-    console.log(`✅ Stocked 200 units for: ${item.name} (${item.sku}) in its base unit.`)
-  }
 
-  console.log('✨ Inventory initialization complete.')
+      // 4. Log Movement (Now using a REAL userId)
+      await tx.inventoryMovement.create({
+        data: {
+          branchId: 'branch-1',
+          userId: adminUser.id, // ✅ Real ID from the DB
+          productId: item.id,
+          unitId: item.baseUnitId,
+          quantity: totalInBaseUnits,
+          type: MovementType.IN,
+          reason: 'Initial Seed Restock',
+        },
+      })
+    })
+  }
+  console.log('✅ Inventory Seeded successfully.')
 }

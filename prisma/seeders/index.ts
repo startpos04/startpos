@@ -53,6 +53,7 @@ async function main() {
   }
 
   console.log('🏁 All tasks finished.')
+  process.exit(0)
 }
 
 main()

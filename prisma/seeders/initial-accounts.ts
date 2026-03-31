@@ -1,6 +1,6 @@
 import { hashPassword } from 'better-auth/crypto'
 import { PrismaClient } from 'prisma/generated/prisma/client'
-import { Role } from 'prisma/generated/prisma/enums'
+import { Role, VatType } from 'prisma/generated/prisma/enums'
 
 export async function initialAccounts(prisma: PrismaClient) {
   const newPasswordHash = await hashPassword('123qwe123!1')
@@ -14,6 +14,11 @@ export async function initialAccounts(prisma: PrismaClient) {
       id: 'org-1',
       name: 'Main Retail Group',
       slug: 'main-store',
+      tin: '000-123-456-000',
+      businessStyle: 'Retail / Coffee Shop',
+      vatType: VatType.VAT,
+      permitToUse: 'PTU-2026-001',
+      accreditedPrinter: 'Printer Inc. Model X',
     },
   })
 
@@ -24,7 +29,12 @@ export async function initialAccounts(prisma: PrismaClient) {
     create: {
       id: 'branch-1',
       name: 'Downtown Outlet',
+      bufferRate: 20,
       organizationId: org.id,
+      serialNumber: 'SN-0001-001',
+      locale: 'en-PH',
+      currency: 'PHP',
+      address: '123 Rizal Ave, Makati City',
     },
   })
 

@@ -1,12 +1,14 @@
 import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Separator } from '@/components/ui/separator'
+import { CURRENCY } from '@/lib/constants'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { restockIngredient } from '@/lib/server-fn/restock-ingredient'
 import { useForm } from '@tanstack/react-form'
 import { useQueryClient } from '@tanstack/react-query'
-import { PackagePlus, Save } from 'lucide-react'
+import { CalendarDays, Hash, PackagePlus, ReceiptIndianRupee, Save } from 'lucide-react'
 import { toast } from 'sonner'
 
 export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
@@ -18,15 +20,21 @@ export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
       productId: ingredient.id,
       quantity: 0,
       unitId: ingredient.baseUnitId,
+      unitCost: Number(ingredient.costPrice || 0), // Pre-fill with current cost
       batchNumber: '',
       expiryDate: '',
-      reason: '',
+      reason: 'Manual Restock',
     },
     onSubmit: async ({ value }) => {
+      if (value.quantity <= 0) {
+        toast.error('Please enter a valid quantity')
+        return
+      }
       try {
         await restockIngredient({ data: value })
         toast.success(`Inventory updated for ${ingredient.name}`)
         await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
+        await queryClient.invalidateQueries({ queryKey: ['products'] }) // Refresh profit margins
         onClose()
       } catch (error) {
         toast.error('Restock failed. Check your connection or permissions.')
@@ -36,44 +44,94 @@ export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-md p-8'>
-        <DialogHeader>
-          <DialogTitle className='flex items-center gap-3 text-2xl font-bold'>
-            <div className='bg-emerald-100 p-2 rounded-xl'>
-              <PackagePlus className='w-6 h-6 text-emerald-600' />
+      <DialogContent className='sm:max-w-lg p-0 overflow-hidden border-none shadow-2xl rounded-[2rem] bg-background'>
+        <div className='bg-emerald-600 p-8 text-white relative overflow-hidden'>
+          <PackagePlus className='absolute -right-4 -bottom-4 w-32 h-32 text-white/10 rotate-12' />
+          <DialogHeader className='relative z-10'>
+            <div className='bg-white/20 w-fit p-3 rounded-2xl backdrop-blur-md mb-4'>
+              <PackagePlus className='w-8 h-8 text-white' />
             </div>
-            Restock
-          </DialogTitle>
-          <p className='text-muted-foreground text-sm pl-1'>
-            Adding stock for <span className='font-semibold text-foreground'>{ingredient.name}</span>
-          </p>
-        </DialogHeader>
+            <DialogTitle className='text-3xl font-black tracking-tight'>Restock Inventory</DialogTitle>
+            <DialogDescription className='text-emerald-100 text-base'>
+              Recording new stock for <span className='font-bold text-white'>{ingredient.name}</span>
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className='space-y-5 pt-4'>
-          <div className='grid grid-cols-2 gap-4'>
-            <form.Field
-              name='quantity'
-              children={field => <TextInput field={field} label='Quantity' type='number' onChange={e => field.handleChange(Number(e.target.value))} />}
-            />
-            <form.Field name='unitId' children={field => <SelectInput field={field} label='Unit' options={unitOptions} />} />
+        <div className='p-8 space-y-6 bg-card'>
+          {/* Section 1: Quantity & Cost */}
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            <div className='space-y-4'>
+              <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+                <Hash className='w-3 h-3' /> Quantity Info
+              </h4>
+              <div className='grid grid-cols-2 gap-3'>
+                <form.Field
+                  name='quantity'
+                  children={field => (
+                    <TextInput field={field} label='Qty' type='number' className='rounded-xl' onChange={e => field.handleChange(Number(e.target.value))} />
+                  )}
+                />
+                <form.Field name='unitId' children={field => <SelectInput field={field} label='Unit' options={unitOptions} />} />
+              </div>
+            </div>
+
+            <div className='space-y-4'>
+              <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+                <ReceiptIndianRupee className='w-3 h-3' /> Financials
+              </h4>
+              <form.Field
+                name='unitCost'
+                children={field => (
+                  <TextInput
+                    field={field}
+                    label={`Unit Cost (${CURRENCY})`}
+                    type='number'
+                    placeholder='0.00'
+                    className='rounded-xl font-mono'
+                    onChange={e => field.handleChange(Number(e.target.value))}
+                  />
+                )}
+              />
+            </div>
           </div>
 
-          <div className='grid grid-cols-2 gap-4'>
-            <form.Field name='batchNumber' children={field => <TextInput field={field} label='Batch #' placeholder='Optional' />} />
-            <form.Field name='expiryDate' children={field => <TextInput field={field} label='Expiry' type='date' />} />
+          <Separator className='bg-border/50' />
+
+          {/* Section 2: Batch & Expiry */}
+          <div className='space-y-4'>
+            <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+              <CalendarDays className='w-3 h-3' /> Tracking Details
+            </h4>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <form.Field
+                name='batchNumber'
+                children={field => <TextInput field={field} label='Batch/Lot Number' placeholder='Optional' className='rounded-xl' />}
+              />
+              <form.Field name='expiryDate' children={field => <TextInput field={field} label='Expiry Date' type='date' className='rounded-xl' />} />
+            </div>
           </div>
 
-          <form.Field name='reason' children={field => <TextInput field={field} label='Note' placeholder='e.g. Supplier XYZ' />} />
-
-          <form.Subscribe
-            selector={state => [state.canSubmit, state.isSubmitting]}
-            children={([canSubmit, isSubmitting]) => (
-              <Button onClick={() => form.handleSubmit()} disabled={!canSubmit} className='w-full'>
-                <Save className='w-4 h-4 mr-2' />
-                {isSubmitting ? 'Saving...' : 'Save Ingredient'}
-              </Button>
-            )}
+          <form.Field
+            name='reason'
+            children={field => <TextInput field={field} label='Reference / Note' placeholder='e.g. Supplier Invoice #123' className='rounded-xl' />}
           />
+
+          <div className='pt-4'>
+            <form.Subscribe
+              selector={state => [state.canSubmit, state.isSubmitting]}
+              children={([canSubmit, isSubmitting]) => (
+                <Button
+                  onClick={() => form.handleSubmit()}
+                  disabled={!canSubmit || isSubmitting}
+                  className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 transition-all active:scale-95'
+                >
+                  <Save className='w-5 h-5 mr-3' />
+                  {isSubmitting ? 'Updating Inventory...' : 'Complete Restock'}
+                </Button>
+              )}
+            />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

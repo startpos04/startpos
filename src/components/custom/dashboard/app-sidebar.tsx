@@ -13,8 +13,9 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar'
 import { APP_NAME } from '@/lib/constants'
+import { rootApi } from '@/routes/__root'
 // Changed: Added Link for better navigation
-import { getRouteApi, Link, useLocation } from '@tanstack/react-router'
+import { Link, useLocation } from '@tanstack/react-router'
 import { BookOpenIcon, BotIcon, ChevronRightIcon, GalleryVerticalEndIcon, TerminalSquareIcon } from 'lucide-react'
 import { Role } from 'prisma/generated/prisma/enums'
 import * as React from 'react'
@@ -23,16 +24,14 @@ interface Items {
   title: string
   url: string
   icon?: React.ReactNode
-  isActive?: boolean
+  isActive: boolean
   allowedRoles: Role[]
-  items?: {
+  items: {
     title: string
     url: string
-    isActive?: boolean
+    isActive: boolean
   }[]
 }
-
-const rootApi = getRouteApi('__root__')
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = rootApi.useRouteContext()
@@ -100,7 +99,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           isActive: isRouteActive(subItem.url),
         }))
 
-        const isChildActive = subItems?.some(child => child.isActive)
+        const isChildActive = !!subItems?.some(child => child.isActive)
         const isParentActive = isRouteActive(item.url)
 
         return {
