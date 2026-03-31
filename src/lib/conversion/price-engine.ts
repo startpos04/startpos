@@ -1,9 +1,6 @@
-import { getRouteApi } from '@tanstack/react-router'
+import { authStore } from '@/store/auth-store'
 import { Unit } from 'prisma/generated/prisma/browser'
 import { UnitEngine } from './unit-engine'
-
-const rootApi = getRouteApi('__root__')
-type RootContext = ReturnType<typeof rootApi.useRouteContext>
 
 export class PriceEngine {
   // --- 1. THE "MONEY UTILS" (Now internal to the Engine) ---
@@ -19,12 +16,12 @@ export class PriceEngine {
   }
 
   /** Formats Cents for the UI: 1999 -> "$19.99" */
-  static format(cents: number, context: RootContext): string {
-    const user = context?.user
+  static format(cents: number): string {
+    const { user } = authStore.state
 
-    return new Intl.NumberFormat(user?.branch.locale || 'en-PH', {
+    return new Intl.NumberFormat(user.branch?.locale || 'en-PH', {
       style: 'currency',
-      currency: user?.branch.currency || 'PHP',
+      currency: user.branch?.currency || 'PHP',
     }).format(this.toDollars(cents))
   }
 

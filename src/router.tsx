@@ -1,23 +1,20 @@
 import { QueryClient } from '@tanstack/react-query'
 import { createRouter } from '@tanstack/react-router'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
-import { getAuthUser } from './lib/better-auth/auth-server'
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
 
-type AuthUser = Awaited<ReturnType<typeof getAuthUser>> | undefined
-
 export interface MyRouterContext {
   queryClient: QueryClient
-  user: AuthUser
+  isAuthenticated: boolean
 }
 export const getRouter = () => {
   const queryClient = new QueryClient()
 
   const router = createRouter({
     routeTree,
-    context: { queryClient, user: undefined },
+    context: { queryClient, isAuthenticated: false },
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
   })

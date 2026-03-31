@@ -1,7 +1,8 @@
 import dayjs from '@/lib/dayjs'
 import { CreatePosTransactionResponse } from '@/lib/server-fn/create-pos-transaction'
-import { rootApi } from '@/routes/__root'
+import { authStore } from '@/store/auth-store'
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+import { useStore } from '@tanstack/react-store'
 import { posFormOpts } from '..'
 
 const styles = StyleSheet.create({
@@ -34,7 +35,7 @@ const styles = StyleSheet.create({
 })
 
 export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransactionResponse; data: NonNullable<(typeof posFormOpts)['defaultValues']> }) => {
-  const { user } = rootApi.useRouteContext()
+  const user = useStore(authStore, state => state.user)
   const t = transaction.data
 
   // --- DYNAMIC HEIGHT CALCULATION (in points) ---

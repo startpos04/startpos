@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { PriceEngine } from '@/lib/conversion/price-engine'
 import { useForm, uuid } from '@tanstack/react-form'
 import { Minus, Plus } from 'lucide-react'
 import { posItem, PosProduct } from '..'
@@ -65,7 +66,7 @@ export function ProductDialog({
                           className='flex flex-col items-center justify-center rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer'
                         >
                           <span className='text-xs font-bold'>{v.variantValue}</span>
-                          <span className='text-[10px] text-muted-foreground'>₱{Number(v.price).toFixed(2)}</span>
+                          <span className='text-[10px] text-muted-foreground'>{PriceEngine.format(Number(v.price))}</span>
                         </Label>
                       </div>
                     ))}
@@ -101,7 +102,7 @@ export function ProductDialog({
                             {item.addon.name}
                           </Label>
                         </div>
-                        <span className='text-[10px] font-bold'>+₱{Number(item.priceOverride).toFixed(2)}</span>
+                        <span className='text-[10px] font-bold'>+{PriceEngine.format(Number(item.priceOverride))}</span>
                       </label>
                     ))}
                   </div>

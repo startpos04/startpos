@@ -2,10 +2,10 @@ import { ThemeProvider } from '@/components/custom/theme/theme-provider'
 import { getAuthUser } from '@/lib/better-auth/auth-server' // Import your server function
 import Overlay from '@/lib/Overlay'
 import { MyRouterContext } from '@/router'
-import { HeadContent, Scripts, createRootRouteWithContext, getRouteApi } from '@tanstack/react-router'
+import { setUser } from '@/store/auth-store'
+import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
+import { useMemo } from 'react'
 import appCss from '../styles.css?url'
-
-export const rootApi = getRouteApi('__root__')
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
@@ -15,7 +15,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
   beforeLoad: async () => {
     const user = await getAuthUser()
-    return { user }
+    setUser(user!)
+    return { user, isAuthenticated: !!user }
   },
 
   notFoundComponent: () => {
@@ -43,6 +44,14 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const { user } = Route.useRouteContext()
+
+  useMemo(() => {
+    if (user) {
+      setUser(user)
+    }
+  }, [user])
+
   return (
     <html lang='en' suppressHydrationWarning>
       <head>

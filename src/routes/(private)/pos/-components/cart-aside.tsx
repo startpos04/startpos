@@ -3,9 +3,8 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { withForm } from '@/hooks/form'
-import { CURRENCY } from '@/lib/constants'
+import { PriceEngine } from '@/lib/conversion/price-engine'
 import { Minus, Plus, UserPlus } from 'lucide-react'
-import numeral from 'numeral'
 import { posFormOpts } from '..'
 
 export const CartAside = withForm({
@@ -44,7 +43,7 @@ export const CartAside = withForm({
                     <div className='flex items-start gap-3'>
                       <div className='flex-1'>
                         <p className='font-bold text-sm leading-none'>{item.variant?.name || item.product.name}</p>
-                        <p className='text-[10px] text-muted-foreground mt-1'>{`${CURRENCY}${numeral(item.variant?.price || item.product.price).format('0,0.00')}`}</p>
+                        <p className='text-[10px] text-muted-foreground mt-1'>{PriceEngine.format(item.variant?.price || item.product.price)}</p>
                         {item.addons && item.addons.length > 0 && (
                           <div className='mt-2 space-y-1 ml-2 border-l-2 border-muted pl-2'>
                             {Object.values(
@@ -68,7 +67,7 @@ export const CartAside = withForm({
                                 </span>
                                 <div className='flex items-center gap-2'>
                                   <span className='text-muted-foreground/70'>
-                                    {`${CURRENCY}${numeral(Number(groupedAddon.priceOverride) * groupedAddon.count).format('0,0.00')}`}
+                                    {PriceEngine.format(Number(groupedAddon.priceOverride) * groupedAddon.count)}
                                   </span>
                                   <button
                                     type='button'
@@ -154,16 +153,16 @@ export const CartAside = withForm({
                 <div className='space-y-2 text-xs font-medium'>
                   <div className='flex justify-between text-muted-foreground'>
                     <span>Subtotal</span>
-                    <span>₱{subtotal.toFixed(2)}</span>
+                    <span>{PriceEngine.format(subtotal)}</span>
                   </div>
                   <div className='flex justify-between text-muted-foreground'>
                     <span>VAT (12%)</span>
-                    <span>₱{(subtotal * 0.12).toFixed(2)}</span>
+                    <span>{PriceEngine.format(subtotal * 0.12)}</span>
                   </div>
                   <Separator className='my-2' />
                   <div className='flex justify-between text-xl font-black'>
                     <span>Total</span>
-                    <span className='text-primary'>₱{total.toFixed(2)}</span>
+                    <span className='text-primary'>{PriceEngine.format(total)}</span>
                   </div>
                 </div>
                 <Button disabled={items.length === 0} onClick={() => form.handleSubmit()} className='w-full py-8 rounded-2xl text-lg font-black'>

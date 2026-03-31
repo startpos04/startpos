@@ -13,9 +13,10 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar'
 import { APP_NAME } from '@/lib/constants'
-import { rootApi } from '@/routes/__root'
+import { authStore } from '@/store/auth-store'
 // Changed: Added Link for better navigation
 import { Link, useLocation } from '@tanstack/react-router'
+import { useStore } from '@tanstack/react-store'
 import { BookOpenIcon, BotIcon, ChevronRightIcon, GalleryVerticalEndIcon, TerminalSquareIcon } from 'lucide-react'
 import { Role } from 'prisma/generated/prisma/enums'
 import * as React from 'react'
@@ -34,7 +35,7 @@ interface Items {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = rootApi.useRouteContext()
+  const user = useStore(authStore, state => state.user)
   const location = useLocation()
 
   // Helper to determine if a route is a match or a sub-path of the current location
@@ -57,7 +58,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       team: {
         name: APP_NAME,
         logo: <GalleryVerticalEndIcon />,
-        plan: user?.role || 'Guest',
+        plan: user.role || 'Guest',
       },
       items: [
         {
@@ -110,7 +111,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       })
 
     return data
-  }, [user, isRouteActive])
+  }, [user.id, isRouteActive])
 
   return (
     <Sidebar collapsible='icon' {...props}>

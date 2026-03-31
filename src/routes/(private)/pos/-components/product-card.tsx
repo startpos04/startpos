@@ -1,10 +1,9 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CURRENCY } from '@/lib/constants'
+import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/Overlay'
 import { Coffee, Layers, Sparkles } from 'lucide-react'
-import numeral from 'numeral'
 import { posItem, PosProduct } from '..'
 import { ProductDialog } from './product-dialog'
 
@@ -40,7 +39,7 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
       <CardHeader className='pb-2'>
         <div className='flex justify-between items-start'>
           <CardTitle className='text-xl font-bold line-clamp-1'>{product.name}</CardTitle>
-          <span className='font-bold text-primary'>₱{Number(product.price).toFixed(2)}</span>
+          <span className='font-bold text-primary'>{PriceEngine.format(product.price)}</span>
         </div>
         <div className='flex items-center gap-2'>
           <Badge variant='outline' className='text-[9px] uppercase font-bold py-0 h-4'>
@@ -63,7 +62,7 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
                   variant='secondary'
                   className='rounded-lg border-blue-200/50 bg-background/50 px-2 py-0 text-[10px] font-semibold dark:border-blue-800/30'
                 >
-                  {item.addon.name} <span className='ml-1 text-blue-600'>{`+${CURRENCY}${numeral(item.priceOverride).format('0,0.00')}`}</span>
+                  {item.addon.name} <span className='ml-1 text-blue-600'>{PriceEngine.format(item.priceOverride)}</span>
                 </Badge>
               ))}
             </div>
@@ -80,7 +79,7 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
               {product.variants.slice(0, 3).map((v: any) => (
                 <div key={v.id} className='flex justify-between items-center text-[11px]'>
                   <span className='text-foreground/80'>{v.variantValue}</span>
-                  <span className='font-mono font-medium'>₱{Number(v.price).toFixed(2)}</span>
+                  <span className='font-mono font-medium'>{PriceEngine.format(v.price)}</span>
                 </div>
               ))}
               {product.variants.length > 3 && <p className='text-[9px] text-center text-muted-foreground pt-1'>+{product.variants.length - 3} more options</p>}

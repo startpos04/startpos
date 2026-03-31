@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { authClient } from '@/lib/better-auth/auth-client'
+import { authStore } from '@/store/auth-store'
 import { useForm } from '@tanstack/react-form'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import z from 'zod'
@@ -16,8 +17,9 @@ export const loginValidator = z.object({
 export const Route = createFileRoute('/(public)/login')({
   component: LoginComponent,
   beforeLoad: async ({ context }) => {
-    const { user } = context
-    if (user) {
+    const { isAuthenticated } = context
+    if (isAuthenticated) {
+      const { user } = authStore.state
       throw redirect({ to: user.landingPage })
     }
   },

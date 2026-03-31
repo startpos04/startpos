@@ -10,8 +10,10 @@ import { PriceEngine } from '@/lib/conversion/price-engine' // ✅ NEW
 import { UnitEngine } from '@/lib/conversion/unit-engine'
 import { showModal } from '@/lib/Overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
+import { authStore } from '@/store/auth-store'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { useStore } from '@tanstack/react-store'
 import { Coffee, Info, Layers, Leaf, Plus, Sparkles, TrendingUp } from 'lucide-react'
 import numeral from 'numeral'
 import { useMemo } from 'react'
@@ -22,7 +24,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/products/')
 })
 
 function RouteComponent() {
-  const { user } = Route.useRouteContext()
+  const user = useStore(authStore, state => state.user)
 
   const { data, isFetching } = useQuery({
     queryKey: ['products'],
@@ -72,7 +74,7 @@ function RouteComponent() {
         h.accessor('price', {
           header: 'Base Price',
           // ✅ Use PriceEngine to handle the Integer-to-String conversion
-          cell: info => <span className='font-mono'>{PriceEngine.format(info.getValue(), { user })}</span>,
+          cell: info => <span className='font-mono'>{PriceEngine.format(info.getValue())}</span>,
         }),
       ]),
     [data],
@@ -164,7 +166,7 @@ function RouteComponent() {
                 <div className='flex justify-between items-start'>
                   <CardTitle className='text-xl font-bold line-clamp-1 text-foreground'>{product.name}</CardTitle>
                   <div className='text-right'>
-                    <div className='font-bold text-primary text-lg'>{PriceEngine.format(product.price, { user })}</div>
+                    <div className='font-bold text-primary text-lg'>{PriceEngine.format(product.price)}</div>
                   </div>
                 </div>
                 <div className='flex items-center gap-2'>
@@ -211,7 +213,7 @@ function RouteComponent() {
                           <div className='text-right cursor-help'>
                             <span className='text-[9px] font-bold uppercase text-muted-foreground block tracking-wider'>Suggested Price</span>
                             <span className='text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-end gap-1'>
-                              {PriceEngine.format(suggestedPriceCents, { user })} <Info className='w-2.5 h-2.5' />
+                              {PriceEngine.format(suggestedPriceCents)} <Info className='w-2.5 h-2.5' />
                             </span>
                           </div>
                         </TooltipTrigger>
@@ -233,7 +235,7 @@ function RouteComponent() {
                       <span className='flex items-center gap-2'>
                         <Leaf className='w-3 h-3 text-emerald-500 dark:text-emerald-400' /> Cost Breakdown
                       </span>
-                      <span className='font-mono text-foreground'>Total: {PriceEngine.format(finalCostCents, { user })}</span>
+                      <span className='font-mono text-foreground'>Total: {PriceEngine.format(finalCostCents)}</span>
                     </h4>
                     <div className='grid grid-cols-1 gap-1.5'>
                       {ingredientBreakdown.map((item, idx) => (
@@ -244,7 +246,7 @@ function RouteComponent() {
                               {item.qty} {item.unit} used
                             </span>
                           </div>
-                          <span className='text-[10px] font-mono font-bold text-primary'>+{PriceEngine.format(item.cost, { user })}</span>
+                          <span className='text-[10px] font-mono font-bold text-primary'>+{PriceEngine.format(item.cost)}</span>
                         </div>
                       ))}
                     </div>
@@ -261,7 +263,7 @@ function RouteComponent() {
                       {product.variants.map(variant => (
                         <div key={variant.id} className='flex justify-between items-center text-[11px]'>
                           <span className='text-foreground/80'>{variant.name}</span>
-                          <span className='font-mono font-medium'>{PriceEngine.format(variant.price, { user })}</span>
+                          <span className='font-mono font-medium'>{PriceEngine.format(variant.price)}</span>
                         </div>
                       ))}
                     </div>
@@ -281,7 +283,7 @@ function RouteComponent() {
                           variant='secondary'
                           className='rounded-lg border-blue-200/50 bg-background/50 px-2 py-0 text-[10px] font-semibold dark:border-blue-800/30'
                         >
-                          {item.addon.name} <span className='ml-1 text-blue-600'>+{PriceEngine.format(item.priceOverride, { user })}</span>
+                          {item.addon.name} <span className='ml-1 text-blue-600'>+{PriceEngine.format(item.priceOverride)}</span>
                         </Badge>
                       ))}
                     </div>
