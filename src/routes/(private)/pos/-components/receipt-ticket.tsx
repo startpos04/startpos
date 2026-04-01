@@ -46,7 +46,7 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
 
   // Estimate height per item line (approx 20pt)
   // and per addon line (approx 12pt)
-  const itemsHeight = data.items.reduce((acc: number, item: any) => {
+  const itemsHeight = data.items.reduce((acc: number, item) => {
     const addonsCount = item.addons?.length || 0
     return acc + 20 + addonsCount * 12
   }, 0)

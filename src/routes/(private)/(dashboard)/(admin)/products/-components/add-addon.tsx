@@ -1,3 +1,4 @@
+import { MoneyInput } from '@/components/custom/form/money-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -138,7 +139,7 @@ export function AddAddonModal({ open, onClose, onAdd }: AddAddonModalProps) {
             />
 
             {/* Price Override Field */}
-            <form.Field name='priceOverride' children={field => <TextInput field={field} type='number' label='Extra Price' disabled={!selectedId} />} />
+            <form.Field name='priceOverride' children={field => <MoneyInput field={field} label='Extra Price' disabled={!selectedId} />} />
 
             <p className='col-span-2 text-[10px] text-muted-foreground italic leading-tight mt-1 text-center'>
               Define the default amount and cost added to the recipe.
