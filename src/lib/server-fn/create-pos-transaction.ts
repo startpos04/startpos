@@ -1,6 +1,7 @@
 import { authStore } from '@/store/auth-store'
 import { createServerFn } from '@tanstack/react-start'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { VAT_RATE } from '../constants'
 import { getTenantPrisma } from '../prisma-client'
 
 interface SaleItem {
@@ -36,7 +37,6 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
       let totalDiscount = 0
       let grandTotal = 0
       let totalCost = 0
-      const TAX_RATE = 0.12 // 12% VAT example
 
       // Calculate totals from items and addons
       data.items.forEach(item => {
@@ -48,7 +48,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
         const lineCost = (item.costPrice + addonsCost) * item.quantity
 
         // If you implement per-item discounts in the future, apply them here
-        const lineTax = lineSubtotal * TAX_RATE
+        const lineTax = lineSubtotal * VAT_RATE
         const lineTotal = lineSubtotal + lineTax
 
         // Accumulate for the main transaction record

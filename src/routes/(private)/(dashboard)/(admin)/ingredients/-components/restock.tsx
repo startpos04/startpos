@@ -3,16 +3,17 @@ import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
-import { CURRENCY } from '@/lib/constants'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { restockIngredient } from '@/lib/server-fn/restock-ingredient'
-import { useForm } from '@tanstack/react-form'
+import { authStore } from '@/store/auth-store'
+import { useForm, useStore } from '@tanstack/react-form'
 import { useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Hash, PackagePlus, ReceiptIndianRupee, Save } from 'lucide-react'
 import { toast } from 'sonner'
 
 export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
   const queryClient = useQueryClient()
+  const user = useStore(authStore, state => state.user)
   const { data: unitOptions = [] } = fetchUnitOptions()
 
   const form = useForm({
@@ -44,17 +45,18 @@ export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-lg p-0 overflow-hidden border-none shadow-2xl rounded-[2rem] bg-background'>
-        <div className='bg-emerald-600 p-8 text-white relative overflow-hidden'>
-          <PackagePlus className='absolute -right-4 -bottom-4 w-32 h-32 text-white/10 rotate-12' />
-          <DialogHeader className='relative z-10'>
-            <div className='bg-white/20 w-fit p-3 rounded-2xl backdrop-blur-md mb-4'>
-              <PackagePlus className='w-8 h-8 text-white' />
+      <DialogContent className='sm:max-w-lg p-0 overflow-hidden border-none shadow-2xl bg-background gap-0'>
+        <div className='bg-emerald-600 p-4 relative overflow-hidden'>
+          <DialogHeader className='flex flex-row gap-4'>
+            <div className='bg-white/20 w-fit p-3 rounded-2xl backdrop-blur-md'>
+              <PackagePlus className='w-8 h-8 ' />
             </div>
-            <DialogTitle className='text-3xl font-black tracking-tight'>Restock Inventory</DialogTitle>
-            <DialogDescription className='text-emerald-100 text-base'>
-              Recording new stock for <span className='font-bold text-white'>{ingredient.name}</span>
-            </DialogDescription>
+            <div className='grow'>
+              <DialogTitle className='text-3xl font-black tracking-tight'>Restock Inventory</DialogTitle>
+              <DialogDescription className='text-emerald-100 text-base'>
+                Recording new stock for <span className='font-bold text-white'>{ingredient.name}</span>
+              </DialogDescription>
+            </div>
           </DialogHeader>
         </div>
 
@@ -85,7 +87,7 @@ export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
                 children={field => (
                   <TextInput
                     field={field}
-                    label={`Unit Cost (${CURRENCY})`}
+                    label={`Unit Cost (${user.branch.currency})`}
                     type='number'
                     placeholder='0.00'
                     className='rounded-xl font-mono'

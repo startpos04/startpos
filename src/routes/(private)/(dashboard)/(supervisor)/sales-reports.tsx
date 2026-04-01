@@ -3,13 +3,12 @@ import TableView from '@/components/custom/data-view/table-view'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CURRENCY } from '@/lib/constants'
+import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { ArrowDownRight, ArrowUpRight, BarChart3, Calendar, Download, Package, PackageCheck, TrendingUp, UserCheck, Users } from 'lucide-react'
-import numeral from 'numeral'
 import { useMemo } from 'react'
 import { CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
@@ -183,7 +182,7 @@ function RouteComponent() {
                 columns={getColumns<NonNullable<typeof data>[number]>(h => [
                   h.accessor('invoiceNo', { header: 'Invoice', cell: i => <span className='font-mono text-xs font-bold'>{i.getValue().slice(-6)}</span> }),
                   h.accessor('cashier.name', { header: 'Staff' }),
-                  h.accessor('totalAmount', { header: 'Total', cell: i => `${CURRENCY}${numeral(i.getValue()).format('0,0.00')}` }),
+                  h.accessor('totalAmount', { header: 'Total', cell: i => PriceEngine.format(i.getValue()) }),
                   h.accessor('status', { header: 'Status', cell: i => <Badge variant='secondary'>{i.getValue()}</Badge> }),
                 ])}
                 isFetching={isFetching}

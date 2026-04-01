@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { withForm } from '@/hooks/form'
+import { VAT_RATE } from '@/lib/constants'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { Minus, Plus, UserPlus } from 'lucide-react'
 import { posFormOpts } from '..'
@@ -156,8 +157,8 @@ export const CartAside = withForm({
                     <span>{PriceEngine.format(subtotal)}</span>
                   </div>
                   <div className='flex justify-between text-muted-foreground'>
-                    <span>VAT (12%)</span>
-                    <span>{PriceEngine.format(subtotal * 0.12)}</span>
+                    <span>VAT ({VAT_RATE * 100}%)</span>
+                    <span>{PriceEngine.format(subtotal * VAT_RATE)}</span>
                   </div>
                   <Separator className='my-2' />
                   <div className='flex justify-between text-xl font-black'>

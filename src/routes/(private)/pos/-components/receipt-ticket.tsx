@@ -1,3 +1,4 @@
+import { VAT_RATE } from '@/lib/constants'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import { CreatePosTransactionResponse } from '@/lib/server-fn/create-pos-transaction'
@@ -120,7 +121,7 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
             <Text>{PriceEngine.toDollars(t.totalAmount / 1.12).toFixed(2)}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text>VAT Amount (12%)</Text>
+            <Text>VAT Amount ({VAT_RATE * 100}%)</Text>
             <Text>{PriceEngine.toDollars(t.taxAmount).toFixed(2)}</Text>
           </View>
           <View style={[styles.infoRow, styles.totalText]}>
