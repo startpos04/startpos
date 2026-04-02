@@ -4,10 +4,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { showModal } from '@/lib/Overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Edit, Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
+import { toast } from 'sonner'
 import { EditEmployeeDialog } from './$employeeId'
 import { CreateEmployeeDialog } from './create'
 
@@ -16,10 +17,20 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/'
 })
 
 function RouteComponent() {
+  const queryClient = useQueryClient()
+
   const { data, isFetching } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
-      return await crudAPI({ data: { action: 'findMany', table: 'user' } })
+      const result = await crudAPI({
+        data: { action: 'findMany', table: 'user' },
+      })
+
+      if (result.isErr()) {
+        throw new Error(result.error)
+      }
+
+      return result.value
     },
   })
 
@@ -72,18 +83,38 @@ function RouteComponent() {
           maxSize: 100,
           id: 'actions',
           header: () => <div className='text-right pr-4'>Actions</div>,
-          cell: ({ row }) => (
-            <div className='flex justify-end gap-2 pr-2 opacity-0 group-hover:opacity-100 transition-opacity'>
-              <Link to='/employees/$employeeId' params={{ employeeId: row.original.id }} onClick={e => handleEdit(e, row.original.id)} className='contents'>
-                <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => console.log('Editing', row.original.id)}>
-                  <Edit className='h-4 w-4' />
+          cell: ({ row }) => {
+            const handleDelete = async () => {
+              const result = await crudAPI({
+                data: {
+                  table: 'user',
+                  action: 'update',
+                  args: { where: { id: row.original.id }, data: { deletedAt: { set: new Date() } } },
+                },
+              })
+
+              result.match(
+                async () => {
+                  toast.success('Account successfully deleted')
+                  await queryClient.invalidateQueries({ queryKey: ['employees'] })
+                },
+                error => toast.error(error),
+              )
+            }
+
+            return (
+              <div className='flex justify-end gap-2 pr-2'>
+                <Link to='/employees/$employeeId' params={{ employeeId: row.original.id }} onClick={e => handleEdit(e, row.original.id)} className='contents'>
+                  <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => console.log('Editing', row.original.id)}>
+                    <Edit className='h-4 w-4' />
+                  </Button>
+                </Link>
+                <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full text-destructive hover:text-destructive' onClick={handleDelete}>
+                  <Trash2 className='h-4 w-4' />
                 </Button>
-              </Link>
-              <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full text-destructive hover:text-destructive'>
-                <Trash2 className='h-4 w-4' />
-              </Button>
-            </div>
-          ),
+              </div>
+            )
+          },
         }),
       ]),
     [data],
@@ -97,7 +128,7 @@ function RouteComponent() {
           <p className='text-muted-foreground text-sm'>Manage your team and their workspace roles.</p>
         </div>
         <a href='/employees/create' onClick={handleAdd} className='contents'>
-          <Button className='rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
+          <Button className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
             <Plus className='h-4 w-4' /> Add Employee
           </Button>
         </a>

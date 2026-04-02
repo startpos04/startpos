@@ -65,8 +65,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
     defaultValues: { name: '', email: '', image: '', role: 'CASHIER' },
     onSubmit: handleSubmit,
     validators: {
-      onBlur: schema,
-      onSubmit: schema,
+      onChange: schema,
     },
   })
 
@@ -84,7 +83,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
           <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
             <CardHeader>
               <CardTitle className='text-lg flex items-center gap-2'>
-                <UserCircle className='w-5 h-5 text-blue-500' /> Personal Details
+                <UserCircle className='w-6 h-6 text-blue-500' /> Personal Details
               </CardTitle>
             </CardHeader>
             <CardContent className='space-y-4'>
@@ -100,7 +99,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
           <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
             <CardHeader>
               <CardTitle className='text-lg flex items-center gap-2'>
-                <BadgeCheck className='w-5 h-5 text-emerald-500' /> Access Control
+                <BadgeCheck className='w-6 h-6 text-emerald-500' /> Access Control
               </CardTitle>
             </CardHeader>
             <CardContent className='space-y-6'>
@@ -131,20 +130,21 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
           </Card>
         </div>
       </div>
-      <form.Subscribe
-        selector={state => [state.canSubmit, state.isSubmitting]}
-        children={([canSubmit, isSubmitting]) => (
-          <Button onClick={() => form.handleSubmit()} disabled={!canSubmit} className='px-8 shadow-lg shadow-primary/20'>
-            {isSubmitting ? (
-              'Creating...'
-            ) : (
-              <>
-                <Save className='w-4 h-4 mr-2' /> Save Employee
-              </>
-            )}
-          </Button>
-        )}
-      />
+      <div className='pt-4'>
+        <form.Subscribe
+          selector={state => [state.canSubmit, state.isSubmitting]}
+          children={([canSubmit, isSubmitting]) => (
+            <Button
+              onClick={() => form.handleSubmit()}
+              disabled={!canSubmit || isSubmitting}
+              className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl active:scale-95 flex gap-2 shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'
+            >
+              <Save className='w-5! h-5!' />
+              {isSubmitting ? 'Saving Employee...' : 'Save Employee'}
+            </Button>
+          )}
+        />
+      </div>
     </div>
   )
 }

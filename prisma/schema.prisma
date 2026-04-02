@@ -1,8 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// --- PRISMA CONFIG ---
 
 generator client {
   provider = "prisma-client"
@@ -31,8 +27,9 @@ model Organization {
   permitToUse       String? // BIR PTU number
   accreditedPrinter String? // BIR Accredited Printer number
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   // Global to the Business
   members    Membership[]
@@ -42,6 +39,7 @@ model Organization {
   units      Unit[]
   customers  Customer[]
 
+  @@index([deletedAt])
   @@map("organizations")
 }
 
@@ -61,16 +59,17 @@ model Branch {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  // Branch-specific data  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
   members      Membership[]
   inventory    Inventory[]
   transactions Transaction[]
   movements    InventoryMovement[]
   purchases    Purchase[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  @@index([deletedAt])
   @@map("branches")
 }
 
@@ -83,12 +82,16 @@ model Membership {
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
   // Link a staff member to a specific "Home" branch
-  branchId String?
-  branch   Branch? @relation(fields: [branchId], references: [id])
+  branchId       String?
+  branch         Branch?      @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@unique([userId, organizationId])
+  @@index([deletedAt])
   @@map("memberships")
 }
 
@@ -97,7 +100,7 @@ enum Role {
   ADMIN
   SUPERVISOR
   CASHIER
-  SERVICE_PROVIDER // Doctor, Barber, Therapist, Housekeeping
+  SERVICE_PROVIDER
 }
 
 model User {
@@ -108,6 +111,10 @@ model User {
   image         String?
   role          Role    @default(CASHIER)
 
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
   sessions           Session[]
   accounts           Account[]
   processedSales     Transaction[]       @relation("CashierRelation")
@@ -115,9 +122,7 @@ model User {
   inventoryMovements InventoryMovement[]
   memberships        Membership[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  @@index([deletedAt])
   @@map("users")
 }
 
@@ -128,8 +133,6 @@ model Session {
   id             String   @id @default(cuid())
   expiresAt      DateTime
   token          String   @unique
-  createdAt      DateTime
-  updatedAt      DateTime
   ipAddress      String?
   userAgent      String?
   userId         String
@@ -137,19 +140,23 @@ model Session {
   organizationId String
   branchId       String
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("sessions")
 }
 
 // Need for better auth management, but can be extended for other purposes like tracking user accounts, providers, etc.
 model Account {
-  id         String   @id @default(cuid())
+  id         String  @id @default(cuid())
   accountId  String
   providerId String
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   password   String?
-  createdAt  DateTime
-  updatedAt  DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("accounts")
 }
@@ -163,12 +170,18 @@ enum ResourceType {
 }
 
 model Category {
-  id             String       @id @default(cuid())
-  name           String       @unique
-  products       Product[]
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  id             String @id @default(cuid())
+  name           String @unique
   organizationId String
 
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  products     Product[]
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([deletedAt])
   @@map("categories")
 }
 
@@ -221,9 +234,11 @@ model Product {
   organization   Organization @relation(fields: [organizationId], references: [id])
   organizationId String
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
+  @@index([deletedAt])
   @@map("products")
 }
 
@@ -268,25 +283,28 @@ enum UnitType {
 
 model Unit {
   id           String   @id @default(cuid())
-  name         String   @unique // e.g., "Kilogram"
-  abbreviation String   @unique // e.g., "kg"
+  name         String   @unique
+  abbreviation String   @unique
   type         UnitType
 
-  // For future-proofing: Base Conversion
-  // Example: If 'Gram' is the base, 'Kilogram' has factor 1000
-  conversionFactor Float   @default(1) // How many of this unit equals one base unit (e.g., 1000 for kg if g is base)
+  conversionFactor Float   @default(1)
   isBaseUnit       Boolean @default(false)
+  organizationId   String
 
-  products           Product[]           @relation("ProductBaseUnit")
-  ingredients        ProductIngredient[]
-  inventory          Inventory[]
-  inventoryMovements InventoryMovement[]
-  orderItems         OrderItem[]
-  productUnits       ProductUnit[]
-  organization       Organization        @relation(fields: [organizationId], references: [id])
-  organizationId     String
-  purchaseItems      PurchaseItem[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
+  organization  Organization        @relation(fields: [organizationId], references: [id])
+  products      Product[]           @relation("ProductBaseUnit")
+  ingredients   ProductIngredient[]
+  inventory     Inventory[]
+  movements     InventoryMovement[]
+  orderItems    OrderItem[]
+  productUnits  ProductUnit[]
+  purchaseItems PurchaseItem[]
+
+  @@index([deletedAt])
   @@map("units")
 }
 
@@ -310,14 +328,15 @@ model ProductUnit {
 
 // --- PURCHASING (EXPENDITURE TRACKING) ---
 model Purchase {
-  id         String   @id @default(cuid())
+  id         String  @id @default(cuid())
   sourceName String? // e.g. "Wholesale Mart", "Vendor X"
   totalCost  Int // Total cost of the purchase (in cents)
   notes      String?
-  createdAt  DateTime @default(now())
+  branchId   String
+  branch     Branch  @relation(fields: [branchId], references: [id])
 
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   items PurchaseItem[]
 
@@ -328,15 +347,12 @@ model PurchaseItem {
   id         String   @id @default(cuid())
   purchaseId String
   purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
-
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-
-  quantity Float // Supports kg, L, units
-  unitId   String // e.g., "Sack", "Box", "KG"
-  unit     Unit   @relation(fields: [unitId], references: [id])
-
-  unitCost Int // Cost per unit (in cents) at the time of purchase. This allows us to track cost changes over time for profit analysis.
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Float
+  unitId     String
+  unit       Unit     @relation(fields: [unitId], references: [id])
+  unitCost   Int
 
   @@map("purchase_items")
 }
@@ -369,11 +385,11 @@ model Inventory {
   branchId      String
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("inventory")
 }
 
-// This allows you to generate the "Inventory Reports" we built earlier
 model InventoryMovement {
   id        String       @id @default(cuid())
   productId String
@@ -383,13 +399,13 @@ model InventoryMovement {
   type      MovementType
   quantity  Float // How much was moved in or out (e.g., 10 kg, 5 units)
   reason    String? // "Sold in INV-102", "Expired", "Manual Restock"
-
-  unitId String
-  unit   Unit   @relation(fields: [unitId], references: [id])
+  unitId    String
+  unit      Unit         @relation(fields: [unitId], references: [id])
+  branchId  String
+  branch    Branch       @relation(fields: [branchId], references: [id])
 
   createdAt DateTime @default(now())
-  branch    Branch   @relation(fields: [branchId], references: [id])
-  branchId  String
+  updatedAt DateTime @updatedAt
 
   @@map("inventory_movements")
 }
@@ -402,11 +418,16 @@ model Customer {
   phone       String?
   dateOfBirth DateTime? // For Clinics/Age-restricted items
 
-  transactions   Transaction[]
-  createdAt      DateTime      @default(now())
-  organization   Organization  @relation(fields: [organizationId], references: [id])
   organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  transactions Transaction[]
+
+  @@index([deletedAt])
   @@map("customers")
 }
 
@@ -456,11 +477,13 @@ model Transaction {
 
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id])
+  branchId   String
+  branch     Branch    @relation(fields: [branchId], references: [id])
 
-  items     OrderItem[]
-  createdAt DateTime    @default(now())
-  branch    Branch      @relation(fields: [branchId], references: [id])
-  branchId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items OrderItem[]
 
   @@map("transactions")
 }

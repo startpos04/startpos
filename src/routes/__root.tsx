@@ -5,6 +5,7 @@ import { MyRouterContext } from '@/router'
 import { setUser } from '@/store/auth-store'
 import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import { useMemo } from 'react'
+import { Toaster } from 'sonner'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
@@ -61,6 +62,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
           <Overlay />
           {children}
+          <Toaster theme='system' richColors closeButton position='top-right' />
           <Scripts />
         </ThemeProvider>
       </body>

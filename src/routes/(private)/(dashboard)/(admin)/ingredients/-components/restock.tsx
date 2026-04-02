@@ -24,6 +24,7 @@ export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
       unitCost: Number(ingredient.costPrice || 0), // Pre-fill with current cost
       batchNumber: '',
       expiryDate: '',
+      sourceName: '', // For tracking the purchase source
       reason: 'Manual Restock',
     },
     onSubmit: async ({ value }) => {

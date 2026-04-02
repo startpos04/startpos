@@ -9,7 +9,7 @@ export async function initialAccounts(prisma: PrismaClient) {
   // Create a Test Organization
   const org = await prisma.organization.upsert({
     where: { slug: 'main-store' },
-    update: {},
+    update: { deletedAt: null },
     create: {
       id: 'org-1',
       name: 'Main Retail Group',
@@ -25,7 +25,7 @@ export async function initialAccounts(prisma: PrismaClient) {
   // Create a Test Branch
   const branch = await prisma.branch.upsert({
     where: { id: 'branch-1' },
-    update: {},
+    update: { deletedAt: null },
     create: {
       id: 'branch-1',
       name: 'Downtown Outlet',
@@ -68,7 +68,7 @@ export async function initialAccounts(prisma: PrismaClient) {
     // Upsert User
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: u,
+      update: { ...u, deletedAt: null },
       create: {
         id: u.id,
         email: u.email,
