@@ -5,7 +5,7 @@ export const fetchIngredients = () =>
   useQuery({
     queryKey: ['ingredients'],
     queryFn: async () => {
-      return await crudAPI({
+      const result = await crudAPI({
         data: {
           action: 'findMany',
           table: 'product',
@@ -24,6 +24,9 @@ export const fetchIngredients = () =>
           },
         },
       })
+
+      if (result.isErr()) throw new Error(result.error)
+      return result.value
     },
     refetchOnWindowFocus: false,
     refetchOnMount: false,

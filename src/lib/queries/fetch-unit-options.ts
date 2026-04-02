@@ -12,7 +12,8 @@ export const fetchUnitOptions = () =>
         },
       })
 
-      return result.map(item => ({ label: `${item.name} (${item.abbreviation})`, value: item.id }))
+      if (result.isErr()) throw new Error(result.error)
+      return result.value.map(item => ({ label: `${item.name} (${item.abbreviation})`, value: item.id }))
     },
     refetchOnWindowFocus: false,
     refetchOnMount: false,

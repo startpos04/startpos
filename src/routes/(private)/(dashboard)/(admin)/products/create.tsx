@@ -13,7 +13,8 @@ import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
 import { feIngredient } from '@/lib/queries/fetch-ingredients'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { Prettify } from '@/lib/types'
-import { useForm } from '@tanstack/react-form'
+import { authStore } from '@/store/auth-store'
+import { useForm, useStore } from '@tanstack/react-form'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Layers, Package, Plus, PlusCircle, Save, Utensils, Warehouse, X } from 'lucide-react'
@@ -39,6 +40,7 @@ export function CreateProductDialog({ open, onClose }: { open: boolean; onClose:
 }
 
 function RouteComponent({ onClose }: { onClose?: () => void }) {
+  const user = useStore(authStore, state => state.user)
   const queryClient = useQueryClient()
   const navigate = Route.useNavigate()
   const { data: categoryOptions = [] } = fetchCategoryOptions()

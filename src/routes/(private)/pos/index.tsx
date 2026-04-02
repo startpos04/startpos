@@ -15,8 +15,8 @@ import { Sidebar } from './-components/sidebar'
 export const fetchPosProducts = (searchQuery: string, activeCategory: string) =>
   useQuery({
     queryKey: ['pos-products', activeCategory, searchQuery],
-    queryFn: () =>
-      crudAPI({
+    queryFn: async () => {
+      const result = await crudAPI({
         data: {
           action: 'findMany',
           table: 'product',
@@ -37,7 +37,11 @@ export const fetchPosProducts = (searchQuery: string, activeCategory: string) =>
             },
           },
         },
-      }),
+      })
+
+      if (result.isErr()) throw new Error(result.error)
+      return result.value
+    },
   })
 
 type FetchPosProductsReturn = ReturnType<typeof fetchPosProducts>

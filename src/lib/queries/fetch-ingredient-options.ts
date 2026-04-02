@@ -24,7 +24,8 @@ export const fetchIngredientOptions = () =>
         },
       })
 
-      return result.map(item => ({ label: item.name, value: item }))
+      if (result.isErr()) throw new Error(result.error)
+      return result.value.map(item => ({ label: item.name, value: item }))
     },
     refetchOnWindowFocus: false,
     refetchOnMount: false,

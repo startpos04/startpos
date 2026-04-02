@@ -86,7 +86,7 @@ function RouteComponent() {
           id: 'actions',
           header: () => <div className='text-right pr-4'>Actions</div>,
           cell: ({ row }) => (
-            <div className='flex justify-end gap-2 pr-2 opacity-0 group-hover:opacity-100 transition-opacity'>
+            <div className='flex justify-end gap-2 pr-2'>
               <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => handleRestock(row.original)}>
                 <Edit className='h-4 w-4' />
               </Button>

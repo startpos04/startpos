@@ -74,6 +74,7 @@ function RouteComponent(props: RouteComponentProps) {
           },
         },
       })
+
       if (result.isErr()) throw new Error(result.error)
       return result.value
     },

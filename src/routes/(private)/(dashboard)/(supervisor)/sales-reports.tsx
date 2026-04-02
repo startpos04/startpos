@@ -20,7 +20,7 @@ function RouteComponent() {
   const { data, isFetching } = useQuery({
     queryKey: ['sales-reports-comprehensive'],
     queryFn: async () => {
-      const response = await crudAPI({
+      const result = await crudAPI({
         data: {
           action: 'findMany',
           table: 'transaction',
@@ -34,7 +34,9 @@ function RouteComponent() {
           },
         },
       })
-      return response
+
+      if (result.isErr()) throw new Error(result.error)
+      return result.value
     },
   })
 
