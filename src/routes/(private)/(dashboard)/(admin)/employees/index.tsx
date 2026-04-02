@@ -9,7 +9,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { Edit, Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
-import { EditEmployeeDialog } from './$employeeId'
+import { EmployeeDetailsDialog } from './$employeeId'
 import { CreateEmployeeDialog } from './create'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/')({
@@ -41,7 +41,7 @@ function RouteComponent() {
 
   const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, employeeId: string) => {
     e.preventDefault()
-    showModal(EditEmployeeDialog, {
+    showModal(EmployeeDetailsDialog, {
       employeeId,
     })
   }

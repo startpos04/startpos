@@ -3,13 +3,20 @@ import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useForm } from '@tanstack/react-form'
-import { useQueryClient } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
 import { BadgeCheck, Save, UserCircle } from 'lucide-react'
+import { ReactNode } from 'react'
 import z from 'zod'
+
+interface CreateAccountProps {
+  defaultValues: CreateAccountFormData
+  onSubmit: ({ value }: { value: CreateAccountFormData }) => Promise<void>
+  children: ReactNode
+  textBtn: {
+    default: string
+    isSubmitting: string
+  }
+}
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -18,52 +25,12 @@ const schema = z.object({
   role: z.enum(['ADMIN', 'SUPERVISOR', 'CASHIER']),
 })
 
-type FormData = z.infer<typeof schema>
+export type CreateAccountFormData = z.infer<typeof schema>
 
-export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/create')({
-  component: () => <RouteComponent />,
-})
-
-export function CreateEmployeeDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-4xl max-h-[90vh] overflow-y-auto'>
-        <RouteComponent onClose={onClose} />
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function RouteComponent({ onClose }: { onClose?: () => void }) {
-  const queryClient = useQueryClient()
-  const navigate = Route.useNavigate()
-
-  const handleSubmit = async ({ value }: { value: FormData }) => {
-    try {
-      await crudAPI({
-        data: {
-          action: 'create',
-          table: 'user',
-          args: {
-            data: {
-              ...value,
-              image: value.image || null,
-              emailVerified: false,
-            },
-          },
-        },
-      })
-
-      await queryClient.invalidateQueries({ queryKey: ['employees'] })
-      onClose?.() || navigate({ to: '..' })
-    } catch (error) {
-      console.error('Failed to create employee:', error)
-    }
-  }
-
+export function CreateAccount({ onSubmit, defaultValues, children, textBtn }: CreateAccountProps) {
   const form = useForm({
-    defaultValues: { name: '', email: '', image: '', role: 'CASHIER' },
-    onSubmit: handleSubmit,
+    defaultValues,
+    onSubmit,
     validators: {
       onChange: schema,
     },
@@ -71,11 +38,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
 
   return (
     <div className='flex flex-col gap-6 max-w-4xl mx-auto'>
-      {/* Header */}
-      <div>
-        <h1 className='text-3xl font-bold tracking-tight'>Add Employee</h1>
-        <p className='text-muted-foreground text-sm'>Create a new staff account and assign permissions.</p>
-      </div>
+      {children}
 
       <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
         {/* Main Profile Info */}
@@ -140,7 +103,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
               className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl active:scale-95 flex gap-2 shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'
             >
               <Save className='w-5! h-5!' />
-              {isSubmitting ? 'Saving Employee...' : 'Save Employee'}
+              {isSubmitting ? textBtn.isSubmitting : textBtn.default}
             </Button>
           )}
         />

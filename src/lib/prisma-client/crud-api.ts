@@ -3,11 +3,12 @@ import { createServerFn } from '@tanstack/react-start'
 import { err, ok, Result, ResultAsync } from 'neverthrow'
 import { Prisma } from 'prisma/generated/prisma/client'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { Prettify } from '../types'
 
 type DB = typeof prisma
 
 type ModelName = Uncapitalize<Prisma.ModelName>
-type DelegateMethods = 'findMany' | 'findFirst' | 'findUnique' | 'create' | 'update' | 'upsert' | 'delete'
+type DelegateMethods = 'findMany' | 'findFirst' | 'findUnique' | 'create' | 'update' | 'upsert' | 'delete' | 'deleteMany'
 
 // Result Inference
 type InferResult<M extends ModelName, A extends DelegateMethods, Args> = Prisma.Result<DB[M], Args, A>
@@ -35,7 +36,7 @@ const crudServerFn = createServerFn({ method: 'POST' })
 // THE PUBLIC API
 export async function crudAPI<T extends ModelName, M extends DelegateMethods, A extends Parameters<DB[T][M]>[0]>(input: {
   data: { table: T; action: M; args?: A }
-}): Promise<Result<InferResult<T, M, A>, string>> {
+}): Promise<Prettify<Result<InferResult<T, M, A>, string>>> {
   const response = await crudServerFn(input as any)
 
   if ('error' in response) {
