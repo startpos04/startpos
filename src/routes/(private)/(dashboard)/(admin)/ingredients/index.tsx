@@ -5,10 +5,13 @@ import { Badge } from '@/components/ui/badge' // Assuming you have a Badge compo
 import { Button } from '@/components/ui/button'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/Overlay'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
+import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Edit, Package, Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
+import { toast } from 'sonner'
 import { IngredientDetailsDialog } from './$ingredientId'
 import { CreateIngredientDialog } from './create'
 
@@ -17,6 +20,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients
 })
 
 function RouteComponent() {
+  const queryClient = useQueryClient()
   const { data, isFetching } = fetchIngredients()
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -88,23 +92,44 @@ function RouteComponent() {
           maxSize: 100,
           id: 'actions',
           header: () => <div className='text-right pr-4'>Actions</div>,
-          cell: ({ row }) => (
-            <div className='flex justify-end gap-2 pr-2'>
-              <Link
-                to='/ingredients/$ingredientId'
-                params={{ ingredientId: row.original.id }}
-                onClick={e => handleEdit(e, row.original.id)}
-                className='contents'
-              >
-                <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full'>
-                  <Edit className='h-4 w-4' />
+          cell: ({ row }) => {
+            const handleDelete = async () => {
+              // TODO: in to improve what happen to product using this, inventory and many more
+              const result = await crudAPI({
+                data: {
+                  table: 'product',
+                  action: 'update',
+                  args: { where: { id: row.original.id }, data: { deletedAt: { set: new Date() } } },
+                },
+              })
+
+              result.match(
+                async () => {
+                  toast.success('Ingredient successfully deleted')
+                  await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
+                },
+                error => toast.error(error),
+              )
+            }
+
+            return (
+              <div className='flex justify-end gap-2 pr-2'>
+                <Link
+                  to='/ingredients/$ingredientId'
+                  params={{ ingredientId: row.original.id }}
+                  onClick={e => handleEdit(e, row.original.id)}
+                  className='contents'
+                >
+                  <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full'>
+                    <Edit className='h-4 w-4' />
+                  </Button>
+                </Link>
+                <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full text-destructive hover:text-destructive' onClick={handleDelete}>
+                  <Trash2 className='h-4 w-4' />
                 </Button>
-              </Link>
-              <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full text-destructive hover:text-destructive'>
-                <Trash2 className='h-4 w-4' />
-              </Button>
-            </div>
-          ),
+              </div>
+            )
+          },
         }),
       ]),
     [data],
