@@ -18,21 +18,21 @@ interface CreateAccountProps {
   }
 }
 
-const schema = z.object({
+const createAccountSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.email('Invalid email'),
   image: z.string().optional(),
   role: z.enum(['ADMIN', 'SUPERVISOR', 'CASHIER']),
 })
 
-export type CreateAccountFormData = z.infer<typeof schema>
+export type CreateAccountFormData = z.infer<typeof createAccountSchema>
 
 export function CreateAccount({ onSubmit, defaultValues, children, textBtn }: CreateAccountProps) {
   const form = useForm({
     defaultValues,
     onSubmit,
     validators: {
-      onChange: schema,
+      onChange: createAccountSchema,
     },
   })
 

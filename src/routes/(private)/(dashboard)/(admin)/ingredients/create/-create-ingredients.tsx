@@ -3,19 +3,26 @@ import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { useForm } from '@tanstack/react-form'
-import { useQueryClient } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
 import { Info, Save, Warehouse } from 'lucide-react'
+import { ReactNode } from 'react'
 import { z } from 'zod'
 
-const ingredientSchema = z.object({
+interface CreateIngredientProps {
+  defaultValues: CreateIngredientFormData
+  onSubmit: ({ value }: { value: CreateIngredientFormData }) => Promise<void>
+  children: ReactNode
+  textBtn: {
+    default: string
+    isSubmitting: string
+  }
+}
+
+const createIngredientSchema = z.object({
   name: z.string().min(2, 'Name required'),
   sku: z.string().min(1, 'SKU required'),
   image: z.string(),
@@ -26,79 +33,24 @@ const ingredientSchema = z.object({
   isAvailable: z.boolean(),
   hasExpiry: z.boolean(),
 })
-type FormData = z.infer<typeof ingredientSchema>
 
-export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients/create')({
-  component: () => <RouteComponent />,
-})
+export type CreateIngredientFormData = z.infer<typeof createIngredientSchema>
 
-export function CreateIngredientDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-3xl'>
-        <RouteComponent onClose={onClose} />
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function RouteComponent({ onClose }: { onClose?: () => void }) {
-  const queryClient = useQueryClient()
-  const navigate = Route.useNavigate()
-
+export function CreateIngredient({ onSubmit, defaultValues, children, textBtn }: CreateIngredientProps) {
   const { data: categoryOptions = [] } = fetchCategoryOptions()
   const { data: unitOptions = [] } = fetchUnitOptions()
 
-  const handleSubmit = async ({ value }: { value: FormData }) => {
-    console.log('value', value)
-    try {
-      await crudAPI({
-        data: {
-          action: 'create',
-          table: 'product',
-          args: {
-            data: {
-              ...value,
-              organizationId: '',
-              image: value.image || null,
-            },
-          },
-        },
-      })
-
-      await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
-      onClose?.() || navigate({ to: '..' })
-    } catch (error) {
-      console.error('Failed to create ingredient:', error)
-    }
-  }
-
   const form = useForm({
-    defaultValues: {
-      name: '',
-      sku: '',
-      image: '',
-      type: 'RAW_MATERIAL' as const,
-      categoryId: '',
-      baseUnitId: '',
-      price: 0,
-      isAvailable: false,
-      hasExpiry: true,
-    },
-    onSubmit: handleSubmit,
+    defaultValues,
+    onSubmit,
     validators: {
-      onBlur: ingredientSchema,
-      onSubmit: ingredientSchema,
+      onChange: createIngredientSchema,
     },
   })
 
   return (
     <div className='flex flex-col gap-6 max-w-4xl mx-auto'>
-      {/* Header */}
-      <div>
-        <h1 className='text-3xl font-bold'>New Ingredient</h1>
-        <p className='text-muted-foreground'>Register a new raw material and define its tracking units.</p>
-      </div>
+      {children}
 
       <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
         {/* Main Details */}
@@ -168,15 +120,21 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
           </Card>
         </div>
       </div>
-      <form.Subscribe
-        selector={state => [state.canSubmit, state.isSubmitting]}
-        children={([canSubmit, isSubmitting]) => (
-          <Button onClick={() => form.handleSubmit()} disabled={!canSubmit}>
-            <Save className='w-4 h-4 mr-2' />
-            {isSubmitting ? 'Saving...' : 'Save Ingredient'}
-          </Button>
-        )}
-      />
+      <div className='pt-4'>
+        <form.Subscribe
+          selector={state => [state.canSubmit, state.isSubmitting]}
+          children={([canSubmit, isSubmitting]) => (
+            <Button
+              onClick={() => form.handleSubmit()}
+              disabled={!canSubmit || isSubmitting}
+              className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl active:scale-95 flex gap-2 shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'
+            >
+              <Save className='w-5! h-5!' />
+              {isSubmitting ? textBtn.isSubmitting : textBtn.default}
+            </Button>
+          )}
+        />
+      </div>
     </div>
   )
 }

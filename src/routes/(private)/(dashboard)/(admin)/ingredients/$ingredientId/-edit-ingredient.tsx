@@ -1,29 +1,29 @@
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQueryClient } from '@tanstack/react-query'
-import { CreateAccount, CreateAccountFormData } from '../create/(create-account)'
+import { CreateIngredient, CreateIngredientFormData } from '../create/-create-ingredients'
 
-export function EditEmployeeDialog({
-  employeeId,
+export function EditIngredientDialog({
+  ingredientId,
   defaultValues,
   open,
   onClose,
 }: {
-  employeeId: string
-  defaultValues: CreateAccountFormData
+  ingredientId: string
+  defaultValues: CreateIngredientFormData
   open: boolean
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
 
-  const handleSubmit = async ({ value }: { value: CreateAccountFormData }) => {
+  const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
     try {
       await crudAPI({
         data: {
-          table: 'user',
+          table: 'product',
           action: 'update',
           args: {
-            where: { id: employeeId },
+            where: { id: ingredientId },
             data: {
               ...value,
               image: value.image || null,
@@ -32,24 +32,24 @@ export function EditEmployeeDialog({
         },
       })
 
-      await queryClient.invalidateQueries({ queryKey: ['employees'] })
-      await queryClient.invalidateQueries({ queryKey: ['employee', employeeId] })
+      await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
+      await queryClient.invalidateQueries({ queryKey: ['ingredient', ingredientId] })
       onClose?.()
     } catch (error) {
-      console.error('Failed to create employee:', error)
+      console.error('Failed to create ingredient:', error)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className='sm:max-w-4xl max-h-[90vh] overflow-y-auto'>
-        <CreateAccount
+        <CreateIngredient
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
-          textBtn={{ default: 'Update Employee', isSubmitting: 'Updating Employee...' }}
+          textBtn={{ default: 'Update Ingredient', isSubmitting: 'Updating Ingredient...' }}
           children={
             <div>
-              <h1 className='text-3xl font-bold tracking-tight'>Update Employee</h1>
+              <h1 className='text-3xl font-bold tracking-tight'>Update Ingredient</h1>
               <p className='text-muted-foreground text-sm'>Update staff account and its permissions.</p>
             </div>
           }

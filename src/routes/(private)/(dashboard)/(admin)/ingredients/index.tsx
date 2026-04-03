@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/Overlay'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { Edit, Package, Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
-import { RestockIngredientDialog } from './-components/restock'
+import { IngredientDetailsDialog } from './$ingredientId'
 import { CreateIngredientDialog } from './create'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients/')({
@@ -24,8 +24,11 @@ function RouteComponent() {
     showModal(CreateIngredientDialog)
   }
 
-  const handleRestock = (ingredient: NonNullable<typeof data>[number]) => {
-    showModal(RestockIngredientDialog, { ingredient })
+  const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, ingredientId: string) => {
+    e.preventDefault()
+    showModal(IngredientDetailsDialog, {
+      ingredientId,
+    })
   }
 
   const columns = useMemo(
@@ -87,9 +90,16 @@ function RouteComponent() {
           header: () => <div className='text-right pr-4'>Actions</div>,
           cell: ({ row }) => (
             <div className='flex justify-end gap-2 pr-2'>
-              <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => handleRestock(row.original)}>
-                <Edit className='h-4 w-4' />
-              </Button>
+              <Link
+                to='/ingredients/$ingredientId'
+                params={{ ingredientId: row.original.id }}
+                onClick={e => handleEdit(e, row.original.id)}
+                className='contents'
+              >
+                <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full'>
+                  <Edit className='h-4 w-4' />
+                </Button>
+              </Link>
               <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full text-destructive hover:text-destructive'>
                 <Trash2 className='h-4 w-4' />
               </Button>

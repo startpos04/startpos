@@ -63,11 +63,13 @@ model Branch {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  members      Membership[]
-  inventory    Inventory[]
-  transactions Transaction[]
-  movements    InventoryMovement[]
-  purchases    Purchase[]
+  members           Membership[]
+  inventory         Inventory[]
+  transactions      Transaction[]
+  movements         InventoryMovement[] @relation("SourceBranch")
+  receivedTransfers InventoryMovement[] @relation("DestinationBranch") // Track stock coming INTO this branch from another
+  purchases         Purchase[]
+  vendorSessions    VendorSession[]
 
   @@index([deletedAt])
   @@map("branches")
@@ -121,6 +123,7 @@ model User {
   performedServices  Transaction[]       @relation("ServiceProvider")
   inventoryMovements InventoryMovement[]
   memberships        Membership[]
+  vendorSessions     VendorSession[] // Link sessions to the user
 
   @@index([deletedAt])
   @@map("users")
@@ -363,6 +366,7 @@ enum MovementType {
   OUT // Sale, Usage
   ADJUST // Manual Correction
   WASTE // Damage, Expiry
+  TRANSFER // Movement between branches (Main Kitchen to Cart)
 }
 
 model Inventory {
@@ -401,8 +405,13 @@ model InventoryMovement {
   reason    String? // "Sold in INV-102", "Expired", "Manual Restock"
   unitId    String
   unit      Unit         @relation(fields: [unitId], references: [id])
-  branchId  String
-  branch    Branch       @relation(fields: [branchId], references: [id])
+
+  branchId String
+  branch   Branch @relation("SourceBranch", fields: [branchId], references: [id])
+
+  // Destination branch for transfers
+  targetBranchId String?
+  targetBranch   Branch? @relation("DestinationBranch", fields: [targetBranchId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -480,6 +489,10 @@ model Transaction {
   branchId   String
   branch     Branch    @relation(fields: [branchId], references: [id])
 
+  // Link to a daily session for reconciling evening sales
+  sessionId String?
+  session   VendorSession? @relation(fields: [sessionId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -520,4 +533,32 @@ model OrderItemAddon {
   costAtSale  Int     @default(0) // Cost of this addon at time of sale (in cents)
 
   @@map("order_item_addons")
+}
+
+// --- VENDOR SESSION SYSTEM ---
+// Added for tracking when a street food seller goes out and returns for reconciliation.
+enum SessionStatus {
+  OPEN
+  CLOSED
+}
+
+model VendorSession {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  startTime DateTime  @default(now())
+  endTime   DateTime?
+
+  openingCash Int  @default(0) // In cents (starting change fund)
+  closingCash Int? // In cents (actual cash brought back)
+
+  status SessionStatus @default(OPEN)
+  notes  String?
+
+  transactions Transaction[]
+
+  @@map("vendor_sessions")
 }

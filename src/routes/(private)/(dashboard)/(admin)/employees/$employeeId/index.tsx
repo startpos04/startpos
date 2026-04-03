@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Calendar, Edit, Mail, Package, Receipt, ShieldAlert, Smartphone, User as UserIcon } from 'lucide-react'
 import { toast } from 'sonner'
-import { EditEmployeeDialog } from './(edit-account)'
+import { EditEmployeeDialog } from './-edit-account'
 
 interface EditEmployeeDialogProps {
   employeeId: string

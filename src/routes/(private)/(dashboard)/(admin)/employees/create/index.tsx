@@ -2,9 +2,10 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { CreateAccount, CreateAccountFormData } from './(create-account)'
+import { toast } from 'sonner'
+import { CreateAccount, CreateAccountFormData } from './-create-account'
 
-export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/create')({
+export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/create/')({
   component: () => <RouteComponent />,
 })
 
@@ -39,9 +40,11 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
       })
 
       await queryClient.invalidateQueries({ queryKey: ['employees'] })
-      onClose?.() || navigate({ to: '..' })
+      toast.success('Employee successfully added')
+      onClose?.() || navigate({ to: '/employees' })
     } catch (error) {
       console.error('Failed to create employee:', error)
+      toast.error('Failed to add employee')
     }
   }
 
