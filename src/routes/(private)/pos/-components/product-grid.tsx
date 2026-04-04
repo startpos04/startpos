@@ -64,7 +64,7 @@ export const ProductGrid = withForm({
               placeholder='Search products...'
             />
           </div>
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-5'>
             <ThemeToggle />
             <Button variant='outline' className='rounded-xl border-dashed' onClick={handleLogout}>
               <LogOut className='w-5 h-5' /> Logout
