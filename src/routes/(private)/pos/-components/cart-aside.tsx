@@ -5,12 +5,24 @@ import { Separator } from '@/components/ui/separator'
 import { withForm } from '@/hooks/form'
 import { VAT_RATE } from '@/lib/constants'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { Minus, Plus, UserPlus } from 'lucide-react'
+import { showModal } from '@/lib/Overlay'
+import { CreditCard, Minus, Plus, UserPlus } from 'lucide-react'
 import { posFormOpts } from '..'
+import { PaymentDialog } from './payment-dialog'
 
 export const CartAside = withForm({
   ...posFormOpts,
   render: function ({ form }) {
+    const handleConfirm = (total: number) => {
+      showModal(PaymentDialog, {
+        total,
+        onConfirm: async tendered => {
+          form.setFieldValue('payment', { tendered })
+          await form.handleSubmit()
+        },
+      })
+    }
+
     return (
       <aside className='w-96 bg-card rounded-[2.5rem] border border-border flex flex-col shadow-xl'>
         <div className='p-6'>
@@ -144,10 +156,10 @@ export const CartAside = withForm({
           {items => {
             const subtotal = items.reduce((acc, item) => {
               const itemBase = Number(item.variant?.price || item.product.price) * item.quantity
-              const addonsBase = item.addons?.reduce((a: number, b) => a + Number(b.priceOverride) * item.quantity, 0) || 0
+              const addonsBase = item.addons?.reduce((a, b) => a + Number(b.priceOverride) * item.quantity, 0) || 0
               return acc + itemBase + addonsBase
             }, 0)
-            const total = subtotal * 1.12
+            const total = subtotal * (1 + VAT_RATE)
 
             return (
               <div className='p-6 bg-muted/20 border-t border-border space-y-4'>
@@ -166,8 +178,9 @@ export const CartAside = withForm({
                     <span className='text-primary'>{PriceEngine.format(total)}</span>
                   </div>
                 </div>
-                <Button disabled={items.length === 0} onClick={() => form.handleSubmit()} className='w-full py-8 rounded-2xl text-lg font-black'>
-                  Place Order
+                <Button disabled={items.length === 0} className='w-full py-8 rounded-2xl text-lg font-black' onClick={() => handleConfirm(total)}>
+                  <CreditCard className='mr-2 h-6! w-6!' />
+                  Pay Now
                 </Button>
               </div>
             )

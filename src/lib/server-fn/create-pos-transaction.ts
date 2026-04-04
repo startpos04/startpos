@@ -22,6 +22,9 @@ interface SaleItem {
 interface CreateSaleInput {
   customerId: string | null
   items: SaleItem[]
+  payment: {
+    tendered: number
+  }
 }
 
 export const createPosTransaction = createServerFn({ method: 'POST' })
@@ -92,11 +95,23 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
               },
             })),
           },
+          payments: {
+            create: [
+              {
+                method: 'CASH',
+                amount: grandTotal,
+                tendered: data.payment.tendered,
+                change: data.payment.tendered - grandTotal,
+                referenceNo: null,
+              },
+            ],
+          },
         },
         include: {
           items: {
             include: { selectedAddons: true },
           },
+          payments: true,
         },
       })
 

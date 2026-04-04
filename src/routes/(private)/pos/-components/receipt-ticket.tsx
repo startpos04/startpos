@@ -39,6 +39,7 @@ const styles = StyleSheet.create({
 export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransactionResponse; data: NonNullable<(typeof posFormOpts)['defaultValues']> }) => {
   const user = useStore(authStore, state => state.user)
   const t = transaction.data
+  const payment = t.payments?.[0]
 
   // --- DYNAMIC HEIGHT CALCULATION (in points) ---
   const headerHeight = 120 // Store name, address, TIN
@@ -129,6 +130,20 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
             <Text>
               {user.branch.currency} {PriceEngine.toDollars(t.totalAmount).toFixed(2)}
             </Text>
+          </View>
+          <View style={{ marginTop: 5, borderTopWidth: 0.5, borderTopStyle: 'dashed', paddingTop: 5 }}>
+            <View style={styles.infoRow}>
+              <Text>Payment Method:</Text>
+              <Text>{payment?.method || 'CASH'}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text>Tendered:</Text>
+              <Text>{PriceEngine.toDollars(payment?.tendered || 0).toFixed(2)}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text>Change:</Text>
+              <Text>{PriceEngine.toDollars(payment?.change || 0).toFixed(2)}</Text>
+            </View>
           </View>
         </View>
 

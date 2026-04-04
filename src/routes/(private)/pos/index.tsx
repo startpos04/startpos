@@ -24,6 +24,7 @@ export const fetchPosProducts = (searchQuery: string, activeCategory: string) =>
             where: {
               isAvailable: true,
               variantOfId: null,
+              price: { gt: 0 },
               ...(activeCategory !== 'ALL' && { categoryId: activeCategory }),
               ...(searchQuery && {
                 OR: [{ name: { contains: searchQuery, mode: 'insensitive' } }, { sku: { contains: searchQuery, mode: 'insensitive' } }],
@@ -60,6 +61,9 @@ export const posFormOpts = formOptions({
     items: [] as posItem[],
     customerId: null as string | null,
     customerName: '',
+    payment: {
+      tendered: 0,
+    },
   },
 })
 
@@ -80,6 +84,7 @@ function POSPage() {
         const result = await createPosTransaction({
           data: {
             customerId: null,
+            payment: value.payment,
             items: value.items.map(item => ({
               productId: item.product.id,
               variantId: item.variant?.id || item.product.id,

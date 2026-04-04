@@ -496,7 +496,8 @@ model Transaction {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items OrderItem[]
+  items    OrderItem[]
+  payments Payment[]
 
   @@map("transactions")
 }
@@ -561,4 +562,27 @@ model VendorSession {
   transactions Transaction[]
 
   @@map("vendor_sessions")
+}
+
+enum PaymentMethod {
+  CASH
+  E_WALLET
+  CARD
+  CREDIT // For "Utang" or accounts receivable
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  amount      Int // The actual amount applied to the bill
+  tendered    Int // The raw amount handed over (for cash)
+  change      Int // Tendered - amount
+  method      PaymentMethod @default(CASH)
+  referenceNo String? // Reference # for GCash/Maya/Cards
+
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("payments")
 }
