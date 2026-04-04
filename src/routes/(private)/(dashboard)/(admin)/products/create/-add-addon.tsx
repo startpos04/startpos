@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { showModal } from '@/lib/Overlay'
 import { feIngredient, fetchIngredients } from '@/lib/queries/fetch-ingredients'
-import { Prettify } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useForm, useStore } from '@tanstack/react-form'
 import { Check, PlusCircle, Search } from 'lucide-react'
@@ -18,11 +17,12 @@ import { CreateIngredientDialog } from '../../ingredients/create'
 interface AddAddonModalProps {
   open: boolean
   onClose: () => void
-  onAdd: (addon: Prettify<feIngredient & { defaultQuantity: number; priceOverride: number }>) => void
+  onAdd: (addon: { addon: feIngredient; defaultQuantity: number; priceOverride: number }) => void
 }
 
 const addonSchema = z.object({
   selectedId: z.string().min(1, 'Please select an addon'),
+  selectedIngredient: z.custom<feIngredient>().nullable(),
   defaultQuantity: z.number().gt(0, 'Quantity must be greater than 0'),
   priceOverride: z.number().min(0, 'Price cannot be negative'),
 })
@@ -34,16 +34,20 @@ export function AddAddonModal({ open, onClose, onAdd }: AddAddonModalProps) {
   const form = useForm({
     defaultValues: {
       selectedId: '',
-      defaultQuantity: 1, // Default to 1 for better UX
+      selectedIngredient: null as feIngredient | null,
+      defaultQuantity: 1,
       priceOverride: 0,
     },
     validators: {
       onChange: addonSchema,
     },
     onSubmit: async ({ value }) => {
-      const item = data.find(s => s.id === value.selectedId)
-      if (item) {
-        onAdd({ ...item, defaultQuantity: value.defaultQuantity, priceOverride: value.priceOverride })
+      if (value.selectedIngredient) {
+        onAdd({
+          addon: value.selectedIngredient,
+          defaultQuantity: value.defaultQuantity,
+          priceOverride: value.priceOverride,
+        })
         form.reset()
         onClose()
       }
@@ -52,7 +56,7 @@ export function AddAddonModal({ open, onClose, onAdd }: AddAddonModalProps) {
 
   const selectedId = useStore(form.store, state => state.values.selectedId)
   const filtered = data.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
-  const selectedIngredient = React.useMemo(() => data.find(item => item.id === selectedId), [selectedId, data])
+  const selectedIngredient = useStore(form.store, state => state.values.selectedIngredient)
 
   const handleCreateIngredient = () => {
     showModal(CreateIngredientDialog)
@@ -88,33 +92,40 @@ export function AddAddonModal({ open, onClose, onAdd }: AddAddonModalProps) {
 
           {/* Selection List */}
           <form.Field name='selectedId'>
-            {field => (
-              <ScrollArea className='h-40 border rounded-xl p-2 bg-muted/30'>
-                <div className='space-y-1'>
-                  {filtered.map(item => (
-                    <div
-                      key={item.id}
-                      onClick={() => field.handleChange(item.id)}
-                      className={cn(
-                        'flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all',
-                        field.state.value === item.id ? 'border-primary bg-background shadow-sm' : 'border-transparent hover:bg-muted',
-                      )}
-                    >
-                      <div className='flex gap-2 items-center'>
-                        <Avatar className='h-8 w-8 border border-border/50 shadow-sm'>
-                          <AvatarImage src={item.image ?? ''} alt={item.name} />
-                          <AvatarFallback className='bg-primary/5 text-primary text-[10px] font-bold'>{item.name?.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className='flex flex-col'>
-                          <span className='text-sm font-semibold'>{item.name}</span>
-                          <span className='text-[10px] font-mono text-muted-foreground uppercase leading-none'>{item.sku}</span>
+            {idField => (
+              <form.Field name='selectedIngredient'>
+                {objField => (
+                  <ScrollArea className='h-40 border rounded-xl p-2 bg-muted/30'>
+                    <div className='space-y-1'>
+                      {filtered.map(item => (
+                        <div
+                          key={item.id}
+                          onClick={() => {
+                            idField.handleChange(item.id)
+                            objField.handleChange(item)
+                          }}
+                          className={cn(
+                            'flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all',
+                            idField.state.value === item.id ? 'border-primary bg-background shadow-sm' : 'border-transparent hover:bg-muted',
+                          )}
+                        >
+                          <div className='flex gap-2 items-center'>
+                            <Avatar className='h-8 w-8 border border-border/50 shadow-sm'>
+                              <AvatarImage src={item.image ?? ''} alt={item.name} />
+                              <AvatarFallback className='bg-primary/5 text-primary text-[10px] font-bold'>{item.name?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className='flex flex-col'>
+                              <span className='text-sm font-semibold'>{item.name}</span>
+                              <span className='text-[10px] font-mono text-muted-foreground uppercase leading-none'>{item.sku}</span>
+                            </div>
+                          </div>
+                          {idField.state.value === item.id && <Check className='h-4 w-4 text-primary' />}
                         </div>
-                      </div>
-                      {field.state.value === item.id && <Check className='h-4 w-4 text-primary' />}
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
+                  </ScrollArea>
+                )}
+              </form.Field>
             )}
           </form.Field>
 

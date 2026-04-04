@@ -143,7 +143,7 @@ function RouteComponent() {
           <p className='text-muted-foreground text-sm'>Manage raw materials and track stock levels by weight, volume, or count.</p>
         </div>
         <a href='/ingredients/create' onClick={handleAdd} className='contents'>
-          <Button className='rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer'>
+          <Button className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer'>
             <Plus className='h-4 w-4 mr-2' /> Add Ingredient
           </Button>
         </a>

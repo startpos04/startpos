@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { Check, ChevronLeft } from 'lucide-react'
-import { VariantPreview } from './add-variant'
+import { VariantPreview } from './-add-variant'
 
 interface ReviewVariantsStepProps {
   previews: VariantPreview[]
@@ -40,9 +40,9 @@ export function ReviewVariantsStep({ previews, setPreviews, onBack, onSave }: Re
                 <Label className='text-[10px] text-muted-foreground px-1'>Price</Label>
                 <Input
                   type='number'
-                  value={p.price || ''}
+                  value={Number(p.price) / 100 || ''}
                   className='w-24 h-8 text-right'
-                  onChange={e => updatePreview(idx, { price: Number(e.target.value) })}
+                  onChange={e => updatePreview(idx, { price: Math.round(Number(e.target.value) * 100) })}
                 />
               </div>
             </div>

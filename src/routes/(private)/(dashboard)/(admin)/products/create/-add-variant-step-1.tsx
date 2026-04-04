@@ -12,7 +12,7 @@ import { useRef } from 'react'
 
 // ... props interface remains the same
 
-export function DefineVariantsStep({ form, tempInputs, setTempInputs, canPreview }: DefineVariantsStepProps) {
+export function DefineVariantsStep({ form, tempInputs, setTempInputs, canPreview }: any) {
   const attributes = useStore(form.store, (s: any) => s.values.attributes)
   const lastInputRef = useRef<HTMLInputElement>(null)
 

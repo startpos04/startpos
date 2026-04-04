@@ -253,8 +253,8 @@ model ProductIngredient {
   quantityUsed Float // How much of the material is used in the host product (e.g., 0.25 kg of Beef in a Burger)
 
   unit     Unit    @relation(fields: [unitId], references: [id])
-  host     Product @relation("ParentProduct", fields: [hostId], references: [id])
-  material Product @relation("ComponentItem", fields: [materialId], references: [id])
+  host     Product @relation("ParentProduct", fields: [hostId], references: [id]) // Points to the product acting as the "Container" or "Recipe."
+  material Product @relation("ComponentItem", fields: [materialId], references: [id]) // Points to the product acting as the "Ingredient" or "Input."
 
   @@unique([hostId, materialId])
   @@map("product_ingredients")

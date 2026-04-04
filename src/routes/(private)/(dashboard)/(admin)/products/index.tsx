@@ -12,11 +12,13 @@ import { showModal } from '@/lib/Overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { authStore } from '@/store/auth-store'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { Coffee, Info, Layers, Leaf, Plus, Sparkles, TrendingUp } from 'lucide-react'
 import numeral from 'numeral'
 import { useMemo } from 'react'
+import { ProductDetailsDialog } from './$productId'
+import { EditProductDialog } from './$productId/-edit-product'
 import { CreateProductDialog } from './create'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/products/')({
@@ -52,7 +54,7 @@ function RouteComponent() {
                   },
                 },
               },
-              allowedAddons: { include: { addon: true } },
+              allowedAddons: { include: { addon: { include: { baseUnit: true } } } },
               variants: { include: { ingredients: true } },
             },
           },
@@ -83,6 +85,34 @@ function RouteComponent() {
     [data],
   )
 
+  const handleDetail = (e: React.MouseEvent<HTMLAnchorElement>, productId: string) => {
+    e.preventDefault()
+    showModal(ProductDetailsDialog, {
+      productId,
+    })
+  }
+
+  const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, product: NonNullable<typeof data>[number]) => {
+    e.preventDefault()
+    showModal(EditProductDialog, {
+      productId: product.id,
+      defaultValues: {
+        name: product.name,
+        sku: product.sku || '',
+        price: product.price,
+        type: product.type as any,
+        categoryId: product.categoryId,
+        baseUnitId: product.baseUnitId,
+        image: product.image as '',
+        isAvailable: product.isAvailable,
+        hasExpiry: product.hasExpiry,
+        ingredients: product.ingredients,
+        variants: product.variants,
+        allowedAddons: product.allowedAddons,
+      },
+    })
+  }
+
   return (
     <>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 px-4'>
@@ -91,7 +121,7 @@ function RouteComponent() {
           <p className='text-muted-foreground text-sm'>Manage recipes, profitability, and real-time stock availability.</p>
         </div>
         <a href='/products/create' onClick={handleAdd} className='contents'>
-          <Button className='rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
+          <Button className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
             <Plus className='h-4 w-4 mr-2' /> Add Product
           </Button>
         </a>
@@ -295,12 +325,17 @@ function RouteComponent() {
 
                 {/* Action Buttons */}
                 <div className='pt-4 mt-auto border-t border-border flex gap-2'>
-                  <Button variant='outline' size='sm' className='flex-1 rounded-xl text-[10px] font-bold h-9 bg-transparent hover:bg-accent'>
-                    RECIPE DETAILS
-                  </Button>
-                  <Button size='sm' className='flex-1 rounded-xl text-[10px] font-bold h-9 shadow-sm'>
-                    EDIT
-                  </Button>
+                  <Link to='/products/$productId' params={{ productId: row.original.id }} onClick={e => handleDetail(e, row.original.id)} className='contents'>
+                    <Button variant='outline' size='sm' className='flex-1 rounded-xl text-[10px] font-bold h-9 bg-transparent hover:bg-accent'>
+                      PRODUCT DETAILS
+                    </Button>
+                  </Link>
+
+                  <Link to='/products/$productId' params={{ productId: row.original.id }} onClick={e => handleEdit(e, row.original)} className='contents'>
+                    <Button size='sm' className='flex-1 rounded-xl text-[10px] font-bold h-9 shadow-sm'>
+                      EDIT
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>

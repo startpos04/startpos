@@ -15,6 +15,8 @@ export const multiTenantExtension = (organizationId: string, branchId?: string) 
           // CREATE: Inject and Validate
           if (operation.includes('create')) {
             // Ensure the data matches the session
+            delete args.data.id // TODO: will delete when implementing local first
+
             if (args.data.organizationId && args.data.organizationId !== organizationId) {
               throw new Error(`Unauthorized: Organization mismatch`)
             }

@@ -2,14 +2,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useForm, useStore } from '@tanstack/react-form'
 import { Layers } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { DefineVariantsStep } from './add-variant-step-1'
-import { ReviewVariantsStep } from './add-variant-step-2'
+import { DefineVariantsStep } from './-add-variant-step-1'
+import { ReviewVariantsStep } from './-add-variant-step-2'
 
 export interface VariantPreview {
+  id: string
   enabled: boolean
-  variantType: string
-  variantValue: string
-  sku: string
+  variantType: string | null
+  variantValue: string | null
+  sku: string | null
   price: number
 }
 
@@ -33,6 +34,7 @@ export function AddVariantModal({ open, onClose, onAdd, variants }: AddVariantMo
     const attrMap: Record<string, Record<string, number>> = {}
 
     variants.forEach(v => {
+      if (!v.variantType || !v.variantValue) return
       const types = v.variantType.split('-')
       const names = v.variantValue.split('-')
 
@@ -88,8 +90,10 @@ export function AddVariantModal({ open, onClose, onAdd, variants }: AddVariantMo
       )
 
       const generated: VariantPreview[] = combinations.map(combo => {
+        const variant = variants.find(variant => variant.variantType === combo.variantType)
         return {
-          enabled: variants?.length ? variants.some(variant => variant.variantType === combo.variantType) : true,
+          id: variant?.id || '',
+          enabled: !!variant,
           variantType: combo.variantType,
           variantValue: combo.variantValue,
           sku: combo.variantValue,

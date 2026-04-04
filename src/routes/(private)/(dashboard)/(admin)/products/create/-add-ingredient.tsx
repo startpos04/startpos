@@ -7,10 +7,10 @@ import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { showModal } from '@/lib/Overlay'
 import { feIngredient, fetchIngredients } from '@/lib/queries/fetch-ingredients'
-import { Prettify } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useForm, useStore } from '@tanstack/react-form'
 import { Check, Scale, Search, Utensils } from 'lucide-react'
+import { Unit } from 'prisma/generated/prisma/browser'
 import * as React from 'react'
 import z from 'zod'
 import { CreateIngredientDialog } from '../../ingredients/create'
@@ -18,11 +18,12 @@ import { CreateIngredientDialog } from '../../ingredients/create'
 interface AddIngredientModalProps {
   open: boolean
   onClose: () => void
-  onAdd: (ingredient: Prettify<feIngredient & { quantityUsed: number }>) => void
+  onAdd: (ingredient: { material: feIngredient; quantityUsed: number; unit: Unit }) => void
 }
 
 const ingredientSchema = z.object({
   selectedId: z.string().min(1, 'Please select an ingredient'),
+  selectedIngredient: z.custom<feIngredient>().nullable(),
   quantityUsed: z.number().gt(0, 'Quantity must be greater than 0'),
 })
 
@@ -33,15 +34,19 @@ export function AddIngredientModal({ open, onClose, onAdd }: AddIngredientModalP
   const form = useForm({
     defaultValues: {
       selectedId: '',
+      selectedIngredient: null as feIngredient | null,
       quantityUsed: 1,
     },
     validators: {
       onChange: ingredientSchema,
     },
     onSubmit: async ({ value }) => {
-      const item = data.find(s => s.id === value.selectedId)
-      if (item) {
-        onAdd({ ...item, quantityUsed: value.quantityUsed })
+      if (value.selectedIngredient) {
+        onAdd({
+          material: value.selectedIngredient,
+          quantityUsed: value.quantityUsed,
+          unit: value.selectedIngredient.baseUnit, // TODO: implement input for unit,
+        })
         form.reset()
         onClose()
       }
@@ -50,7 +55,7 @@ export function AddIngredientModal({ open, onClose, onAdd }: AddIngredientModalP
 
   const filtered = data.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
   const selectedId = useStore(form.store, state => state.values.selectedId)
-  const selectedIngredient = React.useMemo(() => data.find(item => item.id === selectedId), [selectedId, data])
+  const selectedIngredient = useStore(form.store, state => state.values.selectedIngredient)
 
   const handleCreateIngredient = () => {
     showModal(CreateIngredientDialog)
@@ -88,38 +93,45 @@ export function AddIngredientModal({ open, onClose, onAdd }: AddIngredientModalP
 
           {/* Ingredient Selection List */}
           <form.Field name='selectedId'>
-            {field => (
-              <ScrollArea className='h-50'>
-                <div className='space-y-2'>
-                  {filtered.map(item => (
-                    <div
-                      key={item.id}
-                      onClick={() => field.handleChange(item.id)}
-                      className={cn(
-                        'flex items-center justify-between p-1 rounded-md cursor-pointer border transition-all',
-                        field.state.value === item.id ? 'border-primary bg-primary/5 shadow-sm' : 'border-transparent hover:bg-muted',
-                      )}
-                    >
-                      <div className='flex gap-2'>
-                        <Avatar className='h-9 w-9 border border-border/50 shadow-sm'>
-                          <AvatarImage src={item.image ?? ''} alt={item.name} />
-                          <AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>{item.name?.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className='flex flex-col'>
-                          <span className='text-sm font-semibold'>{item.name}</span>
-                          <div className='flex items-center gap-2'>
-                            <span className='text-[10px] font-mono text-muted-foreground uppercase'>{item.sku}</span>
-                            <Badge variant='secondary' className='h-4 text-[9px] px-1.5 rounded-sm'>
-                              {item.baseUnit?.abbreviation}
-                            </Badge>
+            {idField => (
+              <form.Field name='selectedIngredient'>
+                {objField => (
+                  <ScrollArea className='h-50'>
+                    <div className='space-y-2'>
+                      {filtered.map(item => (
+                        <div
+                          key={item.id}
+                          onClick={() => {
+                            idField.handleChange(item.id)
+                            objField.handleChange(item)
+                          }}
+                          className={cn(
+                            'flex items-center justify-between p-1 rounded-md cursor-pointer border transition-all',
+                            idField.state.value === item.id ? 'border-primary bg-primary/5 shadow-sm' : 'border-transparent hover:bg-muted',
+                          )}
+                        >
+                          <div className='flex gap-2'>
+                            <Avatar className='h-9 w-9 border border-border/50 shadow-sm'>
+                              <AvatarImage src={item.image ?? ''} alt={item.name} />
+                              <AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>{item.name?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className='flex flex-col'>
+                              <span className='text-sm font-semibold'>{item.name}</span>
+                              <div className='flex items-center gap-2'>
+                                <span className='text-[10px] font-mono text-muted-foreground uppercase'>{item.sku}</span>
+                                <Badge variant='secondary' className='h-4 text-[9px] px-1.5 rounded-sm'>
+                                  {item.baseUnit?.abbreviation}
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
+                          {idField.state.value === item.id && <Check className='h-4 w-4 text-primary' />}
                         </div>
-                      </div>
-                      {field.state.value === item.id && <Check className='h-4 w-4 text-primary' />}
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
+                  </ScrollArea>
+                )}
+              </form.Field>
             )}
           </form.Field>
 
