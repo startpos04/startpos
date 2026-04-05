@@ -43,6 +43,7 @@ export async function initialInventory(prisma: PrismaClient) {
       // 3. Create Inventory
       await tx.inventory.create({
         data: {
+          organizationId: 'org-1',
           branchId: 'branch-1',
           productId: item.id,
           unitId: item.baseUnitId,
@@ -55,6 +56,7 @@ export async function initialInventory(prisma: PrismaClient) {
       // 4. Log Movement (Now using a REAL userId)
       await tx.inventoryMovement.create({
         data: {
+          organizationId: 'org-1',
           branchId: 'branch-1',
           userId: adminUser.id, // ✅ Real ID from the DB
           productId: item.id,

@@ -22,9 +22,7 @@ function RouteComponent() {
   const { data, isFetching } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
-      const result = await crudAPI({
-        data: { action: 'findMany', table: 'user' },
-      })
+      const result = await crudAPI.user('findMany')
 
       if (result.isErr()) {
         throw new Error(result.error)
@@ -85,13 +83,7 @@ function RouteComponent() {
           header: () => <div className='text-right pr-4'>Actions</div>,
           cell: ({ row }) => {
             const handleDelete = async () => {
-              const result = await crudAPI({
-                data: {
-                  table: 'user',
-                  action: 'update',
-                  args: { where: { id: row.original.id }, data: { deletedAt: { set: new Date() } } },
-                },
-              })
+              const result = await crudAPI.user('update', { where: { id: row.original.id }, data: { deletedAt: { set: new Date() } } })
 
               result.match(
                 async () => {

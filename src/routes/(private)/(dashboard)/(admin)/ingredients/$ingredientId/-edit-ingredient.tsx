@@ -1,6 +1,7 @@
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { CreateIngredient, CreateIngredientFormData } from '../create/-create-ingredients'
 
 export function EditIngredientDialog({
@@ -17,27 +18,23 @@ export function EditIngredientDialog({
   const queryClient = useQueryClient()
 
   const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
-    try {
-      await crudAPI({
-        data: {
-          table: 'product',
-          action: 'update',
-          args: {
-            where: { id: ingredientId },
-            data: {
-              ...value,
-              image: value.image || null,
-            },
-          },
-        },
-      })
+    const result = await crudAPI.product('update', {
+      where: { id: ingredientId },
+      data: {
+        ...value,
+        image: value.image || null,
+      },
+    })
 
-      await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
-      await queryClient.invalidateQueries({ queryKey: ['ingredient', ingredientId] })
-      onClose?.()
-    } catch (error) {
-      console.error('Failed to create ingredient:', error)
-    }
+    result.match(
+      async () => {
+        await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
+        await queryClient.invalidateQueries({ queryKey: ['ingredient', ingredientId] })
+        toast.success('Ingredient successfully updated')
+        onClose?.()
+      },
+      error => toast.error(error),
+    )
   }
 
   return (

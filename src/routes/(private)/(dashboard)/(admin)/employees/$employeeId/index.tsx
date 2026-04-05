@@ -50,26 +50,20 @@ function RouteComponent(props: RouteComponentProps) {
   } = useQuery({
     queryKey: ['employee', employeeId],
     queryFn: async () => {
-      const result = await crudAPI({
-        data: {
-          action: 'findUnique',
-          table: 'user',
-          args: {
-            where: { id: employeeId },
-            include: {
-              memberships: { include: { organization: true, branch: true } },
-              sessions: { orderBy: { expiresAt: 'desc' }, take: 1 },
-              // Fetching actual transaction data for revenue calculation
-              processedSales: {
-                select: { totalAmount: true },
-              },
-              _count: {
-                select: {
-                  processedSales: true,
-                  performedServices: true,
-                  inventoryMovements: true,
-                },
-              },
+      const result = await crudAPI.user('findUnique', {
+        where: { id: employeeId },
+        include: {
+          memberships: { include: { organization: true, branch: true } },
+          sessions: { orderBy: { expiresAt: 'desc' }, take: 1 },
+          // Fetching actual transaction data for revenue calculation
+          processedSales: {
+            select: { totalAmount: true },
+          },
+          _count: {
+            select: {
+              processedSales: true,
+              performedServices: true,
+              inventoryMovements: true,
             },
           },
         },
@@ -83,13 +77,7 @@ function RouteComponent(props: RouteComponentProps) {
   // FUNCTIONALITY: Revoke Sessions Mutation
   const { mutate: revokeSessions, isPending: isRevoking } = useMutation({
     mutationFn: async () => {
-      const result = await crudAPI({
-        data: {
-          action: 'deleteMany',
-          table: 'session',
-          args: { where: { userId: employeeId } },
-        },
-      })
+      const result = await crudAPI.session('deleteMany', { where: { userId: employeeId } })
       if (result.isErr()) throw new Error(result.error)
       return result.value
     },

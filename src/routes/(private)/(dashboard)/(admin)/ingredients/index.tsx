@@ -95,13 +95,7 @@ function RouteComponent() {
           cell: ({ row }) => {
             const handleDelete = async () => {
               // TODO: in to improve what happen to product using this, inventory and many more
-              const result = await crudAPI({
-                data: {
-                  table: 'product',
-                  action: 'update',
-                  args: { where: { id: row.original.id }, data: { deletedAt: { set: new Date() } } },
-                },
-              })
+              const result = await crudAPI.product('update', { where: { id: row.original.id }, data: { deletedAt: { set: new Date() } } })
 
               result.match(
                 async () => {

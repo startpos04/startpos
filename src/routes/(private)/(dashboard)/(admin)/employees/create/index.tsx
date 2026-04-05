@@ -21,31 +21,24 @@ export function CreateEmployeeDialog({ open, onClose }: { open: boolean; onClose
 
 function RouteComponent({ onClose }: { onClose?: () => void }) {
   const queryClient = useQueryClient()
-  const navigate = Route.useNavigate()
 
   const handleSubmit = async ({ value }: { value: CreateAccountFormData }) => {
-    try {
-      await crudAPI({
-        data: {
-          action: 'create',
-          table: 'user',
-          args: {
-            data: {
-              ...value,
-              image: value.image || null,
-              emailVerified: false,
-            },
-          },
-        },
-      })
+    const result = await crudAPI.user('create', {
+      data: {
+        ...value,
+        image: value.image || null,
+        emailVerified: false,
+      },
+    })
 
-      await queryClient.invalidateQueries({ queryKey: ['employees'] })
-      toast.success('Employee successfully added')
-      onClose?.() || navigate({ to: '/employees' })
-    } catch (error) {
-      console.error('Failed to create employee:', error)
-      toast.error('Failed to add employee')
-    }
+    result.match(
+      async () => {
+        await queryClient.invalidateQueries({ queryKey: ['employees'] })
+        toast.success('Employee successfully added')
+        onClose?.()
+      },
+      error => toast.error(error),
+    )
   }
 
   return (

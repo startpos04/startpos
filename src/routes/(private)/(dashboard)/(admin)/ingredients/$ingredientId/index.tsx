@@ -47,23 +47,17 @@ function RouteComponent(props: RouteComponentProps) {
   const { data: ingredient, isLoading } = useQuery({
     queryKey: ['ingredient', ingredientId],
     queryFn: async () => {
-      const result = await crudAPI({
-        data: {
-          action: 'findUnique',
-          table: 'product',
-          args: {
-            where: { id: ingredientId },
-            include: {
-              baseUnit: true,
-              category: true,
-              inventory: { include: { unit: true } },
-              // Items that USE this as an ingredient
-              usedIn: { include: { host: true, unit: true } },
-              // If this ingredient is itself a sub-recipe (e.g., Marinated Sauce)
-              ingredients: { include: { material: true, unit: true } },
-              _count: { select: { inventoryMovements: true } },
-            },
-          },
+      const result = await crudAPI.product('findUnique', {
+        where: { id: ingredientId },
+        include: {
+          baseUnit: true,
+          category: true,
+          inventory: { include: { unit: true } },
+          // Items that USE this as an ingredient
+          usedIn: { include: { host: true, unit: true } },
+          // If this ingredient is itself a sub-recipe (e.g., Marinated Sauce)
+          ingredients: { include: { material: true, unit: true } },
+          _count: { select: { inventoryMovements: true } },
         },
       })
       if (result.isErr()) throw new Error(result.error)
@@ -88,7 +82,7 @@ function RouteComponent(props: RouteComponentProps) {
       defaultValues: {
         name: ingredient.name,
         sku: ingredient.sku!,
-        image: ingredient.image!,
+        image: ingredient.image || '',
         type: ingredient.type as any,
         categoryId: ingredient.categoryId,
         baseUnitId: ingredient.baseUnitId,

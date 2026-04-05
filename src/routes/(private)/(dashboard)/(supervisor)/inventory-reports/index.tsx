@@ -27,18 +27,12 @@ function InventoryReportComponent() {
   const { data, isFetching } = useQuery({
     queryKey: ['inventory-report-data-v3'],
     queryFn: async () => {
-      const result = await crudAPI({
-        data: {
-          action: 'findMany',
-          table: 'product',
-          args: {
-            where: { type: { not: 'SERVICE' } },
-            include: {
-              category: true,
-              inventory: true,
-              inventoryMovements: { take: 20, orderBy: { createdAt: 'desc' } },
-            },
-          },
+      const result = await crudAPI.product('findMany', {
+        where: { type: { not: 'SERVICE' } },
+        include: {
+          category: true,
+          inventory: true,
+          inventoryMovements: { take: 20, orderBy: { createdAt: 'desc' } },
         },
       })
 

@@ -16,27 +16,21 @@ export const fetchPosProducts = (searchQuery: string, activeCategory: string) =>
   useQuery({
     queryKey: ['pos-products', activeCategory, searchQuery],
     queryFn: async () => {
-      const result = await crudAPI({
-        data: {
-          action: 'findMany',
-          table: 'product',
-          args: {
-            where: {
-              isAvailable: true,
-              variantOfId: null,
-              price: { gt: 0 },
-              ...(activeCategory !== 'ALL' && { categoryId: activeCategory }),
-              ...(searchQuery && {
-                OR: [{ name: { contains: searchQuery, mode: 'insensitive' } }, { sku: { contains: searchQuery, mode: 'insensitive' } }],
-              }),
-            },
-            include: {
-              category: true,
-              baseUnit: true,
-              allowedAddons: { include: { addon: true } },
-              variants: true,
-            },
-          },
+      const result = await crudAPI.product('findMany', {
+        where: {
+          isAvailable: true,
+          variantOfId: null,
+          price: { gt: 0 },
+          ...(activeCategory !== 'ALL' && { categoryId: activeCategory }),
+          ...(searchQuery && {
+            OR: [{ name: { contains: searchQuery, mode: 'insensitive' } }, { sku: { contains: searchQuery, mode: 'insensitive' } }],
+          }),
+        },
+        include: {
+          category: true,
+          baseUnit: true,
+          allowedAddons: { include: { addon: true } },
+          variants: true,
         },
       })
 

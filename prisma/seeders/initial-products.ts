@@ -292,6 +292,7 @@ export async function initialProducts(prisma: PrismaClient) {
           where: { hostId_materialId: { hostId: createdBundle.id, materialId: materialId } },
           update: { quantityUsed: ingredient.qty, unitId: ingredient.unit },
           create: {
+            organizationId: 'org-1',
             hostId: createdBundle.id,
             materialId: materialId,
             quantityUsed: ingredient.qty,
@@ -309,7 +310,13 @@ export async function initialProducts(prisma: PrismaClient) {
           await prisma.productAddon.upsert({
             where: { hostId_addonId: { hostId: createdBundle.id, addonId: aid } },
             update: {},
-            create: { hostId: createdBundle.id, addonId: aid, priceOverride: 2500, defaultQuantity: 1 },
+            create: {
+              organizationId: 'org-1',
+              hostId: createdBundle.id,
+              addonId: aid,
+              priceOverride: 2500,
+              defaultQuantity: 1,
+            },
           })
         }
       }

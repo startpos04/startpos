@@ -21,33 +21,24 @@ export function CreateIngredientDialog({ open, onClose }: { open: boolean; onClo
 
 function RouteComponent({ onClose }: { onClose?: () => void }) {
   const queryClient = useQueryClient()
-  const navigate = Route.useNavigate()
 
   const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
     console.log('value', value)
-    try {
-      await crudAPI({
-        data: {
-          action: 'create',
-          table: 'product',
-          args: {
-            data: {
-              ...value,
-              organizationId: '',
-              image: value.image || null,
-            },
-          },
-        },
-      })
+    const result = await crudAPI.product('create', {
+      data: {
+        ...value,
+        image: value.image || null,
+      },
+    })
 
-      await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
-      toast.success('Ingredient successfully added')
-
-      onClose?.() || navigate({ to: '/ingredients' })
-    } catch (error) {
-      console.error('Failed to create ingredient:', error)
-      toast.error('Failed to create ingredient:')
-    }
+    result.match(
+      async () => {
+        await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
+        toast.success('Ingredient successfully added')
+        onClose?.()
+      },
+      error => toast.error(error),
+    )
   }
 
   return (

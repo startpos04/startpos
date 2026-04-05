@@ -32,12 +32,23 @@ model Organization {
   deletedAt DateTime?
 
   // Global to the Business
-  members    Membership[]
-  branches   Branch[]
-  products   Product[]
-  categories Category[]
-  units      Unit[]
-  customers  Customer[]
+  members            Membership[]
+  branches           Branch[]
+  products           Product[]
+  categories         Category[]
+  units              Unit[]
+  customers          Customer[]
+  productIngredients ProductIngredient[]
+  productAddons      ProductAddon[]
+  productUnits       ProductUnit[]
+  purchaseItems      PurchaseItem[]
+  inventory          Inventory[]
+  inventoryMovements InventoryMovement[]
+  transactions       Transaction[]
+  orderItems         OrderItem[]
+  orderItemAddons    OrderItemAddon[]
+  vendorSessions     VendorSession[]
+  payments           Payment[]
 
   @@index([deletedAt])
   @@map("organizations")
@@ -70,6 +81,10 @@ model Branch {
   receivedTransfers InventoryMovement[] @relation("DestinationBranch") // Track stock coming INTO this branch from another
   purchases         Purchase[]
   vendorSessions    VendorSession[]
+  purchaseItems     PurchaseItem[]
+  orderItems        OrderItem[]
+  orderItemAddons   OrderItemAddon[]
+  payments          Payment[]
 
   @@index([deletedAt])
   @@map("branches")
@@ -256,7 +271,11 @@ model ProductIngredient {
   host     Product @relation("ParentProduct", fields: [hostId], references: [id]) // Points to the product acting as the "Container" or "Recipe."
   material Product @relation("ComponentItem", fields: [materialId], references: [id]) // Points to the product acting as the "Ingredient" or "Input."
 
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
   @@unique([hostId, materialId])
+  @@index([organizationId])
   @@map("product_ingredients")
 }
 
@@ -270,7 +289,11 @@ model ProductAddon {
   host  Product @relation("HostProduct", fields: [hostId], references: [id])
   addon Product @relation("AddonComponent", fields: [addonId], references: [id])
 
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
   @@unique([hostId, addonId])
+  @@index([organizationId])
   @@map("product_addons")
 }
 
@@ -325,7 +348,11 @@ model ProductUnit {
   product Product @relation(fields: [productId], references: [id])
   unit    Unit    @relation(fields: [unitId], references: [id])
 
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
   @@unique([productId, unitId])
+  @@index([organizationId])
   @@map("product_units")
 }
 
@@ -357,6 +384,12 @@ model PurchaseItem {
   unit       Unit     @relation(fields: [unitId], references: [id])
   unitCost   Int
 
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  branchId       String
+  branch         Branch       @relation(fields: [branchId], references: [id])
+
+  @@index([organizationId, branchId])
   @@map("purchase_items")
 }
 
@@ -391,6 +424,10 @@ model Inventory {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, branchId])
   @@map("inventory")
 }
 
@@ -416,6 +453,10 @@ model InventoryMovement {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, branchId])
   @@map("inventory_movements")
 }
 
@@ -499,6 +540,10 @@ model Transaction {
   items    OrderItem[]
   payments Payment[]
 
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, branchId])
   @@map("transactions")
 }
 
@@ -519,6 +564,12 @@ model OrderItem {
   transaction    Transaction      @relation(fields: [transactionId], references: [id])
   product        Product          @relation(fields: [productId], references: [id])
 
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  branchId       String
+  branch         Branch       @relation(fields: [branchId], references: [id])
+
+  @@index([organizationId, branchId])
   @@map("order_items")
 }
 
@@ -533,6 +584,12 @@ model OrderItemAddon {
   priceAtSale Int // Price charged for this addon at time of sale (in cents)
   costAtSale  Int     @default(0) // Cost of this addon at time of sale (in cents)
 
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  branchId       String
+  branch         Branch       @relation(fields: [branchId], references: [id])
+
+  @@index([organizationId, branchId])
   @@map("order_item_addons")
 }
 
@@ -561,6 +618,10 @@ model VendorSession {
 
   transactions Transaction[]
 
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, branchId])
   @@map("vendor_sessions")
 }
 
@@ -584,5 +645,11 @@ model Payment {
 
   createdAt DateTime @default(now())
 
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  branchId       String
+  branch         Branch       @relation(fields: [branchId], references: [id])
+
+  @@index([organizationId, branchId])
   @@map("payments")
 }

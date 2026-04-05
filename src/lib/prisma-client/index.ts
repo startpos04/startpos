@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 import { PrismaClient } from 'prisma/generated/prisma/client'
-import { multiTenantExtension } from './multi-tenant-extension'
+import { multiTenantExtension, TenantAwareClient } from './multi-tenant-extension'
 import { softDeleteExtension } from './soft-delete-extension'
 
 // Establish the Database Connection
@@ -24,5 +24,8 @@ if (process.env['APP_ENV'] !== 'production') globalForPrisma.prisma = prisma
 
 // Chaining for Multi-Tenancy
 export const getTenantPrisma = (organizationId: string, branchId?: string) => {
-  return prisma.$extends(multiTenantExtension(organizationId, branchId))
+  const scopedClient = prisma.$extends(multiTenantExtension(organizationId, branchId))
+  // We cast to 'any' first to break the strict link,
+  // then to our intersection type to restore autocomplete.
+  return scopedClient as any as TenantAwareClient<typeof scopedClient>
 }

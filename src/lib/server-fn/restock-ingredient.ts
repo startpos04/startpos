@@ -24,7 +24,6 @@ export const restockIngredient = createServerFn({ method: 'POST' })
       // This tracks the "Accounts Payable" side of the business
       const purchase = await tx.purchase.create({
         data: {
-          branchId: '',
           sourceName: data.sourceName,
           totalCost: data.unitCost * data.quantity,
           notes: data.reason,

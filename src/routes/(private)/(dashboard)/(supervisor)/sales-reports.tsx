@@ -20,19 +20,13 @@ function RouteComponent() {
   const { data, isFetching } = useQuery({
     queryKey: ['sales-reports-comprehensive'],
     queryFn: async () => {
-      const result = await crudAPI({
-        data: {
-          action: 'findMany',
-          table: 'transaction',
-          args: {
-            include: {
-              cashier: true,
-              customer: true,
-              items: { include: { product: { include: { category: true } } } },
-            },
-            orderBy: { createdAt: 'desc' },
-          },
+      const result = await crudAPI.transaction('findMany', {
+        include: {
+          cashier: true,
+          customer: true,
+          items: { include: { product: { include: { category: true } } } },
         },
+        orderBy: { createdAt: 'desc' },
       })
 
       if (result.isErr()) throw new Error(result.error)

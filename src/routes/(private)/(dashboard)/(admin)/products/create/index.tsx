@@ -25,42 +25,34 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
     const { variants, ingredients, allowedAddons, ...product } = value
 
-    const result = await crudAPI({
+    const result = await crudAPI.product('create', {
       data: {
-        action: 'create',
-        table: 'product',
-        args: {
-          data: {
-            ...product,
-            type: product.type as any,
-            organizationId: '',
-            ingredients: {
-              createMany: {
-                data: ingredients.map(ingredient => ({
-                  materialId: ingredient.material.id,
-                  quantityUsed: ingredient.quantityUsed,
-                  unitId: ingredient.unit.id,
-                })),
-              },
-            },
-            allowedAddons: {
-              createMany: {
-                data: allowedAddons.map(addon => ({ addonId: addon.addon.id, priceOverride: addon.priceOverride, defaultQuantity: addon.defaultQuantity })),
-              },
-            },
-            variants: {
-              createMany: {
-                data: variants.map(variant => ({
-                  ...product,
-                  type: product.type as any,
-                  organizationId: '',
-                  variantType: variant.variantType,
-                  variantValue: variant.variantValue,
-                  sku: `${product.sku}-${variant.sku}`,
-                  price: variant.price,
-                })),
-              },
-            },
+        ...product,
+        type: product.type as any,
+        ingredients: {
+          createMany: {
+            data: ingredients.map(ingredient => ({
+              materialId: ingredient.material.id,
+              quantityUsed: ingredient.quantityUsed,
+              unitId: ingredient.unit.id,
+            })),
+          },
+        },
+        allowedAddons: {
+          createMany: {
+            data: allowedAddons.map(addon => ({ addonId: addon.addon.id, priceOverride: addon.priceOverride, defaultQuantity: addon.defaultQuantity })),
+          },
+        },
+        variants: {
+          createMany: {
+            data: variants.map(variant => ({
+              ...product,
+              type: product.type as any,
+              variantType: variant.variantType,
+              variantValue: variant.variantValue,
+              sku: `${product.sku}-${variant.sku}`,
+              price: variant.price,
+            })),
           },
         },
       },

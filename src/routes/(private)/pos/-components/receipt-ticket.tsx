@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
   },
   header: { textAlign: 'center', marginBottom: 10 },
   storeName: { fontSize: 12, fontWeight: 'bold', marginBottom: 2 },
-  address: { fontSize: 8, marginBottom: 10 },
+  address: { fontSize: 8 },
 
   divider: { borderBottomWidth: 1, borderBottomColor: '#000', borderBottomStyle: 'dashed', marginVertical: 5 },
 
@@ -34,6 +34,11 @@ const styles = StyleSheet.create({
   totalsContainer: { marginTop: 10, borderTopWidth: 1, borderTopStyle: 'dashed', paddingTop: 5 },
   totalText: { fontSize: 11, fontWeight: 'bold' },
   footer: { textAlign: 'center', marginTop: 15, fontSize: 8 },
+
+  kitchenTitle: { fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginBottom: 4 },
+  kitchenSub: { fontSize: 10, textAlign: 'center', marginBottom: 8 },
+  kitchenItem: { fontSize: 11, fontWeight: 'bold' }, // Larger font for kitchen staff
+  kitchenAddon: { fontSize: 9, marginLeft: 10, fontStyle: 'italic' },
 })
 
 export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransactionResponse; data: NonNullable<(typeof posFormOpts)['defaultValues']> }) => {
@@ -54,6 +59,7 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
   }, 0)
 
   const totalHeight = headerHeight + infoHeight + itemsHeight + footerHeight
+  const kitchenHeight = 80 + itemsHeight + 40 // Simplified height for kitchen slip
 
   return (
     <Document>
@@ -151,6 +157,48 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
           <Text>THIS SERVES AS YOUR SALES INVOICE</Text>
           <Text>Thank you for shopping!</Text>
           <Text>Please come again.</Text>
+        </View>
+      </Page>
+
+      <Page size={[204, kitchenHeight]} style={styles.page}>
+        <View style={styles.header}>
+          <Text style={styles.kitchenTitle}>** ORDER SLIP **</Text>
+          <Text style={styles.kitchenSub}>Order #{t.invoiceNo.slice(-6)}</Text>
+          <Text>{dayjs(t.createdAt).format('hh:mm A')}</Text>
+        </View>
+
+        <View style={styles.divider} />
+
+        {/* Simplified Table for Kitchen */}
+        <View style={styles.tableHeader}>
+          <Text style={{ flex: 4 }}>ITEM</Text>
+          <Text style={{ flex: 1, textAlign: 'right' }}>QTY</Text>
+        </View>
+
+        {data.items.map((item, i) => (
+          <View key={i} style={{ marginBottom: 8, borderBottomWidth: 0.5, borderBottomColor: '#EEE' }}>
+            <View style={styles.row}>
+              <Text style={[styles.columnItem, styles.kitchenItem]}>
+                {item.product.name}
+                {item.variant ? ` (${item.variant.name})` : ''}
+              </Text>
+              <Text style={[styles.columnQty, styles.kitchenItem]}>{item.quantity}</Text>
+            </View>
+
+            {/* Kitchen Add-ons (Indented and Clear) */}
+            {item.addons?.map((addon, ai) => (
+              <View key={ai} style={styles.addonRow}>
+                <Text style={styles.kitchenAddon}>+ {addon.addon.name}</Text>
+              </View>
+            ))}
+          </View>
+        ))}
+
+        <View style={styles.divider} />
+
+        <View style={styles.footer}>
+          <Text>Prepared by: ________________</Text>
+          <Text style={{ marginTop: 5 }}>{dayjs(t.createdAt).format('DD MMM YYYY')}</Text>
         </View>
       </Page>
     </Document>

@@ -31,33 +31,27 @@ function RouteComponent() {
   const { data, isFetching } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
-      const result = await crudAPI({
-        data: {
-          action: 'findMany',
-          table: 'product',
-          args: {
-            where: {
-              type: 'BUNDLE',
-              variantOfId: null,
-            },
+      const result = await crudAPI.product('findMany', {
+        where: {
+          type: 'BUNDLE',
+          variantOfId: null,
+        },
+        include: {
+          category: true,
+          baseUnit: true,
+          ingredients: {
             include: {
-              category: true,
-              baseUnit: true,
-              ingredients: {
+              unit: true,
+              material: {
                 include: {
-                  unit: true,
-                  material: {
-                    include: {
-                      inventory: { include: { unit: true } },
-                      baseUnit: true,
-                    },
-                  },
+                  inventory: { include: { unit: true } },
+                  baseUnit: true,
                 },
               },
-              allowedAddons: { include: { addon: { include: { baseUnit: true } } } },
-              variants: { include: { ingredients: true } },
             },
           },
+          allowedAddons: { include: { addon: { include: { baseUnit: true } } } },
+          variants: { include: { ingredients: true } },
         },
       })
 

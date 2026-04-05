@@ -21,46 +21,58 @@ export function EditProductDialog({
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
     const { variants, ingredients, allowedAddons, ...product } = value
 
-    const result = await crudAPI({
+    const result = await crudAPI.product('update', {
+      where: { id: productId },
       data: {
-        table: 'product',
-        action: 'update',
-        args: {
-          where: { id: productId },
-          data: {
-            ...product,
-            type: value.type as ResourceType,
-            image: value.image || null,
-            ingredients: {
-              update: ingredients.map(ing => ({
-                where: { id: ing.id },
-                data: {
-                  quantityUsed: ing.quantityUsed,
-                  unitId: ing.unit.id,
-                },
-              })),
+        ...product,
+        type: value.type as ResourceType,
+        image: value.image || null,
+        ingredients: {
+          upsert: ingredients.map(ing => ({
+            where: { id: ing.id },
+            update: {
+              quantityUsed: ing.quantityUsed,
+              unitId: ing.unit.id,
             },
-            allowedAddons: {
-              update: allowedAddons.map(addon => ({
-                where: { id: addon.id },
-                data: {
-                  priceOverride: addon.priceOverride,
-                  defaultQuantity: addon.defaultQuantity,
-                },
-              })),
+            create: {
+              materialId: ing.material.id,
+              quantityUsed: ing.quantityUsed,
+              unitId: ing.unit.id,
             },
-            variants: {
-              update: variants.map(variant => ({
-                where: { id: variant.id },
-                data: {
-                  sku: variant.sku,
-                  price: variant.price,
-                  variantType: variant.variantType,
-                  variantValue: variant.variantValue,
-                },
-              })),
+          })),
+        },
+        allowedAddons: {
+          upsert: allowedAddons.map(addon => ({
+            where: { id: addon.id },
+            update: {
+              priceOverride: addon.priceOverride,
+              defaultQuantity: addon.defaultQuantity,
             },
-          },
+            create: {
+              addonId: addon.addon.id,
+              priceOverride: addon.priceOverride,
+              defaultQuantity: addon.defaultQuantity,
+            },
+          })),
+        },
+        variants: {
+          upsert: variants.map(variant => ({
+            where: { id: variant.id },
+            update: {
+              sku: variant.sku,
+              price: variant.price,
+              variantType: variant.variantType,
+              variantValue: variant.variantValue,
+            },
+            create: {
+              ...product,
+              type: product.type as any,
+              variantType: variant.variantType,
+              variantValue: variant.variantValue,
+              sku: `${product.sku}-${variant.sku}`,
+              price: variant.price,
+            },
+          })),
         },
       },
     })

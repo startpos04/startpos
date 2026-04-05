@@ -45,24 +45,18 @@ function RouteComponent(props: RouteComponentProps) {
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', productId],
     queryFn: async () => {
-      const result = await crudAPI({
-        data: {
-          action: 'findUnique',
-          table: 'product',
-          args: {
-            where: { id: productId },
-            include: {
-              baseUnit: true,
-              category: true,
-              inventory: { include: { unit: true } },
-              variants: true,
-              variantOf: true,
-              ingredients: { include: { material: true, unit: true } },
-              usedIn: { include: { host: true, unit: true } },
-              allowedAddons: { include: { addon: { include: { baseUnit: true } } } },
-              _count: { select: { orderItems: true, inventoryMovements: true } },
-            },
-          },
+      const result = await crudAPI.product('findUnique', {
+        where: { id: productId },
+        include: {
+          baseUnit: true,
+          category: true,
+          inventory: { include: { unit: true } },
+          variants: true,
+          variantOf: true,
+          ingredients: { include: { material: true, unit: true } },
+          usedIn: { include: { host: true, unit: true } },
+          allowedAddons: { include: { addon: { include: { baseUnit: true } } } },
+          _count: { select: { orderItems: true, inventoryMovements: true } },
         },
       })
       if (result.isErr()) throw new Error(result.error)
