@@ -35,7 +35,7 @@ export class CostingService {
       const requiredBaseQty = ConversionService.normalize(quantity, unitDTO)
 
       const inventory = await tx.inventory.findMany({
-        where: { productId, branchId: '' },
+        where: { productId },
         orderBy: { createdAt: 'asc' },
       })
 
@@ -75,7 +75,7 @@ export class CostingService {
       const requiredBaseQty = ConversionService.normalize(quantity, unitDTO)
 
       const inventory = await tx.inventory.findMany({
-        where: { productId, branchId: '' },
+        where: { productId },
       })
 
       const totalQty = inventory.reduce((sum, i) => sum + Number(i.quantity), 0)
@@ -90,7 +90,7 @@ export class CostingService {
       let remaining = requiredBaseQty
 
       const batches = await tx.inventory.findMany({
-        where: { productId, branchId: '' },
+        where: { productId },
         orderBy: { createdAt: 'asc' },
       })
 

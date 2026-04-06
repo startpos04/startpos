@@ -48,7 +48,6 @@ export const restockIngredient = createServerFn({ method: 'POST' })
       const movement = await tx.inventoryMovement.create({
         data: {
           productId: data.productId,
-          branchId: '',
           userId: context.user.id,
           quantity: data.quantity,
           unitId: data.unitId,
@@ -62,7 +61,6 @@ export const restockIngredient = createServerFn({ method: 'POST' })
       const existingBatch = await tx.inventory.findFirst({
         where: {
           productId: data.productId,
-          branchId: '',
           batchNumber: data.batchNumber,
         },
       })
@@ -80,7 +78,6 @@ export const restockIngredient = createServerFn({ method: 'POST' })
         await tx.inventory.create({
           data: {
             productId: data.productId,
-            branchId: '',
             quantity: data.quantity,
             unitId: data.unitId,
             batchNumber: data.batchNumber,

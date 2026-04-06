@@ -1,5 +1,5 @@
+import { SCHEMA_METADATA } from 'prisma/generated/metadata'
 import { Prisma } from 'prisma/generated/prisma/client'
-import { SCHEMA_METADATA } from 'prisma/metadata'
 
 /**
  * 1. The Recursive Stripper

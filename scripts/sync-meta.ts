@@ -28,11 +28,11 @@ async function generate() {
     }
   })
 
-  const outputPath = path.join(process.cwd(), 'prisma', 'metadata.ts')
+  const outputPath = path.join(process.cwd(), 'prisma', '/generated/metadata.ts')
   const content = `// AUTO-GENERATED - DO NOT EDIT\nexport const SCHEMA_METADATA = ${JSON.stringify(modelMetadata, null, 2)} as const;`
 
   fs.writeFileSync(outputPath, content)
-  console.log('✅ Metadata synced successfully to prisma/metadata.ts')
+  console.log('✅ Metadata synced successfully to prisma/generated/metadata.ts')
 }
 
 generate().catch(err => {

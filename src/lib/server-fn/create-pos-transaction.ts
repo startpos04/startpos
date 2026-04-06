@@ -69,7 +69,6 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
       // 1. Create the Main Transaction
       const transaction = await tx.transaction.create({
         data: {
-          branchId: '',
           cashierId: context.user.id,
           customerId: data.customerId,
           totalAmount: grandTotal,
@@ -124,7 +123,6 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
         await tx.inventory.updateMany({
           where: {
             productId: targetProductId,
-            branchId: '',
           },
           data: {
             quantity: { decrement: item.quantity },
@@ -135,7 +133,6 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
         await tx.inventoryMovement.create({
           data: {
             productId: targetProductId,
-            branchId: '',
             userId: context.user.id,
             type: 'OUT',
             quantity: item.quantity,
@@ -147,14 +144,13 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
         // Repeat for Add-ons (since they are also products in your schema)
         for (const addon of item.addons) {
           await tx.inventory.updateMany({
-            where: { productId: addon.addonId, branchId: '' },
+            where: { productId: addon.addonId },
             data: { quantity: { decrement: addon.quantity } },
           })
 
           await tx.inventoryMovement.create({
             data: {
               productId: addon.addonId,
-              branchId: '',
               userId: context.user.id,
               type: 'OUT',
               quantity: addon.quantity,
