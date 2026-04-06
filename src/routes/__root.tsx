@@ -1,6 +1,6 @@
 import { ThemeProvider } from '@/components/custom/theme/theme-provider'
 import { getAuthUser } from '@/lib/better-auth/auth-server' // Import your server function
-import Overlay from '@/lib/Overlay'
+import Overlay from '@/lib/overlay'
 import { MyRouterContext } from '@/router'
 import { setUser } from '@/store/auth-store'
 import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router'

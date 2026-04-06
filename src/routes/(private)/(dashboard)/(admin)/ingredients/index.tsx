@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge' // Assuming you have a Badge component
 import { Button } from '@/components/ui/button'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { showModal } from '@/lib/Overlay'
+import { showModal } from '@/lib/overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { useQueryClient } from '@tanstack/react-query'

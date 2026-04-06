@@ -1,6 +1,6 @@
 import { SuccessPrompt } from '@/components/custom/prompt/success-prompt'
 import { useAppForm } from '@/hooks/form'
-import { showModal } from '@/lib/Overlay'
+import { showModal } from '@/lib/overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { createPosTransaction } from '@/lib/server-fn/create-pos-transaction'
 import { pdf } from '@react-pdf/renderer'

@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PriceEngine } from '@/lib/conversion/price-engine' // ✅ NEW
 import { UnitEngine } from '@/lib/conversion/unit-engine'
-import { showModal } from '@/lib/Overlay'
+import { showModal } from '@/lib/overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { authStore } from '@/store/auth-store'
 import { useQuery } from '@tanstack/react-query'

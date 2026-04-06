@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { showModal } from '@/lib/Overlay'
+import { showModal } from '@/lib/overlay'
 import { Camera, Image as ImageIcon, Upload, X } from 'lucide-react'
 import { MouseEvent, useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
