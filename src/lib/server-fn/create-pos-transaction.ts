@@ -1,5 +1,6 @@
 import { authStore } from '@/store/auth-store'
 import { createServerFn } from '@tanstack/react-start'
+import { Prisma } from 'prisma/generated/prisma/browser'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { VAT_RATE } from '../constants'
 import { getTenantPrisma } from '../prisma-client'
@@ -169,5 +170,11 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
     }
   })
 
-type CreatePosTransactionFn = typeof createPosTransaction
-export type CreatePosTransactionResponse = Awaited<ReturnType<CreatePosTransactionFn>>
+export type CreatePosTransactionResponse = {
+  data: Prisma.TransactionGetPayload<{
+    include: {
+      items: { include: { selectedAddons: true } }
+      payments: true
+    }
+  }>
+}

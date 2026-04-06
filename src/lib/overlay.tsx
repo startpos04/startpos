@@ -4,6 +4,11 @@ import { v4 as uuid } from 'uuid'
 
 type ComponentProps<T> = T extends React.ComponentType<infer P> ? P : never
 
+export type OverlayProps = {
+  open: boolean
+  onClose: () => void
+}
+
 type IOptions<T> = {
   key?: string
 } & Omit<T, 'onYes'> &
@@ -17,10 +22,7 @@ type IOptions<T> = {
       }
   )
 
-type IComponentProps<T> = {
-  open: boolean
-  onClose: () => void
-} & T
+type IComponentProps<T> = OverlayProps & T
 interface IDialogProps<T = any> {
   key: string | undefined
   id: string
