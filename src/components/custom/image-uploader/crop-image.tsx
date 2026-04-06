@@ -42,7 +42,7 @@ export function CropImage({ open, onClose, tempImage, onCrop }: any) {
         <div className='p-6 space-y-4'>
           <div className='space-y-2'>
             <label className='text-xs text-muted-foreground uppercase font-bold'>Zoom</label>
-            <Slider value={[zoom]} min={1} max={3} step={0.1} onValueChange={([val]) => setZoom(val)} />
+            <Slider value={[zoom]} min={1} max={3} step={0.1} onValueChange={([val]) => setZoom(Number(val))} />
           </div>
           <DialogFooter className='gap-2'>
             <Button variant='ghost' onClick={onClose}>
