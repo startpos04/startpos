@@ -156,11 +156,7 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <form.Field
-                  name='name'
-                  validators={{ onChange: z.string().min(3, 'Required') }}
-                  children={field => <TextInput field={field} label='Name' placeholder='e.g. Classic Cheeseburger' />}
-                />
+                <form.Field name='name' children={field => <TextInput field={field} label='Name' placeholder='e.g. Classic Cheeseburger' />} />
 
                 <div className='grid grid-cols-2 gap-4'>
                   <form.Field name='sku' children={field => <TextInput field={field} label='SKU / Barcode' placeholder='BRG-001' />} />

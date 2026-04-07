@@ -1,4 +1,6 @@
+import Form from '@/components/custom/form' // Assuming you want to use the Form wrapper here too
 import { MoneyInput } from '@/components/custom/form/money-input'
+import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -7,9 +9,11 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { showModal } from '@/lib/overlay'
 import { feIngredient, fetchIngredients } from '@/lib/queries/fetch-ingredients'
+import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options' // Added this
 import { cn } from '@/lib/utils'
 import { useForm, useStore } from '@tanstack/react-form'
 import { Check, PlusCircle, Search } from 'lucide-react'
+import { Unit } from 'prisma/generated/prisma/browser' // Added this
 import * as React from 'react'
 import z from 'zod'
 import { CreateIngredientDialog } from '../../ingredients/create'
@@ -17,24 +21,27 @@ import { CreateIngredientDialog } from '../../ingredients/create'
 interface AddAddonModalProps {
   open: boolean
   onClose: () => void
-  onAdd: (addon: { addon: feIngredient; defaultQuantity: number; priceOverride: number }) => void
+  onAdd: (addon: { addon: feIngredient; defaultQuantity: number; priceOverride: number; unit: Unit }) => void
 }
 
 const addonSchema = z.object({
   selectedId: z.string().min(1, 'Please select an addon'),
   selectedIngredient: z.custom<feIngredient>().nullable(),
+  selectedUnit: z.string(),
   defaultQuantity: z.number().gt(0, 'Quantity must be greater than 0'),
   priceOverride: z.number().min(0, 'Price cannot be negative'),
 })
 
 export function AddAddonModal({ open, onClose, onAdd }: AddAddonModalProps) {
   const { data = [] } = fetchIngredients()
+  const { data: unitOptions = [] } = fetchUnitOptions()
   const [search, setSearch] = React.useState('')
 
   const form = useForm({
     defaultValues: {
       selectedId: '',
       selectedIngredient: null as feIngredient | null,
+      selectedUnit: '',
       defaultQuantity: 1,
       priceOverride: 0,
     },
@@ -42,11 +49,12 @@ export function AddAddonModal({ open, onClose, onAdd }: AddAddonModalProps) {
       onChange: addonSchema,
     },
     onSubmit: async ({ value }) => {
-      if (value.selectedIngredient) {
+      if (value.selectedIngredient && value.selectedUnit) {
         onAdd({
           addon: value.selectedIngredient,
           defaultQuantity: value.defaultQuantity,
           priceOverride: value.priceOverride,
+          unit: unitOptions.find(option => option.value === value.selectedUnit)?.data!,
         })
         form.reset()
         onClose()
@@ -54,7 +62,6 @@ export function AddAddonModal({ open, onClose, onAdd }: AddAddonModalProps) {
     },
   })
 
-  const selectedId = useStore(form.store, state => state.values.selectedId)
   const filtered = data.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
   const selectedIngredient = useStore(form.store, state => state.values.selectedIngredient)
 
@@ -71,14 +78,7 @@ export function AddAddonModal({ open, onClose, onAdd }: AddAddonModalProps) {
           </DialogTitle>
         </DialogHeader>
 
-        <form
-          onSubmit={e => {
-            e.preventDefault()
-            e.stopPropagation()
-            form.handleSubmit()
-          }}
-          className='grid gap-4 py-4'
-        >
+        <Form onSubmit={form.handleSubmit} className='grid gap-4 py-4'>
           {/* Search Box */}
           <div className='flex gap-2'>
             <div className='relative flex items-center grow'>
@@ -95,65 +95,66 @@ export function AddAddonModal({ open, onClose, onAdd }: AddAddonModalProps) {
             {idField => (
               <form.Field name='selectedIngredient'>
                 {objField => (
-                  <ScrollArea className='h-40 border rounded-xl p-2 bg-muted/30'>
-                    <div className='space-y-1'>
-                      {filtered.map(item => (
-                        <div
-                          key={item.id}
-                          onClick={() => {
-                            idField.handleChange(item.id)
-                            objField.handleChange(item)
-                          }}
-                          className={cn(
-                            'flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all',
-                            idField.state.value === item.id ? 'border-primary bg-background shadow-sm' : 'border-transparent hover:bg-muted',
-                          )}
-                        >
-                          <div className='flex gap-2 items-center'>
-                            <Avatar className='h-8 w-8 border border-border/50 shadow-sm'>
-                              <AvatarImage src={item.image ?? ''} alt={item.name} />
-                              <AvatarFallback className='bg-primary/5 text-primary text-[10px] font-bold'>{item.name?.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className='flex flex-col'>
-                              <span className='text-sm font-semibold'>{item.name}</span>
-                              <span className='text-[10px] font-mono text-muted-foreground uppercase leading-none'>{item.sku}</span>
+                  <form.Field name='selectedUnit'>
+                    {unitField => (
+                      <ScrollArea className='h-40 border rounded-xl p-2 bg-muted/30'>
+                        <div className='space-y-1'>
+                          {filtered.map(item => (
+                            <div
+                              key={item.id}
+                              onClick={() => {
+                                idField.handleChange(item.id)
+                                objField.handleChange(item)
+                                unitField.handleChange(item.baseUnit.id)
+                              }}
+                              className={cn(
+                                'flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all',
+                                idField.state.value === item.id ? 'border-primary bg-background shadow-sm' : 'border-transparent hover:bg-muted',
+                              )}
+                            >
+                              <div className='flex gap-2 items-center'>
+                                <Avatar className='h-8 w-8 border border-border/50 shadow-sm'>
+                                  <AvatarImage src={item.image ?? ''} alt={item.name} />
+                                  <AvatarFallback className='bg-primary/5 text-primary text-[10px] font-bold'>{item.name?.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className='flex flex-col'>
+                                  <span className='text-sm font-semibold'>{item.name}</span>
+                                  <span className='text-[10px] font-mono text-muted-foreground uppercase leading-none'>{item.sku}</span>
+                                </div>
+                              </div>
+                              {idField.state.value === item.id && <Check className='h-4 w-4 text-primary' />}
                             </div>
-                          </div>
-                          {idField.state.value === item.id && <Check className='h-4 w-4 text-primary' />}
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
+                      </ScrollArea>
+                    )}
+                  </form.Field>
                 )}
               </form.Field>
             )}
           </form.Field>
 
           {/* Configuration Section */}
-          <div className='grid grid-cols-2 gap-3 p-4 rounded-2xl border border-secondary bg-secondary/10'>
-            {/* Quantity Field */}
-            <form.Field
-              name='defaultQuantity'
-              children={field => (
-                <TextInput
-                  field={field}
-                  type='number'
-                  label={
-                    <>
-                      Quantity{' '}
-                      {selectedIngredient && `in ${selectedIngredient.baseUnit?.name.toLocaleLowerCase()}(${selectedIngredient.baseUnit?.abbreviation})`}
-                    </>
-                  }
-                  disabled={!selectedId}
-                />
-              )}
-            />
+          <div className='grid grid-cols-1 gap-3 p-4 rounded-2xl border border-secondary bg-secondary/10'>
+            <div className='grid grid-cols-2 gap-2'>
+              {/* Quantity Field */}
+              <form.Field
+                name='defaultQuantity'
+                children={field => <TextInput field={field} type='number' step='0.01' label='Default Qty' disabled={!selectedIngredient} />}
+              />
+
+              {/* Unit Field */}
+              <form.Field
+                name='selectedUnit'
+                children={field => <SelectInput field={field} label='Unit' placeholder='Unit' options={unitOptions} disabled={!selectedIngredient} />}
+              />
+            </div>
 
             {/* Price Override Field */}
-            <form.Field name='priceOverride' children={field => <MoneyInput field={field} label='Extra Price' disabled={!selectedId} />} />
+            <form.Field name='priceOverride' children={field => <MoneyInput field={field} label='Price' disabled={!selectedIngredient} />} />
 
-            <p className='col-span-2 text-[10px] text-muted-foreground italic leading-tight mt-1 text-center'>
-              Define the default amount and cost added to the recipe.
+            <p className='text-[10px] text-muted-foreground italic leading-tight mt-1 text-center'>
+              Define the default amount and customer price for this add-on.
             </p>
           </div>
 
@@ -169,7 +170,7 @@ export function AddAddonModal({ open, onClose, onAdd }: AddAddonModalProps) {
               )}
             </form.Subscribe>
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

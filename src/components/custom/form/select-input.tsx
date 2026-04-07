@@ -3,14 +3,15 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AnyFieldApi } from '@tanstack/react-form'
 
-interface SelectInputProps {
+interface SelectInputProps<T> {
   label: string
   field: AnyFieldApi
-  options: { value: string; label: string }[]
+  disabled?: boolean
+  options: { value: string; label: string; data?: T }[]
   placeholder?: string
 }
 
-export function SelectInput({ label, field, options, placeholder }: SelectInputProps) {
+export function SelectInput<T>({ label, field, options, placeholder }: SelectInputProps<T>) {
   return (
     <Field>
       <Label>{label}</Label>

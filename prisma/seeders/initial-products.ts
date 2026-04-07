@@ -53,7 +53,7 @@ export async function initialProducts(prisma: PrismaClient) {
     {
       name: 'Beef Patty',
       sku: 'ING-BEEF',
-      uId: units.g.id,
+      uId: units.kg.id,
       img: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?q=80&w=200&auto=format&fit=crop',
     },
     {
@@ -83,31 +83,31 @@ export async function initialProducts(prisma: PrismaClient) {
     {
       name: 'Potato (Raw)',
       sku: 'ING-POTATO',
-      uId: units.g.id,
+      uId: units.kg.id,
       img: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?q=80&w=200&auto=format&fit=crop',
     },
     {
       name: 'Cooking Oil',
       sku: 'ING-OIL',
-      uId: units.ml.id,
+      uId: units.l.id,
       img: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=200&auto=format&fit=crop',
     },
     {
       name: 'Chicken Breast',
       sku: 'ING-CHKN',
-      uId: units.g.id,
+      uId: units.kg.id,
       img: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?q=80&w=200&auto=format&fit=crop',
     },
     {
       name: 'Soda Syrup',
       sku: 'ING-SYRUP',
-      uId: units.ml.id,
+      uId: units.l.id,
       img: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=200&auto=format&fit=crop',
     },
     {
       name: 'Carbonated Water',
       sku: 'ING-WATER',
-      uId: units.ml.id,
+      uId: units.l.id,
       img: 'https://images.unsplash.com/photo-1551731589-35a0980070bc?q=80&w=200&auto=format&fit=crop',
     },
     {
