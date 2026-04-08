@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { withForm } from '@/hooks/form'
 import { authClient } from '@/lib/better-auth/auth-client'
 import { APP_NAME } from '@/lib/constants'
-import { posItem } from '@/lib/conversion/inventory-engine'
+import { posItem, posProductProps } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useStore } from '@tanstack/react-form'
@@ -40,23 +40,7 @@ export const ProductGrid = withForm({
               OR: [{ name: { contains: searchQuery, mode: 'insensitive' } }, { sku: { contains: searchQuery, mode: 'insensitive' } }],
             }),
           },
-          include: {
-            category: true,
-            baseUnit: true,
-            allowedAddons: {
-              include: {
-                addon: {
-                  include: {
-                    inventory: true,
-                    ingredients: { include: { material: { include: { inventory: true } } } },
-                  },
-                },
-              },
-            },
-            variants: true,
-            inventory: true,
-            ingredients: { include: { material: { include: { inventory: true } } } },
-          },
+          ...posProductProps,
         })
 
         if (result.isErr()) throw new Error(result.error)

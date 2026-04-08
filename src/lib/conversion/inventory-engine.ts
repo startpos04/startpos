@@ -1,32 +1,32 @@
 import { Prettify } from 'better-auth'
 import { Prisma } from 'prisma/generated/prisma/browser'
 
+export const posProductProps = {
+  include: {
+    category: true,
+    baseUnit: true,
+    allowedAddons: {
+      include: {
+        addon: {
+          include: {
+            inventory: true,
+            ingredients: { include: { material: { include: { inventory: true } } } },
+          },
+        },
+      },
+    },
+    variants: true,
+    inventory: true,
+    ingredients: { include: { material: { include: { inventory: true } } } },
+  },
+}
+
 export interface InventoryRequirement {
   id: string
   amountNeeded: number
 }
 
-export type PosProduct = Prettify<
-  Prisma.ProductGetPayload<{
-    include: {
-      category: true
-      baseUnit: true
-      allowedAddons: {
-        include: {
-          addon: {
-            include: {
-              inventory: true
-              ingredients: { include: { material: { include: { inventory: true } } } }
-            }
-          }
-        }
-      }
-      variants: true
-      inventory: true
-      ingredients: { include: { material: { include: { inventory: true } } } }
-    }
-  }>
->
+export type PosProduct = Prettify<Prisma.ProductGetPayload<typeof posProductProps>>
 
 export type posItem = {
   cartId: string
@@ -107,8 +107,10 @@ export const InventoryEngine = {
     const unitReqs = InventoryEngine.getUnitRequirements(product, selectedAddonIds)
 
     const yields = Object.entries(unitReqs).map(([id, amountPerUnit]) => {
-      // Find physical stock (reusing your helper logic)
-      const stock = InventoryEngine.findPhysicalStock(id, product)
+      // 1. Wrap 'product' in an array to match the new dbProducts[] signature
+      // 2. Destructure 'stock' from the returned object
+      const { stock } = InventoryEngine.findPhysicalStock(id, product)
+
       const availableTotal = stock - (reserved[id] || 0)
 
       return Math.floor(Math.max(0, availableTotal) / amountPerUnit)
@@ -118,17 +120,54 @@ export const InventoryEngine = {
   },
 
   /**
-   * Traverses the product object to find the inventory count for a specific ID.
+   * Finds physical stock by searching through a product's tree
+   * for a specific ID (Product ID or Material ID).
    */
-  findPhysicalStock: (id: string, product: PosProduct): number => {
-    if (product.id === id) return product.inventory?.reduce((s, i) => s + i.quantity, 0) ?? 0
+  findPhysicalStock: (id: string, productOrList: PosProduct | PosProduct[], branchId?: string): { stock: number; name: string } => {
+    let physicalStock = 0
+    let displayName = id
 
-    const ingMatch = product.ingredients?.find(ing => ing.materialId === id)
-    if (ingMatch) return ingMatch.material.inventory?.reduce((s, i) => s + i.quantity, 0) ?? 0
+    // Helper to sum up inventory for a specific branch
+    const getQty = (inv: any[]) => inv.filter(i => !branchId || i.branchId === branchId).reduce((acc, i) => acc + i.quantity, 0)
 
-    const addonMatch = product.allowedAddons?.find(a => a.addonId === id)
-    if (addonMatch) return addonMatch.addon.inventory?.reduce((s, i) => s + i.quantity, 0) ?? 0
+    // Convert single product to array so we can use the same loop logic
+    const products = Array.isArray(productOrList) ? productOrList : [productOrList]
 
-    return 0
+    for (const p of products) {
+      // 1. Is it the product itself?
+      if (p.id === id) {
+        physicalStock = getQty(p.inventory || [])
+        displayName = p.name
+        break
+      }
+
+      // 2. Is it a material in the ingredients?
+      const ingMatch = p.ingredients?.find(ing => ing.materialId === id)
+      if (ingMatch) {
+        physicalStock = getQty(ingMatch.material.inventory || [])
+        displayName = ingMatch.material.name
+        break
+      }
+
+      // 3. Is it an addon or an addon's ingredient?
+      for (const rel of p.allowedAddons || []) {
+        if (rel.addonId === id) {
+          physicalStock = getQty(rel.addon.inventory || [])
+          displayName = rel.addon.name
+          break
+        }
+
+        const addonIng = rel.addon.ingredients?.find(i => i.materialId === id)
+        if (addonIng) {
+          physicalStock = getQty(addonIng.material.inventory || [])
+          displayName = addonIng.material.name
+          break
+        }
+      }
+
+      if (displayName !== id) break // Exit outer loop if found in inner loop
+    }
+
+    return { stock: physicalStock, name: displayName }
   },
 }

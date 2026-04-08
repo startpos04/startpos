@@ -5,7 +5,8 @@ import { showModal } from '@/lib/overlay'
 import { createPosTransaction } from '@/lib/server-fn/create-pos-transaction'
 import { pdf } from '@react-pdf/renderer'
 import { formOptions } from '@tanstack/react-form'
-import { createFileRoute } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { createFileRoute, useSearch } from '@tanstack/react-router'
 import { CartAside } from './-components/cart-aside'
 import { ProductGrid } from './-components/product-grid'
 import { ReceiptPDF } from './-components/receipt-ticket'
@@ -31,6 +32,9 @@ export const Route = createFileRoute('/(private)/pos/')({
 })
 
 function POSPage() {
+  const queryClient = useQueryClient()
+  const { q: searchQuery, category: activeCategory } = useSearch({ from: '/(private)/pos/' })
+
   const form = useAppForm({
     ...posFormOpts,
     onSubmit: async ({ value }) => {
@@ -40,6 +44,7 @@ function POSPage() {
             customerId: null,
             payment: value.payment,
             items: value.items.map(item => ({
+              cartId: item.cartId,
               productId: item.product.id,
               variantId: item.variant?.id || item.product.id,
               quantity: item.quantity,
@@ -80,6 +85,8 @@ function POSPage() {
           description: 'Payment processed and order logged.',
           btnText: 'Next Customer',
         })
+
+        await queryClient.invalidateQueries({ queryKey: ['pos-products', activeCategory, searchQuery] })
         form.reset()
       } catch (error) {
         console.error('Sale failed', error)
