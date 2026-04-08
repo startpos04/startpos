@@ -280,14 +280,17 @@ model ProductIngredient {
 }
 
 model ProductAddon {
-  id              String @id @default(cuid())
-  hostId          String
-  addonId         String
+  id      String @id @default(cuid())
+  hostId  String
+  addonId String
+  unitId  String
+
   priceOverride   Int // If the addon has a different price than its standalone price (in cents)
-  defaultQuantity Float  @default(1) // Default quantity of the addon when added to the host product
+  defaultQuantity Float @default(1) // Default quantity of the addon when added to the host product
 
   host  Product @relation("HostProduct", fields: [hostId], references: [id])
   addon Product @relation("AddonComponent", fields: [addonId], references: [id])
+  unit  Unit    @relation(fields: [unitId], references: [id])
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -329,6 +332,7 @@ model Unit {
   orderItems    OrderItem[]
   productUnits  ProductUnit[]
   purchaseItems PurchaseItem[]
+  productAddons ProductAddon[]
 
   @@index([deletedAt])
   @@map("units")
@@ -424,8 +428,9 @@ model Inventory {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId     String
+  organization       Organization        @relation(fields: [organizationId], references: [id])
+  inventoryMovements InventoryMovement[] @relation("SourceInventory")
 
   @@index([organizationId, branchId])
   @@map("inventory")
@@ -442,6 +447,9 @@ model InventoryMovement {
   reason    String? // "Sold in INV-102", "Expired", "Manual Restock"
   unitId    String
   unit      Unit         @relation(fields: [unitId], references: [id])
+
+  inventoryId String
+  inventory   Inventory @relation("SourceInventory", fields: [inventoryId], references: [id])
 
   branchId String
   branch   Branch @relation("SourceBranch", fields: [branchId], references: [id])

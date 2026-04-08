@@ -19,7 +19,7 @@ export class FIFOEngine {
       totalCost += cost
 
       consumed.push({
-        batchId: batch.id,
+        inventoryId: batch.id,
         quantity: used,
         cost,
       })

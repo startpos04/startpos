@@ -3,21 +3,22 @@ import { Prisma } from 'prisma/generated/prisma/browser'
 
 export const posProductProps = {
   include: {
-    category: true,
-    baseUnit: true,
+    category: true as true,
+    baseUnit: true as true,
     allowedAddons: {
       include: {
+        unit: true as true,
         addon: {
           include: {
-            inventory: true,
-            ingredients: { include: { material: { include: { inventory: true } } } },
+            inventory: true as true,
+            ingredients: { include: { unit: true as true, material: { include: { inventory: true as true } } } },
           },
         },
       },
     },
-    variants: true,
-    inventory: true,
-    ingredients: { include: { material: { include: { inventory: true } } } },
+    variants: true as true,
+    inventory: true as true,
+    ingredients: { include: { unit: true as true, material: { include: { inventory: true as true } } } },
   },
 }
 

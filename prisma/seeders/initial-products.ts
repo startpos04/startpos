@@ -314,6 +314,7 @@ export async function initialProducts(prisma: PrismaClient) {
               organizationId: 'org-1',
               hostId: createdBundle.id,
               addonId: aid,
+              unitId: units.g.id,
               priceOverride: 2500,
               defaultQuantity: 1,
             },

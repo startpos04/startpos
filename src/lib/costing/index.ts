@@ -34,7 +34,7 @@ export class CostingService {
         return {
           totalCost: result.totalCost,
           consumed: batches.map(b => ({
-            batchId: b.id,
+            inventoryId: b.id,
             quantity: (b.quantity / totalQty) * requiredBaseQty, // Pro-rata deduction
             cost: (b.quantity / totalQty) * requiredBaseQty * avgCost,
           })),

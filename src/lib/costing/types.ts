@@ -17,7 +17,7 @@ export type InventoryBatchDTO = {
 export type CostingResult = {
   totalCost: number
   consumed?: {
-    batchId: string
+    inventoryId: string
     quantity: number
     cost: number
   }[]

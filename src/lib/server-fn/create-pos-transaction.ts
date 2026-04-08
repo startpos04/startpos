@@ -4,6 +4,7 @@ import { Prisma, Unit } from 'prisma/generated/prisma/browser'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { VAT_RATE } from '../constants'
 import { InventoryEngine, posItem, PosProduct, posProductProps } from '../conversion/inventory-engine'
+import { CostingService } from '../costing'
 import { getTenantPrisma } from '../prisma-client'
 import { Prettify } from '../types'
 
@@ -140,23 +141,50 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
       // --- 4. DECREMENT INVENTORY (THE ENGINE WAY) ---
       // Loop through the reserved map we generated earlier
       for (const [id, totalQuantityToSubtract] of Object.entries(reservedMap)) {
-        // Update Inventory Record
-        await tx.inventory.updateMany({
-          where: { productId: id },
-          data: { quantity: { decrement: totalQuantityToSubtract } },
+        const unit =
+          dbProducts.find(p => p.id === id)?.baseUnit ||
+          dbProducts.flatMap(p => p.ingredients || []).find(ing => ing.materialId === id)?.unit ||
+          dbProducts.flatMap(p => p.allowedAddons || []).find(a => a.addonId === id)?.unit
+
+        if (!unit) throw new Error(`Could not find unit definition for item: ${id}`)
+
+        // 1. Fetch Inventory Batches for this specific product/material in this branch
+        // We sort by createdAt ASC to support FIFO naturally
+        const inventoryBatches = await tx.inventory.findMany({
+          where: { productId: id, quantity: { gt: 0 } },
+          orderBy: { createdAt: 'asc' },
         })
 
-        // Log Movement
-        await tx.inventoryMovement.create({
-          data: {
-            productId: id,
-            userId: user.id,
-            type: 'OUT',
-            quantity: totalQuantityToSubtract,
-            reason: `Sale: ${transaction.id}`,
-            unitId: data.items[0]?.unit.id || '',
-          },
-        })
+        // 2. Prepare the Consumption Plan using your CostingService
+        // Strategy can come from user.branch.costingStrategy or a default
+
+        const strategy = 'FIFO'
+        const plan = CostingService.prepareConsumption(
+          strategy,
+          { productId: id, quantity: totalQuantityToSubtract, unit }, // Assuming base unit for materials
+          inventoryBatches,
+        )
+
+        // 3. Execute the Plan: Update each specific batch
+        for (const usage of plan.consumed || []) {
+          await tx.inventory.update({
+            where: { id: usage.inventoryId },
+            data: { quantity: { decrement: usage.quantity } },
+          })
+
+          // 4. Log Movement for EACH batch (better for auditing)
+          await tx.inventoryMovement.create({
+            data: {
+              productId: id,
+              inventoryId: usage.inventoryId, // Link movement to the specific batch
+              userId: user.id,
+              type: 'OUT',
+              quantity: usage.quantity,
+              reason: `Sale: ${transaction.id} (${strategy})`,
+              unitId: data.items[0]?.unit.id || '',
+            },
+          })
+        }
       }
 
       return transaction
