@@ -30,8 +30,8 @@
     "exactOptionalPropertyTypes": true,
     "noErrorTruncation": false,
 
-    "baseUrl": ".",
     "paths": {
+      "prisma/*": ["./prisma/*"],
       "@/*": ["./src/*"]
     }
   }

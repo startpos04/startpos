@@ -8,6 +8,7 @@ import { authClient } from '@/lib/better-auth/auth-client'
 import { APP_NAME } from '@/lib/constants'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import dayjs from 'dayjs'
+import _ from 'lodash'
 import { LogOut, Search } from 'lucide-react'
 import { useMemo } from 'react'
 import { fetchPosProducts, posFormOpts, posItem } from '..'
@@ -45,7 +46,22 @@ export const ProductGrid = withForm({
     }
 
     const handleAddToCart = (item: posItem) => {
-      form.pushFieldValue('items', item)
+      const currentItems = form.getFieldValue('items') as posItem[]
+
+      const existingItemIndex = currentItems.findIndex(i => {
+        if (i.product.id !== item.product.id) return false
+        if (i.variant && i.variant.id !== item.variant?.id) return false
+        if (!_.isEqual(i.addons, item.addons)) return false
+
+        return true
+      })
+
+      if (existingItemIndex !== -1) {
+        const currentQty = currentItems[existingItemIndex]?.quantity || 0
+        form.setFieldValue(`items[${existingItemIndex}].quantity`, currentQty + item.quantity)
+      } else {
+        form.pushFieldValue('items', item)
+      }
     }
 
     return (

@@ -1,15 +1,16 @@
 import { authStore } from '@/store/auth-store'
 import { createServerFn } from '@tanstack/react-start'
-import { Prisma } from 'prisma/generated/prisma/browser'
+import { Prisma, Unit } from 'prisma/generated/prisma/browser'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { VAT_RATE } from '../constants'
 import { getTenantPrisma } from '../prisma-client'
+import { Prettify } from '../types'
 
 interface SaleItem {
   productId: string
   variantId?: string // If a variant was picked, this is the actual product ID used
   quantity: number
-  unitId: string
+  unit: Unit
   price: number
   costPrice: number
   addons: {
@@ -68,7 +69,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
       })
 
       // 1. Create the Main Transaction
-      const transaction = await tx.transaction.create({
+      const transaction = (await tx.transaction.create({
         data: {
           cashierId: context.user.id,
           customerId: data.customerId,
@@ -85,7 +86,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
               quantity: item.quantity,
               unitPrice: item.price,
               unitCost: item.costPrice,
-              unitId: item.unitId,
+              unitId: item.unit.id,
               selectedAddons: {
                 create: item.addons.map(addon => ({
                   addonId: addon.addonId,
@@ -113,7 +114,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
           },
           payments: true,
         },
-      })
+      })) as Prettify<Prisma.TransactionGetPayload<{ include: { items: { include: { selectedAddons: true } }; payments: true } }>>
 
       // 2. Update Inventory & Log Movements
       for (const item of data.items) {
@@ -138,7 +139,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
             type: 'OUT',
             quantity: item.quantity,
             reason: `Sale: ${transaction.invoiceNo}`,
-            unitId: item.unitId,
+            unitId: item.unit.id,
           },
         })
 
@@ -156,7 +157,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
               type: 'OUT',
               quantity: addon.quantity,
               reason: `Addon for Sale: ${transaction.invoiceNo}`,
-              unitId: item.unitId, // Or the addon's specific unit
+              unitId: item.unit.id, // Or the addon's specific unit
             },
           })
         }
@@ -170,11 +171,5 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
     }
   })
 
-export type CreatePosTransactionResponse = {
-  data: Prisma.TransactionGetPayload<{
-    include: {
-      items: { include: { selectedAddons: true } }
-      payments: true
-    }
-  }>
-}
+type CreatePosTransactionFn = typeof createPosTransaction
+export type CreatePosTransactionResponse = Awaited<ReturnType<CreatePosTransactionFn>>
