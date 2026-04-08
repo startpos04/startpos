@@ -6,12 +6,17 @@ import { Input } from '@/components/ui/input'
 import { withForm } from '@/hooks/form'
 import { authClient } from '@/lib/better-auth/auth-client'
 import { APP_NAME } from '@/lib/constants'
+import { posItem } from '@/lib/conversion/inventory-engine'
+import { PriceEngine } from '@/lib/conversion/price-engine'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
+import { useStore } from '@tanstack/react-form'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import dayjs from 'dayjs'
 import _ from 'lodash'
 import { LogOut, Search } from 'lucide-react'
 import { useMemo } from 'react'
-import { fetchPosProducts, posFormOpts, posItem } from '..'
+import { posFormOpts } from '..'
 import { ProductCard } from './product-card'
 
 export const ProductGrid = withForm({
@@ -20,8 +25,44 @@ export const ProductGrid = withForm({
     const { q: searchQuery, category: activeCategory } = useSearch({ from: '/(private)/pos/' })
     const navigate = useNavigate({ from: '/pos/' })
     const updateSearch = (q?: string) => navigate({ search: prev => ({ ...prev, q: q || '' }) })
+    const cartItems = useStore(form.store, s => s.values.items)
 
-    const { data, isFetching } = fetchPosProducts(searchQuery!, activeCategory!)
+    const { data, isFetching } = useQuery({
+      queryKey: ['pos-products', activeCategory, searchQuery],
+      queryFn: async () => {
+        const result = await crudAPI.product('findMany', {
+          where: {
+            isAvailable: true,
+            variantOfId: null,
+            price: { gt: 0 },
+            ...(activeCategory !== 'ALL' && { categoryId: activeCategory }),
+            ...(searchQuery && {
+              OR: [{ name: { contains: searchQuery, mode: 'insensitive' } }, { sku: { contains: searchQuery, mode: 'insensitive' } }],
+            }),
+          },
+          include: {
+            category: true,
+            baseUnit: true,
+            allowedAddons: {
+              include: {
+                addon: {
+                  include: {
+                    inventory: true,
+                    ingredients: { include: { material: { include: { inventory: true } } } },
+                  },
+                },
+              },
+            },
+            variants: true,
+            inventory: true,
+            ingredients: { include: { material: { include: { inventory: true } } } },
+          },
+        })
+
+        if (result.isErr()) throw new Error(result.error)
+        return result.value
+      },
+    })
 
     const columns = useMemo(
       () =>
@@ -30,7 +71,7 @@ export const ProductGrid = withForm({
           h.accessor('category.name', { header: 'Category' }),
           h.accessor('price', {
             header: 'Base Price',
-            cell: info => <span className='font-mono'>${info.getValue().toFixed(2)}</span>,
+            cell: info => <span className='font-mono'>{PriceEngine.format(info.getValue())}</span>,
           }),
         ]),
       [],
@@ -92,7 +133,7 @@ export const ProductGrid = withForm({
           isFetching={isFetching}
           columns={columns}
           className='px-4'
-          renderCard={row => <ProductCard key={row.original.id} product={row.original} onAdd={handleAddToCart} />}
+          renderCard={row => <ProductCard key={row.original.id} product={row.original} cartItems={cartItems} onAdd={handleAddToCart} />}
         />
       </main>
     )

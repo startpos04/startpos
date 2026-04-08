@@ -1,54 +1,15 @@
 import { SuccessPrompt } from '@/components/custom/prompt/success-prompt'
 import { useAppForm } from '@/hooks/form'
+import { posItem } from '@/lib/conversion/inventory-engine'
 import { showModal } from '@/lib/overlay'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { createPosTransaction } from '@/lib/server-fn/create-pos-transaction'
 import { pdf } from '@react-pdf/renderer'
 import { formOptions } from '@tanstack/react-form'
-import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { CartAside } from './-components/cart-aside'
 import { ProductGrid } from './-components/product-grid'
 import { ReceiptPDF } from './-components/receipt-ticket'
 import { Sidebar } from './-components/sidebar'
-
-export const fetchPosProducts = (searchQuery: string, activeCategory: string) =>
-  useQuery({
-    queryKey: ['pos-products', activeCategory, searchQuery],
-    queryFn: async () => {
-      const result = await crudAPI.product('findMany', {
-        where: {
-          isAvailable: true,
-          variantOfId: null,
-          price: { gt: 0 },
-          ...(activeCategory !== 'ALL' && { categoryId: activeCategory }),
-          ...(searchQuery && {
-            OR: [{ name: { contains: searchQuery, mode: 'insensitive' } }, { sku: { contains: searchQuery, mode: 'insensitive' } }],
-          }),
-        },
-        include: {
-          category: true,
-          baseUnit: true,
-          allowedAddons: { include: { addon: true } },
-          variants: true,
-        },
-      })
-
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-  })
-
-type FetchPosProductsReturn = ReturnType<typeof fetchPosProducts>
-export type PosProduct = NonNullable<FetchPosProductsReturn['data']>[number]
-
-export type posItem = {
-  cartId: string
-  product: PosProduct
-  quantity: number
-  variant: NonNullable<PosProduct['variants']>[number] | undefined
-  addons: NonNullable<PosProduct['allowedAddons']>[number][] | undefined
-}
 
 export const posFormOpts = formOptions({
   defaultValues: {

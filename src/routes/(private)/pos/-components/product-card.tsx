@@ -1,22 +1,31 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { InventoryEngine, posItem, PosProduct } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
+import { cn } from '@/lib/utils'
 import { Coffee, Layers, Sparkles } from 'lucide-react'
-import { posItem, PosProduct } from '..'
+import { useMemo } from 'react'
 import { ProductDialog } from './product-dialog'
 
 interface ProductCardProps {
+  cartItems: posItem[]
   product: PosProduct
   onAdd: (item: posItem) => void
 }
 
-export function ProductCard({ product, onAdd }: ProductCardProps) {
-  // Triggers the modal we built earlier
+export function ProductCard({ cartItems, product, onAdd }: ProductCardProps) {
+  const maxAvailable = useMemo(() => {
+    return InventoryEngine.calculateRemainingYield(product, [], cartItems)
+  }, [product, cartItems])
+
   const handleOpenConfig = () => {
+    if (maxAvailable <= 0) return
+
     showModal(ProductDialog, {
       product,
+      cartItems,
       onConfirm: onAdd,
     })
   }
@@ -24,10 +33,20 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
   return (
     <Card
       onClick={handleOpenConfig}
-      className='border-border shadow-sm rounded-[2rem] h-full overflow-hidden bg-card/50 backdrop-blur-md flex flex-col transition-all hover:shadow-md group pt-0 cursor-pointer'
+      className={cn(
+        'border-border shadow-sm rounded-[2rem] h-full overflow-hidden bg-card/50 backdrop-blur-md flex flex-col transition-all hover:shadow-md group pt-0 ',
+        maxAvailable > 0 ? 'cursor-pointer' : '',
+      )}
     >
       {/* Product Image Area */}
       <div className='relative aspect-video w-full overflow-hidden border-b border-border bg-muted'>
+        <div
+          className={`absolute top-3 right-3 z-10 px-2 py-1 rounded-lg border text-[10px] font-bold backdrop-blur-md 
+          ${maxAvailable <= 0 ? 'bg-red-500 text-white' : 'bg-emerald-500/10 text-emerald-600'}`}
+        >
+          {maxAvailable > 0 ? `${maxAvailable} available` : 'Out of Stock'}
+        </div>
+
         <Avatar className='w-full h-full [&>img]:rounded-none [&>span]:rounded-none [&:after]:border-none'>
           <AvatarImage src={product.image ?? ''} alt={product.name} className='object-cover transition-transform duration-500 group-hover:scale-105' />
           <AvatarFallback className='rounded-none bg-muted flex items-center justify-center'>
