@@ -73,7 +73,6 @@ function POSPage() {
   const form = useAppForm({
     ...posFormOpts,
     onSubmit: async ({ value }) => {
-      console.log('Order Submitted:', value)
       try {
         const result = await createPosTransaction({
           data: {
@@ -83,7 +82,7 @@ function POSPage() {
               productId: item.product.id,
               variantId: item.variant?.id || item.product.id,
               quantity: item.quantity,
-              unitId: item.product.baseUnitId,
+              unit: item.product.baseUnit,
               price: item.variant?.price || item.product.price,
               costPrice: item.variant?.costPrice || item.product.costPrice,
               addons:

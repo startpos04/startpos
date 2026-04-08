@@ -65,7 +65,7 @@ export function ProductDialog({
                           htmlFor={v.id}
                           className='flex flex-col items-center justify-center rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer'
                         >
-                          <span className='text-xs font-bold'>{v.variantValue}</span>
+                          <span className='text-xs font-bold'>{v.name}</span>
                           <span className='text-[10px] text-muted-foreground'>{PriceEngine.format(Number(v.price))}</span>
                         </Label>
                       </div>

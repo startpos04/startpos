@@ -35,7 +35,7 @@ function LoginComponent() {
     },
     onSubmit: async ({ value }) => {
       await authClient.signIn.email(value, {
-        onRequest: () => console.log('Loading...'),
+        onRequest: () => console.info('Loading...'),
         onSuccess: () => {
           navigate({ to: '/', reloadDocument: true })
         },

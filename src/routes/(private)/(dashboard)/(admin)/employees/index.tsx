@@ -97,7 +97,7 @@ function RouteComponent() {
             return (
               <div className='flex justify-end gap-2 pr-2'>
                 <Link to='/employees/$employeeId' params={{ employeeId: row.original.id }} onClick={e => handleEdit(e, row.original.id)} className='contents'>
-                  <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full' onClick={() => console.log('Editing', row.original.id)}>
+                  <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full'>
                     <Edit className='h-4 w-4' />
                   </Button>
                 </Link>

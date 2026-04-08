@@ -1,7 +1,7 @@
 export class SpecificEngine {
   static consume(
     batches: {
-      batchId: string
+      id: string
       quantity: number
       costPrice: number
     }[],

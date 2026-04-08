@@ -23,7 +23,6 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
   const queryClient = useQueryClient()
 
   const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
-    console.log('value', value)
     const result = await crudAPI.product('create', {
       data: {
         ...value,

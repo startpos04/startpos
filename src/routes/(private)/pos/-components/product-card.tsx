@@ -76,9 +76,9 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
               <Layers className='w-3 h-3' /> {product.variantType || 'Variants'}
             </h4>
             <div className='space-y-1'>
-              {product.variants.slice(0, 3).map((v: any) => (
+              {product.variants.slice(0, 3).map(v => (
                 <div key={v.id} className='flex justify-between items-center text-[11px]'>
-                  <span className='text-foreground/80'>{v.variantValue}</span>
+                  <span className='text-foreground/80'>{v.name}</span>
                   <span className='font-mono font-medium'>{PriceEngine.format(v.price)}</span>
                 </div>
               ))}
