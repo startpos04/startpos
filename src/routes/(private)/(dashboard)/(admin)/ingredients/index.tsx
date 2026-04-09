@@ -74,7 +74,7 @@ function RouteComponent() {
           header: 'Stock Level',
           cell: info => {
             const item = info.row.original
-            const totalStock = item.inventory?.reduce((acc, curr) => acc + Number(curr.quantity), 0) ?? 0
+            const totalStock = item.variants[0]?.inventory?.reduce((acc, curr) => acc + Number(curr.quantity), 0) ?? 0
 
             return (
               <div className='flex items-center gap-2'>
@@ -84,9 +84,13 @@ function RouteComponent() {
             )
           },
         }),
-        h.accessor('costPrice', {
+        h.display({
+          id: 'costPerUnit',
           header: 'Cost per Unit',
-          cell: info => <span className='font-mono'>{PriceEngine.format(info.getValue())}</span>,
+          cell: info => {
+            const item = info.row.original
+            return <span className='font-mono'>{PriceEngine.format(item.variants[0]?.costPrice!)}</span>
+          },
         }),
         h.display({
           maxSize: 100,

@@ -17,16 +17,6 @@ interface ProductDialogProps extends OverlayProps {
   onConfirm: (item: posItem) => void
 }
 
-/** Helper to find stock inside the deeply nested Product object **/
-const findStockInLoadedData = (id: string, product: PosProduct): number => {
-  if (product.id === id) return product.inventory?.reduce((acc, inv) => acc + inv.quantity, 0) ?? 0
-  const ingredient = product.ingredients?.find(ing => ing.materialId === id)
-  if (ingredient) return ingredient.material.inventory?.reduce((acc, inv) => acc + inv.quantity, 0) ?? 0
-  const addonMatch = product.allowedAddons?.find(a => a.addonId === id)
-  if (addonMatch) return addonMatch.addon.inventory?.reduce((acc, inv) => acc + inv.quantity, 0) ?? 0
-  return 0
-}
-
 export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: ProductDialogProps) {
   const form = useForm({
     defaultValues: {
@@ -37,7 +27,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
     onSubmit: async ({ value }) => {
       const selectedVariant = product.variants?.find(v => v.id === value.selectedVariantId) || undefined
       const addonsData = product.allowedAddons.filter(a => value.selectedAddonIds.includes(a.id))
-      onConfirm({ cartId: uuid(), product, quantity: value.quantity, variant: selectedVariant, addons: addonsData })
+      onConfirm({ cartId: uuid(), product, quantity: value.quantity, variant: selectedVariant!, addons: addonsData })
       onClose()
     },
   })
@@ -46,13 +36,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
   const selectedVariantId = useStore(form.store, s => s.values.selectedVariantId)
 
   const remainingYield = useMemo(
-    () =>
-      InventoryEngine.calculateRemainingYield(
-        product,
-        selectedAddonIds,
-        cartItems,
-        product.variants?.find(v => v.id === selectedVariantId),
-      ),
+    () => InventoryEngine.calculateRemainingYield(product, selectedAddonIds, cartItems, product.variants?.find(v => v.id === selectedVariantId)!),
     [product, cartItems, selectedAddonIds, selectedVariantId],
   )
 
@@ -67,7 +51,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
 
         <Form onSubmit={form.handleSubmit} className='grid gap-6'>
           {/* --- VARIANTS --- */}
-          {product.variants?.length > 0 && (
+          {product.variants?.length > 1 && (
             <form.Field name='selectedVariantId'>
               {field => (
                 <div className='space-y-3'>
@@ -101,8 +85,9 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                     {product.allowedAddons.map(item => {
                       // Pre-calculate if addon itself is out of stock
                       const reserved = InventoryEngine.getReservedMap(cartItems)
-                      const addonStock = findStockInLoadedData(item.addonId, product)
-                      const isSoldOut = addonStock - (reserved[item.addonId] || 0) <= 0
+                      const targetId = item.addon.variants?.[0]?.id || item.addonId
+                      const addonStock = InventoryEngine.findPhysicalStock(targetId, product)
+                      const isSoldOut = addonStock.stock - (reserved[item.addonId] || 0) <= 0
 
                       return (
                         <label

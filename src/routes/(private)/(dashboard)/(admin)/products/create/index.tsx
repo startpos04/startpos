@@ -23,37 +23,47 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
   const queryClient = useQueryClient()
 
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
-    const { variants, ingredients, allowedAddons, ...product } = value
+    if (value.variants.length === 0) {
+      value.variants = [
+        {
+          id: '',
+          name: '',
+          sku: value.sku,
+          price: value.price,
+          variantType: 'DEFAULT',
+        },
+      ]
+    }
+
+    const { variants, ingredients, allowedAddons, sku, price, ...productData } = value
 
     const result = await crudAPI.product('create', {
       data: {
-        ...product,
-        type: product.type as any,
-        ingredients: {
-          createMany: {
-            data: ingredients.map(ingredient => ({
-              materialId: ingredient.material.id,
-              quantityUsed: ingredient.quantityUsed,
-              unitId: ingredient.unit.id,
-            })),
-          },
-        },
+        ...productData, // This now excludes sku and price
+        type: productData.type as any,
         allowedAddons: {
-          createMany: {
-            data: allowedAddons.map(addon => ({ addonId: addon.addon.id, priceOverride: addon.priceOverride, defaultQuantity: addon.defaultQuantity })),
-          },
+          create: allowedAddons.map(item => ({
+            addonId: item.addon.id,
+            priceOverride: item.priceOverride,
+            defaultQuantity: item.defaultQuantity,
+            unitId: item.unit.id,
+          })),
         },
         variants: {
-          createMany: {
-            data: variants.map(variant => ({
-              ...product,
-              type: product.type as any,
-              variantType: variant.variantType,
-              variantValue: variant.variantValue,
-              sku: `${product.sku}-${variant.sku}`,
-              price: variant.price,
-            })),
-          },
+          create: variants.map(v => ({
+            name: v.name,
+            sku: `${sku}-${v.sku}`,
+            price: v.price,
+            costPrice: 0,
+            variantType: v.variantType,
+            ingredients: {
+              create: ingredients.map(ing => ({
+                materialId: ing.variant.id,
+                quantityUsed: ing.quantityUsed,
+                unitId: ing.unit.id,
+              })),
+            },
+          })),
         },
       },
     })
@@ -61,7 +71,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
     result.match(
       async () => {
         await queryClient.invalidateQueries({ queryKey: ['products'] })
-        toast.success('Product successfully created')
+        toast.success('Product and Variants successfully created')
         onClose?.()
       },
       error => toast.error(error),
@@ -89,7 +99,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
       children={
         <div>
           <h1 className='text-3xl font-bold'>New Product</h1>
-          <p className='text-muted-foreground'>Register a new raw material and define its tracking units.</p>
+          <p className='text-muted-foreground'> Define your product, variants, and recipe ingredients.</p>
         </div>
       }
     />

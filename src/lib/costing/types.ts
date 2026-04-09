@@ -3,7 +3,7 @@ import { Unit } from 'prisma/generated/prisma/browser'
 export type CostingStrategyType = 'FIFO' | 'MOVING_AVERAGE' | 'SPECIFIC'
 
 export type CostingParams = {
-  productId: string
+  variantId: string
   quantity: number
   unit: Unit
 }

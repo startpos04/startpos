@@ -73,8 +73,10 @@ export const CartAside = withForm({
                       <div key={item.cartId} className='group animate-in fade-in slide-in-from-right-4'>
                         <div className='flex items-start gap-3'>
                           <div className='flex-1'>
-                            <p className='font-bold text-sm leading-none'>{item.variant?.name || item.product.name}</p>
-                            <p className='text-[10px] text-muted-foreground mt-1'>{PriceEngine.format(item.variant?.price || item.product.price)}</p>
+                            <p className='font-bold text-sm leading-none'>
+                              {[item.product.name, item.variant?.name ? `(${item.variant?.name})` : ''].filter(Boolean).join(' ')}
+                            </p>
+                            <p className='text-[10px] text-muted-foreground mt-1'>{PriceEngine.format(item.variant?.price)}</p>
                             {item.addons && item.addons.length > 0 && (
                               <div className='mt-2 space-y-1 ml-2 border-l-2 border-muted pl-2'>
                                 {Object.values(
@@ -183,7 +185,7 @@ export const CartAside = withForm({
         <form.Subscribe selector={s => s.values.items}>
           {items => {
             const subtotal = items.reduce((acc, item) => {
-              const itemBase = Number(item.variant?.price || item.product.price) * item.quantity
+              const itemBase = Number(item.variant?.price) * item.quantity
               const addonsBase = item.addons?.reduce((a, b) => a + Number(b.priceOverride) * item.quantity, 0) || 0
               return acc + itemBase + addonsBase
             }, 0)

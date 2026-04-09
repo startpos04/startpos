@@ -105,7 +105,7 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
                 {item.variant ? ` (${item.variant.name})` : ''}
               </Text>
               <Text style={styles.columnQty}>{item.quantity}</Text>
-              <Text style={styles.columnPrice}>{PriceEngine.toDollars(Number(item.variant?.price || item.product.price) * item.quantity).toFixed(2)}</Text>
+              <Text style={styles.columnPrice}>{PriceEngine.toDollars(Number(item.variant?.price) * item.quantity).toFixed(2)}</Text>
             </View>
 
             {/* Render Add-ons */}
@@ -178,7 +178,9 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
         {data.items.map((item, i) => (
           <View key={i} style={{ marginBottom: 8, borderBottomWidth: 0.5, borderBottomColor: '#EEE' }}>
             <View style={styles.row}>
-              <Text style={[styles.columnItem, styles.kitchenItem]}>{item.variant ? item.variant.name : item.product.name}</Text>
+              <Text style={[styles.columnItem, styles.kitchenItem]}>
+                {[item.product.name, item.variant?.name ? `(${item.variant?.name})` : ''].filter(Boolean).join(' ')}
+              </Text>
               <Text style={[styles.columnQty, styles.kitchenItem]}>{item.quantity}</Text>
             </View>
 

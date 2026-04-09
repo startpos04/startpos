@@ -49,6 +49,7 @@ model Organization {
   orderItemAddons    OrderItemAddon[]
   vendorSessions     VendorSession[]
   payments           Payment[]
+  variants           ProductVariant[]
 
   @@index([deletedAt])
   @@map("organizations")
@@ -204,13 +205,10 @@ model Category {
 }
 
 model Product {
-  id        String       @id @default(cuid())
-  name      String
-  image     String?
-  sku       String?      @unique // Barcode/Universal Product Code
-  type      ResourceType @default(PHYSICAL_GOOD)
-  price     Int          @db.Integer // Price charged to customers (in cents to avoid float issues)
-  costPrice Int          @default(0) @db.Integer // Cost to acquire/make the product (in cents)
+  id    String       @id @default(cuid())
+  name  String
+  image String?
+  type  ResourceType @default(PHYSICAL_GOOD)
 
   // Business Specific Flags
   isAvailable     Boolean @default(true)
@@ -226,28 +224,10 @@ model Product {
   baseUnit   Unit   @relation("ProductBaseUnit", fields: [baseUnitId], references: [id])
 
   // --- THE VARIANT SYSTEM ---
-  // If this is null, it's a "Master" or "Standalone" product.
-  // If this has an ID, this product is a variant of another product.
-  variantOfId  String?
-  variantOf    Product?  @relation("ProductVariants", fields: [variantOfId], references: [id])
-  variants     Product[] @relation("ProductVariants")
-  variantType  String? // e.g., "Color-Size" or "Material"
-  variantValue String? // e.g., "Red-XL" or "Stainless"
-
-  // Self-referencing relationship for Recipes/Bundles
-  // (e.g., A "Burger" consumes "Beef Patty")
-  ingredients ProductIngredient[] @relation("ParentProduct")
-  usedIn      ProductIngredient[] @relation("ComponentItem")
+  variants ProductVariant[]
 
   allowedAddons ProductAddon[] @relation("HostProduct")
   usedAsAddonIn ProductAddon[] @relation("AddonComponent")
-
-  inventory          Inventory[]
-  orderItems         OrderItem[]
-  inventoryMovements InventoryMovement[]
-  orderItemAddons    OrderItemAddon[]    @relation("AddonToOrderItem")
-  productUnits       ProductUnit[]
-  purchaseItems      PurchaseItem[]
 
   organization   Organization @relation(fields: [organizationId], references: [id])
   organizationId String
@@ -260,16 +240,50 @@ model Product {
   @@map("products")
 }
 
+model ProductVariant {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name        String?
+  image       String?
+  sku         String? @unique
+  price       Int     @db.Integer // Price charged to customers (in cents to avoid float issues)
+  costPrice   Int     @default(0) @db.Integer // Cost to acquire/make the product (in cents)
+  variantType String?
+
+  // Ingredients/Recipe logic moves to Variant level
+  ingredients ProductIngredient[] @relation("ParentVariant")
+  usedIn      ProductIngredient[] @relation("ComponentVariant")
+
+  inventory          Inventory[]
+  orderItems         OrderItem[]
+  inventoryMovements InventoryMovement[]
+  orderItemAddons    OrderItemAddon[]    @relation("AddonToOrderItem")
+  productUnits       ProductUnit[]
+  purchaseItems      PurchaseItem[]
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([organizationId, productId])
+  @@map("product_variants")
+}
+
 model ProductIngredient {
   id           String @id @default(cuid())
   hostId       String
   materialId   String
   unitId       String
-  quantityUsed Float // How much of the material is used in the host product (e.g., 0.25 kg of Beef in a Burger)
+  quantityUsed Float // How much of the material is used in the host variant
 
-  unit     Unit    @relation(fields: [unitId], references: [id])
-  host     Product @relation("ParentProduct", fields: [hostId], references: [id]) // Points to the product acting as the "Container" or "Recipe."
-  material Product @relation("ComponentItem", fields: [materialId], references: [id]) // Points to the product acting as the "Ingredient" or "Input."
+  unit     Unit           @relation(fields: [unitId], references: [id])
+  host     ProductVariant @relation("ParentVariant", fields: [hostId], references: [id])
+  material ProductVariant @relation("ComponentVariant", fields: [materialId], references: [id])
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -340,7 +354,7 @@ model Unit {
 
 model ProductUnit {
   id        String @id @default(cuid())
-  productId String
+  variantId String
   unitId    String
 
   // Is this the unit the supplier uses?
@@ -349,13 +363,13 @@ model ProductUnit {
   // Is this the unit shown on the POS?
   isSalesUnit Boolean @default(true)
 
-  product Product @relation(fields: [productId], references: [id])
-  unit    Unit    @relation(fields: [unitId], references: [id])
+  variant ProductVariant @relation(fields: [variantId], references: [id])
+  unit    Unit           @relation(fields: [unitId], references: [id])
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
 
-  @@unique([productId, unitId])
+  @@unique([variantId, unitId])
   @@index([organizationId])
   @@map("product_units")
 }
@@ -378,14 +392,14 @@ model Purchase {
 }
 
 model PurchaseItem {
-  id         String   @id @default(cuid())
+  id         String         @id @default(cuid())
   purchaseId String
-  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
-  productId  String
-  product    Product  @relation(fields: [productId], references: [id])
+  purchase   Purchase       @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  variantId  String
+  variant    ProductVariant @relation(fields: [variantId], references: [id])
   quantity   Float
   unitId     String
-  unit       Unit     @relation(fields: [unitId], references: [id])
+  unit       Unit           @relation(fields: [unitId], references: [id])
   unitCost   Int
 
   organizationId String
@@ -407,14 +421,14 @@ enum MovementType {
 }
 
 model Inventory {
-  id          String    @id @default(cuid())
-  productId   String
-  product     Product   @relation(fields: [productId], references: [id])
+  id          String         @id @default(cuid())
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id])
   unitId      String // The unit this specific batch is stored in
-  unit        Unit      @relation(fields: [unitId], references: [id])
+  unit        Unit           @relation(fields: [unitId], references: [id])
   batchNumber String? // Lot # for Drugstore/Medicine
   expiryDate  DateTime?
-  quantity    Float // Current quantity in stock for this batch (e.g., 100.5 kg, 50 units)
+  quantity    Float // Current quantity in stock for this batch
 
   // Track cost per batch for accurate profit reporting
   costPrice Int @default(0) // Cost per unit (in cents) for this specific batch
@@ -437,16 +451,16 @@ model Inventory {
 }
 
 model InventoryMovement {
-  id        String       @id @default(cuid())
-  productId String
-  product   Product      @relation(fields: [productId], references: [id])
+  id        String         @id @default(cuid())
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
   userId    String
-  user      User         @relation(fields: [userId], references: [id])
+  user      User           @relation(fields: [userId], references: [id])
   type      MovementType
-  quantity  Float // How much was moved in or out (e.g., 10 kg, 5 units)
+  quantity  Float // How much was moved in or out
   reason    String? // "Sold in INV-102", "Expired", "Manual Restock"
   unitId    String
-  unit      Unit         @relation(fields: [unitId], references: [id])
+  unit      Unit           @relation(fields: [unitId], references: [id])
 
   inventoryId String
   inventory   Inventory @relation("SourceInventory", fields: [inventoryId], references: [id])
@@ -512,8 +526,8 @@ model Transaction {
 
   // --- REVENUE VS COST (Line Graph Source) ---
   totalAmount Int // Total charged to the customer (in cents)
-  totalCost   Int // Total cost of goods/services sold (in cents), calculated from OrderItems at time of sale
-  bufferRate  Int // Snapshot of Branch buffer rate at time of transaction for profit analysis
+  totalCost   Int // Total cost of goods/services sold (in cents)
+  bufferRate  Int // Snapshot of Branch buffer rate at time of transaction
 
   taxAmount Int // Tax amount (in cents)
   discount  Int @default(0) // Discount amount (in cents)
@@ -557,7 +571,7 @@ model Transaction {
 
 model OrderItem {
   id        String @id @default(cuid())
-  productId String
+  variantId String
   quantity  Float // Supports kg, L, units
 
   // Snapshots for Profit Analysis
@@ -570,7 +584,7 @@ model OrderItem {
   selectedAddons OrderItemAddon[]
   transactionId  String
   transaction    Transaction      @relation(fields: [transactionId], references: [id])
-  product        Product          @relation(fields: [productId], references: [id])
+  variant        ProductVariant   @relation(fields: [variantId], references: [id])
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -586,11 +600,11 @@ model OrderItemAddon {
   orderItemId String
   orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
 
-  addonId     String // The "Fried Egg" Product ID
-  addon       Product @relation("AddonToOrderItem", fields: [addonId], references: [id])
+  addonId     String // Points to a ProductVariant acting as addon
+  addon       ProductVariant @relation("AddonToOrderItem", fields: [addonId], references: [id])
   quantity    Float // How much was added (e.g., 2 units)
   priceAtSale Int // Price charged for this addon at time of sale (in cents)
-  costAtSale  Int     @default(0) // Cost of this addon at time of sale (in cents)
+  costAtSale  Int            @default(0) // Cost of this addon at time of sale (in cents)
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -637,7 +651,7 @@ enum PaymentMethod {
   CASH
   E_WALLET
   CARD
-  CREDIT // For "Utang" or accounts receivable
+  CREDIT
 }
 
 model Payment {

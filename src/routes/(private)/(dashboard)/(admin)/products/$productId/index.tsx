@@ -10,7 +10,7 @@ import { showModal } from '@/lib/overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { Box, DollarSign, Edit, Info, Layers, Package, Scale, ShoppingCart, Tag, TrendingDown } from 'lucide-react'
+import { Box, DollarSign, Edit, Package, ShoppingCart, TrendingDown } from 'lucide-react'
 import { EditProductDialog } from './-edit-product'
 
 interface ProductDetailsProps {
@@ -50,13 +50,21 @@ function RouteComponent(props: RouteComponentProps) {
         include: {
           baseUnit: true,
           category: true,
-          inventory: { include: { unit: true } },
-          variants: true,
-          variantOf: true,
-          ingredients: { include: { material: true, unit: true } },
-          usedIn: { include: { host: true, unit: true } },
+          // RE-ALIGNED: Price/Cost/SKU/Inventory are now inside variants
+          variants: {
+            include: {
+              inventory: { include: { unit: true } },
+              ingredients: {
+                include: {
+                  material: { include: { product: true } },
+                  unit: true,
+                },
+              },
+              _count: { select: { orderItems: true } },
+            },
+          },
           allowedAddons: { include: { addon: { include: { baseUnit: true } } } },
-          _count: { select: { orderItems: true, inventoryMovements: true } },
+          _count: { select: { variants: true } },
         },
       })
       if (result.isErr()) throw new Error(result.error)
@@ -67,28 +75,29 @@ function RouteComponent(props: RouteComponentProps) {
   if (isLoading) return <div className='p-10 animate-pulse bg-muted rounded-xl h-full' />
   if (!product) return <div className='p-6 text-center'>Product not found.</div>
 
-  // Calculations
-  const totalStock = product.inventory?.reduce((acc: number, inv) => acc + inv.quantity, 0) || 0
-  const profitCents = product.price - product.costPrice
-  const marginPercentage = product.price > 0 ? (profitCents / product.price) * 100 : 0
+  // --- CALCULATIONS (Aggregated across variants) ---
+  const totalStock = product.variants.reduce((acc, v) => acc + v.inventory.reduce((iAcc, inv) => iAcc + inv.quantity, 0), 0)
+  const totalSales = product.variants.reduce((acc, v) => acc + v._count.orderItems, 0)
+
+  const prices = product.variants.map(v => v.price)
+  const minPrice = Math.min(...prices)
+  const maxPrice = Math.max(...prices)
+
   const isLowStock = totalStock < 10
 
   const handleEdit = () => {
+    // TODO: pass data to avoid refetching in dialog, or optimistically update after edit
     showModal(EditProductDialog, {
       productId,
       defaultValues: {
         name: product.name,
-        sku: product.sku || '',
-        price: product.price,
         type: product.type as any,
         categoryId: product.categoryId,
         baseUnitId: product.baseUnitId,
-        image: product.image as '',
+        image: product.image!,
         isAvailable: product.isAvailable,
         hasExpiry: product.hasExpiry,
-        ingredients: product.ingredients,
         variants: product.variants,
-        allowedAddons: product.allowedAddons,
       },
     })
   }
@@ -98,9 +107,9 @@ function RouteComponent(props: RouteComponentProps) {
       {/* 1. TOP HEADER SECTION */}
       <div className='flex flex-col md:flex-row justify-between items-start gap-4'>
         <div className='flex gap-5'>
-          <div className='h-24 w-24 rounded-2xl bg-secondary flex items-center justify-center border-2 shadow-sm'>
+          <div className='h-24 w-24 rounded-2xl bg-secondary flex items-center justify-center border-2 shadow-sm overflow-hidden'>
             {product.image ? (
-              <img src={product.image} alt={product.name} className='h-full w-full object-cover rounded-2xl' />
+              <img src={product.image} alt={product.name} className='h-full w-full object-cover' />
             ) : (
               <Box className='h-12 w-12 text-muted-foreground/40' />
             )}
@@ -111,18 +120,11 @@ function RouteComponent(props: RouteComponentProps) {
               {!product.isAvailable && <Badge variant='destructive'>Unavailable</Badge>}
             </div>
             <div className='flex flex-wrap gap-2'>
-              <Badge variant='outline' className='bg-primary/5'>
-                {product.sku || 'No SKU'}
-              </Badge>
               <Badge className='bg-slate-800'>{product.category?.name}</Badge>
               <Badge variant='secondary' className='capitalize'>
-                {product.type.toLowerCase()}
+                {product.type.toLowerCase().replace('_', ' ')}
               </Badge>
-              {product.variantValue && (
-                <Badge className='bg-purple-100 text-purple-700 border-purple-200'>
-                  {product.variantType}: {product.variantValue}
-                </Badge>
-              )}
+              <Badge variant='outline'>{product.variants.length} Variant(s)</Badge>
             </div>
           </div>
         </div>
@@ -136,219 +138,139 @@ function RouteComponent(props: RouteComponentProps) {
       {/* 2. QUICK STATS GRID */}
       <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
         <StatCard
-          label='Sales Price'
-          value={PriceEngine.format(product.price)}
-          subValue={`Cost: ${PriceEngine.format(product.costPrice)}`}
+          label='Price Range'
+          value={minPrice === maxPrice ? PriceEngine.format(minPrice) : `${PriceEngine.format(minPrice)} - ${PriceEngine.format(maxPrice)}`}
+          subValue='Customer pricing'
           icon={<DollarSign className='text-emerald-500' />}
         />
         <StatCard
-          label='Profit Margin'
-          value={`${marginPercentage.toFixed(1)}%`}
-          subValue={`${PriceEngine.format(profitCents)} profit/unit`}
-          icon={<TrendingDown className='text-blue-500 rotate-180' />}
-          trend={marginPercentage > 30 ? 'up' : 'down'}
-        />
-        <StatCard
-          label='Current Inventory'
-          value={totalStock.toString()}
+          label='Current Stock'
+          value={totalStock.toLocaleString()}
           subValue={product.baseUnit?.abbreviation}
           icon={<Package className={isLowStock ? 'text-orange-500' : 'text-primary'} />}
           status={isLowStock ? 'warning' : 'default'}
         />
-        <StatCard
-          label='Total Sales'
-          value={product._count?.orderItems.toString()}
-          subValue='Lifetime transactions'
-          icon={<ShoppingCart className='text-purple-500' />}
-        />
+        <StatCard label='Total Sales' value={totalSales.toString()} subValue='Units sold' icon={<ShoppingCart className='text-purple-500' />} />
+        <StatCard label='Profitability' value='Calculated' subValue='View in Recipe tab' icon={<TrendingDown className='text-blue-500 rotate-180' />} />
       </div>
 
       {/* 3. DETAILED CONTENT TABS */}
-      <Tabs defaultValue='inventory' className='w-full'>
-        <TabsList className='grid w-full grid-cols-2 lg:grid-cols-5 h-auto bg-muted/50 p-1'>
-          <TabsTrigger value='inventory'>Inventory</TabsTrigger>
-          <TabsTrigger value='recipe'>Recipe & Cost</TabsTrigger>
-          <TabsTrigger value='variants'>Variants & Add-ons</TabsTrigger>
-          <TabsTrigger value='usage'>Where Used</TabsTrigger>
-          <TabsTrigger value='settings'>Specs</TabsTrigger>
+      <Tabs defaultValue='variants' className='w-full'>
+        <TabsList className='grid w-full grid-cols-2 lg:grid-cols-4 h-auto bg-muted/50 p-1'>
+          <TabsTrigger value='variants'>Pricing & Variants</TabsTrigger>
+          <TabsTrigger value='inventory'>Stock/Batches</TabsTrigger>
+          <TabsTrigger value='recipe'>Recipe/Costing</TabsTrigger>
+          <TabsTrigger value='settings'>Specifications</TabsTrigger>
         </TabsList>
 
-        {/* TAB: Inventory */}
-        <TabsContent value='inventory' className='space-y-4 pt-4'>
-          <div className='grid grid-cols-1 lg:grid-cols-3 gap-4'>
-            <Card className='lg:col-span-2'>
-              <CardHeader>
-                <CardTitle className='text-md'>Batch Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Batch / Lot</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Expiry</TableHead>
-                      <TableHead className='text-right'>Qty</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {product.inventory.map(inv => (
-                      <TableRow key={inv.id}>
-                        <TableCell className='font-mono text-xs'>{inv.batchNumber || '—'}</TableCell>
-                        <TableCell>{inv.location || 'Main'}</TableCell>
-                        <TableCell>
-                          {inv.expiryDate ? (
-                            <span className={dayjs(inv.expiryDate).isBefore(dayjs()) ? 'text-red-500 font-bold' : ''}>
-                              {dayjs(inv.expiryDate).format('MMM DD, YYYY')}
-                            </span>
-                          ) : (
-                            'No Expiry'
-                          )}
-                        </TableCell>
-                        <TableCell className='text-right font-bold'>
-                          {inv.quantity} {inv.unit.abbreviation}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className='text-md'>Storage Info</CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                <div className='flex justify-between border-b pb-2'>
-                  <span className='text-muted-foreground text-sm'>Base Unit</span>
-                  <span className='font-medium'>{product.baseUnit?.name}</span>
-                </div>
-                <div className='flex justify-between border-b pb-2'>
-                  <span className='text-muted-foreground text-sm'>Movements</span>
-                  <span className='font-medium'>{product._count?.inventoryMovements} logs</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* TAB: Recipe/Products */}
-        <TabsContent value='recipe' className='pt-4'>
+        {/* TAB: Variants */}
+        <TabsContent value='variants' className='space-y-4 pt-4'>
           <Card>
             <CardHeader>
-              <CardTitle className='text-md flex items-center gap-2'>
-                <Layers className='h-4 w-4' /> Products / Composition
-              </CardTitle>
+              <CardTitle className='text-md'>Active Variants</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Material</TableHead>
-                    <TableHead>Required Qty</TableHead>
-                    <TableHead className='text-right'>Est. Cost Contribution</TableHead>
+                    <TableHead>Variant</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Cost</TableHead>
+                    <TableHead className='text-right'>Selling Price</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {product.ingredients?.map(ing => (
-                    <TableRow key={ing.id}>
-                      <TableCell className='font-medium'>{ing.material.name}</TableCell>
-                      <TableCell>
-                        {ing.quantityUsed} {ing.unit.abbreviation}
-                      </TableCell>
-                      <TableCell className='text-right'>{PriceEngine.format(ing.quantityUsed * ing.material.costPrice)}</TableCell>
+                  {product.variants.map(v => (
+                    <TableRow key={v.id}>
+                      <TableCell className='font-medium'>{v.name || 'Default'}</TableCell>
+                      <TableCell className='font-mono text-xs'>{v.sku || '—'}</TableCell>
+                      <TableCell>{PriceEngine.format(v.costPrice)}</TableCell>
+                      <TableCell className='text-right font-bold'>{PriceEngine.format(v.price)}</TableCell>
                     </TableRow>
                   ))}
-                  {(!product.ingredients || product.ingredients.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={3} className='text-center py-10 text-muted-foreground'>
-                        This is a raw material (no products).
-                      </TableCell>
-                    </TableRow>
-                  )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* TAB: Variants & Add-ons */}
-        <TabsContent value='variants' className='pt-4 space-y-4'>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <Card>
-              <CardHeader>
-                <CardTitle className='text-md'>Available Variants</CardTitle>
+        {/* TAB: Inventory */}
+        <TabsContent value='inventory' className='space-y-4 pt-4'>
+          {product.variants.map(v => (
+            <Card key={v.id}>
+              <CardHeader className='py-3 border-b'>
+                <CardTitle className='text-sm font-semibold'>{v.name || 'Main'} Variant Stock</CardTitle>
               </CardHeader>
-              <CardContent>
-                {product.variants?.length > 0 ? (
-                  <div className='space-y-2'>
-                    {product.variants.map(v => (
-                      <div key={v.id} className='flex justify-between items-center p-2 border rounded-lg'>
-                        <span>{v.variantValue}</span>
-                        <span className='font-bold'>{PriceEngine.format(v.price)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-sm text-muted-foreground'>No variants defined.</p>
-                )}
+              <CardContent className='p-0'>
+                <Table>
+                  <TableHeader>
+                    <TableRow className='bg-muted/30'>
+                      <TableHead className='pl-6'>Batch #</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Expiry</TableHead>
+                      <TableHead className='text-right pr-6'>Quantity</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {v.inventory.length > 0 ? (
+                      v.inventory.map(inv => (
+                        <TableRow key={inv.id}>
+                          <TableCell className='pl-6 font-mono text-xs'>{inv.batchNumber || 'N/A'}</TableCell>
+                          <TableCell>{inv.location || 'Warehouse'}</TableCell>
+                          <TableCell>{inv.expiryDate ? dayjs(inv.expiryDate).format('MMM DD, YYYY') : 'None'}</TableCell>
+                          <TableCell className='text-right pr-6 font-bold'>
+                            {inv.quantity} {inv.unit.abbreviation}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className='text-center py-6 text-muted-foreground italic'>
+                          No stock found for this variant.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className='text-md'>Allowed Add-ons</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {product.allowedAddons?.length > 0 ? (
-                  <div className='space-y-2'>
-                    {product.allowedAddons.map(a => (
-                      <div key={a.id} className='flex justify-between items-center p-2 border rounded-lg bg-blue-50/30'>
-                        <span>{a.addon.name}</span>
-                        <span className='font-bold text-blue-600'>+{PriceEngine.format(a.priceOverride)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-sm text-muted-foreground'>No add-ons linked.</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          ))}
         </TabsContent>
 
-        {/* TAB: Settings/Flags */}
-        <TabsContent value='settings' className='pt-4'>
-          <Card>
-            <CardContent className='grid grid-cols-1 md:grid-cols-3 gap-6 py-6'>
-              <div className='flex items-center gap-3'>
-                <div className={`p-2 rounded-full ${product.hasExpiry ? 'bg-green-100 text-green-600' : 'bg-gray-100'}`}>
-                  <Tag className='h-4 w-4' />
-                </div>
-                <div>
-                  <p className='text-sm font-bold'>Expiry Tracking</p>
-                  <p className='text-xs text-muted-foreground'>{product.hasExpiry ? 'Enabled' : 'Disabled'}</p>
-                </div>
-              </div>
-              <div className='flex items-center gap-3'>
-                <div className={`p-2 rounded-full ${product.requiresDeposit ? 'bg-amber-100 text-amber-600' : 'bg-gray-100'}`}>
-                  <Info className='h-4 w-4' />
-                </div>
-                <div>
-                  <p className='text-sm font-bold'>Refundable Deposit</p>
-                  <p className='text-xs text-muted-foreground'>{product.requiresDeposit ? PriceEngine.format(product.depositAmount!) : 'None'}</p>
-                </div>
-              </div>
-              <div className='flex items-center gap-3'>
-                <div className='p-2 rounded-full bg-blue-100 text-blue-600'>
-                  <Scale className='h-4 w-4' />
-                </div>
-                <div>
-                  <p className='text-sm font-bold'>Service Duration</p>
-                  <p className='text-xs text-muted-foreground'>{product.durationMinutes ? `${product.durationMinutes} mins` : 'N/A'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* TAB: Recipe/Composition */}
+        <TabsContent value='recipe' className='pt-4'>
+          {product.variants.map(v => (
+            <Card key={v.id} className='mb-4'>
+              <CardHeader>
+                <CardTitle className='text-md'>{v.name || 'Default'} Composition</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Material Variant</TableHead>
+                      <TableHead>Required</TableHead>
+                      <TableHead className='text-right'>Cost Contribution</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {v.ingredients?.map(ing => (
+                      <TableRow key={ing.id}>
+                        <TableCell>
+                          <div className='font-medium'>{ing.material.product.name}</div>
+                          <div className='text-xs text-muted-foreground'>{ing.material.name}</div>
+                        </TableCell>
+                        <TableCell>
+                          {ing.quantityUsed} {ing.unit.abbreviation}
+                        </TableCell>
+                        <TableCell className='text-right'>{PriceEngine.format(ing.quantityUsed * ing.material.costPrice)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ))}
         </TabsContent>
       </Tabs>
     </div>
@@ -356,21 +278,14 @@ function RouteComponent(props: RouteComponentProps) {
 }
 
 function StatCard({ label, value, subValue, icon, status = 'default' }: any) {
-  const statusClasses = {
-    warning: 'border-orange-200 bg-orange-50/50',
-    default: 'bg-card',
-  }
-
   return (
-    <Card className={statusClasses[status as keyof typeof statusClasses]}>
-      <CardContent className='pt-6'>
-        <div className='flex justify-between items-start'>
-          <div>
-            <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>{label}</p>
-            <h3 className='text-2xl font-bold mt-1'>{value}</h3>
-            <p className='text-xs text-muted-foreground mt-1'>{subValue}</p>
-          </div>
-          <div className='p-2 bg-background rounded-lg shadow-sm border'>{icon}</div>
+    <Card className={status === 'warning' ? 'border-orange-200 bg-orange-50/30' : ''}>
+      <CardContent className='p-4 flex items-center gap-4'>
+        <div className='p-2 bg-background rounded-lg border shadow-sm'>{icon}</div>
+        <div>
+          <p className='text-xs text-muted-foreground font-medium'>{label}</p>
+          <h3 className='text-xl font-bold'>{value}</h3>
+          <p className='text-[10px] text-muted-foreground uppercase tracking-wider'>{subValue}</p>
         </div>
       </CardContent>
     </Card>

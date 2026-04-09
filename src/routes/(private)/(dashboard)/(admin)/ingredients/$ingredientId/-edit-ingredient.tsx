@@ -18,11 +18,24 @@ export function EditIngredientDialog({
   const queryClient = useQueryClient()
 
   const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
+    const { sku, price, ...productData } = value
+
     const result = await crudAPI.product('update', {
       where: { id: ingredientId },
       data: {
-        ...value,
-        image: value.image || null,
+        ...productData,
+        image: productData.image || null,
+        // 2. Perform a nested update on the variants
+        variants: {
+          updateMany: {
+            where: { productId: ingredientId },
+            data: {
+              sku: sku,
+              price: price,
+              costPrice: price,
+            },
+          },
+        },
       },
     })
 
@@ -33,13 +46,19 @@ export function EditIngredientDialog({
         toast.success('Ingredient successfully updated')
         onClose?.()
       },
-      error => toast.error(error),
+      error => {
+        if (error.includes('Unique constraint') && error.includes('sku')) {
+          toast.error('The SKU is already in use by another product.')
+        } else {
+          toast.error(error)
+        }
+      },
     )
   }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-4xl max-h-[90vh] overflow-y-auto'>
+      <DialogContent className='sm:max-w-3xl max-h-[90vh] overflow-y-auto'>
         <CreateIngredient
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
@@ -47,7 +66,7 @@ export function EditIngredientDialog({
           children={
             <div>
               <h1 className='text-3xl font-bold tracking-tight'>Update Ingredient</h1>
-              <p className='text-muted-foreground text-sm'>Update staff account and its permissions.</p>
+              <p className='text-muted-foreground text-sm'>Modify the properties, SKU, and unit costs for this raw material.</p>
             </div>
           }
         />

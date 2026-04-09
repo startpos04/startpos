@@ -1,7 +1,6 @@
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQueryClient } from '@tanstack/react-query'
-import { ResourceType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
 import { CreateProduct, CreateProductFormData } from '../create/-create-product'
 
@@ -19,31 +18,19 @@ export function EditProductDialog({
   const queryClient = useQueryClient()
 
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
-    const { variants, ingredients, allowedAddons, ...product } = value
+    const { sku, price, variants, ingredients, allowedAddons, ...productData } = value
 
     const result = await crudAPI.product('update', {
       where: { id: productId },
       data: {
-        ...product,
-        type: value.type as ResourceType,
+        ...productData, // No sku or price here
+        type: value.type as any,
         image: value.image || null,
-        ingredients: {
-          upsert: ingredients.map(ing => ({
-            where: { id: ing.id },
-            update: {
-              quantityUsed: ing.quantityUsed,
-              unitId: ing.unit.id,
-            },
-            create: {
-              materialId: ing.material.id,
-              quantityUsed: ing.quantityUsed,
-              unitId: ing.unit.id,
-            },
-          })),
-        },
+
+        // 1. Update Addons (Product Level)
         allowedAddons: {
           upsert: allowedAddons.map(addon => ({
-            where: { id: addon.id },
+            where: { id: addon.id || 'new-addon' }, // Ensure ID is valid or placeholder
             update: {
               priceOverride: addon.priceOverride,
               defaultQuantity: addon.defaultQuantity,
@@ -52,27 +39,50 @@ export function EditProductDialog({
               addonId: addon.addon.id,
               priceOverride: addon.priceOverride,
               defaultQuantity: addon.defaultQuantity,
+              unitId: addon.unit.id,
             },
           })),
         },
+
+        // 2. Update Variants (and their nested Ingredients)
         variants: {
-          upsert: variants.map(variant => ({
-            where: { id: variant.id },
-            update: {
-              sku: variant.sku,
-              price: variant.price,
-              variantType: variant.variantType,
-              variantValue: variant.variantValue,
-            },
-            create: {
-              ...product,
-              type: product.type as any,
-              variantType: variant.variantType,
-              variantValue: variant.variantValue,
-              sku: `${product.sku}-${variant.sku}`,
-              price: variant.price,
-            },
-          })),
+          upsert: (variants.length === 0 ? [{ isDefault: true, id: value.variants?.[0]?.id, price, sku: '' }] : variants).map(v => {
+            const isDefault = 'isDefault' in v
+            const finalSku = isDefault ? sku : v.sku?.includes(sku) ? v.sku : `${sku}-${v.sku}`
+            const finalName = isDefault ? productData.name : v.name || productData.name
+
+            return {
+              where: { id: v.id || 'new-variant' },
+              update: {
+                name: finalName,
+                sku: finalSku,
+                price: v.price,
+                variantType: isDefault ? 'DEFAULT' : v.variantType,
+                ingredients: {
+                  deleteMany: {}, // Simplest way to "update" ingredients is to replace them
+                  create: ingredients.map(ing => ({
+                    materialId: ing.variant.id,
+                    quantityUsed: ing.quantityUsed,
+                    unitId: ing.unit.id,
+                  })),
+                },
+              },
+              create: {
+                name: finalName,
+                sku: finalSku,
+                price: v.price,
+                costPrice: 0,
+                variantType: isDefault ? 'DEFAULT' : v.variantType,
+                ingredients: {
+                  create: ingredients.map(ing => ({
+                    materialId: ing.variant.id,
+                    quantityUsed: ing.quantityUsed,
+                    unitId: ing.unit.id,
+                  })),
+                },
+              },
+            }
+          }),
         },
       },
     })

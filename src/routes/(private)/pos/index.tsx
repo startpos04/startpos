@@ -48,14 +48,9 @@ function POSPage() {
               productId: item.product.id,
               variantId: item.variant?.id || item.product.id,
               quantity: item.quantity,
-              unit: item.product.baseUnit,
-              price: item.variant?.price || item.product.price,
-              costPrice: item.variant?.costPrice || item.product.costPrice,
               addons:
                 item.addons?.map(a => ({
                   addonId: a.addonId,
-                  price: a.priceOverride,
-                  costPrice: a.addon.costPrice,
                   quantity: 1,
                 })) || [],
             })),

@@ -8,14 +8,20 @@ export const fetchIngredients = () =>
       const result = await crudAPI.product('findMany', {
         where: {
           type: 'RAW_MATERIAL',
-          variantOfId: null,
         },
         include: {
           category: true,
-          allowedAddons: { include: { addon: true } },
-          inventory: true,
           baseUnit: true,
-          variants: true,
+          variants: {
+            include: {
+              product: {
+                include: {
+                  baseUnit: true,
+                },
+              },
+              inventory: true,
+            },
+          },
         },
       })
 

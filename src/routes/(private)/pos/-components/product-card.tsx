@@ -16,7 +16,8 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ cartItems, product, onAdd }: ProductCardProps) {
-  const maxAvailable = useMemo(() => InventoryEngine.calculateRemainingYield(product, [], cartItems), [product, cartItems])
+  const variant = product.variants[0]!
+  const maxAvailable = useMemo(() => InventoryEngine.calculateRemainingYield(product, [], cartItems, variant), [product, cartItems])
 
   const handleOpenConfig = () => {
     1
@@ -57,13 +58,13 @@ export function ProductCard({ cartItems, product, onAdd }: ProductCardProps) {
       <CardHeader className='pb-2'>
         <div className='flex justify-between items-start'>
           <CardTitle className='text-xl font-bold line-clamp-1'>{product.name}</CardTitle>
-          <span className='font-bold text-primary'>{PriceEngine.format(product.price)}</span>
+          <span className='font-bold text-primary'>{PriceEngine.format(variant.price)}</span>
         </div>
         <div className='flex items-center gap-2'>
           <Badge variant='outline' className='text-[9px] uppercase font-bold py-0 h-4'>
             {product.category?.name || 'General'}
           </Badge>
-          <span className='text-[10px] text-muted-foreground font-mono uppercase'>{product.sku}</span>
+          <span className='text-[10px] text-muted-foreground font-mono uppercase'>{variant.sku}</span>
         </div>
       </CardHeader>
 
@@ -88,10 +89,10 @@ export function ProductCard({ cartItems, product, onAdd }: ProductCardProps) {
         )}
 
         {/* Quick View of Variants if they exist */}
-        {product.variants?.length > 0 && (
+        {product.variants?.length > 1 && (
           <div className='space-y-2 p-2.5 rounded-2xl bg-amber-500/5 border border-amber-500/10'>
             <h4 className='text-[10px] font-bold uppercase tracking-widest text-amber-600 flex items-center gap-2'>
-              <Layers className='w-3 h-3' /> {product.variantType || 'Variants'}
+              <Layers className='w-3 h-3' /> {variant.variantType || 'Variants'}
             </h4>
             <div className='space-y-1'>
               {product.variants.slice(0, 3).map(v => (

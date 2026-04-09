@@ -11,15 +11,13 @@ import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
-import { authStore } from '@/store/auth-store'
-import { useForm, useStore } from '@tanstack/react-form'
-import { Layers, Package, Plus, PlusCircle, Save, Utensils, Warehouse, X } from 'lucide-react'
+import { useForm } from '@tanstack/react-form'
+import { Package, Plus, PlusCircle, Save, Utensils, Warehouse, X } from 'lucide-react'
 import { Unit } from 'prisma/generated/prisma/browser'
 import { ReactNode } from 'react'
 import { z } from 'zod'
 import { AddAddonModal } from './-add-addon'
 import { AddIngredientModal } from './-add-ingredient'
-import { AddVariantModal } from './-add-variant'
 
 interface CreateProductProps {
   defaultValues: CreateProductFormData
@@ -30,51 +28,57 @@ interface CreateProductProps {
     isSubmitting: string
   }
 }
-
 export const createProductSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().min(1, 'SKU is required'),
   price: z.number().nonnegative('Price must be 0 or greater'),
-  type: z.enum(['BUNDLE', 'SINGLE', 'SERVICE']), // Assuming ResourceType values
-  categoryId: z.string('Invalid Category ID'), // Or .min(1) if not a UUID
+  type: z.enum(['BUNDLE', 'SINGLE', 'SERVICE']),
+  categoryId: z.string().min(1, 'Category is required'),
   baseUnitId: z.string().min(1, 'Base Unit is required'),
   image: z.string(),
   isAvailable: z.boolean(),
   hasExpiry: z.boolean(),
 
-  // Ingredients: feIngredient properties + quantityUsed
+  // These will be mapped to Variants in the handleSubmit
   ingredients: z.array(
     z.object({
       id: z.string(),
       material: z.object({
-        id: z.string(),
+        id: z.string(), // This is a Product ID (the raw material)
         name: z.string(),
+      }),
+      variant: z.object({
+        id: z.string(), // This is the Variant ID of the raw material
+        name: z.string().nullable(),
       }),
       quantityUsed: z.number().positive(),
       unit: z.custom<Unit>(),
     }),
   ),
 
-  // Variants
   variants: z.array(
     z.object({
       id: z.string(),
       variantType: z.string().nullable(),
-      variantValue: z.string().nullable(),
+      name: z.string().nullable(),
       sku: z.string().nullable(),
       price: z.number().nonnegative(),
+      // Optional: You could allow per-variant ingredients here in the future
     }),
   ),
 
-  // Allowed Addons
   allowedAddons: z.array(
     z.object({
       id: z.string(),
       addon: z.object({
-        id: z.string(),
-        name: z.string(),
-        baseUnit: z.custom<Unit>(),
+        id: z.string(), // This is the Product ID
+        name: z.string().nullable(),
       }),
+      variant: z.object({
+        id: z.string(), // This is the Variant ID of the raw material
+        name: z.string().nullable(),
+      }),
+      unit: z.custom<Unit>(), // Added unit for the addon relation
       defaultQuantity: z.number().nonnegative(),
       priceOverride: z.number().nonnegative(),
     }),
@@ -84,7 +88,6 @@ export const createProductSchema = z.object({
 export type CreateProductFormData = z.infer<typeof createProductSchema>
 
 export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: CreateProductProps) {
-  const user = useStore(authStore, state => state.user)
   const { data: categoryOptions = [] } = fetchCategoryOptions()
   const { data: unitOptions = [] } = fetchUnitOptions()
 
@@ -101,25 +104,11 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
       onAdd: ingredient => {
         form.pushFieldValue('ingredients', {
           id: '',
-          material: {
-            id: ingredient.material.id,
-            name: ingredient.material.name,
-          },
+          material: ingredient.product,
+          variant: ingredient.variant,
           quantityUsed: ingredient.quantityUsed,
           unit: ingredient.unit,
         })
-      },
-    })
-  }
-
-  const handleAddVariants = () => {
-    showModal(AddVariantModal, {
-      variants: form.getFieldValue('variants'),
-      onAdd: variants => {
-        form.setFieldValue(
-          'variants',
-          variants.map(variant => variant),
-        )
       },
     })
   }
@@ -129,7 +118,9 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
       onAdd: addon => {
         form.pushFieldValue('allowedAddons', {
           id: '',
-          addon: addon.addon,
+          addon: addon.product,
+          variant: addon.variant,
+          unit: addon.unit, // Pass the unit used for this addon
           defaultQuantity: addon.defaultQuantity,
           priceOverride: addon.priceOverride,
         })
@@ -142,13 +133,14 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
   }
 
   return (
-    <div className='flex flex-col gap-4 max-w-5xl mx-auto grow'>
+    <div className='flex flex-col gap-4 grow'>
       {children}
 
-      <ScrollArea className=' h-1 grow w-full'>
+      <ScrollArea className='h-1 grow w-full'>
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 p-2 w-full'>
-          {/* Left Column: Basic Details & Media */}
+          {/* Left Column */}
           <div className='lg:col-span-2 space-y-6'>
+            {/* General Info Card */}
             <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
               <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
@@ -156,36 +148,27 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <form.Field name='name' children={field => <TextInput field={field} label='Name' placeholder='e.g. Classic Cheeseburger' />} />
-
+                <form.Field name='name' children={field => <TextInput field={field} label='Name' placeholder='e.g. Latte' />} />
                 <div className='grid grid-cols-2 gap-4'>
-                  <form.Field name='sku' children={field => <TextInput field={field} label='SKU / Barcode' placeholder='BRG-001' />} />
-                  <form.Field name='price' children={field => <MoneyInput field={field} label='Base Price' type='number' />} />
+                  <form.Field name='sku' children={field => <TextInput field={field} label='SKU Base' placeholder='LAT-00' />} />
+                  <form.Field name='price' children={field => <MoneyInput field={field} label='Base Price' />} />
                 </div>
                 <div className='grid grid-cols-2 gap-4'>
-                  <form.Field
-                    name='categoryId'
-                    children={field => <SelectInput field={field} label='Category' placeholder='Select Category...' options={categoryOptions} />}
-                  />
-
-                  <form.Field
-                    name='baseUnitId'
-                    children={field => <SelectInput field={field} label='Base Unit (e.g., pc, kg)' placeholder='Select Unit...' options={unitOptions} />}
-                  />
+                  <form.Field name='categoryId' children={field => <SelectInput field={field} label='Category' options={categoryOptions} />} />
+                  <form.Field name='baseUnitId' children={field => <SelectInput field={field} label='Base Unit' options={unitOptions} />} />
                 </div>
-
-                <form.Field name='image' children={field => <ImageInput label='Drag product image here' field={field} />} />
+                <form.Field name='image' children={field => <ImageInput label='Product Image' field={field} />} />
               </CardContent>
             </Card>
 
-            {/* Recipe / Ingredients Builder (Visual Placeholder) */}
+            {/* Recipe Builder Card */}
             <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
               <CardHeader className='flex flex-row items-center justify-between'>
                 <div>
                   <CardTitle className='flex items-center gap-2'>
-                    <Utensils className='w-5 h-5 text-emerald-500' /> Recipe & Ingredients
+                    <Utensils className='w-5 h-5 text-emerald-500' /> Master Recipe
                   </CardTitle>
-                  <CardDescription>Select items this product consumes.</CardDescription>
+                  <CardDescription>These ingredients will apply to all variants.</CardDescription>
                 </div>
                 <Button variant='outline' size='sm' className='rounded-full' onClick={handleAddIngredient}>
                   <Plus className='w-4 h-4 mr-1' /> Add Ingredient
@@ -196,31 +179,21 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
                   selector={state => state.values.ingredients}
                   children={ingredients => (
                     <div className='space-y-2'>
-                      {ingredients.length > 0 ? (
-                        ingredients.map((ing, idx) => (
-                          <div key={idx} className='flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/50'>
-                            <div className='flex flex-col'>
-                              <span className='font-medium text-sm'>{ing.material.name}</span>
-                              <span className='text-xs text-muted-foreground'>
-                                {ing.quantityUsed} {ing.unit.abbreviation}
-                              </span>
-                            </div>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='h-8 w-8 rounded-full text-muted-foreground hover:text-destructive'
-                              onClick={() => removeItem('ingredients', idx)}
-                            >
-                              <X className='w-4 h-4' />
-                            </Button>
+                      {ingredients.map((ing, idx) => (
+                        <div key={idx} className='flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/50'>
+                          <div className='flex flex-col'>
+                            <span className='font-medium text-sm'>
+                              {[ing.material.name, ing.variant?.name ? `(${ing.variant?.name})` : ''].filter(Boolean).join(' ')}
+                            </span>
+                            <span className='text-[10px] text-muted-foreground uppercase font-bold'>
+                              {ing.quantityUsed} {ing.unit.abbreviation}
+                            </span>
                           </div>
-                        ))
-                      ) : (
-                        <div className='bg-muted/30 rounded-2xl p-8 border-2 border-dashed border-muted flex flex-col items-center justify-center text-center'>
-                          <Utensils className='w-10 h-10 text-muted-foreground/20 mb-2' />
-                          <p className='text-sm text-muted-foreground'>Search and add products from your pantry.</p>
+                          <Button variant='ghost' size='icon' className='h-8 w-8 text-muted-foreground' onClick={() => removeItem('ingredients', idx)}>
+                            <X className='w-4 h-4' />
+                          </Button>
                         </div>
-                      )}
+                      ))}
                     </div>
                   )}
                 />
@@ -228,12 +201,13 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
             </Card>
           </div>
 
-          {/* Right Column: Settings, Add-ons & Variants */}
+          {/* Right Column */}
           <div className='space-y-6'>
+            {/* Inventory Logic Card */}
             <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
               <CardHeader>
                 <CardTitle className='text-lg flex items-center gap-2'>
-                  <Warehouse className='w-5 h-5 text-emerald-500' /> Inventory Logic
+                  <Warehouse className='w-5 h-5 text-emerald-500' /> Inventory
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
@@ -241,7 +215,7 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
                   name='isAvailable'
                   children={field => (
                     <div className='flex items-center justify-between'>
-                      <Label>Active in POS</Label>
+                      <Label>POS Visible</Label>
                       <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
                     </div>
                   )}
@@ -250,7 +224,7 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
                   name='hasExpiry'
                   children={field => (
                     <div className='flex items-center justify-between'>
-                      <Label>Track Expiry Date</Label>
+                      <Label>Track Expiry</Label>
                       <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
                     </div>
                   )}
@@ -258,92 +232,41 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
               </CardContent>
             </Card>
 
-            {/* Variants Summary */}
-            <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
-              <CardHeader>
-                <CardTitle className='text-lg flex items-center gap-2'>
-                  <Layers className='w-5 h-5 text-amber-500' /> Variants
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className='text-xs text-muted-foreground mb-4'>Create size or color variations of this product.</p>
-                <div className='space-y-4'>
-                  <form.Subscribe
-                    selector={state => state.values.variants}
-                    children={variants => (
-                      <div className='space-y-2'>
-                        {variants.map((v, idx) => (
-                          <div key={idx} className='flex items-center justify-between p-2 bg-background/50 rounded-lg border border-border/40 text-sm'>
-                            <span>
-                              {v.variantValue}{' '}
-                              {v.price ? <span className='text-muted-foreground ml-2'>{`${PriceEngine.format(v.price)} ${user.branch.currency}`}</span> : null}
-                            </span>
-                            <Button variant='ghost' size='icon' className='h-6 w-6' onClick={() => removeItem('variants', idx)}>
-                              <X className='w-3 h-3' />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  />
-                  <Button variant='outline' className='w-full rounded-xl border-dashed' onClick={handleAddVariants}>
-                    <Plus className='w-4 h-4 mr-2' /> Configure Variants
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Add-ons Summary */}
+            {/* Add-ons Card */}
             <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
               <CardHeader>
                 <CardTitle className='text-lg flex items-center gap-2'>
                   <PlusCircle className='w-5 h-5 text-blue-500' /> Add-ons
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className='text-xs text-muted-foreground mb-4'>Define optional extras like 'Extra Cheese'.</p>
-                <div className='space-y-4'>
-                  <form.Subscribe
-                    selector={state => state.values.allowedAddons}
-                    children={addons => (
-                      <div className='space-y-3'>
-                        {addons.map((a, idx) => (
-                          <div
-                            key={idx}
-                            className='group flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors rounded-xl border border-border/50 shadow-sm'
-                          >
-                            {/* Left Side: Info */}
-                            <div className='flex flex-col gap-0.5'>
-                              <span className='font-medium text-foreground leading-none'>{a.addon.name}</span>
-                              <span className='text-xs text-muted-foreground'>
-                                {a.defaultQuantity} {a.addon.baseUnit.abbreviation} • Base Rate
-                              </span>
-                            </div>
-
-                            {/* Right Side: Price & Action */}
-                            <div className='flex items-center gap-4'>
-                              <span className='font-mono font-semibold text-sm'>{PriceEngine.format(a.priceOverride)}</span>
-
-                              <Button variant='destructive' size='icon' className='h-7 w-7' onClick={() => removeItem('allowedAddons', idx)}>
-                                <X className='w-3.5 h-3.5' />
-                              </Button>
-                            </div>
+              <CardContent className='space-y-4'>
+                <form.Subscribe
+                  selector={state => state.values.allowedAddons}
+                  children={addons => (
+                    <div className='space-y-2'>
+                      {addons.map((a, idx) => (
+                        <div key={idx} className='flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/50'>
+                          <div className='flex flex-col'>
+                            <span className='font-medium text-xs'>{a.addon.name}</span>
+                            <span className='text-[10px] text-muted-foreground'>{PriceEngine.format(a.priceOverride)}</span>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  />
-                  <Button variant='outline' className='w-full rounded-xl border-dashed' onClick={handleAddAddons}>
-                    <Plus className='w-4 h-4 mr-2' /> Add Add-ons
-                  </Button>
-                </div>
+                          <Button variant='ghost' size='icon' className='h-7 w-7' onClick={() => removeItem('allowedAddons', idx)}>
+                            <X className='w-3.5 h-3.5' />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                />
+                <Button variant='outline' className='w-full rounded-xl border-dashed' onClick={handleAddAddons}>
+                  + Add Extras
+                </Button>
               </CardContent>
             </Card>
           </div>
         </div>
       </ScrollArea>
 
-      {/* Submit Button */}
       <div className='pt-4'>
         <form.Subscribe
           selector={state => [state.canSubmit, state.isSubmitting]}
@@ -351,10 +274,9 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
             <Button
               onClick={() => form.handleSubmit()}
               disabled={!canSubmit || isSubmitting}
-              className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl active:scale-95 flex gap-2 shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'
+              className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl flex gap-2 transition-all hover:scale-[1.01]'
             >
-              <Save className='w-5! h-5!' />
-              {isSubmitting ? textBtn.isSubmitting : textBtn.default}
+              <Save className='w-5 h-5' /> {isSubmitting ? textBtn.isSubmitting : textBtn.default}
             </Button>
           )}
         />

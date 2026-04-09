@@ -6,18 +6,17 @@ import { SpecificEngine } from './specific-engine'
 import { CostingParams, CostingResult, CostingStrategyType, InventoryBatchDTO } from './types'
 
 export class CostingService {
-  /**
-   * pure function: prepares the consumption plan based on provided inventory.
-   * does not execute prisma queries.
-   */
   static prepareConsumption(strategy: CostingStrategyType, params: CostingParams, inventory: Inventory[]): CostingResult {
     const { quantity, unit } = params
+
+    // 1. Always convert to the Base Unit defined in your UnitEngine
     const requiredBaseQty = UnitEngine.toBase(quantity, unit)
 
+    // 2. Map Prisma Inventory to DTO
     const batches: InventoryBatchDTO[] = inventory.map(i => ({
       id: i.id,
-      quantity: Number(i.quantity),
-      costPrice: Number(i.costPrice),
+      quantity: i.quantity, // Float in schema
+      costPrice: i.costPrice, // Int in schema (cents)
     }))
 
     switch (strategy) {
@@ -25,29 +24,34 @@ export class CostingService {
         return FIFOEngine.consume(batches, requiredBaseQty)
 
       case 'MOVING_AVERAGE': {
-        // Calculate average from the provided inventory first
         const totalQty = batches.reduce((sum, b) => sum + b.quantity, 0)
         const totalValue = batches.reduce((sum, b) => sum + b.quantity * b.costPrice, 0)
-        const avgCost = MovingAverageEngine.computeAverage(totalQty, totalValue)
 
-        // Wrap the engine result in the standard CostingResult format
+        if (totalQty === 0) throw new Error('No inventory available for average calculation')
+
+        const avgCost = totalValue / totalQty
+
         const result = MovingAverageEngine.consume(totalQty, avgCost, requiredBaseQty)
+
         return {
-          totalCost: result.totalCost,
-          consumed: batches.map(b => ({
-            inventoryId: b.id,
-            quantity: (b.quantity / totalQty) * requiredBaseQty, // Pro-rata deduction
-            cost: (b.quantity / totalQty) * requiredBaseQty * avgCost,
-          })),
+          totalCost: Math.round(result.totalCost), // Ensure cents are rounded
+          consumed: batches.map(b => {
+            const share = b.quantity / totalQty
+            const consumedQty = share * requiredBaseQty
+            return {
+              inventoryId: b.id,
+              quantity: consumedQty,
+              cost: Math.round(consumedQty * avgCost),
+            }
+          }),
         }
       }
 
       case 'SPECIFIC':
-        // Specific engine logic usually expects the user-selected batches
         return SpecificEngine.consume(batches)
 
       default:
-        throw new Error(`Strategy ${strategy} not implemented for preparation`)
+        throw new Error(`Strategy ${strategy} not implemented`)
     }
   }
 }

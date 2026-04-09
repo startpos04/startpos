@@ -24,7 +24,16 @@ function RouteComponent() {
         include: {
           cashier: true,
           customer: true,
-          items: { include: { product: { include: { category: true } } } },
+          // REALIGNED: Items -> Variant -> Product -> Category
+          items: {
+            include: {
+              variant: {
+                include: {
+                  product: { include: { category: true } },
+                },
+              },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       })
@@ -34,42 +43,45 @@ function RouteComponent() {
     },
   })
 
-  // --- ADVANCED DATA AGGREGATION ---
   const reportData = useMemo(() => {
     if (!data) return null
 
-    // 1. Time-based Trend (Last 7 Days)
     const dailySales: Record<string, number> = {}
-    // 2. Category Performance
     const categorySales: Record<string, number> = {}
-    // 3. Staff Leaderboard
     const staffSales: Record<string, { name: string; total: number; count: number }> = {}
 
     data.forEach(t => {
       const date = dayjs(t.createdAt).format('MMM DD')
-      dailySales[date] = (dailySales[date] || 0) + Number(t.totalAmount)
+      // Aggregating in cents initially to maintain precision
+      dailySales[date] = (dailySales[date] || 0) + t.totalAmount
 
       const staffName = t.cashier?.name || 'Unknown'
       if (!staffSales[staffName]) staffSales[staffName] = { name: staffName, total: 0, count: 0 }
-      staffSales[staffName].total += Number(t.totalAmount)
+      staffSales[staffName].total += t.totalAmount
       staffSales[staffName].count += 1
 
       t.items?.forEach(item => {
-        const catName = item.product?.category?.name || 'Uncategorized'
-        categorySales[catName] = (categorySales[catName] || 0) + Number(item.unitPrice) * Number(item.quantity)
+        // REALIGNED: Access category through variant relationship
+        const catName = item.variant?.product?.category?.name || 'Uncategorized'
+        categorySales[catName] = (categorySales[catName] || 0) + item.unitPrice * item.quantity
       })
     })
 
     return {
       trend: Object.entries(dailySales)
-        .map(([name, total]) => ({ name, total }))
+        .map(([name, total]) => ({ name, total: total / 100 })) // Convert to major currency for chart
         .reverse(),
-      categories: Object.entries(categorySales).map(([name, value]) => ({ name, value })),
-      staff: Object.values(staffSales).sort((a, b) => b.total - a.total),
+      categories: Object.entries(categorySales).map(([name, value]) => ({
+        name,
+        value: value / 100,
+      })),
+      staff: Object.values(staffSales)
+        .sort((a, b) => b.total - a.total)
+        .map(s => ({ ...s, totalFormatted: PriceEngine.format(s.total) })),
       totals: {
-        gross: data.reduce((acc, curr) => acc + Number(curr.totalAmount), 0),
-        tax: data.reduce((acc, curr) => acc + Number(curr.taxAmount), 0),
-        discount: data.reduce((acc, curr) => acc + Number(curr.discount), 0),
+        gross: data.reduce((acc, curr) => acc + curr.totalAmount, 0),
+        tax: data.reduce((acc, curr) => acc + curr.taxAmount, 0),
+        discount: data.reduce((acc, curr) => acc + curr.discount, 0),
         count: data.length,
       },
     }
@@ -78,8 +90,7 @@ function RouteComponent() {
   const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444']
 
   return (
-    <div className='flex flex-col gap-4 px-4  overflow-auto'>
-      {/* HEADER */}
+    <div className='flex flex-col gap-4 px-4 overflow-auto'>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
         <div>
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Sales Reports</h1>
@@ -98,47 +109,43 @@ function RouteComponent() {
         </div>
       </div>
 
-      {/* 4-COLUMN KPI GRID */}
       <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
         <StatsCard title='Total Revenue' value={reportData?.totals.gross} icon={<TrendingUp className='text-emerald-500' />} trend='+14% vs last month' />
         <StatsCard title='Total Transactions' value={reportData?.totals.count} icon={<Package className='text-blue-500' />} trend='+5.2%' isCurrency={false} />
         <StatsCard title='Tax Collected' value={reportData?.totals.tax} icon={<BarChart3 className='text-purple-500' />} trend='On track' />
         <StatsCard
           title='Avg. Order Value'
-          value={reportData?.totals.gross! / (reportData?.totals.count || 1)}
+          value={reportData ? reportData.totals.gross / (reportData.totals.count || 1) : 0}
           icon={<Users className='text-orange-500' />}
           trend='-2% vs yesterday'
         />
       </div>
 
-      {/* CHARTS SECTION */}
       <div className='grid gap-4 md:grid-cols-7'>
-        {/* Revenue Trend Line Chart */}
         <Card className='md:col-span-4'>
           <CardHeader>
             <CardTitle>Revenue Trend</CardTitle>
-            <CardDescription>Daily gross sales over the last active period.</CardDescription>
+            <CardDescription>Daily gross sales (Major Currency).</CardDescription>
           </CardHeader>
-          <CardContent className='h-75'>
+          <CardContent className='h-80'>
             <ResponsiveContainer width='100%' height='100%'>
               <LineChart data={reportData?.trend}>
                 <CartesianGrid strokeDasharray='3 3' vertical={false} stroke='#e5e7eb' />
                 <XAxis dataKey='name' fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={v => `₱${v}`} />
-                <Tooltip />
+                <Tooltip formatter={(value: number) => [`₱${value.toLocaleString()}`, 'Revenue']} />
                 <Line type='monotone' dataKey='total' stroke='#10b981' strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Category Breakdown Pie Chart */}
         <Card className='md:col-span-3'>
           <CardHeader>
             <CardTitle>Sales by Category</CardTitle>
-            <CardDescription>Top revenue contributing categories.</CardDescription>
+            <CardDescription>Revenue share by product group.</CardDescription>
           </CardHeader>
-          <CardContent className='h-75'>
+          <CardContent className='h-80'>
             <ResponsiveContainer width='100%' height='100%'>
               <PieChart>
                 <Pie data={reportData?.categories} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey='value'>
@@ -146,7 +153,7 @@ function RouteComponent() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value: number) => `₱${value.toLocaleString()}`} />
               </PieChart>
             </ResponsiveContainer>
             <div className='grid grid-cols-2 gap-2 mt-4'>
@@ -161,25 +168,23 @@ function RouteComponent() {
         </Card>
       </div>
 
-      {/* BOTTOM SECTION: TABLE & LEADERBOARD */}
       <div className='grid gap-4 md:grid-cols-3'>
-        {/* Transaction Table */}
         <div className='md:col-span-2'>
           <Card>
-            <CardHeader className='flex flex-row items-center justify-between'>
-              <div>
-                <CardTitle>Transaction History</CardTitle>
-                <CardDescription>Recent logs and invoice statuses.</CardDescription>
-              </div>
+            <CardHeader>
+              <CardTitle>Transaction History</CardTitle>
             </CardHeader>
             <CardContent>
               <TableView
                 data={data}
                 columns={getColumns<NonNullable<typeof data>[number]>(h => [
-                  h.accessor('invoiceNo', { header: 'Invoice', cell: i => <span className='font-mono text-xs font-bold'>{i.getValue().slice(-6)}</span> }),
+                  h.accessor('invoiceNo', { header: 'Invoice', cell: i => <span className='font-mono text-xs font-bold'>{i.getValue().slice(-8)}</span> }),
                   h.accessor('cashier.name', { header: 'Staff' }),
                   h.accessor('totalAmount', { header: 'Total', cell: i => PriceEngine.format(i.getValue()) }),
-                  h.accessor('status', { header: 'Status', cell: i => <Badge variant='secondary'>{i.getValue()}</Badge> }),
+                  h.accessor('status', {
+                    header: 'Status',
+                    cell: i => <Badge variant={i.getValue() === 'COMPLETED' ? 'default' : 'secondary'}>{i.getValue()}</Badge>,
+                  }),
                 ])}
                 isFetching={isFetching}
               />
@@ -187,12 +192,10 @@ function RouteComponent() {
           </Card>
         </div>
 
-        {/* Staff Performance */}
         <Card>
           <CardHeader>
             <CardTitle className='flex items-center gap-2'>
-              <UserCheck className='h-5 w-5 text-primary' />
-              Staff Leaderboard
+              <UserCheck className='h-5 w-5 text-primary' /> Staff Leaderboard
             </CardTitle>
           </CardHeader>
           <CardContent className='space-y-6'>
@@ -202,10 +205,10 @@ function RouteComponent() {
                   <div className='flex h-9 w-9 items-center justify-center rounded-full bg-muted font-bold text-xs'>{i + 1}</div>
                   <div>
                     <p className='text-sm font-medium leading-none'>{s.name}</p>
-                    <p className='text-xs text-muted-foreground'>{s.count} sales</p>
+                    <p className='text-xs text-muted-foreground'>{s.count} transactions</p>
                   </div>
                 </div>
-                <div className='text-sm font-bold'>₱{s.total.toLocaleString()}</div>
+                <div className='text-sm font-bold'>{s.totalFormatted}</div>
               </div>
             ))}
           </CardContent>
@@ -215,7 +218,6 @@ function RouteComponent() {
   )
 }
 
-// Helper Mini-Component
 function StatsCard({ title, value, icon, trend, isCurrency = true }: any) {
   return (
     <Card>
@@ -224,7 +226,7 @@ function StatsCard({ title, value, icon, trend, isCurrency = true }: any) {
         {icon}
       </CardHeader>
       <CardContent>
-        <div className='text-2xl font-bold'>{isCurrency ? `₱${(value || 0).toLocaleString()}` : value}</div>
+        <div className='text-2xl font-bold'>{isCurrency ? PriceEngine.format(value || 0) : value}</div>
         <p className='flex items-center text-xs text-muted-foreground mt-1'>
           {trend.includes('+') ? <ArrowUpRight className='mr-1 h-3 w-3 text-emerald-500' /> : <ArrowDownRight className='mr-1 h-3 w-3 text-red-500' />}
           {trend}

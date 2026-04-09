@@ -7,7 +7,6 @@ import { withForm } from '@/hooks/form'
 import { authClient } from '@/lib/better-auth/auth-client'
 import { APP_NAME } from '@/lib/constants'
 import { posItem, posProductProps } from '@/lib/conversion/inventory-engine'
-import { PriceEngine } from '@/lib/conversion/price-engine'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useStore } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
@@ -33,8 +32,11 @@ export const ProductGrid = withForm({
         const result = await crudAPI.product('findMany', {
           where: {
             isAvailable: true,
-            variantOfId: null,
-            price: { gt: 0 },
+            variants: {
+              every: {
+                price: { gt: 0 },
+              },
+            },
             ...(activeCategory !== 'ALL' && { categoryId: activeCategory }),
             ...(searchQuery && {
               OR: [{ name: { contains: searchQuery, mode: 'insensitive' } }, { sku: { contains: searchQuery, mode: 'insensitive' } }],
@@ -49,15 +51,7 @@ export const ProductGrid = withForm({
     })
 
     const columns = useMemo(
-      () =>
-        getColumns<NonNullable<typeof data>[number]>(h => [
-          h.accessor('name', { header: 'Product' }),
-          h.accessor('category.name', { header: 'Category' }),
-          h.accessor('price', {
-            header: 'Base Price',
-            cell: info => <span className='font-mono'>{PriceEngine.format(info.getValue())}</span>,
-          }),
-        ]),
+      () => getColumns<NonNullable<typeof data>[number]>(h => [h.accessor('name', { header: 'Product' }), h.accessor('category.name', { header: 'Category' })]),
       [],
     )
 

@@ -3,7 +3,7 @@ import { UnitEngine } from '@/lib/conversion/unit-engine'
 import { MovementType, PrismaClient, ResourceType } from 'prisma/generated/prisma/client'
 
 export async function initialInventory(prisma: PrismaClient) {
-  console.log('📦 Normalizing Costs & Seeding Inventory...')
+  console.log('📦 Normalizing Costs & Seeding Variant Inventory...')
 
   // 1. Get a real user first to avoid Foreign Key errors
   const adminUser = await prisma.user.findFirst({
@@ -14,19 +14,32 @@ export async function initialInventory(prisma: PrismaClient) {
     throw new Error('❌ Seed Error: No Admin user found. Please seed users before inventory.')
   }
 
-  const rawMaterials = await prisma.product.findMany({
-    where: { type: ResourceType.RAW_MATERIAL },
-    include: { baseUnit: true },
+  // Fetch variants that belong to RAW_MATERIAL products
+  const rawMaterialVariants = await prisma.productVariant.findMany({
+    where: {
+      product: {
+        type: ResourceType.RAW_MATERIAL,
+      },
+    },
+    include: {
+      product: {
+        include: {
+          baseUnit: true,
+        },
+      },
+    },
   })
 
   const kgUnit = await prisma.unit.findFirst({ where: { abbreviation: 'kg' } })
   const literUnit = await prisma.unit.findFirst({ where: { abbreviation: 'L' } })
 
-  for (const item of rawMaterials) {
+  for (const variant of rawMaterialVariants) {
     await prisma.$transaction(async tx => {
-      let purchaseUnit = item.baseUnit
-      if (item.baseUnit.abbreviation === 'g' && kgUnit) purchaseUnit = kgUnit
-      if (item.baseUnit.abbreviation === 'ml' && literUnit) purchaseUnit = literUnit
+      const baseUnit = variant.product.baseUnit
+      let purchaseUnit = baseUnit
+
+      if (baseUnit.abbreviation === 'g' && kgUnit) purchaseUnit = kgUnit
+      if (baseUnit.abbreviation === 'ml' && literUnit) purchaseUnit = literUnit
 
       // Calculation logic
       const bulkPriceCents = PriceEngine.toCents(150.0)
@@ -34,34 +47,34 @@ export async function initialInventory(prisma: PrismaClient) {
       const purchaseQty = 10
       const totalInBaseUnits = UnitEngine.toBase(purchaseQty, purchaseUnit)
 
-      // 2. Update Product
-      await tx.product.update({
-        where: { id: item.id },
+      // 2. Update Variant (Costs live here now)
+      await tx.productVariant.update({
+        where: { id: variant.id },
         data: { costPrice: normalizedCostPriceCents },
       })
 
-      // 3. Create Inventory
+      // 3. Create Inventory (Linked to Variant)
       const inventory = await tx.inventory.create({
         data: {
           organizationId: 'org-1',
           branchId: 'branch-1',
-          productId: item.id,
-          unitId: item.baseUnitId,
+          variantId: variant.id,
+          unitId: baseUnit.id,
           quantity: totalInBaseUnits,
           costPrice: normalizedCostPriceCents,
-          batchNumber: `INIT-${item.sku}`,
+          batchNumber: `INIT-${variant.sku}`,
         },
       })
 
-      // 4. Log Movement (Now using a REAL userId)
+      // 4. Log Movement (Linked to Variant)
       await tx.inventoryMovement.create({
         data: {
           organizationId: 'org-1',
           branchId: 'branch-1',
           inventoryId: inventory.id,
-          userId: adminUser.id, // ✅ Real ID from the DB
-          productId: item.id,
-          unitId: item.baseUnitId,
+          userId: adminUser.id,
+          variantId: variant.id,
+          unitId: baseUnit.id,
           quantity: totalInBaseUnits,
           type: MovementType.IN,
           reason: 'Initial Seed Restock',
@@ -69,5 +82,5 @@ export async function initialInventory(prisma: PrismaClient) {
       })
     })
   }
-  console.log('✅ Inventory Seeded successfully.')
+  console.log('✅ Variant Inventory Seeded successfully.')
 }
