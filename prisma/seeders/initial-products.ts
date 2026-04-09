@@ -1,7 +1,7 @@
 import { PrismaClient, ResourceType, UnitType } from 'prisma/generated/prisma/client'
 
 export async function initialProducts(prisma: PrismaClient) {
-  console.log('🍔 Populating Food Store with Product/Variant Split Schema...')
+  console.log('🍔 Populating Food Store with Unified Component Schema...')
 
   // 1. SEED UNITS
   const units = {
@@ -42,7 +42,7 @@ export async function initialProducts(prisma: PrismaClient) {
 
   const variantMap: Record<string, string> = {}
 
-  // 3. Define Raw Materials (Standalone Products with 1 Default Variant)
+  // 3. Define Raw Materials
   const rawMaterials = [
     {
       name: 'Brioche Bun',
@@ -119,9 +119,8 @@ export async function initialProducts(prisma: PrismaClient) {
   ]
 
   for (const item of rawMaterials) {
-    // A. Create Product Shell
     const product = await prisma.product.upsert({
-      where: { id: `prod-${item.sku}` }, // Simplified ID for seeder predictability
+      where: { id: `prod-${item.sku}` },
       update: { name: item.name, image: item.img, baseUnitId: item.uId },
       create: {
         id: `prod-${item.sku}`,
@@ -135,7 +134,6 @@ export async function initialProducts(prisma: PrismaClient) {
       },
     })
 
-    // B. Create Default Variant (Inventory lives here)
     const variant = await prisma.productVariant.upsert({
       where: { sku: item.sku },
       update: { price: 0 },
@@ -150,7 +148,7 @@ export async function initialProducts(prisma: PrismaClient) {
     variantMap[item.sku] = variant.id
   }
 
-  // 4. Define Bundles (Recipes now link Variant to Variant)
+  // 4. Define Bundles (Unified Components)
   const bundles = [
     {
       name: 'Classic Cheeseburger',
@@ -174,7 +172,7 @@ export async function initialProducts(prisma: PrismaClient) {
       baseUnitId: units.pcs.id,
       recipe: [
         { sku: 'ING-BUN', qty: 1, unit: units.pcs.id },
-        { sku: 'ING-BEEF', qty: 300, unit: units.g.id }, // 2 patties
+        { sku: 'ING-BEEF', qty: 300, unit: units.g.id },
         { sku: 'ING-CHED', qty: 2, unit: units.pcs.id },
         { sku: 'ING-BACON', qty: 2, unit: units.pcs.id },
       ],
@@ -193,6 +191,30 @@ export async function initialProducts(prisma: PrismaClient) {
       ],
     },
     {
+      name: 'French Fries',
+      sku: 'SIDE-FF-01',
+      price: 7500,
+      categoryId: categories.sides.id,
+      image: 'https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?q=80&w=400&auto=format&fit=crop',
+      baseUnitId: units.pcs.id,
+      recipe: [
+        { sku: 'ING-POTATO', qty: 200, unit: units.g.id },
+        { sku: 'ING-OIL', qty: 30, unit: units.ml.id },
+      ],
+    },
+    {
+      name: 'Diet Soda',
+      sku: 'DRK-DS-02',
+      price: 4500,
+      categoryId: categories.drinks.id,
+      image: 'https://images.unsplash.com/photo-1629203851020-9dd4aa08e9d9?q=80&w=400&auto=format&fit=crop',
+      baseUnitId: units.pcs.id,
+      recipe: [
+        { sku: 'ING-SYRUP', qty: 50, unit: units.ml.id },
+        { sku: 'ING-WATER', qty: 250, unit: units.ml.id },
+      ],
+    },
+    {
       name: 'Garden Burger',
       sku: 'MEAL-GB-04',
       price: 15500,
@@ -207,18 +229,6 @@ export async function initialProducts(prisma: PrismaClient) {
       ],
     },
     {
-      name: 'French Fries',
-      sku: 'SIDE-FF-01',
-      price: 7500,
-      categoryId: categories.sides.id,
-      image: 'https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?q=80&w=400&auto=format&fit=crop',
-      baseUnitId: units.pcs.id,
-      recipe: [
-        { sku: 'ING-POTATO', qty: 200, unit: units.g.id },
-        { sku: 'ING-OIL', qty: 30, unit: units.ml.id },
-      ],
-    },
-    {
       name: 'Loaded Fries',
       sku: 'SIDE-LF-02',
       price: 12000,
@@ -229,18 +239,6 @@ export async function initialProducts(prisma: PrismaClient) {
         { sku: 'ING-POTATO', qty: 200, unit: units.g.id },
         { sku: 'ING-BACON', qty: 2, unit: units.pcs.id },
         { sku: 'ING-CHED', qty: 1, unit: units.pcs.id },
-      ],
-    },
-    {
-      name: 'Diet Soda',
-      sku: 'DRK-DS-02',
-      price: 4500,
-      categoryId: categories.drinks.id,
-      image: 'https://images.unsplash.com/photo-1629203851020-9dd4aa08e9d9?q=80&w=400&auto=format&fit=crop',
-      baseUnitId: units.pcs.id,
-      recipe: [
-        { sku: 'ING-SYRUP', qty: 50, unit: units.ml.id },
-        { sku: 'ING-WATER', qty: 250, unit: units.ml.id },
       ],
     },
     {
@@ -302,12 +300,12 @@ export async function initialProducts(prisma: PrismaClient) {
     })
     variantMap[productData.sku] = createdVariant.id
 
-    // Seed Ingredients (Variant -> Variant)
+    // Seed Components (Ingredients: isAddon = false)
     for (const ing of recipe) {
       const materialVariantId = variantMap[ing.sku]
       if (materialVariantId) {
-        await prisma.productIngredient.upsert({
-          where: { hostId_materialId: { hostId: createdVariant.id, materialId: materialVariantId } },
+        await prisma.productComponent.upsert({
+          where: { hostId_materialId_isAddon: { hostId: createdVariant.id, materialId: materialVariantId, isAddon: false } },
           update: { quantityUsed: ing.qty },
           create: {
             organizationId: 'org-1',
@@ -315,41 +313,43 @@ export async function initialProducts(prisma: PrismaClient) {
             materialId: materialVariantId,
             quantityUsed: ing.qty,
             unitId: ing.unit,
+            isAddon: false,
           },
         })
       }
     }
 
-    // Seed Addons (Product level as per discussion)
+    // Seed Components (Addons: isAddon = true)
     if (productData.categoryId === categories.burgers.id) {
       const addonSkus = ['ING-CHED', 'ING-BACON', 'ING-PICKLE']
       for (const asku of addonSkus) {
-        // FIX: We need the PRODUCT ID, not the VARIANT ID
-        // Since we created the product ID as `prod-${sku}`, we can reference it directly
-        const productHostId = `prod-${asku}`
-
-        await prisma.productAddon.upsert({
-          where: {
-            hostId_addonId: {
-              hostId: createdProduct.id,
-              addonId: productHostId, // Points to Product, not Variant
+        const materialVariantId = variantMap[asku]
+        if (materialVariantId) {
+          await prisma.productComponent.upsert({
+            where: {
+              hostId_materialId_isAddon: {
+                hostId: createdVariant.id,
+                materialId: materialVariantId,
+                isAddon: true,
+              },
             },
-          },
-          update: {},
-          create: {
-            organizationId: 'org-1',
-            hostId: createdProduct.id,
-            addonId: productHostId,
-            unitId: units.pcs.id,
-            priceOverride: 2500,
-            defaultQuantity: 1,
-          },
-        })
+            update: {},
+            create: {
+              organizationId: 'org-1',
+              hostId: createdVariant.id,
+              materialId: materialVariantId,
+              unitId: units.pcs.id,
+              isAddon: true,
+              priceOverride: 2500,
+              quantityUsed: 1,
+            },
+          })
+        }
       }
     }
   }
 
-  // 5. Create Multi-Variant Products (Cola Example)
+  // 5. Multi-Variant Products
   const colaProduct = await prisma.product.upsert({
     where: { id: 'prod-cola' },
     update: {},
@@ -383,19 +383,18 @@ export async function initialProducts(prisma: PrismaClient) {
       },
     })
 
-    // Example of variant-specific ingredients (Different sizes use different amounts of syrup)
     const syrupId = variantMap['ING-SYRUP']
     const waterId = variantMap['ING-WATER']
     if (syrupId && waterId) {
-      await prisma.productIngredient.createMany({
+      await prisma.productComponent.createMany({
         data: [
-          { organizationId: 'org-1', hostId: v.id, materialId: syrupId, quantityUsed: size.syrup, unitId: units.ml.id },
-          { organizationId: 'org-1', hostId: v.id, materialId: waterId, quantityUsed: size.syrup * 5, unitId: units.ml.id },
+          { organizationId: 'org-1', hostId: v.id, materialId: syrupId, quantityUsed: size.syrup, unitId: units.ml.id, isAddon: false },
+          { organizationId: 'org-1', hostId: v.id, materialId: waterId, quantityUsed: size.syrup * 5, unitId: units.ml.id, isAddon: false },
         ],
         skipDuplicates: true,
       })
     }
   }
 
-  console.log(`✅ Fixed Seeding complete! All products now have proper variants.`)
+  console.log(`✅ Unified Seeding complete!`)
 }

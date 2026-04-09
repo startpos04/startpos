@@ -183,7 +183,7 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
                         <div key={idx} className='flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/50'>
                           <div className='flex flex-col'>
                             <span className='font-medium text-sm'>
-                              {[ing.material.name, ing.variant?.name ? `(${ing.variant?.name})` : ''].filter(Boolean).join(' ')}
+                              {[ing.material.name, ing.variant?.name ? `(${ing.variant.name})` : ''].filter(Boolean).join(' ')}
                             </span>
                             <span className='text-[10px] text-muted-foreground uppercase font-bold'>
                               {ing.quantityUsed} {ing.unit.abbreviation}

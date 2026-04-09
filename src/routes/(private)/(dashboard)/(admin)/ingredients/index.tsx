@@ -1,7 +1,7 @@
 import { getColumns } from '@/components/custom/data-view'
 import { TableView } from '@/components/custom/data-view/table-view'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge' // Assuming you have a Badge component
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
@@ -30,9 +30,7 @@ function RouteComponent() {
 
   const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, ingredientId: string) => {
     e.preventDefault()
-    showModal(IngredientDetailsDialog, {
-      ingredientId,
-    })
+    showModal(IngredientDetailsDialog, { ingredientId })
   }
 
   const columns = useMemo(
@@ -59,13 +57,19 @@ function RouteComponent() {
         }),
         h.accessor('name', {
           header: 'Ingredient',
+          cell: info => (
+            <div className='flex flex-col'>
+              <span className='font-medium'>{info.getValue()}</span>
+              <span className='text-[10px] text-muted-foreground uppercase font-mono'>{info.row.original.variants[0]?.sku}</span>
+            </div>
+          ),
         }),
         h.accessor('baseUnit.abbreviation', {
           header: 'Unit',
           maxSize: 60,
           cell: info => (
-            <Badge variant='secondary' className='rounded-md font-medium px-2 py-0 text-[11px] bg-secondary/50'>
-              {info.getValue() ?? 'pcs'}
+            <Badge variant='outline' className='rounded-md font-bold px-2 py-0 text-[10px] border-border text-muted-foreground'>
+              {info.getValue()?.toUpperCase() ?? 'PCS'}
             </Badge>
           ),
         }),
@@ -74,22 +78,34 @@ function RouteComponent() {
           header: 'Stock Level',
           cell: info => {
             const item = info.row.original
-            const totalStock = item.variants[0]?.inventory?.reduce((acc, curr) => acc + Number(curr.quantity), 0) ?? 0
+            // Raw materials should only have one primary variant for inventory tracking
+            const primaryVariant = item.variants[0]
+            const totalStock = primaryVariant?.inventory?.reduce((acc, curr) => acc + Number(curr.quantity), 0) ?? 0
+
+            const isLow = totalStock < 50 // Threshold example
+            const isOut = totalStock <= 0
 
             return (
-              <div className='flex items-center gap-2'>
-                <span className={`text-sm font-semibold ${totalStock <= 0 ? 'text-destructive' : 'text-foreground'}`}>{totalStock.toLocaleString()}</span>
-                <span className='text-xs text-muted-foreground'>{item.baseUnit?.abbreviation}</span>
+              <div className='flex items-center gap-3'>
+                <div className='flex flex-col'>
+                  <div className='flex items-center gap-1.5'>
+                    <span className={`text-sm font-bold ${isOut ? 'text-destructive' : isLow ? 'text-orange-500' : 'text-foreground'}`}>
+                      {totalStock.toLocaleString()}
+                    </span>
+                    <span className='text-[10px] font-medium text-muted-foreground'>{item.baseUnit?.abbreviation}</span>
+                  </div>
+                </div>
               </div>
             )
           },
         }),
         h.display({
           id: 'costPerUnit',
-          header: 'Cost per Unit',
+          header: 'Cost Price',
           cell: info => {
             const item = info.row.original
-            return <span className='font-mono'>{PriceEngine.format(item.variants[0]?.costPrice!)}</span>
+            const cost = item.variants[0]?.costPrice ?? 0
+            return <span className='font-mono font-bold text-sm'>{PriceEngine.format(cost)}</span>
           },
         }),
         h.display({
@@ -98,12 +114,16 @@ function RouteComponent() {
           header: () => <div className='text-right pr-4'>Actions</div>,
           cell: ({ row }) => {
             const handleDelete = async () => {
-              // TODO: in to improve what happen to product using this, inventory and many more
-              const result = await crudAPI.product('update', { where: { id: row.original.id }, data: { deletedAt: { set: new Date() } } })
+              if (!confirm('Are you sure you want to delete this ingredient? This will affect products using this recipe.')) return
+
+              const result = await crudAPI.product('update', {
+                where: { id: row.original.id },
+                data: { deletedAt: { set: new Date() } },
+              })
 
               result.match(
                 async () => {
-                  toast.success('Ingredient successfully deleted')
+                  toast.success('Ingredient archived successfully')
                   await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
                 },
                 error => toast.error(error),
@@ -118,11 +138,16 @@ function RouteComponent() {
                   onClick={e => handleEdit(e, row.original.id)}
                   className='contents'
                 >
-                  <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full'>
+                  <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary'>
                     <Edit className='h-4 w-4' />
                   </Button>
                 </Link>
-                <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full text-destructive hover:text-destructive' onClick={handleDelete}>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='h-8 w-8 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive'
+                  onClick={handleDelete}
+                >
                   <Trash2 className='h-4 w-4' />
                 </Button>
               </div>
@@ -138,7 +163,7 @@ function RouteComponent() {
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
         <div>
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Ingredients</h1>
-          <p className='text-muted-foreground text-sm'>Manage raw materials and track stock levels by weight, volume, or count.</p>
+          <p className='text-muted-foreground text-sm'>Manage raw materials and track stock levels for your MERN POS.</p>
         </div>
         <a href='/ingredients/create' onClick={handleAdd} className='contents'>
           <Button className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer'>

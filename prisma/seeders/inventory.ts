@@ -15,6 +15,7 @@ export async function initialInventory(prisma: PrismaClient) {
   }
 
   // Fetch variants that belong to RAW_MATERIAL products
+  // These are the "Materials" used in your ProductComponent table
   const rawMaterialVariants = await prisma.productVariant.findMany({
     where: {
       product: {
@@ -38,16 +39,19 @@ export async function initialInventory(prisma: PrismaClient) {
       const baseUnit = variant.product.baseUnit
       let purchaseUnit = baseUnit
 
+      // Standardize to bulk units for cost calculation
       if (baseUnit.abbreviation === 'g' && kgUnit) purchaseUnit = kgUnit
       if (baseUnit.abbreviation === 'ml' && literUnit) purchaseUnit = literUnit
 
-      // Calculation logic
-      const bulkPriceCents = PriceEngine.toCents(150.0)
+      // Calculation logic: Assume a flat starting cost for seeding
+      const bulkPriceCents = PriceEngine.toCents(150.0) // ₱150.00 base
       const normalizedCostPriceCents = Math.round(PriceEngine.costPerBase(bulkPriceCents, purchaseUnit))
-      const purchaseQty = 10
+
+      const purchaseQty = 10 // Start with 10 bulk units (10kg or 10L)
       const totalInBaseUnits = UnitEngine.toBase(purchaseQty, purchaseUnit)
 
-      // 2. Update Variant (Costs live here now)
+      // 2. Update Variant (Costs live here)
+      // This is crucial because ProductComponent references this costPrice for profit margins
       await tx.productVariant.update({
         where: { id: variant.id },
         data: { costPrice: normalizedCostPriceCents },

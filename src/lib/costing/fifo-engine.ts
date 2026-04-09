@@ -1,17 +1,16 @@
 import { CostingResult, InventoryBatchDTO } from './types'
-
 export class FIFOEngine {
   static consume(batches: InventoryBatchDTO[], requiredQty: number): CostingResult {
     let remaining = requiredQty
     let totalCost = 0
     const consumed: CostingResult['consumed'] = []
 
+    // Sort by createdAt or expiry in your query before passing here if needed
     for (const batch of batches) {
       if (remaining <= 0) break
       if (batch.quantity <= 0) continue
 
       const used = Math.min(batch.quantity, remaining)
-      // costPrice is in cents, used is likely a float (kg/L)
       const cost = Math.round(used * batch.costPrice)
 
       totalCost += cost
@@ -25,8 +24,7 @@ export class FIFOEngine {
     }
 
     if (remaining > 0.000001) {
-      // Precision check for float math
-      throw new Error('Insufficient stock in inventory batches')
+      throw new Error('Insufficient stock across available batches for FIFO consumption')
     }
 
     return { totalCost, consumed }

@@ -7,7 +7,6 @@ import { VAT_RATE } from '@/lib/constants'
 import { InventoryEngine } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
-import { cn } from '@/lib/utils'
 import { CreditCard, Minus, Plus, UserPlus } from 'lucide-react'
 import { posFormOpts } from '..'
 import { PaymentDialog } from './payment-dialog'
@@ -32,17 +31,16 @@ export const CartAside = withForm({
             <h2 className='text-xl font-black'>Current Order</h2>
             <form.Subscribe selector={s => s.values.items}>
               {items => {
-                // Calculate total quantity by summing the 'quantity' field of each item
                 const totalQty = items.reduce((acc, item) => acc + (item.quantity || 0), 0)
                 const uniqueItems = items.length
 
                 return (
                   <div className='flex gap-2'>
-                    <Badge variant='secondary' className='rounded-lg'>
-                      {uniqueItems} {uniqueItems === 1 ? 'item' : 'items'}
+                    <Badge variant='secondary' className='rounded-lg px-2 py-0.5 text-[10px]'>
+                      {uniqueItems} {uniqueItems === 1 ? 'type' : 'types'}
                     </Badge>
-                    <Badge variant='outline' className='rounded-lg bg-primary/5'>
-                      {totalQty} quantity
+                    <Badge variant='outline' className='rounded-lg bg-primary/5 px-2 py-0.5 text-[10px]'>
+                      {totalQty} total qty
                     </Badge>
                   </div>
                 )
@@ -52,9 +50,12 @@ export const CartAside = withForm({
 
           <form.AppField name='customerName'>
             {field => (
-              <Button variant='ghost' className='w-full justify-start h-12 rounded-xl border border-dashed border-border text-muted-foreground'>
-                <UserPlus className='w-4 h-4 mr-2' />
-                {field.state.value || 'Attach Customer'}
+              <Button
+                variant='ghost'
+                className='w-full justify-start h-12 rounded-2xl border border-dashed border-border text-muted-foreground hover:bg-muted/50 transition-colors'
+              >
+                <UserPlus className='w-4 h-4 mr-2 text-primary' />
+                <span className='text-xs font-semibold'>{field.state.value || 'Attach Customer'}</span>
               </Button>
             )}
           </form.AppField>
@@ -64,80 +65,35 @@ export const CartAside = withForm({
           <div className='py-6'>
             <form.Field name='items'>
               {field => (
-                <div className='space-y-4'>
+                <div className='space-y-6'>
                   {field.state.value.map((item, index: number) => {
                     const selectedAddonIds = item.addons?.map(a => a.id) || []
-                    const additionalYieldPossible = InventoryEngine.calculateRemainingYield(item.product, selectedAddonIds, field.state.value, item.variant)
+                    const additionalYieldPossible = InventoryEngine.calculateRemainingYield(item.product, item.variant, selectedAddonIds, field.state.value)
 
                     return (
                       <div key={item.cartId} className='group animate-in fade-in slide-in-from-right-4'>
-                        <div className='flex items-start gap-3'>
-                          <div className='flex-1'>
-                            <p className='font-bold text-sm leading-none'>
-                              {[item.product.name, item.variant?.name ? `(${item.variant?.name})` : ''].filter(Boolean).join(' ')}
-                            </p>
-                            <p className='text-[10px] text-muted-foreground mt-1'>{PriceEngine.format(item.variant?.price)}</p>
+                        <div className='flex items-start gap-4'>
+                          <div className='flex-1 min-w-0'>
+                            <p className='font-bold text-sm leading-tight truncate'>{item.product.name}</p>
+                            {item.variant?.name && <p className='text-[10px] font-bold text-primary uppercase tracking-tight'>{item.variant.name}</p>}
+
+                            {/* --- COMPONENT ADDONS --- */}
                             {item.addons && item.addons.length > 0 && (
-                              <div className='mt-2 space-y-1 ml-2 border-l-2 border-muted pl-2'>
-                                {Object.values(
-                                  item.addons.reduce(
-                                    (acc, curr) => {
-                                      const id = curr.addonId
-                                      if (!acc[id]) {
-                                        acc[id] = { ...curr, count: 1 }
-                                      } else {
-                                        acc[id].count += 1
-                                      }
-                                      return acc
-                                    },
-                                    {} as Record<string, (typeof item.addons)[number] & { count: number }>,
-                                  ),
-                                ).map(groupedAddon => (
-                                  <div key={groupedAddon.addonId} className='flex justify-between items-center group/addon text-[10px]'>
-                                    <span className='text-muted-foreground'>
-                                      <span className='font-bold text-primary mr-1'>{groupedAddon.count}x</span>
-                                      {groupedAddon.addon.name}
-                                    </span>
+                              <div className='mt-2 space-y-1.5 ml-1 border-l-2 border-primary/20 pl-3'>
+                                {item.addons.map(addon => (
+                                  <div key={addon.id} className='flex justify-between items-center group/addon text-[10px]'>
+                                    <span className='text-muted-foreground font-medium'>{addon.material.product.name}</span>
                                     <div className='flex items-center gap-2'>
-                                      <span className='text-muted-foreground/70'>
-                                        {PriceEngine.format(Number(groupedAddon.priceOverride) * groupedAddon.count)}
-                                      </span>
+                                      <span className='font-mono font-bold text-foreground/70'>{PriceEngine.format(Number(addon.priceOverride))}</span>
                                       <button
                                         type='button'
-                                        className='opacity-0 group-hover/addon:opacity-100 text-destructive hover:scale-110 transition-all cursor-pointer'
+                                        className='opacity-0 group-hover/addon:opacity-100 text-destructive p-0.5 hover:bg-destructive/10 rounded transition-all'
                                         onClick={() => {
-                                          // Find the first index of this specific addon and remove it
-                                          const targetIndex = item.addons?.findIndex(a => a.addonId === groupedAddon.addonId)
-                                          if (targetIndex !== -1) {
-                                            const newAddons = [...(item.addons || [])]
-                                            newAddons.splice(targetIndex!, 1)
-                                            form.setFieldValue(`items[${index}].addons`, newAddons)
-                                          }
+                                          const newAddons = item.addons.filter(a => a.id !== addon.id)
+                                          form.setFieldValue(`items[${index}].addons`, newAddons)
                                         }}
                                       >
                                         <Minus className='w-2.5 h-2.5' />
-                                      </button>
-                                      <button
-                                        type='button'
-                                        disabled={additionalYieldPossible === 0}
-                                        className={cn(
-                                          'opacity-0 group-hover/addon:opacity-100 transition-all',
-                                          additionalYieldPossible === 0 ? 'text-muted cursor-not-allowed' : 'text-green-600',
-                                        )}
-                                        onClick={() => {
-                                          // 1. Get the current list of addons
-                                          const currentAddons = item.addons || []
-
-                                          // 2. Find the original addon data from the current list to ensure we keep the same price/structure
-                                          const addonToDuplicate = currentAddons.find(a => a.addonId === groupedAddon.addonId)
-
-                                          if (addonToDuplicate && additionalYieldPossible > 0) {
-                                            // 3. Push a new copy of that addon into the array
-                                            form.setFieldValue(`items[${index}].addons`, [...currentAddons, { ...addonToDuplicate }])
-                                          }
-                                        }}
-                                      >
-                                        <Plus className='w-2.5 h-2.5' />
                                       </button>
                                     </div>
                                   </div>
@@ -145,32 +101,37 @@ export const CartAside = withForm({
                               </div>
                             )}
                           </div>
-                          <div className='flex items-center gap-2 bg-muted rounded-lg p-1'>
-                            <Button
-                              size='icon'
-                              variant='ghost'
-                              className='h-6 w-6'
-                              onClick={() => {
-                                if (item.quantity > 1) form.setFieldValue(`items[${index}].quantity`, item.quantity - 1)
-                                else form.removeFieldValue('items', index)
-                              }}
-                            >
-                              <Minus className='w-3' />
-                            </Button>
-                            <span className='text-xs font-bold w-4 text-center'>{item.quantity}</span>
-                            <Button
-                              size='icon'
-                              variant='ghost'
-                              className='h-6 w-6'
-                              disabled={additionalYieldPossible === 0}
-                              onClick={() => {
-                                if (additionalYieldPossible > 0) {
-                                  form.setFieldValue(`items[${index}].quantity`, item.quantity + 1)
-                                }
-                              }}
-                            >
-                              <Plus className='w-3' />
-                            </Button>
+
+                          {/* --- QUANTITY CONTROLS --- */}
+                          <div className='flex flex-col items-end gap-2'>
+                            <p className='text-xs font-black font-mono'>{PriceEngine.format(Number(item.variant?.price))}</p>
+                            <div className='flex items-center gap-2 bg-muted/50 rounded-xl p-1 border border-border'>
+                              <Button
+                                size='icon'
+                                variant='ghost'
+                                className='h-6 w-6 rounded-lg'
+                                onClick={() => {
+                                  if (item.quantity > 1) form.setFieldValue(`items[${index}].quantity`, item.quantity - 1)
+                                  else form.removeFieldValue('items', index)
+                                }}
+                              >
+                                <Minus className='w-3' />
+                              </Button>
+                              <span className='text-xs font-black w-4 text-center'>{item.quantity}</span>
+                              <Button
+                                size='icon'
+                                variant='ghost'
+                                className='h-6 w-6 rounded-lg'
+                                disabled={additionalYieldPossible === 0}
+                                onClick={() => {
+                                  if (additionalYieldPossible > 0) {
+                                    form.setFieldValue(`items[${index}].quantity`, item.quantity + 1)
+                                  }
+                                }}
+                              >
+                                <Plus className='w-3' />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -186,31 +147,37 @@ export const CartAside = withForm({
           {items => {
             const subtotal = items.reduce((acc, item) => {
               const itemBase = Number(item.variant?.price) * item.quantity
-              const addonsBase = item.addons?.reduce((a, b) => a + Number(b.priceOverride) * item.quantity, 0) || 0
-              return acc + itemBase + addonsBase
+              // Addons are already multiplied by item.quantity inside this loop
+              const addonsBase = item.addons?.reduce((a, b) => a + Number(b.priceOverride), 0) || 0
+              return acc + itemBase + addonsBase * item.quantity
             }, 0)
-            const total = subtotal * (1 + VAT_RATE)
+            const tax = subtotal * VAT_RATE
+            const total = subtotal + tax
 
             return (
-              <div className='p-6 bg-muted/20 border-t border-border space-y-4'>
-                <div className='space-y-2 text-xs font-medium'>
-                  <div className='flex justify-between text-muted-foreground'>
+              <div className='p-6 bg-muted/30 border-t border-border space-y-4 rounded-t-[2rem]'>
+                <div className='space-y-1.5'>
+                  <div className='flex justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider'>
                     <span>Subtotal</span>
-                    <span>{PriceEngine.format(subtotal)}</span>
+                    <span className='font-mono'>{PriceEngine.format(subtotal)}</span>
                   </div>
-                  <div className='flex justify-between text-muted-foreground'>
+                  <div className='flex justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider'>
                     <span>VAT ({VAT_RATE * 100}%)</span>
-                    <span>{PriceEngine.format(subtotal * VAT_RATE)}</span>
+                    <span className='font-mono'>{PriceEngine.format(tax)}</span>
                   </div>
-                  <Separator className='my-2' />
-                  <div className='flex justify-between text-xl font-black'>
-                    <span>Total</span>
-                    <span className='text-primary'>{PriceEngine.format(total)}</span>
+                  <Separator className='my-3 bg-border/50' />
+                  <div className='flex justify-between items-end'>
+                    <span className='text-sm font-black uppercase'>Grand Total</span>
+                    <span className='text-2xl font-black text-primary font-mono tracking-tighter'>{PriceEngine.format(total)}</span>
                   </div>
                 </div>
-                <Button disabled={items.length === 0} className='w-full py-8 rounded-2xl text-lg font-black' onClick={() => handleConfirm(total)}>
-                  <CreditCard className='mr-2 h-6! w-6!' />
-                  Pay Now
+                <Button
+                  disabled={items.length === 0}
+                  className='w-full py-8 rounded-2xl text-lg font-black shadow-lg shadow-primary/20 transition-transform active:scale-[0.98]'
+                  onClick={() => handleConfirm(total)}
+                >
+                  <CreditCard className='mr-3 h-6 w-6' />
+                  PAY NOW
                 </Button>
               </div>
             )

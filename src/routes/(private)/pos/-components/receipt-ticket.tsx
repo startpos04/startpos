@@ -100,10 +100,7 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
         {data.items.map((item, i) => (
           <View key={i} style={{ marginBottom: 4 }}>
             <View style={styles.row}>
-              <Text style={styles.columnItem}>
-                {item.product.name}
-                {item.variant ? ` (${item.variant.name})` : ''}
-              </Text>
+              <Text style={styles.columnItem}>{[item.product.name, item.variant?.name ? `(${item.variant.name})` : ''].filter(Boolean).join(' ')}</Text>
               <Text style={styles.columnQty}>{item.quantity}</Text>
               <Text style={styles.columnPrice}>{PriceEngine.toDollars(Number(item.variant?.price) * item.quantity).toFixed(2)}</Text>
             </View>
@@ -111,7 +108,7 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
             {/* Render Add-ons */}
             {item.addons?.map((addon, ai) => (
               <View key={ai} style={styles.addonRow}>
-                <Text style={styles.columnItem}>+ {addon.addon.name}</Text>
+                <Text style={styles.columnItem}>+ {addon.material.product.name}</Text>
                 <Text style={styles.columnQty}>1</Text>
                 <Text style={styles.columnPrice}>{PriceEngine.toDollars(Number(addon.priceOverride)).toFixed(2)}</Text>
               </View>
@@ -187,7 +184,7 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
             {/* Kitchen Add-ons (Indented and Clear) */}
             {item.addons?.map((addon, ai) => (
               <View key={ai} style={styles.addonRow}>
-                <Text style={styles.kitchenAddon}>+ {addon.addon.name}</Text>
+                <Text style={styles.kitchenAddon}>+ {addon.material.product.name}</Text>
               </View>
             ))}
           </View>

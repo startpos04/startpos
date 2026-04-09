@@ -88,7 +88,7 @@ function RouteComponent() {
 
   return (
     <>
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 px-4'>
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4'>
         <div>
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Products</h1>
           <p className='text-muted-foreground text-sm'>Manage variants, recipes, and profitability.</p>
@@ -110,18 +110,21 @@ function RouteComponent() {
           const primaryVariant = product.variants?.[0]
           if (!primaryVariant) return null
 
-          // --- ENGINE LOGIC: Yield & Stock ---
-          // We calculate yield for the primary variant with no additional addons selected
-          const maxServings = InventoryEngine.calculateRemainingYield(product, [], [], primaryVariant)
+          // --- UNIFIED ENGINE LOGIC: Yield & Stock ---
+          // In the unified model, we calculate yield for the base recipe (components where isAddon = false)
+          const maxServings = InventoryEngine.calculateRemainingYield(product, primaryVariant, [], [])
 
-          // --- ENGINE LOGIC: Profitability ---
-          const ingredientBreakdown =
-            primaryVariant.ingredients?.map(ing => ({
-              name: ing.material.product.name,
-              qty: ing.quantityUsed,
-              unit: ing.unit.abbreviation,
-              cost: PriceEngine.calculateLineTotal(Number(ing.quantityUsed), ing.unit, Number(ing.material.costPrice)),
-            })) || []
+          // --- UNIFIED ENGINE LOGIC: Profitability ---
+          // Split components into "Base Recipe" for cost and "Addons" for upsell UI
+          const recipeComponents = primaryVariant.components?.filter(c => !c.isAddon) || []
+          const addonComponents = primaryVariant.components?.filter(c => c.isAddon) || []
+
+          const ingredientBreakdown = recipeComponents.map(comp => ({
+            name: comp.material.product.name,
+            qty: comp.quantityUsed,
+            unit: comp.unit.abbreviation,
+            cost: PriceEngine.calculateLineTotal(Number(comp.quantityUsed), comp.unit, Number(comp.material.costPrice)),
+          }))
 
           const recipeCostCents = ingredientBreakdown.reduce((sum, item) => sum + item.cost, 0)
           const finalCostCents = recipeCostCents > 0 ? recipeCostCents : Number(primaryVariant.costPrice)
@@ -201,7 +204,7 @@ function RouteComponent() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className='text-right cursor-help'>
-                            <span className='text-[9px] font-bold uppercase text-muted-foreground block tracking-wider'>Suggested Price</span>
+                            <span className='text-[9px] font-bold uppercase text-muted-foreground block tracking-wider'>Suggested</span>
                             <span className='text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-end gap-1'>
                               {PriceEngine.format(suggestedPriceCents)} <Info className='w-2.5 h-2.5' />
                             </span>
@@ -209,7 +212,7 @@ function RouteComponent() {
                         </TooltipTrigger>
                         <TooltipContent className='bg-popover border-border p-3 rounded-xl shadow-xl'>
                           <p className='text-[11px] font-medium text-popover-foreground'>
-                            To maintain a <span className='font-bold text-primary'>{numeral(user.branch.bufferRate).format('0.0')}%</span> buffer, charge this
+                            To maintain a <span className='font-bold text-primary'>{numeral(user?.branch?.bufferRate).format('0.0')}%</span> buffer, charge this
                             amount.
                           </p>
                         </TooltipContent>
@@ -236,19 +239,19 @@ function RouteComponent() {
                 )}
 
                 {/* Add-ons Section */}
-                {product.allowedAddons && product.allowedAddons.length > 0 && (
+                {addonComponents.length > 0 && (
                   <div className='rounded-2xl border border-blue-500/20 bg-blue-500/5 p-3 dark:bg-blue-500/10'>
                     <h4 className='mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400'>
                       <Sparkles className='h-3.5 w-3.5' /> Upsell Add-ons
                     </h4>
                     <div className='flex flex-wrap gap-1.5'>
-                      {product.allowedAddons.map(item => (
+                      {addonComponents.map(comp => (
                         <Badge
-                          key={item.id}
+                          key={comp.id}
                           variant='secondary'
                           className='rounded-lg border-blue-200/50 bg-background/50 px-2 py-0 text-[10px] font-semibold dark:border-blue-800/30'
                         >
-                          {item.addon.name} <span className='ml-1 text-blue-600'>+{PriceEngine.format(item.priceOverride)}</span>
+                          {comp.material.product.name} <span className='ml-1 text-blue-600'>+{PriceEngine.format(comp.priceOverride || 0)}</span>
                         </Badge>
                       ))}
                     </div>

@@ -1,90 +1,66 @@
 import { Prettify } from 'better-auth'
-import { Inventory, Prisma } from 'prisma/generated/prisma/browser'
+import { Inventory, Prisma } from 'prisma/generated/prisma/client'
 
-// Updated to reflect the new Product/Variant split
+export const posProductComponentProps = {
+  unit: true,
+  material: {
+    include: {
+      inventory: true,
+      product: true,
+    },
+  },
+} satisfies Prisma.ProductComponentInclude
+
+// Updated to the Unified Component Model
 export const posProductProps = {
   category: true,
   baseUnit: true,
-  allowedAddons: {
-    include: {
-      unit: true,
-      addon: {
-        // This is the 'Product' acting as an addon
-        include: {
-          variants: {
-            // We need the variant to get the ingredients/inventory
-            include: {
-              inventory: true,
-              ingredients: {
-                include: {
-                  unit: true,
-                  material: { include: { inventory: true, product: true } },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
   variants: {
     include: {
       inventory: true,
-      ingredients: {
-        include: {
-          unit: true,
-          material: { include: { inventory: true, product: true } },
-        },
+      components: {
+        include: posProductComponentProps,
       },
     },
   },
 } satisfies Prisma.ProductInclude
 
 export type PosProduct = Prettify<Prisma.ProductGetPayload<{ include: typeof posProductProps }>>
+export type PosProductComponent = Prettify<Prisma.ProductComponentGetPayload<{ include: typeof posProductComponentProps }>>
 
 export type posItem = {
   cartId: string
   product: PosProduct
   quantity: number
-  variant: NonNullable<PosProduct['variants']>[number] // Variant is now usually required for bundles
-  addons: NonNullable<PosProduct['allowedAddons']>[number][] | undefined
+  variant: NonNullable<PosProduct['variants']>[number]
+  addons: Prettify<Prisma.ProductComponentGetPayload<{ include: typeof posProductComponentProps }>>[]
 }
 
 export const InventoryEngine = {
   /**
-   * Sums up all materials/variants currently held in the cart.
+   * Sums up all materials held in the cart using the unified components table.
    */
   getReservedMap: (cartItems: posItem[]) => {
     const reserved: Record<string, number> = {}
 
     cartItems.forEach(item => {
-      // Use the variant (variants hold the recipes now)
       const activeVariant = item.variant
+      if (!activeVariant.components) return
 
-      // 1. Process Main Variant ingredients
-      if (activeVariant.ingredients?.length) {
-        activeVariant.ingredients.forEach(ing => {
-          reserved[ing.materialId] = (reserved[ing.materialId] || 0) + ing.quantityUsed * item.quantity
-        })
-      } else {
-        // If it's a direct-sale variant (no recipe), track its own ID
-        reserved[activeVariant.id] = (reserved[activeVariant.id] || 0) + item.quantity
-      }
+      // Process all components (Ingredients + Selected Addons)
+      activeVariant.components.forEach(comp => {
+        // Condition: It's an ingredient (isAddon: false) OR it's a selected addon
+        const isRequired = !comp.isAddon || item.addons.some(c => c.id === comp.id)
 
-      // 2. Process Addons
-      item.addons?.forEach(addonRel => {
-        // Resolve to the first variant of the addon product
-        const addonVariant = addonRel.addon.variants?.[0]
-        if (!addonVariant) return
-
-        if (addonVariant.ingredients?.length) {
-          addonVariant.ingredients.forEach(ing => {
-            reserved[ing.materialId] = (reserved[ing.materialId] || 0) + ing.quantityUsed * item.quantity
-          })
-        } else {
-          reserved[addonVariant.id] = (reserved[addonVariant.id] || 0) + item.quantity
+        if (isRequired) {
+          reserved[comp.materialId] = (reserved[comp.materialId] || 0) + comp.quantityUsed * item.quantity
         }
       })
+
+      // If the variant has no components at all, track the variant itself (Direct Sale)
+      if (activeVariant.components.length === 0) {
+        reserved[activeVariant.id] = (reserved[activeVariant.id] || 0) + item.quantity
+      }
     })
 
     return reserved
@@ -93,43 +69,32 @@ export const InventoryEngine = {
   /**
    * Calculates requirements for a specific configuration
    */
-  getUnitRequirements: (product: PosProduct, selectedAddonIds: string[], variant: PosProduct['variants'][number]) => {
+  getUnitRequirements: (variant: PosProduct['variants'][number], selectedComponentIds: string[]) => {
     const requirements: Record<string, number> = {}
 
-    // Add main variant requirements
-    if (variant.ingredients?.length) {
-      variant.ingredients.forEach(ing => {
-        requirements[ing.materialId] = (requirements[ing.materialId] || 0) + ing.quantityUsed
-      })
-    } else {
+    if (!variant.components || variant.components.length === 0) {
       requirements[variant.id] = 1
+      return requirements
     }
 
-    // Add selected addons
-    const activeAddonRels = product.allowedAddons?.filter(a => selectedAddonIds.includes(a.id)) || []
-    activeAddonRels.forEach(rel => {
-      const addonVariant = rel.addon.variants?.[0]
-      if (!addonVariant) return
+    variant.components.forEach(comp => {
+      const isRequired = !comp.isAddon || selectedComponentIds.includes(comp.id)
 
-      if (addonVariant.ingredients?.length) {
-        addonVariant.ingredients.forEach(ing => {
-          requirements[ing.materialId] = (requirements[ing.materialId] || 0) + ing.quantityUsed
-        })
-      } else {
-        requirements[addonVariant.id] = (requirements[addonVariant.id] || 0) + 1
+      if (isRequired) {
+        requirements[comp.materialId] = (requirements[comp.materialId] || 0) + comp.quantityUsed
       }
     })
 
     return requirements
   },
 
-  calculateRemainingYield: (product: PosProduct, selectedAddonIds: string[], cartItems: posItem[], variant: PosProduct['variants'][number]) => {
+  calculateRemainingYield: (product: PosProduct, variant: PosProduct['variants'][number], selectedComponentIds: string[], cartItems: posItem[]) => {
     const reserved = InventoryEngine.getReservedMap(cartItems)
-    const unitReqs = InventoryEngine.getUnitRequirements(product, selectedAddonIds, variant)
+    const unitReqs = InventoryEngine.getUnitRequirements(variant, selectedComponentIds)
 
-    const yields = Object.entries(unitReqs).map(([id, amountPerUnit]) => {
-      const { stock } = InventoryEngine.findPhysicalStock(id, product)
-      const availableTotal = stock - (reserved[id] || 0)
+    const yields = Object.entries(unitReqs).map(([materialId, amountPerUnit]) => {
+      const { stock } = InventoryEngine.findPhysicalStock(materialId, product)
+      const availableTotal = stock - (reserved[materialId] || 0)
 
       return Math.floor(Math.max(0, availableTotal) / amountPerUnit)
     })
@@ -138,7 +103,7 @@ export const InventoryEngine = {
   },
 
   /**
-   * Searches the tree for Variant stock.
+   * Searches the tree for physical stock linked to a specific material ID.
    */
   findPhysicalStock: (id: string, productOrList: PosProduct | PosProduct[], branchId?: string): { stock: number; name: string } => {
     let physicalStock = 0
@@ -148,37 +113,20 @@ export const InventoryEngine = {
     const products = Array.isArray(productOrList) ? productOrList : [productOrList]
 
     for (const p of products) {
-      // 1. Check Variants of the product
       for (const v of p.variants || []) {
+        // 1. Check if the ID matches the Variant itself
         if (v.id === id) {
           physicalStock = getQty(v.inventory || [])
-          displayName = v.name || ''
+          displayName = v.name || p.name
           return { stock: physicalStock, name: displayName }
         }
 
-        // 2. Check ingredients of those variants (material is a variant)
-        const ingMatch = v.ingredients?.find(ing => ing.materialId === id)
-        if (ingMatch) {
-          physicalStock = getQty(ingMatch.material.inventory || [])
-          displayName = ingMatch.material.product.name // Get parent name for clarity
+        // 2. Check components of those variants
+        const compMatch = v.components?.find(c => c.materialId === id)
+        if (compMatch) {
+          physicalStock = getQty(compMatch.material.inventory || [])
+          displayName = compMatch.material.product.name // Clarity: "Beef Patty" instead of "Beef Patty (150g)"
           return { stock: physicalStock, name: displayName }
-        }
-      }
-
-      // 3. Check Addons
-      for (const rel of p.allowedAddons || []) {
-        for (const av of rel.addon.variants || []) {
-          if (av.id === id) {
-            physicalStock = getQty(av.inventory || [])
-            displayName = av.name || ''
-            return { stock: physicalStock, name: displayName }
-          }
-          const aIngMatch = av.ingredients?.find(ing => ing.materialId === id)
-          if (aIngMatch) {
-            physicalStock = getQty(aIngMatch.material.inventory || [])
-            displayName = aIngMatch.material.product.name
-            return { stock: physicalStock, name: displayName }
-          }
         }
       }
     }

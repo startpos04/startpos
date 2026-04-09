@@ -3,7 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { Prisma } from 'prisma/generated/prisma/browser'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { VAT_RATE } from '../constants'
-import { InventoryEngine, posItem, PosProduct, posProductProps } from '../conversion/inventory-engine'
+import { InventoryEngine, PosProduct, PosProductComponent, posProductProps } from '../conversion/inventory-engine'
 import { CostingService } from '../costing'
 import { getTenantPrisma } from '../prisma-client'
 import { Prettify } from '../types'
@@ -11,12 +11,9 @@ import { Prettify } from '../types'
 interface SaleItem {
   cartId: string
   productId: string
-  variantId?: string
+  variantId: string
   quantity: number
-  addons: {
-    addonId: string
-    quantity: number
-  }[]
+  addons: PosProductComponent[]
 }
 
 interface CreateSaleInput {
@@ -34,14 +31,12 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
     const prisma = getTenantPrisma(context.user.organizationId, context.user.branchId!)
     const { user } = authStore.state
 
-    // --- 1. PRE-FETCH PRODUCT DATA (Recipes & Inventory) ---
-    // We need this to know what to decrement (ingredients vs products)
+    // --- 1. PRE-FETCH PRODUCT DATA ---
     const productIds = data.items.map(item => item.productId)
     const dbProducts = (await prisma.product.findMany({ where: { id: { in: productIds } }, include: posProductProps })) as PosProduct[]
 
     const result = await prisma.$transaction(async tx => {
-      // --- 2. VALIDATION & TOTALS ---
-      // Map frontend input to a format the Engine understands for validation
+      // --- 2. VALIDATION & STOCK GUARD ---
       const cartForValidation = data.items.map(item => {
         const product = dbProducts.find(p => p.id === item.productId)!
         const variant = product?.variants?.find(v => v.id === item.variantId)!
@@ -51,77 +46,62 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
           product,
           variant,
           quantity: item.quantity,
-          addons: item.addons.map(a => ({
-            addonId: a.addonId,
-          })),
+          addons: item.addons,
         }
       })
 
       // Backend Stock Guard
-      const reservedMap = InventoryEngine.getReservedMap(cartForValidation as unknown as posItem[])
-      for (const [id, amountNeeded] of Object.entries(reservedMap)) {
-        const { stock, name } = InventoryEngine.findPhysicalStock(id, dbProducts, user.branch.id)
+      const reservedMap = InventoryEngine.getReservedMap(cartForValidation)
+
+      for (const [variantId, amountNeeded] of Object.entries(reservedMap)) {
+        const { stock, name } = InventoryEngine.findPhysicalStock(variantId, dbProducts, user.branch.id)
 
         if (stock < amountNeeded) {
           throw new Error(`Insufficient stock for ${name}. Needed: ${amountNeeded}, Available: ${stock}`)
         }
       }
 
-      // Calculate totals
-      const { totalTaxAmount, grandTotal, totalCost } = data.items.reduce(
+      // --- 3. TOTALS CALCULATION ---
+      const totals = data.items.reduce(
         (acc, item) => {
-          // Get the main Product and its specific Variant
           const product = dbProducts.find(p => p.id === item.productId)!
           const variant = product.variants.find(v => v.id === item.variantId)!
 
-          const itemPrice = Number(variant.price)
-          // Use the CostingService or a direct property if available on the variant
-          const itemCost = Number(variant.costPrice || 0)
+          const basePrice = Number(variant.price)
+          const baseCost = Number(variant.costPrice || 0)
 
-          // Calculate Addons Price and Cost
           const addonsTotals = item.addons.reduce(
             (sum, a) => {
-              // Find the addon configuration on the parent product to get the priceOverride
-              const addonConfig = product.allowedAddons.find(rel => rel.id === a.addonId)!
-
-              // Find the addon's actual variant to get the costPrice
-              // Usually, addonConfig.addon.variants[0] is the target for simple addons
-              const addonVariant = addonConfig.addon.variants?.[0]
-
-              const aPrice = Number(addonConfig.priceOverride || 0)
-              const aCost = Number(addonVariant?.costPrice || 0)
-
+              const component = variant.components.find(c => c.id === a.id)!
               return {
-                price: sum.price + aPrice * a.quantity,
-                cost: sum.cost + aCost * a.quantity,
+                price: sum.price + Number(component.priceOverride || 0) * a.quantityUsed,
+                cost: sum.cost + Number(component.material.costPrice || 0) * a.quantityUsed,
               }
             },
             { price: 0, cost: 0 },
           )
 
-          // Line calculations
-          const lineSubtotal = itemPrice * item.quantity + addonsTotals.price * item.quantity
-          const lineCost = itemCost * item.quantity + addonsTotals.cost * item.quantity
+          const lineSubtotal = (basePrice + addonsTotals.price) * item.quantity
+          const lineCost = (baseCost + addonsTotals.cost) * item.quantity
           const lineTax = Math.round(lineSubtotal * VAT_RATE)
-          const lineTotal = lineSubtotal + lineTax
 
           return {
-            totalTaxAmount: acc.totalTaxAmount + lineTax,
-            grandTotal: acc.grandTotal + lineTotal,
-            totalCost: acc.totalCost + lineCost,
+            tax: acc.tax + lineTax,
+            total: acc.total + (lineSubtotal + lineTax),
+            cost: acc.cost + lineCost,
           }
         },
-        { totalTaxAmount: 0, grandTotal: 0, totalCost: 0 },
+        { tax: 0, total: 0, cost: 0 },
       )
 
-      // --- 3. CREATE TRANSACTION ---
+      // --- 4. CREATE TRANSACTION ---
       const transaction = (await tx.transaction.create({
         data: {
           cashierId: user.id,
           customerId: data.customerId,
-          totalAmount: grandTotal,
-          taxAmount: totalTaxAmount,
-          totalCost,
+          totalAmount: totals.total,
+          taxAmount: totals.tax,
+          totalCost: totals.cost,
           bufferRate: user.branch.bufferRate,
           status: 'COMPLETED',
           type: 'SALE',
@@ -133,24 +113,21 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
               return {
                 organizationId: context.user.organizationId,
                 branchId: context.user.branchId!,
-                variantId: item.variantId!,
+                variantId: item.variantId,
                 quantity: item.quantity,
                 unitPrice: Number(variant.price),
                 unitCost: Number(variant.costPrice || 0),
                 unitId: product.baseUnitId,
-
                 selectedAddons: {
-                  create: item.addons.map(addon => {
-                    const addonConfig = product.allowedAddons.find(rel => rel.id === addon.addonId)!
-                    const addonVariant = addonConfig.addon.variants?.[0]
-
+                  create: item.addons.map(a => {
+                    const comp = variant.components.find(c => c.id === a.id)!
                     return {
                       organizationId: context.user.organizationId,
                       branchId: context.user.branchId!,
-                      addonId: addon.addonId,
-                      quantity: addon.quantity,
-                      priceAtSale: Number(addonConfig.priceOverride || 0),
-                      costAtSale: Number(addonVariant?.costPrice || 0),
+                      addonId: comp.materialId,
+                      quantity: a.quantityUsed,
+                      priceAtSale: Number(comp.priceOverride || 0),
+                      costAtSale: Number(comp.material.costPrice || 0),
                     }
                   }),
                 },
@@ -161,65 +138,72 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
             create: [
               {
                 method: 'CASH',
-                amount: grandTotal,
+                amount: totals.total,
                 tendered: data.payment.tendered,
-                change: data.payment.tendered - grandTotal,
+                change: data.payment.tendered - totals.total,
                 referenceNo: null,
               },
             ],
           },
         },
-        include: {
-          items: { include: { selectedAddons: true } },
-          payments: true,
-        },
+        include: { items: { include: { selectedAddons: true } }, payments: true },
       })) as Prettify<Prisma.TransactionGetPayload<{ include: { items: { include: { selectedAddons: true } }; payments: true } }>>
 
-      // --- 4. DECREMENT INVENTORY (THE ENGINE WAY) ---
-      // Loop through the reserved map we generated earlier
-      for (const [id, totalQuantityToSubtract] of Object.entries(reservedMap)) {
-        // 1. Find the product that contains this variant ID
-        const parentProduct = dbProducts.find(p => p.variants.some(v => v.id === id))
+      // --- 5. DECREMENT INVENTORY (FIFO) ---
+      for (const [vId, totalQty] of Object.entries(reservedMap)) {
+        // 1. Resolve the Unit from our pre-fetched dbProducts
+        // We look through products to find the variant, then grab its baseUnit
+        const productWithVariant = dbProducts.find(p => p.variants.some(v => v.id === vId))
 
-        // 2. Find the unit: either the parent product's baseUnit or from an ingredient
+        // If not found in direct products (could be a raw material used in a recipe),
+        // we check the nested material data in the components
         const unit =
-          parentProduct?.baseUnit ||
+          productWithVariant?.baseUnit ||
           dbProducts
             .flatMap(p => p.variants)
-            .flatMap(v => v.ingredients)
-            .find(ing => ing.materialId === id)?.unit
+            .flatMap(v => v.components)
+            .find(c => c.materialId === vId)?.unit
 
-        if (!unit) throw new Error(`Could not find unit definition for variant: ${id}`)
+        if (!unit) {
+          throw new Error(`Unit definition missing for Variant ID: ${vId}`)
+        }
 
-        // 1. Fetch Inventory Batches for this specific product/material in this branch
-        // We sort by createdAt ASC to support FIFO naturally
+        // 2. Fetch Inventory Batches
         const inventoryBatches = await tx.inventory.findMany({
-          where: { variantId: id, quantity: { gt: 0 } },
-          orderBy: { createdAt: 'asc' },
+          where: {
+            variantId: vId,
+            quantity: { gt: 0 },
+            branchId: context.user.branchId,
+          },
+          orderBy: { createdAt: 'asc' }, // Standard FIFO
         })
 
-        // 2. Prepare the Consumption Plan using your CostingService
-        // Strategy can come from user.branch.costingStrategy or a default
+        // 3. Prepare Consumption using the actual Unit object
+        const plan = CostingService.prepareConsumption(
+          'FIFO',
+          {
+            variantId: vId,
+            quantity: totalQty,
+            unit, // Passing the full Unit object (grams, ml, pcs, etc.)
+          },
+          inventoryBatches,
+        )
 
-        const strategy = 'FIFO'
-        const plan = CostingService.prepareConsumption(strategy, { variantId: id, quantity: totalQuantityToSubtract, unit }, inventoryBatches)
-
-        // 3. Execute the Plan: Update each specific batch
+        // 4. Execute updates and log movements
         for (const usage of plan.consumed || []) {
           await tx.inventory.update({
             where: { id: usage.inventoryId },
             data: { quantity: { decrement: usage.quantity } },
           })
 
-          // 4. Log Movement for EACH batch (better for auditing)
           await tx.inventoryMovement.create({
             data: {
-              variantId: id,
+              variantId: vId,
               inventoryId: usage.inventoryId,
               userId: user.id,
               type: 'OUT',
               quantity: usage.quantity,
-              reason: `Sale: ${transaction.invoiceNo}`,
+              reason: `Sale: ${transaction.id}`,
               unitId: unit.id,
             },
           })

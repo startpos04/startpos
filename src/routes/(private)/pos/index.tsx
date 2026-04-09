@@ -41,18 +41,16 @@ function POSPage() {
       try {
         const result = await createPosTransaction({
           data: {
-            customerId: null,
-            payment: value.payment,
+            customerId: value.customerId, // Use the actual value from form
+            payment: {
+              tendered: Number(value.payment.tendered),
+            },
             items: value.items.map(item => ({
               cartId: item.cartId,
               productId: item.product.id,
-              variantId: item.variant?.id || item.product.id,
+              variantId: item.variant?.id,
               quantity: item.quantity,
-              addons:
-                item.addons?.map(a => ({
-                  addonId: a.addonId,
-                  quantity: 1,
-                })) || [],
+              addons: item.addons,
             })),
           },
         })

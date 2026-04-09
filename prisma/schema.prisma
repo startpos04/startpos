@@ -38,8 +38,7 @@ model Organization {
   categories         Category[]
   units              Unit[]
   customers          Customer[]
-  productIngredients ProductIngredient[]
-  productAddons      ProductAddon[]
+  productComponents  ProductComponent[]
   productUnits       ProductUnit[]
   purchaseItems      PurchaseItem[]
   inventory          Inventory[]
@@ -226,9 +225,6 @@ model Product {
   // --- THE VARIANT SYSTEM ---
   variants ProductVariant[]
 
-  allowedAddons ProductAddon[] @relation("HostProduct")
-  usedAsAddonIn ProductAddon[] @relation("AddonComponent")
-
   organization   Organization @relation(fields: [organizationId], references: [id])
   organizationId String
 
@@ -252,9 +248,9 @@ model ProductVariant {
   costPrice   Int     @default(0) @db.Integer // Cost to acquire/make the product (in cents)
   variantType String?
 
-  // Ingredients/Recipe logic moves to Variant level
-  ingredients ProductIngredient[] @relation("ParentVariant")
-  usedIn      ProductIngredient[] @relation("ComponentVariant")
+  // Ingredients/Recipe logic moves to Variant level via Unified Components
+  components ProductComponent[] @relation("ParentVariant")
+  usedIn     ProductComponent[] @relation("ComponentVariant")
 
   inventory          Inventory[]
   orderItems         OrderItem[]
@@ -274,12 +270,16 @@ model ProductVariant {
   @@map("product_variants")
 }
 
-model ProductIngredient {
+model ProductComponent {
   id           String @id @default(cuid())
   hostId       String
   materialId   String
   unitId       String
-  quantityUsed Float // How much of the material is used in the host variant
+  quantityUsed Float // How much of the material is used
+
+  // Behavior Flags
+  isAddon       Boolean @default(false) // True if it's a paid extra, False if it's a recipe ingredient
+  priceOverride Int?    @db.Integer // Price charged if isAddon is true (in cents)
 
   unit     Unit           @relation(fields: [unitId], references: [id])
   host     ProductVariant @relation("ParentVariant", fields: [hostId], references: [id])
@@ -288,30 +288,9 @@ model ProductIngredient {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
 
-  @@unique([hostId, materialId])
+  @@unique([hostId, materialId, isAddon])
   @@index([organizationId])
-  @@map("product_ingredients")
-}
-
-model ProductAddon {
-  id      String @id @default(cuid())
-  hostId  String
-  addonId String
-  unitId  String
-
-  priceOverride   Int // If the addon has a different price than its standalone price (in cents)
-  defaultQuantity Float @default(1) // Default quantity of the addon when added to the host product
-
-  host  Product @relation("HostProduct", fields: [hostId], references: [id])
-  addon Product @relation("AddonComponent", fields: [addonId], references: [id])
-  unit  Unit    @relation(fields: [unitId], references: [id])
-
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-
-  @@unique([hostId, addonId])
-  @@index([organizationId])
-  @@map("product_addons")
+  @@map("product_components")
 }
 
 enum UnitType {
@@ -340,13 +319,12 @@ model Unit {
 
   organization  Organization        @relation(fields: [organizationId], references: [id])
   products      Product[]           @relation("ProductBaseUnit")
-  ingredients   ProductIngredient[]
+  components    ProductComponent[]
   inventory     Inventory[]
   movements     InventoryMovement[]
   orderItems    OrderItem[]
   productUnits  ProductUnit[]
   purchaseItems PurchaseItem[]
-  productAddons ProductAddon[]
 
   @@index([deletedAt])
   @@map("units")

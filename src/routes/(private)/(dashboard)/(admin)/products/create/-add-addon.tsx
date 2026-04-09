@@ -123,7 +123,7 @@ export function AddAddonModal({ open, onClose, onAdd }: AddAddonModalProps) {
                                     </Avatar>
                                     <div className='flex flex-col'>
                                       <span className='text-sm font-semibold'>
-                                        {[product.name, variant?.name ? `(${variant?.name})` : ''].filter(Boolean).join(' ')}
+                                        {[product.name, variant?.name ? `(${variant.name})` : ''].filter(Boolean).join(' ')}
                                       </span>
                                       <div className='flex items-center gap-2'>
                                         <Badge variant='secondary' className='text-[9px] h-3.5 px-1 uppercase tracking-tighter font-mono'>

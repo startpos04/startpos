@@ -39,7 +39,7 @@ export const ProductGrid = withForm({
             },
             ...(activeCategory !== 'ALL' && { categoryId: activeCategory }),
             ...(searchQuery && {
-              OR: [{ name: { contains: searchQuery, mode: 'insensitive' } }, { sku: { contains: searchQuery, mode: 'insensitive' } }],
+              OR: [{ name: { contains: searchQuery, mode: 'insensitive' } }, { variants: { some: { sku: { contains: searchQuery, mode: 'insensitive' } } } }],
             }),
           },
           include: posProductProps,
@@ -64,55 +64,70 @@ export const ProductGrid = withForm({
       )
     }
 
-    const handleAddToCart = (item: posItem) => {
+    const handleAddToCart = (newItem: posItem) => {
       const currentItems = form.getFieldValue('items') as posItem[]
 
       const existingItemIndex = currentItems.findIndex(i => {
-        if (i.product.id !== item.product.id) return false
-        if (i.variant && i.variant.id !== item.variant?.id) return false
-        if (!_.isEqual(i.addons, item.addons)) return false
+        const isSameProduct = i.product.id === newItem.product.id
+        const isSameVariant = i.variant.id === newItem.variant?.id
 
-        return true
+        // Deep compare addons to ensure we don't merge different customizations
+        // (e.g., Coffee with Sugar vs Coffee without Sugar)
+        const isSameAddons = _.isEqual(_.sortBy(i.addons, 'id'), _.sortBy(newItem.addons, 'id'))
+
+        return isSameProduct && isSameVariant && isSameAddons
       })
 
       if (existingItemIndex !== -1) {
         const currentQty = currentItems[existingItemIndex]?.quantity || 0
-        form.setFieldValue(`items[${existingItemIndex}].quantity`, currentQty + item.quantity)
+        form.setFieldValue(`items[${existingItemIndex}].quantity`, currentQty + newItem.quantity)
       } else {
-        form.pushFieldValue('items', item)
+        form.pushFieldValue('items', newItem)
       }
     }
 
     return (
-      <main className='flex-1 flex flex-col gap-6 '>
-        <header className='flex justify-between items-center bg-card p-4 rounded-[2rem] border border-border'>
-          <div className='hidden md:block px-2'>
-            <h1 className='text-xl font-black'>{APP_NAME}</h1>
-            <p className='text-muted-foreground text-xs font-medium'>{dayjs().format('ddd, MMM DD · HH:mm')}</p>
+      <main className='flex-1 flex flex-col gap-6 overflow-hidden'>
+        <header className='flex justify-between items-center bg-card/80 backdrop-blur-md p-4 rounded-[2.5rem] border border-border mx-4 mt-2'>
+          <div className='hidden lg:block px-4 border-r border-border mr-4'>
+            <h1 className='text-xl font-black tracking-tighter'>{APP_NAME}</h1>
+            <p className='text-muted-foreground text-[10px] font-bold uppercase tracking-widest'>{dayjs().format('ddd, MMM DD · HH:mm')}</p>
           </div>
-          <div className='relative w-full max-w-md mx-4'>
-            <Search className='absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground' />
+
+          <div className='relative flex-1 max-w-xl'>
+            <Search className='absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50' />
             <Input
               value={searchQuery}
               onChange={e => updateSearch(e.target.value)}
-              className='pl-11 h-12 rounded-2xl bg-muted/50 border-none'
-              placeholder='Search products...'
+              className='pl-11 h-12 rounded-2xl bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all'
+              placeholder='Search by name or SKU...'
             />
           </div>
-          <div className='flex items-center gap-5'>
+
+          <div className='flex items-center gap-3 ml-4'>
             <ThemeToggle />
-            <Button variant='outline' className='rounded-xl border-dashed' onClick={handleLogout}>
-              <LogOut className='w-5 h-5' /> Logout
+            <Button
+              variant='ghost'
+              size='sm'
+              className='rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive font-bold text-xs'
+              onClick={handleLogout}
+            >
+              <LogOut className='w-4 h-4 mr-2' /> LOGOUT
             </Button>
           </div>
         </header>
-        <GridView<NonNullable<typeof data>[number]>
-          data={data}
-          isFetching={isFetching}
-          columns={columns}
-          className='px-4'
-          renderCard={row => <ProductCard key={row.original.id} product={row.original} cartItems={cartItems} onAdd={handleAddToCart} />}
-        />
+
+        <div className='flex-1 overflow-y-auto custom-scrollbar'>
+          <GridView<NonNullable<typeof data>[number]>
+            data={data}
+            isFetching={isFetching}
+            columns={columns}
+            className='px-4 pb-8'
+            // We pass the global cartItems store value to each card
+            // so they can individually calculate their remaining yield/stock
+            renderCard={row => <ProductCard key={row.original.id} product={row.original} cartItems={cartItems} onAdd={handleAddToCart} />}
+          />
+        </div>
       </main>
     )
   },
