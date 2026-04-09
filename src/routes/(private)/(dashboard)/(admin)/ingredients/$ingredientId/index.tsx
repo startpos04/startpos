@@ -68,7 +68,7 @@ function RouteComponent(props: RouteComponentProps) {
   if (isLoading) return <div className='p-10 animate-pulse bg-muted rounded-xl h-full' />
   if (!ingredient) return <div className='p-6'>Ingredient not found.</div>
 
-  const totalStock = ingredient.inventory?.reduce((acc: number, inv: any) => acc + inv.quantity, 0) || 0
+  const totalStock = ingredient.inventory?.reduce((acc: number, inv) => acc + inv.quantity, 0) || 0
   const lowStockThreshold = 10 // This could be a field in your schema later
   const isLowStock = totalStock < lowStockThreshold
 
@@ -207,7 +207,7 @@ function RouteComponent(props: RouteComponentProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ingredient.usedIn.map((usage: any) => {
+                  {ingredient.usedIn.map(usage => {
                     const costContribution = usage.quantityUsed * (ingredient.costPrice / 100)
                     return (
                       <TableRow key={usage.id}>
@@ -240,7 +240,7 @@ function RouteComponent(props: RouteComponentProps) {
         {/* TAB 2: BATCH TRACKING */}
         <TabsContent value='batches' className='pt-4'>
           <div className='space-y-4'>
-            {ingredient.inventory.map((batch: any) => (
+            {ingredient.inventory.map(batch => (
               <Card key={batch.id}>
                 <CardContent className='flex items-center justify-between py-4'>
                   <div className='flex gap-6 items-center'>

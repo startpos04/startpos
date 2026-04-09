@@ -67,7 +67,7 @@ export const CartAside = withForm({
                 <div className='space-y-4'>
                   {field.state.value.map((item, index: number) => {
                     const selectedAddonIds = item.addons?.map(a => a.id) || []
-                    const additionalYieldPossible = InventoryEngine.calculateRemainingYield(item.product, selectedAddonIds, field.state.value)
+                    const additionalYieldPossible = InventoryEngine.calculateRemainingYield(item.product, selectedAddonIds, field.state.value, item.variant)
 
                     return (
                       <div key={item.cartId} className='group animate-in fade-in slide-in-from-right-4'>

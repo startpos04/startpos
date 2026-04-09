@@ -68,7 +68,7 @@ export const multiTenantExtension = (organizationId: string, branchId?: string) 
                       } else if (op === 'upsert') {
                         // FIX: Upsert can be an array or a single object
                         const upsertItems = Array.isArray(nestedData[op]) ? nestedData[op] : [nestedData[op]]
-                        upsertItems.forEach((item: any) => {
+                        upsertItems.forEach(item => {
                           // Inject into the 'create' block
                           if (item.create) injectIds(item.create, nestedModelName)
                           // Inject into the 'update' block
@@ -81,13 +81,13 @@ export const multiTenantExtension = (organizationId: string, branchId?: string) 
                         })
                       } else if (op === 'connectOrCreate') {
                         const items = Array.isArray(nestedData[op]) ? nestedData[op] : [nestedData[op]]
-                        items.forEach((item: any) => {
+                        items.forEach(item => {
                           if (item.create) injectIds(item.create, nestedModelName)
                           if (item.where && meta.hasOrg) item.where.organizationId = organizationId
                         })
                       } else {
                         const items = Array.isArray(nestedData[op]) ? nestedData[op] : [nestedData[op]]
-                        items.forEach((item: any) => injectIds(item, nestedModelName))
+                        items.forEach(item => injectIds(item, nestedModelName))
                       }
                     }
                   })

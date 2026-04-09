@@ -42,7 +42,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
     // --- 1. PRE-FETCH PRODUCT DATA (Recipes & Inventory) ---
     // We need this to know what to decrement (ingredients vs products)
     const productIds = data.items.flatMap(item => [item.productId, ...(item.variantId ? [item.variantId] : []), ...item.addons.map(a => a.addonId)])
-    const dbProducts = (await prisma.product.findMany({ where: { id: { in: productIds } }, ...posProductProps })) as PosProduct[]
+    const dbProducts = (await prisma.product.findMany({ where: { id: { in: productIds } }, include: posProductProps })) as PosProduct[]
 
     const result = await prisma.$transaction(async tx => {
       // --- 2. VALIDATION & TOTALS ---

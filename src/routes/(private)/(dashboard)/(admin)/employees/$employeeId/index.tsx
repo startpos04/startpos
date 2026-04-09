@@ -98,7 +98,7 @@ function RouteComponent(props: RouteComponentProps) {
   if (error || !employee) return <div className='p-6 text-destructive'>Employee not found.</div>
 
   // CALCULATION: Real Revenue from processedSales (stored in cents)
-  const totalRevenueCents = employee.processedSales?.reduce((acc: number, sale: any) => acc + sale.totalAmount, 0) || 0
+  const totalRevenueCents = employee.processedSales?.reduce((acc: number, sale) => acc + sale.totalAmount, 0) || 0
   const totalRevenue = totalRevenueCents / 100
   const salesTarget = 10000 // Set a dynamic target or keep static
   const targetReached = Math.min(Math.round((totalRevenue / salesTarget) * 100), 100)

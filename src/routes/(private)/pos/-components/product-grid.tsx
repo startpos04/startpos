@@ -40,7 +40,7 @@ export const ProductGrid = withForm({
               OR: [{ name: { contains: searchQuery, mode: 'insensitive' } }, { sku: { contains: searchQuery, mode: 'insensitive' } }],
             }),
           },
-          ...posProductProps,
+          include: posProductProps,
         })
 
         if (result.isErr()) throw new Error(result.error)

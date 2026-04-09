@@ -19,6 +19,7 @@ export function ProductCard({ cartItems, product, onAdd }: ProductCardProps) {
   const maxAvailable = useMemo(() => InventoryEngine.calculateRemainingYield(product, [], cartItems), [product, cartItems])
 
   const handleOpenConfig = () => {
+    1
     if (maxAvailable <= 0) return
 
     showModal(ProductDialog, {

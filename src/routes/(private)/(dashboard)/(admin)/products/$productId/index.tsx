@@ -68,7 +68,7 @@ function RouteComponent(props: RouteComponentProps) {
   if (!product) return <div className='p-6 text-center'>Product not found.</div>
 
   // Calculations
-  const totalStock = product.inventory?.reduce((acc: number, inv: any) => acc + inv.quantity, 0) || 0
+  const totalStock = product.inventory?.reduce((acc: number, inv) => acc + inv.quantity, 0) || 0
   const profitCents = product.price - product.costPrice
   const marginPercentage = product.price > 0 ? (profitCents / product.price) * 100 : 0
   const isLowStock = totalStock < 10
@@ -191,7 +191,7 @@ function RouteComponent(props: RouteComponentProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {product.inventory.map((inv: any) => (
+                    {product.inventory.map(inv => (
                       <TableRow key={inv.id}>
                         <TableCell className='font-mono text-xs'>{inv.batchNumber || '—'}</TableCell>
                         <TableCell>{inv.location || 'Main'}</TableCell>
@@ -249,7 +249,7 @@ function RouteComponent(props: RouteComponentProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {product.ingredients?.map((ing: any) => (
+                  {product.ingredients?.map(ing => (
                     <TableRow key={ing.id}>
                       <TableCell className='font-medium'>{ing.material.name}</TableCell>
                       <TableCell>
@@ -281,7 +281,7 @@ function RouteComponent(props: RouteComponentProps) {
               <CardContent>
                 {product.variants?.length > 0 ? (
                   <div className='space-y-2'>
-                    {product.variants.map((v: any) => (
+                    {product.variants.map(v => (
                       <div key={v.id} className='flex justify-between items-center p-2 border rounded-lg'>
                         <span>{v.variantValue}</span>
                         <span className='font-bold'>{PriceEngine.format(v.price)}</span>
@@ -301,7 +301,7 @@ function RouteComponent(props: RouteComponentProps) {
               <CardContent>
                 {product.allowedAddons?.length > 0 ? (
                   <div className='space-y-2'>
-                    {product.allowedAddons.map((a: any) => (
+                    {product.allowedAddons.map(a => (
                       <div key={a.id} className='flex justify-between items-center p-2 border rounded-lg bg-blue-50/30'>
                         <span>{a.addon.name}</span>
                         <span className='font-bold text-blue-600'>+{PriceEngine.format(a.priceOverride)}</span>

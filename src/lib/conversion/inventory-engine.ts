@@ -1,33 +1,33 @@
 import { Prettify } from 'better-auth'
-import { Prisma } from 'prisma/generated/prisma/browser'
+import { Inventory, Prisma } from 'prisma/generated/prisma/browser'
 
 export const posProductProps = {
-  include: {
-    category: true as true,
-    baseUnit: true as true,
-    allowedAddons: {
-      include: {
-        unit: true as true,
-        addon: {
-          include: {
-            inventory: true as true,
-            ingredients: { include: { unit: true as true, material: { include: { inventory: true as true } } } },
-          },
+  category: true,
+  baseUnit: true,
+  allowedAddons: {
+    include: {
+      unit: true,
+      addon: {
+        include: {
+          inventory: true,
+          ingredients: { include: { unit: true, material: { include: { inventory: true } } } },
         },
       },
     },
-    variants: true as true,
-    inventory: true as true,
-    ingredients: { include: { unit: true as true, material: { include: { inventory: true as true } } } },
   },
-}
+  variants: {
+    include: { baseUnit: true, inventory: true, ingredients: { include: { unit: true, material: { include: { inventory: true } } } } },
+  },
+  inventory: true,
+  ingredients: { include: { unit: true, material: { include: { inventory: true } } } },
+} satisfies Prisma.ProductInclude
 
 export interface InventoryRequirement {
   id: string
   amountNeeded: number
 }
 
-export type PosProduct = Prettify<Prisma.ProductGetPayload<typeof posProductProps>>
+export type PosProduct = Prettify<Prisma.ProductGetPayload<{ include: typeof posProductProps }>>
 
 export type posItem = {
   cartId: string
@@ -45,16 +45,21 @@ export const InventoryEngine = {
     const reserved: Record<string, number> = {}
 
     cartItems.forEach(item => {
-      // 1. Process Main Product
-      if (item.product.ingredients?.length) {
-        item.product.ingredients.forEach(ing => {
+      // Use the variant if selected, otherwise fallback to master product
+      const activeProduct = item.variant || item.product
+
+      // 1. Process Main Product (or Variant)
+      // Check ingredients on the active product (variant or master)
+      if (activeProduct.ingredients?.length) {
+        activeProduct.ingredients.forEach(ing => {
           reserved[ing.materialId] = (reserved[ing.materialId] || 0) + ing.quantityUsed * item.quantity
         })
       } else {
-        reserved[item.product.id] = (reserved[item.product.id] || 0) + item.quantity
+        // If no ingredients, track the product/variant ID itself
+        reserved[activeProduct.id] = (reserved[activeProduct.id] || 0) + item.quantity
       }
 
-      // 2. Process Addons
+      // 2. Process Addons (Addons usually apply to the whole line item)
       item.addons?.forEach(addonRel => {
         const addon = addonRel.addon
         if (addon.ingredients?.length) {
@@ -73,16 +78,19 @@ export const InventoryEngine = {
   /**
    * Calculates requirements for a specific product configuration (Product + selected Addons)
    */
-  getUnitRequirements: (product: PosProduct, selectedAddonIds: string[]) => {
+  getUnitRequirements: (product: PosProduct, selectedAddonIds: string[], variant?: PosProduct['variants'][number]) => {
     const requirements: Record<string, number> = {}
 
-    // Add main product
-    if (product.ingredients?.length) {
-      product.ingredients.forEach(ing => {
+    // Prioritize variant over product
+    const activeProduct = variant || product
+
+    // Add main product/variant requirements
+    if (activeProduct.ingredients?.length) {
+      activeProduct.ingredients.forEach(ing => {
         requirements[ing.materialId] = (requirements[ing.materialId] || 0) + ing.quantityUsed
       })
     } else {
-      requirements[product.id] = 1
+      requirements[activeProduct.id] = 1
     }
 
     // Add selected addons
@@ -103,15 +111,12 @@ export const InventoryEngine = {
   /**
    * THE CORE CALCULATOR: Returns how many MORE units of a specific config can be made.
    */
-  calculateRemainingYield: (product: PosProduct, selectedAddonIds: string[], cartItems: posItem[]) => {
+  calculateRemainingYield: (product: PosProduct, selectedAddonIds: string[], cartItems: posItem[], variant?: PosProduct['variants'][number]) => {
     const reserved = InventoryEngine.getReservedMap(cartItems)
-    const unitReqs = InventoryEngine.getUnitRequirements(product, selectedAddonIds)
+    const unitReqs = InventoryEngine.getUnitRequirements(product, selectedAddonIds, variant)
 
     const yields = Object.entries(unitReqs).map(([id, amountPerUnit]) => {
-      // 1. Wrap 'product' in an array to match the new dbProducts[] signature
-      // 2. Destructure 'stock' from the returned object
       const { stock } = InventoryEngine.findPhysicalStock(id, product)
-
       const availableTotal = stock - (reserved[id] || 0)
 
       return Math.floor(Math.max(0, availableTotal) / amountPerUnit)
@@ -129,7 +134,7 @@ export const InventoryEngine = {
     let displayName = id
 
     // Helper to sum up inventory for a specific branch
-    const getQty = (inv: any[]) => inv.filter(i => !branchId || i.branchId === branchId).reduce((acc, i) => acc + i.quantity, 0)
+    const getQty = (inv: Inventory[]) => inv.filter(i => !branchId || i.branchId === branchId).reduce((acc, i) => acc + i.quantity, 0)
 
     // Convert single product to array so we can use the same loop logic
     const products = Array.isArray(productOrList) ? productOrList : [productOrList]
@@ -162,6 +167,21 @@ export const InventoryEngine = {
         if (addonIng) {
           physicalStock = getQty(addonIng.material.inventory || [])
           displayName = addonIng.material.name
+          break
+        }
+      }
+
+      for (const v of p.variants || []) {
+        if (v.id === id) {
+          physicalStock = getQty(v.inventory || [])
+          displayName = v.name
+          break
+        }
+
+        const vIngMatch = v.ingredients?.find(ing => ing.materialId === id)
+        if (vIngMatch) {
+          physicalStock = getQty(vIngMatch.material.inventory || [])
+          displayName = vIngMatch.material.name
           break
         }
       }

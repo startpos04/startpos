@@ -43,8 +43,18 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
   })
 
   const selectedAddonIds = useStore(form.store, s => s.values.selectedAddonIds)
+  const selectedVariantId = useStore(form.store, s => s.values.selectedVariantId)
 
-  const remainingYield = useMemo(() => InventoryEngine.calculateRemainingYield(product, selectedAddonIds, cartItems), [product, cartItems, selectedAddonIds])
+  const remainingYield = useMemo(
+    () =>
+      InventoryEngine.calculateRemainingYield(
+        product,
+        selectedAddonIds,
+        cartItems,
+        product.variants?.find(v => v.id === selectedVariantId),
+      ),
+    [product, cartItems, selectedAddonIds, selectedVariantId],
+  )
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -63,7 +73,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                 <div className='space-y-3'>
                   <h4 className='font-bold text-sm'>Select Option</h4>
                   <RadioGroup value={field.state.value} onValueChange={field.handleChange} className='grid grid-cols-2 gap-2'>
-                    {product.variants.map((v: any) => (
+                    {product.variants.map(v => (
                       <div key={v.id}>
                         <RadioGroupItem value={v.id} id={v.id} className='peer sr-only' />
                         <Label
@@ -88,7 +98,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                 <div className='space-y-3'>
                   <h4 className='font-bold text-sm'>Extras / Add-ons</h4>
                   <div className='grid gap-2'>
-                    {product.allowedAddons.map((item: any) => {
+                    {product.allowedAddons.map(item => {
                       // Pre-calculate if addon itself is out of stock
                       const reserved = InventoryEngine.getReservedMap(cartItems)
                       const addonStock = findStockInLoadedData(item.addonId, product)

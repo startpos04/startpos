@@ -1,3 +1,4 @@
+import { Inventory } from 'prisma/generated/prisma/browser'
 import { UnitEngine } from '../conversion/unit-engine'
 import { FIFOEngine } from './fifo-engine'
 import { MovingAverageEngine } from './moving-average-engine'
@@ -9,7 +10,7 @@ export class CostingService {
    * pure function: prepares the consumption plan based on provided inventory.
    * does not execute prisma queries.
    */
-  static prepareConsumption(strategy: CostingStrategyType, params: CostingParams, inventory: any[]): CostingResult {
+  static prepareConsumption(strategy: CostingStrategyType, params: CostingParams, inventory: Inventory[]): CostingResult {
     const { quantity, unit } = params
     const requiredBaseQty = UnitEngine.toBase(quantity, unit)
 
