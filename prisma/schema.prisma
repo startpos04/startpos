@@ -473,6 +473,7 @@ model Customer {
 
 // --- ORDERS (KITCHEN/TAB SYSTEM) ---
 enum OrderStatus {
+  PENDING
   PREPARING
   SERVED
   CANCELLED
@@ -491,9 +492,7 @@ model Order {
   status            OrderStatus @default(PREPARING)
   orderType         OrderType   @default(DINE_IN)
 
-  // Link to the final bill. Null = Active/Unpaid.
-  transactionId String?
-  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+  transaction Transaction?
 
   items OrderItem[]
 
@@ -513,25 +512,22 @@ model Order {
 enum TransactionType {
   SALE
   REFUND
-  BOOKING
   ADJUSTMENT
 }
 
 enum TransactionStatus {
-  OPEN // For active tabs
-  PENDING
   COMPLETED
   CANCELLED
-  CHECKED_IN
 }
 
 model Transaction {
-  id                String            @id @default(cuid())
-  invoiceNo         String            @unique @default(cuid())
-  customerReference String?
-  type              TransactionType   @default(SALE)
-  status            TransactionStatus @default(COMPLETED)
-  orderType         OrderType         @default(DINE_IN)
+  id        String            @id @default(cuid())
+  invoiceNo String            @unique @default(cuid())
+  type      TransactionType   @default(SALE)
+  status    TransactionStatus @default(COMPLETED)
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
 
   // --- REVENUE VS COST (Line Graph Source) ---
   totalAmount Int // Total charged to the customer (in cents)
@@ -563,9 +559,7 @@ model Transaction {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items    OrderItem[]
   payments Payment[]
-  orders   Order[]
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -577,11 +571,8 @@ model Transaction {
 model OrderItem {
   id String @id @default(cuid())
 
-  orderId String?
-  order   Order?  @relation(fields: [orderId], references: [id])
-
-  transactionId String?
-  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   variantId String
   variant   ProductVariant @relation(fields: [variantId], references: [id])

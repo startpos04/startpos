@@ -8,7 +8,7 @@ import { CostingService } from '../costing'
 import { getTenantPrisma } from '../prisma-client'
 import { Prettify } from '../types'
 
-interface SaleItem {
+export interface SaleItem {
   cartId: string
   productId: string
   variantId: string
@@ -16,8 +16,9 @@ interface SaleItem {
   addons: PosProductComponent[]
 }
 
-interface CreateSaleInput {
-  customerId: string | null
+export interface CreateSaleInput {
+  orderId?: string
+  customerReference: string | null
   items: SaleItem[]
   payment: {
     tendered: number
@@ -95,21 +96,15 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
       )
 
       // --- 4. CREATE TRANSACTION ---
-      const transaction = (await tx.transaction.create({
-        data: {
-          cashierId: user.id,
-          customerId: data.customerId,
-          totalAmount: totals.total,
-          taxAmount: totals.tax,
-          totalCost: totals.cost,
-          bufferRate: user.branch.bufferRate,
-          status: 'COMPLETED',
-          type: 'SALE',
+      const order = await tx.order.upsert({
+        where: { id: data.orderId || 'new-order' },
+        create: {
+          status: 'SERVED',
+          orderType: 'DINE_IN',
           items: {
             create: data.items.map(item => {
               const product = dbProducts.find(p => p.id === item.productId)!
               const variant = product.variants.find(v => v.id === item.variantId)!
-
               return {
                 organizationId: context.user.organizationId,
                 branchId: context.user.branchId!,
@@ -134,6 +129,25 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
               }
             }),
           },
+        },
+        update: {
+          status: 'SERVED',
+        },
+      })
+
+      const transaction = (await tx.transaction.create({
+        data: {
+          organizationId: context.user.organizationId,
+          branchId: context.user.branchId!,
+          cashierId: user.id,
+          customerId: null,
+          orderId: order.id,
+          totalAmount: totals.total,
+          taxAmount: totals.tax,
+          totalCost: totals.cost,
+          bufferRate: user.branch.bufferRate,
+          status: 'COMPLETED',
+          type: 'SALE',
           payments: {
             create: [
               {
@@ -141,13 +155,15 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
                 amount: totals.total,
                 tendered: data.payment.tendered,
                 change: data.payment.tendered - totals.total,
-                referenceNo: null,
               },
             ],
           },
         },
-        include: { items: { include: { selectedAddons: true } }, payments: true },
-      })) as Prettify<Prisma.TransactionGetPayload<{ include: { items: { include: { selectedAddons: true } }; payments: true } }>>
+        include: {
+          order: { include: { items: { include: { selectedAddons: true } } } },
+          payments: true,
+        },
+      })) as Prettify<Prisma.TransactionGetPayload<{ include: { order: { include: { items: { include: { selectedAddons: true } } } }; payments: true } }>>
 
       // --- 5. DECREMENT INVENTORY (FIFO) ---
       for (const [vId, totalQty] of Object.entries(reservedMap)) {

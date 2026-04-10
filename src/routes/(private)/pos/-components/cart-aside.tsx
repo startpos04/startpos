@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { withForm } from '@/hooks/form'
@@ -7,6 +8,8 @@ import { VAT_RATE } from '@/lib/constants'
 import { InventoryEngine } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
+import { useNavigate } from '@tanstack/react-router'
+import { useStore } from '@tanstack/react-store'
 import { CreditCard, Minus, Plus, UserPlus } from 'lucide-react'
 import { posFormOpts } from '..'
 import { PaymentDialog } from './payment-dialog'
@@ -14,6 +17,9 @@ import { PaymentDialog } from './payment-dialog'
 export const CartAside = withForm({
   ...posFormOpts,
   render: function ({ form }) {
+    const order = useStore(form.store, s => s.values.order)
+    const navigate = useNavigate()
+
     const handleConfirm = (total: number) => {
       showModal(PaymentDialog, {
         total,
@@ -21,51 +27,74 @@ export const CartAside = withForm({
           form.setFieldValue('payment', { tendered })
           await form.handleSubmit()
         },
+        onSave: async () => {
+          form.setFieldValue('payment', { tendered: 0 })
+          await form.handleSubmit()
+        },
       })
+    }
+
+    const handleNewOrder = () => {
+      form.reset()
+      navigate({ to: '.', search: (prev: any) => ({ ...prev, orderId: undefined }), replace: true })
     }
 
     return (
       <aside className='w-96 bg-card rounded-[2.5rem] border border-border flex flex-col shadow-xl space-y-2'>
         <div className='pt-6 px-6 space-y-2'>
           <div className='flex justify-between items-center'>
-            <h2 className='text-xl font-black'>Current Order</h2>
-            <form.Subscribe selector={s => s.values.items}>
-              {items => {
-                const totalQty = items.reduce((acc, item) => acc + (item.quantity || 0), 0)
-                const uniqueItems = items.length
-
-                return (
-                  <div className='flex gap-2'>
-                    <Badge variant='secondary' className='rounded-lg px-2 py-0.5 text-[10px]'>
-                      {uniqueItems} {uniqueItems === 1 ? 'type' : 'types'}
-                    </Badge>
-                    <Badge variant='outline' className='rounded-lg bg-primary/5 px-2 py-0.5 text-[10px]'>
-                      {totalQty} total qty
-                    </Badge>
-                  </div>
-                )
-              }}
-            </form.Subscribe>
+            <h2 className='text-xl font-black'>{order ? `Order #${order.orderNumber}` : 'New Order'}</h2>
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={handleNewOrder}
+              className='h-8 px-2 text-[10px] font-bold border border-dashed rounded-lg hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all'
+            >
+              NEW ORDER
+            </Button>
           </div>
 
-          <form.AppField name='customerName'>
+          <form.AppField name='customerReference'>
             {field => (
-              <Button
-                variant='ghost'
-                className='w-full justify-start h-12 rounded-2xl border border-dashed border-border text-muted-foreground hover:bg-muted/50 transition-colors'
-              >
-                <UserPlus className='w-4 h-4 mr-2 text-primary' />
-                <span className='text-xs font-semibold'>{field.state.value || 'Attach Customer'}</span>
-              </Button>
+              <div className='relative w-full'>
+                <UserPlus className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none' />
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value || ''}
+                  onBlur={field.handleBlur}
+                  onChange={e => field.handleChange(e.target.value)}
+                  placeholder='Customer Name / Table #'
+                  className='h-12 pl-10 rounded-2xl border-dashed border-border bg-transparent focus-visible:border-solid focus-visible:ring-primary/20 transition-all placeholder:text-muted-foreground placeholder:text-xs text-sm font-medium'
+                />
+              </div>
             )}
           </form.AppField>
         </div>
 
+        <form.Subscribe selector={s => s.values.items}>
+          {items => {
+            const totalQty = items.reduce((acc, item) => acc + (item.quantity || 0), 0)
+            const uniqueItems = items.length
+
+            return (
+              <div className='flex gap-6 justify-center'>
+                <Badge variant='secondary' className='rounded-lg px-2 py-0.5 text-[10px]'>
+                  {uniqueItems} {uniqueItems === 1 ? 'item' : 'items'}
+                </Badge>
+                <Badge variant='outline' className='rounded-lg bg-primary/5 px-2 py-0.5 text-[10px]'>
+                  {totalQty} quantity
+                </Badge>
+              </div>
+            )
+          }}
+        </form.Subscribe>
+
         <ScrollArea className='flex-1 px-6 h-1 grow'>
-          <div className='py-6'>
+          <div className='py-2'>
             <form.Field name='items'>
               {field => (
-                <div className='space-y-6'>
+                <div className='space-y-4'>
                   {field.state.value.map((item, index: number) => {
                     const selectedAddonIds = item.addons?.map(a => a.id) || []
                     const additionalYieldPossible = InventoryEngine.calculateRemainingYield(item.product, item.variant, selectedAddonIds, field.state.value)
@@ -176,8 +205,8 @@ export const CartAside = withForm({
                   className='w-full py-8 rounded-2xl text-lg font-black shadow-lg shadow-primary/20 transition-transform active:scale-[0.98]'
                   onClick={() => handleConfirm(total)}
                 >
-                  <CreditCard className='mr-3 h-6 w-6' />
-                  PAY NOW
+                  <CreditCard className='h-6! w-6!' />
+                  CHECKOUT
                 </Button>
               </div>
             )

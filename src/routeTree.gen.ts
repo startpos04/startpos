@@ -14,6 +14,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as publicLoginRouteImport } from './routes/(public)/login'
 import { Route as privatedashboardRouteRouteImport } from './routes/(private)/(dashboard)/route'
 import { Route as privatePosIndexRouteImport } from './routes/(private)/pos/index'
+import { Route as privateOrdersIndexRouteImport } from './routes/(private)/orders/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as privatedashboardadminRouteRouteImport } from './routes/(private)/(dashboard)/(admin)/route'
 import { Route as privatedashboardsupervisorSalesReportsRouteImport } from './routes/(private)/(dashboard)/(supervisor)/sales-reports'
@@ -49,6 +50,11 @@ const privatedashboardRouteRoute = privatedashboardRouteRouteImport.update({
 const privatePosIndexRoute = privatePosIndexRouteImport.update({
   id: '/pos/',
   path: '/pos/',
+  getParentRoute: () => privateRouteRoute,
+} as any)
+const privateOrdersIndexRoute = privateOrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
   getParentRoute: () => privateRouteRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof publicLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/orders/': typeof privateOrdersIndexRoute
   '/pos/': typeof privatePosIndexRoute
   '/inventory-reports': typeof privatedashboardsupervisorInventoryReportsRoute
   '/sales-reports': typeof privatedashboardsupervisorSalesReportsRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof publicLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/orders': typeof privateOrdersIndexRoute
   '/pos': typeof privatePosIndexRoute
   '/inventory-reports': typeof privatedashboardsupervisorInventoryReportsRoute
   '/sales-reports': typeof privatedashboardsupervisorSalesReportsRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/(public)/login': typeof publicLoginRoute
   '/(private)/(dashboard)/(admin)': typeof privatedashboardadminRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/(private)/orders/': typeof privateOrdersIndexRoute
   '/(private)/pos/': typeof privatePosIndexRoute
   '/(private)/(dashboard)/(supervisor)/inventory-reports': typeof privatedashboardsupervisorInventoryReportsRoute
   '/(private)/(dashboard)/(supervisor)/sales-reports': typeof privatedashboardsupervisorSalesReportsRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/auth/$'
+    | '/orders/'
     | '/pos/'
     | '/inventory-reports'
     | '/sales-reports'
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/auth/$'
+    | '/orders'
     | '/pos'
     | '/inventory-reports'
     | '/sales-reports'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
     | '/(public)/login'
     | '/(private)/(dashboard)/(admin)'
     | '/api/auth/$'
+    | '/(private)/orders/'
     | '/(private)/pos/'
     | '/(private)/(dashboard)/(supervisor)/inventory-reports'
     | '/(private)/(dashboard)/(supervisor)/sales-reports'
@@ -282,6 +294,13 @@ declare module '@tanstack/react-router' {
       path: '/pos'
       fullPath: '/pos/'
       preLoaderRoute: typeof privatePosIndexRouteImport
+      parentRoute: typeof privateRouteRoute
+    }
+    '/(private)/orders/': {
+      id: '/(private)/orders/'
+      path: '/orders'
+      fullPath: '/orders/'
+      preLoaderRoute: typeof privateOrdersIndexRouteImport
       parentRoute: typeof privateRouteRoute
     }
     '/api/auth/$': {
@@ -438,11 +457,13 @@ const privatedashboardRouteRouteWithChildren =
 
 interface privateRouteRouteChildren {
   privatedashboardRouteRoute: typeof privatedashboardRouteRouteWithChildren
+  privateOrdersIndexRoute: typeof privateOrdersIndexRoute
   privatePosIndexRoute: typeof privatePosIndexRoute
 }
 
 const privateRouteRouteChildren: privateRouteRouteChildren = {
   privatedashboardRouteRoute: privatedashboardRouteRouteWithChildren,
+  privateOrdersIndexRoute: privateOrdersIndexRoute,
   privatePosIndexRoute: privatePosIndexRoute,
 }
 

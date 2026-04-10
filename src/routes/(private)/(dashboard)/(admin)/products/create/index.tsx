@@ -1,4 +1,5 @@
 import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { OverlayProps } from '@/lib/overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -9,7 +10,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/products/cr
   component: () => <RouteComponent />,
 })
 
-export function CreateProductDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function CreateProductDialog({ open, onClose }: OverlayProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className='sm:max-w-5xl h-[95vh] p-0 overflow-hidden border-none shadow-2xl'>
