@@ -4,13 +4,15 @@ import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
+import dayjs from '@/lib/dayjs'
 import { OverlayProps } from '@/lib/overlay'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { restockIngredient } from '@/lib/server-fn/restock-ingredient'
 import { authStore } from '@/store/auth-store'
 import { useForm, useStore } from '@tanstack/react-form'
 import { useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, Hash, PackagePlus, ReceiptIndianRupee, Save } from 'lucide-react'
+import { CalendarDays, Hash, ReceiptIndianRupee, Save } from 'lucide-react'
+import { useMemo } from 'react'
 import { toast } from 'sonner'
 
 interface RestockIngredientDialogProps extends OverlayProps {
@@ -23,13 +25,20 @@ export function RestockIngredientDialog({ open, onClose, ingredient, variant }: 
   const user = useStore(authStore, state => state.user)
   const { data: unitOptions = [] } = fetchUnitOptions()
 
+  // 2. Generate a default batch number (e.g., BN-20231027-A1B2)
+  const defaultBatchNumber = useMemo(() => {
+    const datePart = dayjs().format('YYYYMMDD')
+    const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase()
+    return `BN-${datePart}-${randomPart}`
+  }, [open]) // Re-generates only when the dialog is re-opened
+
   const form = useForm({
     defaultValues: {
       variantId: variant.id,
       quantity: 0,
       unitId: variant.product?.baseUnitId || '',
       unitCost: Number(variant.costPrice || 0),
-      batchNumber: '',
+      batchNumber: defaultBatchNumber,
       expiryDate: '',
       location: '',
       sourceName: '',
@@ -57,23 +66,16 @@ export function RestockIngredientDialog({ open, onClose, ingredient, variant }: 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-lg p-0 overflow-hidden border-none shadow-2xl bg-background gap-0'>
-        <div className='bg-emerald-600 p-4 relative overflow-hidden'>
-          <DialogHeader className='flex flex-row gap-4'>
-            <div className='bg-white/20 w-fit p-3 rounded-2xl backdrop-blur-md'>
-              <PackagePlus className='w-8 h-8 text-white' />
-            </div>
-            <div className='grow'>
-              <DialogTitle className='text-3xl font-black tracking-tight text-white'>Restock Inventory</DialogTitle>
-              <DialogDescription className='text-emerald-100 text-base'>
-                Recording new stock for{' '}
-                <span className='font-bold text-white'>{[variant.product.name, variant?.name ? `(${variant.name})` : ''].filter(Boolean).join(' ')}</span>
-              </DialogDescription>
-            </div>
-          </DialogHeader>
-        </div>
+      <DialogContent className='sm:max-w-lg p-4 space-y-6 overflow-hidden border-none shadow-2xl bg-background gap-0'>
+        <DialogHeader>
+          <DialogTitle className='text-3xl font-bold tracking-tight'>Restock Inventory</DialogTitle>
+          <DialogDescription className='text-emerald-100 text-base'>
+            Recording new stock for{' '}
+            <span className='font-bold text-white'>{[variant.product.name, variant?.name ? `(${variant.name})` : ''].filter(Boolean).join(' ')}</span>
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className='p-8 space-y-6 bg-card'>
+        <div className='space-y-6'>
           {/* Section 1: Quantity & Cost */}
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className='space-y-4'>
@@ -151,9 +153,9 @@ export function RestockIngredientDialog({ open, onClose, ingredient, variant }: 
                 <Button
                   onClick={() => form.handleSubmit()}
                   disabled={!canSubmit || isSubmitting}
-                  className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 transition-all active:scale-95 text-white'
+                  className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl active:scale-95 flex gap-2 shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'
                 >
-                  <Save className='w-5 h-5 mr-3' />
+                  <Save className='w-5! h-5!' />
                   {isSubmitting ? 'Updating Inventory...' : 'Complete Restock'}
                 </Button>
               )}

@@ -12,3 +12,11 @@ export const Route = createFileRoute('/')({
     throw redirect({ to: '/login' })
   },
 })
+
+// TODO order features
+
+// TODO: date filter in reports
+// TODO: export reports (csv, excel, pdf)
+// TODO: create product with variants
+// TODO: structured ids
+// TODO: edit product with variants

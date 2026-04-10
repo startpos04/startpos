@@ -1,39 +1,29 @@
-import { getColumns } from '@/components/custom/data-view'
-import TableView from '@/components/custom/data-view/table-view'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { PriceEngine } from '@/lib/conversion/price-engine'
-import dayjs from '@/lib/dayjs'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { ArrowDownRight, ArrowUpRight, BarChart3, Calendar, Download, Package, PackageCheck, TrendingUp, UserCheck, Users } from 'lucide-react'
+import { ArrowUpRight, Calendar, DollarSign, Download, PackageCheck, ShoppingCart, Timer, TrendingUp, Users, Zap } from 'lucide-react'
 import { useMemo } from 'react'
-import { CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import dayjs from '@/lib/dayjs'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(supervisor)/sales-reports')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  const { data, isFetching } = useQuery({
+  const { data: transactions = [] } = useQuery({
     queryKey: ['sales-reports-comprehensive'],
     queryFn: async () => {
       const result = await crudAPI.transaction('findMany', {
         include: {
+          items: { include: { variant: { include: { product: true } } } },
           cashier: true,
-          customer: true,
-          // REALIGNED: Items -> Variant -> Product -> Category
-          items: {
-            include: {
-              variant: {
-                include: {
-                  product: { include: { category: true } },
-                },
-              },
-            },
-          },
         },
         orderBy: { createdAt: 'desc' },
       })
@@ -43,55 +33,81 @@ function RouteComponent() {
     },
   })
 
-  const reportData = useMemo(() => {
-    if (!data) return null
+  // --- COMPREHENSIVE DATA PROCESSING ---
+  const stats = useMemo(() => {
+    // 1. Basic Financials
+    const totalRevenue = transactions.reduce((acc, curr) => acc + curr.totalAmount, 0)
+    const totalCost = transactions.reduce((acc, curr) => acc + curr.totalCost, 0)
+    const grossProfit = totalRevenue - totalCost
+    const margin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0
 
-    const dailySales: Record<string, number> = {}
-    const categorySales: Record<string, number> = {}
-    const staffSales: Record<string, { name: string; total: number; count: number }> = {}
+    // 2. Maps for specific charts
+    const productMap: Record<string, { name: string; qty: number; revenue: number }> = {}
+    const cashierMap: Record<string, { name: string; total: number; count: number }> = {}
 
-    data.forEach(t => {
-      const date = dayjs(t.createdAt).format('MMM DD')
-      // Aggregating in cents initially to maintain precision
-      dailySales[date] = (dailySales[date] || 0) + t.totalAmount
+    // Hourly trend (24-hour slots)
+    const hourMap = Array.from({ length: 24 }, (_, i) => ({
+      time: `${i === 0 ? 12 : i > 12 ? i - 12 : i}${i >= 12 ? 'PM' : 'AM'}`,
+      amount: 0,
+      hour: i,
+    }))
 
-      const staffName = t.cashier?.name || 'Unknown'
-      if (!staffSales[staffName]) staffSales[staffName] = { name: staffName, total: 0, count: 0 }
-      staffSales[staffName].total += t.totalAmount
-      staffSales[staffName].count += 1
+    // Daily trend for Revenue vs Cost Chart
+    const dailyMap: Record<string, { date: string; revenue: number; cost: number }> = {}
 
-      t.items?.forEach(item => {
-        // REALIGNED: Access category through variant relationship
-        const catName = item.variant?.product?.category?.name || 'Uncategorized'
-        categorySales[catName] = (categorySales[catName] || 0) + item.unitPrice * item.quantity
+    transactions.forEach(tx => {
+      const dateKey = dayjs(tx.createdAt).format('MMM DD')
+      const hour = dayjs(tx.createdAt).hour()
+
+      // Aggregate Daily
+      if (!dailyMap[dateKey]) dailyMap[dateKey] = { date: dateKey, revenue: 0, cost: 0 }
+      dailyMap[dateKey].revenue += tx.totalAmount / 100
+      dailyMap[dateKey].cost += tx.totalCost / 100
+
+      // Aggregate Hourly
+      if (hourMap[hour]) hourMap[hour].amount += tx.totalAmount / 100
+
+      // Aggregate Cashier
+      if (!cashierMap[tx.cashierId]) {
+        cashierMap[tx.cashierId] = { name: tx.cashier.name, total: 0, count: 0 }
+      }
+
+      cashierMap[tx.cashierId].total += tx.totalAmount / 100
+      cashierMap[tx.cashierId].count += 1
+
+      // Aggregate Products
+      tx.items.forEach(item => {
+        const key = item.variantId
+        if (!productMap[key]) {
+          productMap[key] = { name: item.variant.product.name, qty: 0, revenue: 0 }
+        }
+        productMap[key].qty += item.quantity
+        productMap[key].revenue += (item.unitPrice * item.quantity) / 100
       })
     })
 
     return {
-      trend: Object.entries(dailySales)
-        .map(([name, total]) => ({ name, total: total / 100 })) // Convert to major currency for chart
-        .reverse(),
-      categories: Object.entries(categorySales).map(([name, value]) => ({
-        name,
-        value: value / 100,
-      })),
-      staff: Object.values(staffSales)
+      totalRevenue,
+      totalCost,
+      grossProfit,
+      margin,
+      chartData: Object.values(dailyMap).reverse(),
+      activeHours: hourMap.filter(h => h.hour >= 6 && h.hour <= 23),
+      topCashiers: Object.values(cashierMap)
         .sort((a, b) => b.total - a.total)
-        .map(s => ({ ...s, totalFormatted: PriceEngine.format(s.total) })),
-      totals: {
-        gross: data.reduce((acc, curr) => acc + curr.totalAmount, 0),
-        tax: data.reduce((acc, curr) => acc + curr.taxAmount, 0),
-        discount: data.reduce((acc, curr) => acc + curr.discount, 0),
-        count: data.length,
-      },
+        .slice(0, 4),
+      topProducts: Object.values(productMap)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5),
     }
-  }, [data])
+  }, [transactions])
 
-  const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444']
+  const formatCurrency = (cents: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(cents / 100)
 
   return (
-    <div className='flex flex-col gap-4 px-4 overflow-auto'>
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
+    <div className='flex flex-col gap-3 overflow-auto '>
+      {/* HEADER */}
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4 '>
         <div>
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Sales Reports</h1>
           <p className='text-muted-foreground text-sm flex items-center gap-2'>
@@ -100,138 +116,224 @@ function RouteComponent() {
           </p>
         </div>
         <div className='flex gap-2'>
-          <Button variant='outline'>
+          <Button variant='outline' size='sm'>
             <Calendar className='mr-2 h-4 w-4' /> Filter Date
           </Button>
-          <Button>
+          <Button size='sm'>
             <Download className='mr-2 h-4 w-4' /> Export Report
           </Button>
         </div>
       </div>
+      <ScrollArea className='flex-1 min-h-0 w-full px-3'>
+        <div className='space-y-4 p-1'>
+          {/* STAT CARDS */}
+          <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
+            <Card>
+              <CardHeader className='flex flex-row items-center justify-between pb-2'>
+                <CardTitle className='text-sm font-medium'>Total Revenue</CardTitle>
+                <DollarSign className='h-4 w-4 text-muted-foreground' />
+              </CardHeader>
+              <CardContent>
+                <div className='text-2xl font-bold'>{formatCurrency(stats.totalRevenue)}</div>
+                <p className='text-[10px] text-muted-foreground'>Gross sales across all channels</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className='flex flex-row items-center justify-between pb-2'>
+                <CardTitle className='text-sm font-medium'>Gross Profit</CardTitle>
+                <TrendingUp className='h-4 w-4 text-emerald-500' />
+              </CardHeader>
+              <CardContent>
+                <div className='text-2xl font-bold'>{formatCurrency(stats.grossProfit)}</div>
+                <p className='text-[10px] text-emerald-500 font-medium'>{stats.margin.toFixed(1)}% Avg Margin</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className='flex flex-row items-center justify-between pb-2'>
+                <CardTitle className='text-sm font-medium'>Total Transactions</CardTitle>
+                <ShoppingCart className='h-4 w-4 text-muted-foreground' />
+              </CardHeader>
+              <CardContent>
+                <div className='text-2xl font-bold'>{transactions.length}</div>
+                <p className='text-[10px] text-muted-foreground'>Total orders processed</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className='flex flex-row items-center justify-between pb-2'>
+                <CardTitle className='text-sm font-medium'>Avg. Ticket Size</CardTitle>
+                <ArrowUpRight className='h-4 w-4 text-muted-foreground' />
+              </CardHeader>
+              <CardContent>
+                <div className='text-2xl font-bold'>{formatCurrency(transactions.length ? stats.totalRevenue / transactions.length : 0)}</div>
+                <p className='text-[10px] text-muted-foreground'>Average revenue per sale</p>
+              </CardContent>
+            </Card>
+          </div>
 
-      <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
-        <StatsCard title='Total Revenue' value={reportData?.totals.gross} icon={<TrendingUp className='text-emerald-500' />} trend='+14% vs last month' />
-        <StatsCard title='Total Transactions' value={reportData?.totals.count} icon={<Package className='text-blue-500' />} trend='+5.2%' isCurrency={false} />
-        <StatsCard title='Tax Collected' value={reportData?.totals.tax} icon={<BarChart3 className='text-purple-500' />} trend='On track' />
-        <StatsCard
-          title='Avg. Order Value'
-          value={reportData ? reportData.totals.gross / (reportData.totals.count || 1) : 0}
-          icon={<Users className='text-orange-500' />}
-          trend='-2% vs yesterday'
-        />
-      </div>
+          {/* REVENUE VS COST TREND */}
+          <div className='grid gap-4 md:grid-cols-3'>
+            <Card className='md:col-span-2'>
+              <CardHeader>
+                <CardTitle>Revenue vs Cost Trend</CardTitle>
+                <CardDescription>Daily financial performance overview</CardDescription>
+              </CardHeader>
+              <CardContent className='h-80'>
+                {' '}
+                {/* Increased height slightly for better visibility */}
+                <ResponsiveContainer width='100%' height='100%'>
+                  <AreaChart data={stats.chartData}>
+                    <defs>
+                      <linearGradient id='colorRev' x1='0' y1='0' x2='0' y2='1'>
+                        {/* Using emerald-500 equivalent for the gradient */}
+                        <stop offset='5%' stopColor='#10b981' stopOpacity={0.3} />
+                        <stop offset='95%' stopColor='#10b981' stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
 
-      <div className='grid gap-4 md:grid-cols-7'>
-        <Card className='md:col-span-4'>
-          <CardHeader>
-            <CardTitle>Revenue Trend</CardTitle>
-            <CardDescription>Daily gross sales (Major Currency).</CardDescription>
-          </CardHeader>
-          <CardContent className='h-80'>
-            <ResponsiveContainer width='100%' height='100%'>
-              <LineChart data={reportData?.trend}>
-                <CartesianGrid strokeDasharray='3 3' vertical={false} stroke='#e5e7eb' />
-                <XAxis dataKey='name' fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={v => `₱${v}`} />
-                <Tooltip formatter={(value: number) => [`₱${value.toLocaleString()}`, 'Revenue']} />
-                <Line type='monotone' dataKey='total' stroke='#10b981' strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+                    {/* Fix: Use muted-foreground for grid lines so they adapt to dark mode */}
+                    <CartesianGrid strokeDasharray='3 3' vertical={false} className='stroke-muted/30' />
 
-        <Card className='md:col-span-3'>
-          <CardHeader>
-            <CardTitle>Sales by Category</CardTitle>
-            <CardDescription>Revenue share by product group.</CardDescription>
-          </CardHeader>
-          <CardContent className='h-80'>
-            <ResponsiveContainer width='100%' height='100%'>
-              <PieChart>
-                <Pie data={reportData?.categories} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey='value'>
-                  {reportData?.categories.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: number) => `₱${value.toLocaleString()}`} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className='grid grid-cols-2 gap-2 mt-4'>
-              {reportData?.categories.slice(0, 4).map((c, i) => (
-                <div key={c.name} className='flex items-center text-xs'>
-                  <div className='w-3 h-3 rounded-full mr-2' style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                  <span className='truncate'>{c.name}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                    <XAxis
+                      dataKey='date'
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      className='fill-muted-foreground'
+                      tickFormatter={str => dayjs(str).format('MMM DD')}
+                    />
+                    <YAxis hide />
 
-      <div className='grid gap-4 md:grid-cols-3'>
-        <div className='md:col-span-2'>
-          <Card>
-            <CardHeader>
-              <CardTitle>Transaction History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TableView
-                data={data}
-                columns={getColumns<NonNullable<typeof data>[number]>(h => [
-                  h.accessor('invoiceNo', { header: 'Invoice', cell: i => <span className='font-mono text-xs font-bold'>{i.getValue().slice(-8)}</span> }),
-                  h.accessor('cashier.name', { header: 'Staff' }),
-                  h.accessor('totalAmount', { header: 'Total', cell: i => PriceEngine.format(i.getValue()) }),
-                  h.accessor('status', {
-                    header: 'Status',
-                    cell: i => <Badge variant={i.getValue() === 'COMPLETED' ? 'default' : 'secondary'}>{i.getValue()}</Badge>,
-                  }),
-                ])}
-                isFetching={isFetching}
-              />
-            </CardContent>
-          </Card>
-        </div>
+                    {/* Fix: Integrated Custom Tooltip */}
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className='rounded-lg border border-border bg-background p-3 shadow-xl'>
+                              <p className='text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2'>
+                                {dayjs(label).format('MMMM DD, YYYY')}
+                              </p>
+                              <div className='space-y-1.5'>
+                                <div className='flex items-center justify-between gap-8'>
+                                  <div className='flex items-center gap-2'>
+                                    <div className='h-2 w-2 rounded-full bg-emerald-500' />
+                                    <span className='text-xs text-muted-foreground'>Revenue</span>
+                                  </div>
+                                  <span className='text-xs font-bold text-foreground'>₱{payload[0].value?.toLocaleString()}</span>
+                                </div>
+                                <div className='flex items-center justify-between gap-8'>
+                                  <div className='flex items-center gap-2'>
+                                    <div className='h-2 w-2 rounded-full bg-rose-500' />
+                                    <span className='text-xs text-muted-foreground'>Cost</span>
+                                  </div>
+                                  <span className='text-xs font-bold text-foreground'>₱{payload[1]?.value?.toLocaleString()}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        }
+                        return null
+                      }}
+                    />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'>
-              <UserCheck className='h-5 w-5 text-primary' /> Staff Leaderboard
-            </CardTitle>
-          </CardHeader>
-          <CardContent className='space-y-6'>
-            {reportData?.staff.map((s, i) => (
-              <div key={s.name} className='flex items-center justify-between'>
-                <div className='flex items-center gap-3'>
-                  <div className='flex h-9 w-9 items-center justify-center rounded-full bg-muted font-bold text-xs'>{i + 1}</div>
-                  <div>
-                    <p className='text-sm font-medium leading-none'>{s.name}</p>
-                    <p className='text-xs text-muted-foreground'>{s.count} transactions</p>
+                    <Area type='monotone' dataKey='revenue' stroke='#10b981' fillOpacity={1} fill='url(#colorRev)' strokeWidth={2} name='Revenue' />
+                    <Area type='monotone' dataKey='cost' stroke='#ef4444' fill='transparent' strokeDasharray='5 5' strokeWidth={2} name='Cost' />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            {/* STAFF PERFORMANCE */}
+            <Card>
+              <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                  <Users className='h-5 w-5 text-purple-500' /> Staff Performance
+                </CardTitle>
+                <CardDescription>Revenue processed per cashier</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {stats.topCashiers.map((cashier, i) => (
+                  <div key={i} className='flex items-center gap-4'>
+                    <Avatar className='h-10 w-10 border'>
+                      <AvatarFallback className='bg-primary/5 text-primary text-xs'>{cashier.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className='flex-1 space-y-1'>
+                      <div className='flex items-center justify-between'>
+                        <p className='text-sm font-bold'>{cashier.name}</p>
+                        <span className='text-xs font-medium'>₱{cashier.total.toLocaleString()}</span>
+                      </div>
+                      <Progress value={(cashier.total / stats.topCashiers[0]?.total || 0) * 100} className='h-1' />
+                      <p className='text-[10px] text-muted-foreground'>{cashier.count} transactions</p>
+                    </div>
                   </div>
-                </div>
-                <div className='text-sm font-bold'>{s.totalFormatted}</div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-}
+                ))}
+              </CardContent>
+            </Card>
+          </div>
 
-function StatsCard({ title, value, icon, trend, isCurrency = true }: any) {
-  return (
-    <Card>
-      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-        <CardTitle className='text-sm font-medium'>{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className='text-2xl font-bold'>{isCurrency ? PriceEngine.format(value || 0) : value}</div>
-        <p className='flex items-center text-xs text-muted-foreground mt-1'>
-          {trend.includes('+') ? <ArrowUpRight className='mr-1 h-3 w-3 text-emerald-500' /> : <ArrowDownRight className='mr-1 h-3 w-3 text-red-500' />}
-          {trend}
-        </p>
-      </CardContent>
-    </Card>
+          <div className='grid gap-4 md:grid-cols-3'>
+            {/* HOURLY HEATMAP */}
+            <Card className='md:col-span-2'>
+              <CardHeader className='flex flex-row items-center justify-between'>
+                <div>
+                  <CardTitle className='flex items-center gap-2'>
+                    <Timer className='h-5 w-5 text-blue-500' /> Sales Heatmap
+                  </CardTitle>
+                  <CardDescription>Hourly revenue distribution</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className='h-62.5'>
+                <ResponsiveContainer width='100%' height='100%'>
+                  <BarChart data={stats.activeHours}>
+                    <CartesianGrid strokeDasharray='3 3' vertical={false} className='stroke-muted/30' />
+                    <XAxis dataKey='time' fontSize={10} tickLine={false} axisLine={false} className='fill-muted-foreground' />
+                    <YAxis hide />
+                    <Tooltip
+                      cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className='rounded-lg border border-border bg-background p-3 shadow-md ring-1 ring-black/5'>
+                              <p className='text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1'>Time: {label}</p>
+                              <div className='flex items-center gap-2'>
+                                <div className='h-2 w-2 rounded-full bg-primary' />
+                                <span className='text-sm font-bold text-foreground'>₱{payload[0]?.value?.toLocaleString()}</span>
+                              </div>
+                            </div>
+                          )
+                        }
+                        return null
+                      }}
+                    />
+                    <Bar dataKey='amount' fill='currentColor' className='fill-primary' radius={[4, 4, 0, 0]} barSize={32} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* TOP PRODUCTS */}
+            <Card>
+              <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                  <Zap className='h-5 w-5 text-yellow-500' /> Top Sellers
+                </CardTitle>
+                <CardDescription>By units sold</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className='space-y-4'>
+                  {stats.topProducts.map((product, i) => (
+                    <div key={i} className='flex items-center justify-between'>
+                      <div className='space-y-1'>
+                        <p className='text-sm font-medium leading-none'>{product.name}</p>
+                        <p className='text-xs text-muted-foreground'>{product.qty} units</p>
+                      </div>
+                      <div className='text-sm font-bold text-emerald-600'>₱{product.revenue.toLocaleString()}</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </ScrollArea>
+    </div>
   )
 }

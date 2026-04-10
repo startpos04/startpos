@@ -23,7 +23,7 @@ model Organization {
 
   tin               String?
   businessStyle     String?
-  vatType           VatType @default(VAT) // VAT or NON_VAT
+  vatType           VatType @default(VAT)
   permitToUse       String? // BIR PTU number
   accreditedPrinter String? // BIR Accredited Printer number
 
@@ -31,7 +31,6 @@ model Organization {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  // Global to the Business
   members            Membership[]
   branches           Branch[]
   products           Product[]
@@ -44,6 +43,7 @@ model Organization {
   inventory          Inventory[]
   inventoryMovements InventoryMovement[]
   transactions       Transaction[]
+  orders             Order[]
   orderItems         OrderItem[]
   orderItemAddons    OrderItemAddon[]
   vendorSessions     VendorSession[]
@@ -77,8 +77,9 @@ model Branch {
   members           Membership[]
   inventory         Inventory[]
   transactions      Transaction[]
+  orders            Order[] // Added for Branch-level orders
   movements         InventoryMovement[] @relation("SourceBranch")
-  receivedTransfers InventoryMovement[] @relation("DestinationBranch") // Track stock coming INTO this branch from another
+  receivedTransfers InventoryMovement[] @relation("DestinationBranch")
   purchases         Purchase[]
   vendorSessions    VendorSession[]
   purchaseItems     PurchaseItem[]
@@ -99,9 +100,9 @@ model Membership {
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  // Link a staff member to a specific "Home" branch
-  branchId       String?
-  branch         Branch?      @relation(fields: [branchId], references: [id])
+
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -138,7 +139,7 @@ model User {
   performedServices  Transaction[]       @relation("ServiceProvider")
   inventoryMovements InventoryMovement[]
   memberships        Membership[]
-  vendorSessions     VendorSession[] // Link sessions to the user
+  vendorSessions     VendorSession[]
 
   @@index([deletedAt])
   @@map("users")
@@ -181,10 +182,10 @@ model Account {
 
 // --- PRODUCT & RESOURCE ENGINE ---
 enum ResourceType {
-  PHYSICAL_GOOD // Grocery, Hardware, Medicine
-  SERVICE // Room Stay, Consultation, Haircut
-  RAW_MATERIAL // Ingredients, Wood (Inventory only)
-  BUNDLE // Meal Kit, Gift Basket, Promo Pack
+  PHYSICAL_GOOD
+  SERVICE
+  RAW_MATERIAL
+  BUNDLE
 }
 
 model Category {
@@ -204,16 +205,15 @@ model Category {
 }
 
 model Product {
-  id    String       @id @default(cuid())
-  name  String
-  image String?
-  type  ResourceType @default(PHYSICAL_GOOD)
-
+  id              String       @id @default(cuid())
+  name            String
+  image           String?
+  type            ResourceType @default(PHYSICAL_GOOD)
   // Business Specific Flags
-  isAvailable     Boolean @default(true)
-  hasExpiry       Boolean @default(false) // Pharmacy/Food
-  requiresDeposit Boolean @default(false) // LPG/Water/Bottles
-  depositAmount   Int?    @db.Integer // Deposit amount if requiresDeposit is true (in cents)
+  isAvailable     Boolean      @default(true)
+  hasExpiry       Boolean      @default(false) // Pharmacy/Food
+  requiresDeposit Boolean      @default(false) // LPG/Water/Bottles
+  depositAmount   Int?         @db.Integer // Deposit amount if requiresDeposit is true (in cents)
   durationMinutes Int? // Service duration (Clinic/Spa)
 
   categoryId String
@@ -222,7 +222,6 @@ model Product {
   baseUnitId String
   baseUnit   Unit   @relation("ProductBaseUnit", fields: [baseUnitId], references: [id])
 
-  // --- THE VARIANT SYSTEM ---
   variants ProductVariant[]
 
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -248,7 +247,6 @@ model ProductVariant {
   costPrice   Int     @default(0) @db.Integer // Cost to acquire/make the product (in cents)
   variantType String?
 
-  // Ingredients/Recipe logic moves to Variant level via Unified Components
   components ProductComponent[] @relation("ParentVariant")
   usedIn     ProductComponent[] @relation("ComponentVariant")
 
@@ -331,15 +329,11 @@ model Unit {
 }
 
 model ProductUnit {
-  id        String @id @default(cuid())
-  variantId String
-  unitId    String
-
-  // Is this the unit the supplier uses?
+  id             String  @id @default(cuid())
+  variantId      String
+  unitId         String
   isPurchaseUnit Boolean @default(false)
-
-  // Is this the unit shown on the POS?
-  isSalesUnit Boolean @default(true)
+  isSalesUnit    Boolean @default(true)
 
   variant ProductVariant @relation(fields: [variantId], references: [id])
   unit    Unit           @relation(fields: [unitId], references: [id])
@@ -402,16 +396,13 @@ model Inventory {
   id          String         @id @default(cuid())
   variantId   String
   variant     ProductVariant @relation(fields: [variantId], references: [id])
-  unitId      String // The unit this specific batch is stored in
+  unitId      String
   unit        Unit           @relation(fields: [unitId], references: [id])
-  batchNumber String? // Lot # for Drugstore/Medicine
+  batchNumber String?
   expiryDate  DateTime?
-  quantity    Float // Current quantity in stock for this batch
-
-  // Track cost per batch for accurate profit reporting
-  costPrice Int @default(0) // Cost per unit (in cents) for this specific batch
-
-  location String? // Warehouse A, Aisle 4, Room 101
+  quantity    Float
+  costPrice   Int            @default(0) // Cost per unit (in cents) for this specific batch
+  location    String?
 
   lastRestocked DateTime @default(now())
   branch        Branch   @relation(fields: [branchId], references: [id])
@@ -435,8 +426,8 @@ model InventoryMovement {
   userId    String
   user      User           @relation(fields: [userId], references: [id])
   type      MovementType
-  quantity  Float // How much was moved in or out
-  reason    String? // "Sold in INV-102", "Expired", "Manual Restock"
+  quantity  Float
+  reason    String?
   unitId    String
   unit      Unit           @relation(fields: [unitId], references: [id])
 
@@ -446,7 +437,6 @@ model InventoryMovement {
   branchId String
   branch   Branch @relation("SourceBranch", fields: [branchId], references: [id])
 
-  // Destination branch for transfers
   targetBranchId String?
   targetBranch   Branch? @relation("DestinationBranch", fields: [targetBranchId], references: [id])
 
@@ -466,7 +456,7 @@ model Customer {
   name        String
   email       String?   @unique
   phone       String?
-  dateOfBirth DateTime? // For Clinics/Age-restricted items
+  dateOfBirth DateTime?
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -481,15 +471,54 @@ model Customer {
   @@map("customers")
 }
 
+// --- ORDERS (KITCHEN/TAB SYSTEM) ---
+enum OrderStatus {
+  PREPARING
+  SERVED
+  CANCELLED
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEOUT
+  DELIVERY
+}
+
+model Order {
+  id                String      @id @default(cuid())
+  orderNumber       Int         @default(autoincrement())
+  customerReference String? // e.g., "Buzzer 10", "Table 4"
+  status            OrderStatus @default(PREPARING)
+  orderType         OrderType   @default(DINE_IN)
+
+  // Link to the final bill. Null = Active/Unpaid.
+  transactionId String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+
+  items OrderItem[]
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  branchId       String
+  branch         Branch       @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, branchId])
+  @@map("orders")
+}
+
 // --- TRANSACTIONS & SALES ---
 enum TransactionType {
   SALE
   REFUND
-  BOOKING // Hotel/Resort/Clinic Appointment
-  ADJUSTMENT // Waste/Loss
+  BOOKING
+  ADJUSTMENT
 }
 
 enum TransactionStatus {
+  OPEN // For active tabs
   PENDING
   COMPLETED
   CANCELLED
@@ -497,10 +526,12 @@ enum TransactionStatus {
 }
 
 model Transaction {
-  id        String            @id @default(cuid())
-  invoiceNo String            @unique @default(cuid())
-  type      TransactionType   @default(SALE)
-  status    TransactionStatus @default(COMPLETED)
+  id                String            @id @default(cuid())
+  invoiceNo         String            @unique @default(cuid())
+  customerReference String?
+  type              TransactionType   @default(SALE)
+  status            TransactionStatus @default(COMPLETED)
+  orderType         OrderType         @default(DINE_IN)
 
   // --- REVENUE VS COST (Line Graph Source) ---
   totalAmount Int // Total charged to the customer (in cents)
@@ -518,27 +549,23 @@ model Transaction {
   notes       String? @db.Text // Clinical notes, room requests, etc.
   queueNumber Int?    @default(autoincrement())
 
-  // Relationships
-  cashierId String
-  cashier   User   @relation("CashierRelation", fields: [cashierId], references: [id])
-
-  providerId String? // The Doctor, Barber, or Server
-  provider   User?   @relation("ServiceProvider", fields: [providerId], references: [id])
-
+  cashierId  String
+  cashier    User           @relation("CashierRelation", fields: [cashierId], references: [id])
+  providerId String?
+  provider   User?          @relation("ServiceProvider", fields: [providerId], references: [id])
   customerId String?
-  customer   Customer? @relation(fields: [customerId], references: [id])
+  customer   Customer?      @relation(fields: [customerId], references: [id])
   branchId   String
-  branch     Branch    @relation(fields: [branchId], references: [id])
-
-  // Link to a daily session for reconciling evening sales
-  sessionId String?
-  session   VendorSession? @relation(fields: [sessionId], references: [id])
+  branch     Branch         @relation(fields: [branchId], references: [id])
+  sessionId  String?
+  session    VendorSession? @relation(fields: [sessionId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   items    OrderItem[]
   payments Payment[]
+  orders   Order[]
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -548,21 +575,25 @@ model Transaction {
 }
 
 model OrderItem {
-  id        String @id @default(cuid())
-  variantId String
-  quantity  Float // Supports kg, L, units
+  id String @id @default(cuid())
 
-  // Snapshots for Profit Analysis
-  unitPrice Int // Price charged to customer per unit (in cents) at time of sale
-  unitCost  Int @default(0) // Cost per unit (in cents) at time of sale, calculated from Product costPrice + Branch buffer
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  transactionId String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  quantity  Float
+
+  unitPrice Int
+  unitCost  Int @default(0)
 
   unitId String
   unit   Unit   @relation(fields: [unitId], references: [id])
 
   selectedAddons OrderItemAddon[]
-  transactionId  String
-  transaction    Transaction      @relation(fields: [transactionId], references: [id])
-  variant        ProductVariant   @relation(fields: [variantId], references: [id])
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -607,14 +638,12 @@ model VendorSession {
   branchId String
   branch   Branch @relation(fields: [branchId], references: [id])
 
-  startTime DateTime  @default(now())
-  endTime   DateTime?
-
-  openingCash Int  @default(0) // In cents (starting change fund)
-  closingCash Int? // In cents (actual cash brought back)
-
-  status SessionStatus @default(OPEN)
-  notes  String?
+  startTime   DateTime      @default(now())
+  endTime     DateTime?
+  openingCash Int           @default(0)
+  closingCash Int?
+  status      SessionStatus @default(OPEN)
+  notes       String?
 
   transactions Transaction[]
 

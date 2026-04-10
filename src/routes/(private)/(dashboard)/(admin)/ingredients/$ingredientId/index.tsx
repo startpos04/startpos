@@ -110,7 +110,7 @@ function RouteComponent(props: RouteComponentProps) {
   }
 
   return (
-    <div className='flex flex-col gap-6 p-1 md:p-6 overflow-y-auto pr-2'>
+    <div className='flex flex-col gap-6 pt-6 overflow-y-auto'>
       {/* HEADER */}
       <div className='flex justify-between items-start'>
         <div className='flex gap-4'>
@@ -135,11 +135,15 @@ function RouteComponent(props: RouteComponentProps) {
           </div>
         </div>
         <div className='flex gap-2'>
-          <Button variant='outline' size='sm' className='gap-2 rounded-xl border-emerald-200 hover:bg-emerald-50 text-emerald-700' onClick={handleRestock}>
-            <Plus className='h-4 w-4' /> Restock
+          <Button
+            size='sm'
+            className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]  rounded-xl active:scale-[0.98] cursor-pointer'
+            onClick={handleRestock}
+          >
+            <Plus className='h-4! w-4!' /> Restock
           </Button>
           <Button variant='outline' size='sm' className='gap-2 rounded-xl' onClick={handleEdit}>
-            <Edit className='h-4 w-4' /> Edit
+            <Edit className='h-4! w-4!' /> Edit
           </Button>
         </div>
       </div>

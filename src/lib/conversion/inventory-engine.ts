@@ -1,6 +1,7 @@
 import { Prettify } from 'better-auth'
 import { Inventory, Prisma } from 'prisma/generated/prisma/client'
 
+// --- Types & Props (Unchanged) ---
 export const posProductComponentProps = {
   unit: true,
   material: {
@@ -11,7 +12,6 @@ export const posProductComponentProps = {
   },
 } satisfies Prisma.ProductComponentInclude
 
-// Updated to the Unified Component Model
 export const posProductProps = {
   category: true,
   baseUnit: true,
@@ -36,20 +36,21 @@ export type posItem = {
   addons: Prettify<Prisma.ProductComponentGetPayload<{ include: typeof posProductComponentProps }>>[]
 }
 
+let globalDbReserved: posItem[] = []
 export const InventoryEngine = {
   /**
-   * Sums up all materials held in the cart using the unified components table.
+   * CALCULATION LAYER: Sums up all materials.
+   * Logic remains identical, but now accepts a combined list of Cart + DB items.
    */
   getReservedMap: (cartItems: posItem[]) => {
     const reserved: Record<string, number> = {}
+    const allItems = [...cartItems, ...globalDbReserved]
 
-    cartItems.forEach(item => {
+    allItems.forEach(item => {
       const activeVariant = item.variant
       if (!activeVariant.components) return
 
-      // Process all components (Ingredients + Selected Addons)
       activeVariant.components.forEach(comp => {
-        // Condition: It's an ingredient (isAddon: false) OR it's a selected addon
         const isRequired = !comp.isAddon || item.addons.some(c => c.id === comp.id)
 
         if (isRequired) {
@@ -57,7 +58,7 @@ export const InventoryEngine = {
         }
       })
 
-      // If the variant has no components at all, track the variant itself (Direct Sale)
+      // If it's a direct sale (no components), track the variant ID
       if (activeVariant.components.length === 0) {
         reserved[activeVariant.id] = (reserved[activeVariant.id] || 0) + item.quantity
       }
@@ -79,7 +80,6 @@ export const InventoryEngine = {
 
     variant.components.forEach(comp => {
       const isRequired = !comp.isAddon || selectedComponentIds.includes(comp.id)
-
       if (isRequired) {
         requirements[comp.materialId] = (requirements[comp.materialId] || 0) + comp.quantityUsed
       }
@@ -88,6 +88,10 @@ export const InventoryEngine = {
     return requirements
   },
 
+  /**
+   * VALIDATION LAYER: Standard signature preserved.
+   * When calling this, pass [...localCart, ...dbOrders] to the cartItems param.
+   */
   calculateRemainingYield: (product: PosProduct, variant: PosProduct['variants'][number], selectedComponentIds: string[], cartItems: posItem[]) => {
     const reserved = InventoryEngine.getReservedMap(cartItems)
     const unitReqs = InventoryEngine.getUnitRequirements(variant, selectedComponentIds)
@@ -114,18 +118,16 @@ export const InventoryEngine = {
 
     for (const p of products) {
       for (const v of p.variants || []) {
-        // 1. Check if the ID matches the Variant itself
         if (v.id === id) {
           physicalStock = getQty(v.inventory || [])
           displayName = v.name || p.name
           return { stock: physicalStock, name: displayName }
         }
 
-        // 2. Check components of those variants
         const compMatch = v.components?.find(c => c.materialId === id)
         if (compMatch) {
           physicalStock = getQty(compMatch.material.inventory || [])
-          displayName = compMatch.material.product.name // Clarity: "Beef Patty" instead of "Beef Patty (150g)"
+          displayName = compMatch.material.product.name
           return { stock: physicalStock, name: displayName }
         }
       }
