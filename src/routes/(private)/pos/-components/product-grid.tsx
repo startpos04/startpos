@@ -117,7 +117,7 @@ export const ProductGrid = withForm({
           </div>
         </header>
 
-        <div className='flex-1 overflow-y-auto custom-scrollbar'>
+        <div className='flex flex-1 overflow-y-auto custom-scrollbar'>
           <GridView<NonNullable<typeof data>[number]>
             data={data}
             isFetching={isFetching}
