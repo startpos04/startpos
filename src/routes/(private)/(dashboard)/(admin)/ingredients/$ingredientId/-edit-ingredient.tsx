@@ -25,7 +25,6 @@ export function EditIngredientDialog({
       data: {
         ...productData,
         image: productData.image || null,
-        // 2. Perform a nested update on the variants
         variants: {
           updateMany: {
             where: { productId: ingredientId },

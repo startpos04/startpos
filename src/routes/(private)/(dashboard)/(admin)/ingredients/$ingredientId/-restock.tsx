@@ -1,8 +1,10 @@
+import { MoneyInput } from '@/components/custom/form/money-input'
 import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
+import { OverlayProps } from '@/lib/overlay'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { restockIngredient } from '@/lib/server-fn/restock-ingredient'
 import { authStore } from '@/store/auth-store'
@@ -11,20 +13,26 @@ import { useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Hash, PackagePlus, ReceiptIndianRupee, Save } from 'lucide-react'
 import { toast } from 'sonner'
 
-export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
+interface RestockIngredientDialogProps extends OverlayProps {
+  ingredient: any
+  variant: any
+}
+
+export function RestockIngredientDialog({ open, onClose, ingredient, variant }: RestockIngredientDialogProps) {
   const queryClient = useQueryClient()
   const user = useStore(authStore, state => state.user)
   const { data: unitOptions = [] } = fetchUnitOptions()
 
   const form = useForm({
     defaultValues: {
-      productId: ingredient.id,
+      variantId: variant.id,
       quantity: 0,
-      unitId: ingredient.baseUnitId,
-      unitCost: Number(ingredient.costPrice || 0), // Pre-fill with current cost
+      unitId: variant.product?.baseUnitId || '',
+      unitCost: Number(variant.costPrice || 0),
       batchNumber: '',
       expiryDate: '',
-      sourceName: '', // For tracking the purchase source
+      location: '',
+      sourceName: '',
       reason: 'Manual Restock',
     },
     onSubmit: async ({ value }) => {
@@ -34,9 +42,12 @@ export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
       }
       try {
         await restockIngredient({ data: value })
-        toast.success(`Inventory updated for ${ingredient.name}`)
+        toast.success(`Inventory updated for ${variant.name || variant.product?.name}`)
+
+        // Invalidate specific keys for your POS/Inventory tables
+        await queryClient.invalidateQueries({ queryKey: ['ingredient', ingredient.id] })
         await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
-        await queryClient.invalidateQueries({ queryKey: ['products'] }) // Refresh profit margins
+
         onClose()
       } catch (error) {
         toast.error('Restock failed. Check your connection or permissions.')
@@ -50,12 +61,13 @@ export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
         <div className='bg-emerald-600 p-4 relative overflow-hidden'>
           <DialogHeader className='flex flex-row gap-4'>
             <div className='bg-white/20 w-fit p-3 rounded-2xl backdrop-blur-md'>
-              <PackagePlus className='w-8 h-8 ' />
+              <PackagePlus className='w-8 h-8 text-white' />
             </div>
             <div className='grow'>
-              <DialogTitle className='text-3xl font-black tracking-tight'>Restock Inventory</DialogTitle>
+              <DialogTitle className='text-3xl font-black tracking-tight text-white'>Restock Inventory</DialogTitle>
               <DialogDescription className='text-emerald-100 text-base'>
-                Recording new stock for <span className='font-bold text-white'>{ingredient.name}</span>
+                Recording new stock for{' '}
+                <span className='font-bold text-white'>{[variant.product.name, variant?.name ? `(${variant.name})` : ''].filter(Boolean).join(' ')}</span>
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -86,9 +98,9 @@ export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
               <form.Field
                 name='unitCost'
                 children={field => (
-                  <TextInput
+                  <MoneyInput
                     field={field}
-                    label={`Unit Cost (${user.branch.currency})`}
+                    label={`Unit Cost (${user.branch.currency || 'PHP'})`}
                     type='number'
                     placeholder='0.00'
                     className='rounded-xl font-mono'
@@ -115,6 +127,18 @@ export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
             </div>
           </div>
 
+          {/* Section 3: Storage & Source */}
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <form.Field
+              name='location'
+              children={field => <TextInput field={field} label='Storage Location' placeholder='Aisle 1 / Fridge' className='rounded-xl' />}
+            />
+            <form.Field
+              name='sourceName'
+              children={field => <TextInput field={field} label='Supplier Name' placeholder='Wholesale Mart' className='rounded-xl' />}
+            />
+          </div>
+
           <form.Field
             name='reason'
             children={field => <TextInput field={field} label='Reference / Note' placeholder='e.g. Supplier Invoice #123' className='rounded-xl' />}
@@ -127,7 +151,7 @@ export function RestockIngredientDialog({ open, onClose, ingredient }: any) {
                 <Button
                   onClick={() => form.handleSubmit()}
                   disabled={!canSubmit || isSubmitting}
-                  className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 transition-all active:scale-95'
+                  className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 transition-all active:scale-95 text-white'
                 >
                   <Save className='w-5 h-5 mr-3' />
                   {isSubmitting ? 'Updating Inventory...' : 'Complete Restock'}

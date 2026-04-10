@@ -4,14 +4,15 @@ import { authMiddleware } from '../better-auth/auth-middleware'
 import { getTenantPrisma } from '../prisma-client'
 
 const restockSchema = z.object({
-  productId: z.string(),
+  variantId: z.string(),
   quantity: z.number().gt(0),
   unitCost: z.number().gte(0),
   unitId: z.string(),
-  reason: z.string(),
+  reason: z.string().nullable(),
   batchNumber: z.string().optional().default('DEFAULT'),
   expiryDate: z.string().optional().nullable(),
-  sourceName: z.string(), // Added for the Purchase record
+  sourceName: z.string().optional(),
+  location: z.string().nullable(),
 })
 
 export const restockIngredient = createServerFn({ method: 'POST' })
@@ -19,17 +20,17 @@ export const restockIngredient = createServerFn({ method: 'POST' })
   .inputValidator(restockSchema)
   .handler(async ({ context, data }) => {
     const prisma = getTenantPrisma(context.user.organizationId, context.user.branchId!)
+
     return await prisma.$transaction(async tx => {
-      // Create the Financial Purchase Record
-      // This tracks the "Accounts Payable" side of the business
+      // 1. Create the Financial Purchase Record
       const purchase = await tx.purchase.create({
         data: {
-          sourceName: data.sourceName,
-          totalCost: data.unitCost * data.quantity,
+          sourceName: data.sourceName || 'Manual Restock',
+          totalCost: Math.round(data.unitCost * data.quantity),
           notes: data.reason,
           items: {
             create: {
-              productId: data.productId,
+              variantId: data.variantId,
               quantity: data.quantity,
               unitId: data.unitId,
               unitCost: data.unitCost,
@@ -38,58 +39,63 @@ export const restockIngredient = createServerFn({ method: 'POST' })
         },
       })
 
-      // Update the Global Product Reference Cost
-      await tx.product.update({
-        where: { id: data.productId },
+      // 2. Update the Variant Reference Cost (instead of Product)
+      // Your schema has costPrice on ProductVariant
+      await tx.productVariant.update({
+        where: { id: data.variantId },
         data: { costPrice: data.unitCost },
       })
 
-      // Create the Audit Trail (Inventory Movement)
+      // 3. Create/Update the Inventory Batch Record
+      // We look for same variant + branch + batch to increment
+      const inventory = await tx.inventory.upsert({
+        where: {
+          // Note: You might need a composite unique index in schema if you want to use upsert here,
+          // otherwise findFirst + update/create is safer.
+          // Using your current schema's findFirst logic:
+          id:
+            (
+              await tx.inventory.findFirst({
+                where: {
+                  variantId: data.variantId,
+                  batchNumber: data.batchNumber,
+                },
+              })
+            )?.id || 'non-existent-cuid',
+        },
+        update: {
+          quantity: { increment: data.quantity },
+          costPrice: data.unitCost,
+          lastRestocked: new Date(),
+        },
+        create: {
+          variantId: data.variantId,
+          quantity: data.quantity,
+          unitId: data.unitId,
+          batchNumber: data.batchNumber,
+          costPrice: data.unitCost,
+          location: data.location,
+          expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+        },
+      })
+
+      // 4. Create the Audit Trail (Inventory Movement)
       const movement = await tx.inventoryMovement.create({
         data: {
-          productId: data.productId,
+          variantId: data.variantId,
+          inventoryId: inventory.id, // Linked to the batch created/updated above
           userId: context.user.id,
           quantity: data.quantity,
           unitId: data.unitId,
           type: 'IN',
-          reason: `Restocked via Purchase ${purchase.id}`,
+          reason: data.reason || `Restocked via Purchase ${purchase.id}`,
         },
       })
-
-      // Update or Create the Physical Inventory Batch
-      // We check for an existing batch to avoid duplicating rows for the same Lot #
-      const existingBatch = await tx.inventory.findFirst({
-        where: {
-          productId: data.productId,
-          batchNumber: data.batchNumber,
-        },
-      })
-
-      if (existingBatch) {
-        await tx.inventory.update({
-          where: { id: existingBatch.id },
-          data: {
-            quantity: { increment: data.quantity },
-            costPrice: data.unitCost, // Update to latest cost for this batch
-            lastRestocked: new Date(),
-          },
-        })
-      } else {
-        await tx.inventory.create({
-          data: {
-            productId: data.productId,
-            quantity: data.quantity,
-            unitId: data.unitId,
-            batchNumber: data.batchNumber,
-            costPrice: data.unitCost,
-            expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
-          },
-        })
-      }
 
       return {
         success: true,
         purchaseId: purchase.id,
+        inventoryId: inventory.id,
         movementId: movement.id,
       }
     })
