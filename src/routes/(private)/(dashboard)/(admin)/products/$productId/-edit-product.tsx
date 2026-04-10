@@ -1,20 +1,16 @@
 import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { OverlayProps } from '@/lib/overlay'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { CreateProduct, CreateProductFormData } from '../create/-create-product'
 
-export function EditProductDialog({
-  productId,
-  defaultValues,
-  open,
-  onClose,
-}: {
+interface EditProductDialogProps extends OverlayProps {
   productId: string
   defaultValues: CreateProductFormData
-  open: boolean
-  onClose: () => void
-}) {
+}
+
+export function EditProductDialog({ productId, defaultValues, open, onClose }: EditProductDialogProps) {
   const queryClient = useQueryClient()
 
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {

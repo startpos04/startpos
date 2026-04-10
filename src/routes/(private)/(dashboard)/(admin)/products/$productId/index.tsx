@@ -50,20 +50,22 @@ function RouteComponent(props: RouteComponentProps) {
         include: {
           baseUnit: true,
           category: true,
-          // RE-ALIGNED: Price/Cost/SKU/Inventory are now inside variants
           variants: {
             include: {
               inventory: { include: { unit: true } },
-              ingredients: {
+              components: {
                 include: {
-                  material: { include: { product: true } },
+                  material: {
+                    include: {
+                      product: true,
+                    },
+                  },
                   unit: true,
                 },
               },
               _count: { select: { orderItems: true } },
             },
           },
-          allowedAddons: { include: { addon: { include: { baseUnit: true } } } },
           _count: { select: { variants: true } },
         },
       })
@@ -75,7 +77,7 @@ function RouteComponent(props: RouteComponentProps) {
   if (isLoading) return <div className='p-10 animate-pulse bg-muted rounded-xl h-full' />
   if (!product) return <div className='p-6 text-center'>Product not found.</div>
 
-  // --- CALCULATIONS (Aggregated across variants) ---
+  // --- CALCULATIONS ---
   const totalStock = product.variants.reduce((acc, v) => acc + v.inventory.reduce((iAcc, inv) => iAcc + inv.quantity, 0), 0)
   const totalSales = product.variants.reduce((acc, v) => acc + v._count.orderItems, 0)
 
@@ -85,26 +87,78 @@ function RouteComponent(props: RouteComponentProps) {
 
   const isLowStock = totalStock < 10
 
+  // Filter components to show only Recipe Ingredients (where isAddon is false)
+  const getRecipeIngredients = (variant: any) => {
+    return variant.components?.filter((c: any) => !c.isAddon) || []
+  }
+
+  // Filter components to show only Paid Add-ons
+  const getAddons = (variant: any) => {
+    return variant.components?.filter((c: any) => c.isAddon) || []
+  }
+
   const handleEdit = () => {
-    // TODO: pass data to avoid refetching in dialog, or optimistically update after edit
+    const primaryVariant = product.variants.find(v => v.variantType === 'DEFAULT') || product.variants[0]
+
     showModal(EditProductDialog, {
-      productId,
+      productId: product.id,
       defaultValues: {
         name: product.name,
         type: product.type as any,
         categoryId: product.categoryId,
         baseUnitId: product.baseUnitId,
-        image: product.image!,
+        image: product.image ?? '',
         isAvailable: product.isAvailable,
         hasExpiry: product.hasExpiry,
-        variants: product.variants,
+        price: primaryVariant?.price || 0,
+        sku: primaryVariant?.sku ?? '',
+
+        ingredients: (primaryVariant?.components ?? [])
+          .filter(c => !c.isAddon)
+          .map(c => ({
+            id: c.id,
+            material: {
+              id: c.material.productId,
+              name: c.material.product.name,
+            },
+            variant: {
+              id: c.materialId,
+              name: c.material.name,
+            },
+            quantityUsed: Number(c.quantityUsed),
+            unit: c.unit,
+          })),
+
+        allowedAddons: (primaryVariant?.components ?? [])
+          .filter(c => c.isAddon)
+          .map(c => ({
+            id: c.id,
+            addon: {
+              id: c.material.productId,
+              name: c.material.product.name,
+            },
+            variant: {
+              id: c.materialId,
+              name: c.material.name,
+            },
+            unit: c.unit,
+            defaultQuantity: Number(c.quantityUsed),
+            priceOverride: c.priceOverride ? Number(c.priceOverride) / 100 : 0,
+          })),
+
+        variants: product.variants.map(v => ({
+          id: v.id,
+          variantType: v.variantType,
+          name: v.name,
+          sku: v.sku,
+          price: Number(v.price) / 100,
+        })),
       },
     })
   }
 
   return (
     <div className='flex flex-col gap-6 p-1 md:p-6 overflow-y-auto pr-2'>
-      {/* 1. TOP HEADER SECTION */}
       <div className='flex flex-col md:flex-row justify-between items-start gap-4'>
         <div className='flex gap-5'>
           <div className='h-24 w-24 rounded-2xl bg-secondary flex items-center justify-center border-2 shadow-sm overflow-hidden'>
@@ -135,7 +189,6 @@ function RouteComponent(props: RouteComponentProps) {
         </div>
       </div>
 
-      {/* 2. QUICK STATS GRID */}
       <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
         <StatCard
           label='Price Range'
@@ -154,12 +207,11 @@ function RouteComponent(props: RouteComponentProps) {
         <StatCard label='Profitability' value='Calculated' subValue='View in Recipe tab' icon={<TrendingDown className='text-blue-500 rotate-180' />} />
       </div>
 
-      {/* 3. DETAILED CONTENT TABS */}
       <Tabs defaultValue='variants' className='w-full'>
         <TabsList className='grid w-full grid-cols-2 lg:grid-cols-4 h-auto bg-muted/50 p-1'>
           <TabsTrigger value='variants'>Pricing & Variants</TabsTrigger>
           <TabsTrigger value='inventory'>Stock/Batches</TabsTrigger>
-          <TabsTrigger value='recipe'>Recipe/Costing</TabsTrigger>
+          <TabsTrigger value='recipe'>Recipe & Add-ons</TabsTrigger>
           <TabsTrigger value='settings'>Specifications</TabsTrigger>
         </TabsList>
 
@@ -238,39 +290,90 @@ function RouteComponent(props: RouteComponentProps) {
         </TabsContent>
 
         {/* TAB: Recipe/Composition */}
-        <TabsContent value='recipe' className='pt-4'>
-          {product.variants.map(v => (
-            <Card key={v.id} className='mb-4'>
-              <CardHeader>
-                <CardTitle className='text-md'>{v.name || 'Default'} Composition</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Material Variant</TableHead>
-                      <TableHead>Required</TableHead>
-                      <TableHead className='text-right'>Cost Contribution</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {v.ingredients?.map(ing => (
-                      <TableRow key={ing.id}>
-                        <TableCell>
-                          <div className='font-medium'>{ing.material.product.name}</div>
-                          <div className='text-xs text-muted-foreground'>{ing.material.name}</div>
-                        </TableCell>
-                        <TableCell>
-                          {ing.quantityUsed} {ing.unit.abbreviation}
-                        </TableCell>
-                        <TableCell className='text-right'>{PriceEngine.format(ing.quantityUsed * ing.material.costPrice)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          ))}
+        <TabsContent value='recipe' className='pt-4 space-y-6'>
+          {product.variants.map(v => {
+            const ingredients = getRecipeIngredients(v)
+            const addons = getAddons(v)
+
+            return (
+              <div key={v.id} className='space-y-4'>
+                <h3 className='font-bold text-lg px-1'>{v.name || 'Default Variant'}</h3>
+
+                {/* Ingredients Table */}
+                <Card>
+                  <CardHeader className='pb-2'>
+                    <CardTitle className='text-sm text-muted-foreground uppercase tracking-wider'>Base Recipe / Materials</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Material</TableHead>
+                          <TableHead>Required</TableHead>
+                          <TableHead className='text-right'>Cost Contribution</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {ingredients.length > 0 ? (
+                          ingredients.map((comp: any) => (
+                            <TableRow key={comp.id}>
+                              <TableCell>
+                                <div className='font-medium'>{comp.material.product.name}</div>
+                                <div className='text-xs text-muted-foreground'>{comp.material.name}</div>
+                              </TableCell>
+                              <TableCell>
+                                {comp.quantityUsed} {comp.unit.abbreviation}
+                              </TableCell>
+                              <TableCell className='text-right'>{PriceEngine.format(comp.quantityUsed * comp.material.costPrice)}</TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={3} className='text-center text-muted-foreground text-xs py-4'>
+                              No recipe defined
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                {/* Add-ons Table */}
+                {addons.length > 0 && (
+                  <Card className='border-dashed'>
+                    <CardHeader className='pb-2'>
+                      <CardTitle className='text-sm text-muted-foreground uppercase tracking-wider'>Available Add-ons</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Add-on Name</TableHead>
+                            <TableHead>Surcharge</TableHead>
+                            <TableHead className='text-right'>Qty per Order</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {addons.map((addon: any) => (
+                            <TableRow key={addon.id}>
+                              <TableCell className='font-medium'>
+                                {addon.material.product.name} ({addon.material.name})
+                              </TableCell>
+                              <TableCell className='text-emerald-600 font-semibold'>+ {PriceEngine.format(addon.priceOverride || 0)}</TableCell>
+                              <TableCell className='text-right'>
+                                {addon.quantityUsed} {addon.unit.abbreviation}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )
+          })}
         </TabsContent>
       </Tabs>
     </div>

@@ -70,8 +70,8 @@ function RouteComponent() {
 
   const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, product: NonNullable<typeof data>[number]) => {
     e.preventDefault()
+    const primaryVariant = product.variants.find(v => v.variantType === 'DEFAULT') || product.variants[0]
 
-    // TODO: pass data to avoid refetching in dialog, or optimistically update after edit
     showModal(EditProductDialog, {
       productId: product.id,
       defaultValues: {
@@ -79,9 +79,52 @@ function RouteComponent() {
         type: product.type as any,
         categoryId: product.categoryId,
         baseUnitId: product.baseUnitId,
-        image: product.image as '',
-        variants: product.variants,
-        allowedAddons: product.allowedAddons,
+        image: product.image ?? '',
+        isAvailable: product.isAvailable,
+        hasExpiry: product.hasExpiry,
+        price: primaryVariant?.price || 0,
+        sku: primaryVariant?.sku ?? '',
+
+        ingredients: (primaryVariant?.components ?? [])
+          .filter(c => !c.isAddon)
+          .map(c => ({
+            id: c.id,
+            material: {
+              id: c.material.productId,
+              name: c.material.product.name,
+            },
+            variant: {
+              id: c.materialId,
+              name: c.material.name,
+            },
+            quantityUsed: Number(c.quantityUsed),
+            unit: c.unit,
+          })),
+
+        allowedAddons: (primaryVariant?.components ?? [])
+          .filter(c => c.isAddon)
+          .map(c => ({
+            id: c.id,
+            addon: {
+              id: c.material.productId,
+              name: c.material.product.name,
+            },
+            variant: {
+              id: c.materialId,
+              name: c.material.name,
+            },
+            unit: c.unit,
+            defaultQuantity: Number(c.quantityUsed),
+            priceOverride: c.priceOverride ? Number(c.priceOverride) / 100 : 0,
+          })),
+
+        variants: product.variants.map(v => ({
+          id: v.id,
+          variantType: v.variantType,
+          name: v.name,
+          sku: v.sku,
+          price: Number(v.price) / 100,
+        })),
       },
     })
   }
