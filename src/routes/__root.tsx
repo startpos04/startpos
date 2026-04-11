@@ -1,4 +1,5 @@
 import { ThemeProvider } from '@/components/custom/theme/theme-provider'
+import { useSw } from '@/hooks/use-sw'
 import { getAuthUser } from '@/lib/better-auth/auth-server' // Import your server function
 import Overlay from '@/lib/overlay'
 import { MyRouterContext } from '@/router'
@@ -11,7 +12,11 @@ import appCss from '../styles.css?url'
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
     meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }, { title: 'POS & Inventory System' }],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      { rel: 'stylesheet', href: appCss },
+      { rel: 'manifest', href: '/manifest.json' },
+      { rel: 'apple-touch-icon', href: '/logo192.png' },
+    ],
   }),
 
   beforeLoad: async () => {
@@ -46,6 +51,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   const { user } = Route.useRouteContext()
+  useSw()
 
   useMemo(() => {
     if (user) {

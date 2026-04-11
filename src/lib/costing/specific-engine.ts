@@ -1,9 +1,10 @@
 import { CostingResult, InventoryBatchDTO } from './types'
-export class SpecificEngine {
+
+export const SpecificEngine = {
   /**
    * For when the user selects the specific batch manually (e.g., Pharmacy/Electronics)
    */
-  static consume(batches: InventoryBatchDTO[], requiredQty: number): CostingResult {
+  consume(batches: InventoryBatchDTO[], requiredQty: number): CostingResult {
     let totalCost = 0
     const consumed: CostingResult['consumed'] = []
 
@@ -24,5 +25,5 @@ export class SpecificEngine {
     }
 
     return { totalCost, consumed }
-  }
+  },
 }

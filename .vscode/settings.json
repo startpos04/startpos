@@ -11,7 +11,7 @@
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "cSpell.words": ["asku", "autoincrement", "CHED", "CHKN", "cuid", "neverthrow", "Reqs", "Skus", "TOMA", "Uncapitalize", "Upsell", "Vatable"],
+  "cSpell.words": ["asku", "autoincrement", "CHED", "CHKN", "cuid", "neverthrow", "Reqs", "serwist", "Skus", "TOMA", "Uncapitalize", "Upsell", "Vatable"],
   "eslint.workingDirectories": [
     {
       "mode": "auto"

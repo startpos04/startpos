@@ -1,12 +1,12 @@
 import { CostingResult, InventoryBatchDTO } from './types'
 
-export class MovingAverageEngine {
+export const MovingAverageEngine = {
   /**
    * Consumes quantity using the weighted average cost.
    * In a multi-batch system, we distribute the requirement across all batches
    * based on their share of the total stock to keep the math clean.
    */
-  static consume(batches: InventoryBatchDTO[], requiredQty: number): CostingResult {
+  consume(batches: InventoryBatchDTO[], requiredQty: number): CostingResult {
     const totalQty = batches.reduce((sum, b) => sum + b.quantity, 0)
     const totalValue = batches.reduce((sum, b) => sum + b.quantity * b.costPrice, 0)
 
@@ -41,5 +41,5 @@ export class MovingAverageEngine {
       totalCost,
       consumed,
     }
-  }
+  },
 }

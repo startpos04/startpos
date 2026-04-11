@@ -5,11 +5,11 @@ import { MovingAverageEngine } from './moving-average-engine'
 import { SpecificEngine } from './specific-engine'
 import { CostingParams, CostingResult, CostingStrategyType, InventoryBatchDTO } from './types'
 
-export class CostingService {
+export const CostingEngine = {
   /**
    * Prepares the consumption of inventory based on selected strategy.
    */
-  static prepareConsumption(strategy: CostingStrategyType, params: CostingParams, inventory: Inventory[]): CostingResult {
+  prepareConsumption(strategy: CostingStrategyType, params: CostingParams, inventory: Inventory[]): CostingResult {
     const { quantity, unit } = params
 
     // 1. Convert to Base Unit
@@ -32,5 +32,5 @@ export class CostingService {
       default:
         throw new Error(`Strategy ${strategy} not implemented`)
     }
-  }
+  },
 }

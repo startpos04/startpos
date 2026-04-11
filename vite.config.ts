@@ -5,6 +5,7 @@ import viteReact from '@vitejs/plugin-react'
 import { nitro } from 'nitro/vite'
 import { defineConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
+import { tanstackSerwistPlugin } from './vite-plugin'
 
 const config = defineConfig({
   plugins: [
@@ -16,6 +17,7 @@ const config = defineConfig({
     devtools(),
     tailwindcss(),
     viteReact(),
+    tanstackSerwistPlugin(),
   ],
 })
 

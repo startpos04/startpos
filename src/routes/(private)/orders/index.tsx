@@ -72,65 +72,66 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
         renderCard={row => {
           const order = row.original
           return (
-            <button key={order.id} onClick={() => handleClick(order.id)} className='w-full cursor-pointer'>
-              <Card className='overflow-hidden border-l-4 border-l-primary'>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0'>
-                  <CardTitle className='text-lg font-bold'>Order #{order.orderNumber}</CardTitle>
-                  <Badge variant={order.status === 'PREPARING' ? 'default' : 'secondary'}>{order.status}</Badge>
-                </CardHeader>
+            <Card key={order.id} className='overflow-hidden border-l-4 border-l-primary'>
+              <CardHeader className='flex flex-row items-center justify-between space-y-0'>
+                <CardTitle className='text-lg font-bold'>Order #{order.orderNumber}</CardTitle>
+                <Badge variant={order.status === 'PREPARING' ? 'default' : 'secondary'}>{order.status}</Badge>
+              </CardHeader>
 
-                <CardContent className='space-y-4'>
-                  <div className='flex items-center text-sm gap-2'>
-                    <User className='h-4 w-4 text-muted-foreground' />
-                    <span className='font-medium'>{order.customerReference}</span>
-                  </div>
+              <CardContent className='space-y-4'>
+                <div className='flex items-center text-sm gap-2'>
+                  <User className='h-4 w-4 text-muted-foreground' />
+                  <span className='font-medium'>{order.customerReference}</span>
+                </div>
 
-                  <div className='flex items-center text-sm gap-2'>
-                    <Clock className='h-4 w-4 text-muted-foreground' />
-                    <span>
-                      {new Date(order.createdAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  </div>
+                <div className='flex items-center text-sm gap-2'>
+                  <Clock className='h-4 w-4 text-muted-foreground' />
+                  <span>
+                    {new Date(order.createdAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
 
-                  <Separator />
+                <Separator />
 
-                  <div className='space-y-2'>
-                    {order.items.map(item => (
-                      <div key={item.id} className='space-y-1'>
-                        <div className='flex justify-between text-sm'>
-                          <span className='flex gap-2'>
-                            <span className='font-bold text-primary'>{item.quantity}x</span>
-                            {[item.variant.product.name, item.variant.name ? `(${item.variant.name})` : ''].filter(Boolean).join(' ')}
-                          </span>
-                          <span className='text-muted-foreground text-xs'>{PriceEngine.format(item.unitPrice)}</span>
-                        </div>
-                        {item.selectedAddons && item.selectedAddons.length > 0 && (
-                          <div className='ml-7 space-y-0.5 border-l-2 border-muted pl-2'>
-                            {item.selectedAddons.map(addon => (
-                              <div key={addon.id} className='flex justify-between text-[11px] text-muted-foreground italic'>
-                                <span>
-                                  + {addon.quantity} {addon.addon.product.name} {addon.addon.name ? `(${addon.addon.name})` : ''}
-                                </span>
-                                {addon.priceAtSale > 0 && <span>₱{(addon.priceAtSale / 100).toFixed(2)}</span>}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                <div className='space-y-2'>
+                  {order.items.map(item => (
+                    <div key={item.id} className='space-y-1'>
+                      <div className='flex justify-between text-sm'>
+                        <span className='flex gap-2'>
+                          <span className='font-bold text-primary'>{item.quantity}x</span>
+                          {[item.variant.product.name, item.variant.name ? `(${item.variant.name})` : ''].filter(Boolean).join(' ')}
+                        </span>
+                        <span className='text-muted-foreground text-xs'>{PriceEngine.format(item.unitPrice)}</span>
                       </div>
-                    ))}
-                  </div>
+                      {item.selectedAddons && item.selectedAddons.length > 0 && (
+                        <div className='ml-7 space-y-0.5 border-l-2 border-muted pl-2'>
+                          {item.selectedAddons.map(addon => (
+                            <div key={addon.id} className='flex justify-between text-[11px] text-muted-foreground italic'>
+                              <span>
+                                + {addon.quantity} {addon.addon.product.name} {addon.addon.name ? `(${addon.addon.name})` : ''}
+                              </span>
+                              {addon.priceAtSale > 0 && <span>₱{(addon.priceAtSale / 100).toFixed(2)}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
 
-                  <div className='pt-2'>
-                    <button className='w-full bg-primary text-primary-foreground py-2 rounded-md font-semibold text-sm hover:opacity-90 transition-opacity'>
-                      Mark as Served
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            </button>
+                <div className='pt-2'>
+                  <button
+                    className='w-full bg-primary text-primary-foreground py-2 rounded-md font-semibold text-sm hover:opacity-90 transition-opacity cursor-pointer'
+                    onClick={() => handleClick(order.id)}
+                  >
+                    Pay Now
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
           )
         }}
       />

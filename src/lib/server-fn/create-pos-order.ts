@@ -12,10 +12,7 @@ export const createPosOrder = createServerFn({ method: 'POST' })
 
     // --- 1. PRE-FETCH PRODUCT DATA ---
     const productIds = data.items.map(item => item.productId)
-    const dbProducts = (await prisma.product.findMany({
-      where: { id: { in: productIds } },
-      include: posProductProps,
-    })) as PosProduct[]
+    const dbProducts = (await prisma.product.findMany({ where: { id: { in: productIds } }, include: posProductProps })) as PosProduct[]
 
     const result = await prisma.$transaction(async tx => {
       if (data.orderId) {

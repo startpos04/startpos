@@ -5,7 +5,7 @@ import { Prisma } from 'prisma/generated/prisma/browser'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { VAT_RATE } from '../constants'
 import { InventoryEngine, PosProduct, PosProductComponent, posProductProps } from '../conversion/inventory-engine'
-import { CostingService } from '../costing'
+import { CostingEngine } from '../costing'
 import { getTenantPrisma } from '../prisma-client'
 import { ActiveOrder, activeOrderProps } from '../queries/fetch-active-orders'
 import { Prettify } from '../types'
@@ -203,7 +203,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
         })
 
         // 3. Prepare Consumption using the actual Unit object
-        const plan = CostingService.prepareConsumption(
+        const plan = CostingEngine.prepareConsumption(
           'FIFO',
           {
             variantId: vId,

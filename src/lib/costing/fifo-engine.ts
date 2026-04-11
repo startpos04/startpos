@@ -1,6 +1,7 @@
 import { CostingResult, InventoryBatchDTO } from './types'
-export class FIFOEngine {
-  static consume(batches: InventoryBatchDTO[], requiredQty: number): CostingResult {
+
+export const FIFOEngine = {
+  consume(batches: InventoryBatchDTO[], requiredQty: number): CostingResult {
     let remaining = requiredQty
     let totalCost = 0
     const consumed: CostingResult['consumed'] = []
@@ -28,5 +29,5 @@ export class FIFOEngine {
     }
 
     return { totalCost, consumed }
-  }
+  },
 }
