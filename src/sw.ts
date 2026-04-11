@@ -1,5 +1,5 @@
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist'
-import { Serwist } from 'serwist'
+import { NavigationRoute, Serwist } from 'serwist'
 
 // 1. Correct Global Scope Typing
 declare global {
@@ -17,5 +17,9 @@ const serwist = new Serwist({
   navigationPreload: true,
 })
 
-// 3. Essential: Add the event listeners to the worker global scope
+const navigationRoute = new NavigationRoute(serwist.precacheStrategy, {
+  allowlist: [/^(?!\/__).*/],
+})
+
+serwist.registerCapture(navigationRoute)
 serwist.addEventListeners()
