@@ -1,3 +1,4 @@
+import { getOrderItems } from '@/hooks/use-pos'
 import { authStore } from '@/store/auth-store'
 import { createServerFn } from '@tanstack/react-start'
 import { Prisma } from 'prisma/generated/prisma/browser'
@@ -6,6 +7,7 @@ import { VAT_RATE } from '../constants'
 import { InventoryEngine, PosProduct, PosProductComponent, posProductProps } from '../conversion/inventory-engine'
 import { CostingService } from '../costing'
 import { getTenantPrisma } from '../prisma-client'
+import { ActiveOrder, activeOrderProps } from '../queries/fetch-active-orders'
 import { Prettify } from '../types'
 
 export interface SaleItem {
@@ -33,11 +35,18 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
     const { user } = authStore.state
 
     // --- 1. PRE-FETCH PRODUCT DATA ---
-    const productIds = data.items.map(item => item.productId)
+    const activeOrders = (await prisma.order.findMany({
+      where: { id: { not: data.orderId || '' }, status: { in: ['PREPARING', 'PENDING'] } },
+      include: activeOrderProps,
+    })) as ActiveOrder[]
+
+    const productIds = [...data.items.map(item => item.productId), ...activeOrders.flatMap(order => order.items.map(item => item.variant.productId))]
     const dbProducts = (await prisma.product.findMany({ where: { id: { in: productIds } }, include: posProductProps })) as PosProduct[]
 
     const result = await prisma.$transaction(async tx => {
       // --- 2. VALIDATION & STOCK GUARD ---
+      const orderItems = getOrderItems(activeOrders, dbProducts)
+
       const cartForValidation = data.items.map(item => {
         const product = dbProducts.find(p => p.id === item.productId)!
         const variant = product?.variants?.find(v => v.id === item.variantId)!
@@ -52,10 +61,8 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
       })
 
       // Backend Stock Guard
-      const reservedMap = InventoryEngine.getReservedMap(cartForValidation)
-
-      for (const [variantId, amountNeeded] of Object.entries(reservedMap)) {
-        const { stock, name } = InventoryEngine.findPhysicalStock(variantId, dbProducts, user.branch.id)
+      for (const [variantId, amountNeeded] of Object.entries(InventoryEngine.getReservedMap(cartForValidation, orderItems))) {
+        const { stock, name } = InventoryEngine.findPhysicalStock(variantId, dbProducts)
 
         if (stock < amountNeeded) {
           throw new Error(`Insufficient stock for ${name}. Needed: ${amountNeeded}, Available: ${stock}`)
@@ -166,6 +173,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
       })) as Prettify<Prisma.TransactionGetPayload<{ include: { order: { include: { items: { include: { selectedAddons: true } } } }; payments: true } }>>
 
       // --- 5. DECREMENT INVENTORY (FIFO) ---
+      const reservedMap = InventoryEngine.getReservedMap(cartForValidation)
       for (const [vId, totalQty] of Object.entries(reservedMap)) {
         // 1. Resolve the Unit from our pre-fetched dbProducts
         // We look through products to find the variant, then grab its baseUnit

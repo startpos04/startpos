@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { withForm } from '@/hooks/form'
+import { usePOS } from '@/hooks/use-pos'
 import { VAT_RATE } from '@/lib/constants'
 import { InventoryEngine } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
@@ -18,6 +19,7 @@ export const CartAside = withForm({
   ...posFormOpts,
   render: function ({ form }) {
     const order = useStore(form.store, s => s.values.order)
+    const { orderItems } = usePOS(order?.id)
     const navigate = useNavigate()
 
     const handleConfirm = (total: number) => {
@@ -97,7 +99,13 @@ export const CartAside = withForm({
                 <div className='space-y-4'>
                   {field.state.value.map((item, index: number) => {
                     const selectedAddonIds = item.addons?.map(a => a.id) || []
-                    const additionalYieldPossible = InventoryEngine.calculateRemainingYield(item.product, item.variant, selectedAddonIds, field.state.value)
+                    const additionalYieldPossible = InventoryEngine.calculateRemainingYield(
+                      item.product,
+                      item.variant,
+                      selectedAddonIds,
+                      field.state.value,
+                      orderItems,
+                    )
 
                     return (
                       <div key={item.cartId} className='group animate-in fade-in slide-in-from-right-4'>

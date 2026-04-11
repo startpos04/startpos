@@ -6,12 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { InventoryEngine, posProductProps } from '@/lib/conversion/inventory-engine'
+import { usePOS } from '@/hooks/use-pos'
+import { InventoryEngine } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { authStore } from '@/store/auth-store'
-import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { Coffee, Info, Layers, Plus, Sparkles, TrendingUp } from 'lucide-react'
@@ -27,19 +26,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/products/')
 
 function RouteComponent() {
   const user = useStore(authStore, state => state.user)
-
-  const { data, isFetching } = useQuery({
-    queryKey: ['products'],
-    queryFn: async () => {
-      const result = await crudAPI.product('findMany', {
-        where: { type: { not: 'RAW_MATERIAL' } },
-        include: posProductProps,
-      })
-
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-  })
+  const { orderItems, posProducts, isLoading } = usePOS()
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
@@ -48,7 +35,7 @@ function RouteComponent() {
 
   const columns = useMemo(
     () =>
-      getColumns<NonNullable<typeof data>[number]>(h => [
+      getColumns<NonNullable<typeof posProducts>[number]>(h => [
         h.accessor('name', { header: 'Product' }),
         h.accessor('category.name', { header: 'Category' }),
         h.accessor('variants', {
@@ -60,7 +47,7 @@ function RouteComponent() {
           },
         }),
       ]),
-    [data],
+    [posProducts],
   )
 
   const handleDetail = (e: React.MouseEvent<HTMLAnchorElement>, productId: string) => {
@@ -68,7 +55,7 @@ function RouteComponent() {
     showModal(ProductDetailsDialog, { productId })
   }
 
-  const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, product: NonNullable<typeof data>[number]) => {
+  const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, product: NonNullable<typeof posProducts>[number]) => {
     e.preventDefault()
     const primaryVariant = product.variants.find(v => v.variantType === 'DEFAULT') || product.variants[0]
 
@@ -143,9 +130,9 @@ function RouteComponent() {
         </a>
       </div>
 
-      <GridView<NonNullable<typeof data>[number]>
-        data={data}
-        isFetching={isFetching}
+      <GridView<NonNullable<typeof posProducts>[number]>
+        data={posProducts}
+        isFetching={isLoading}
         columns={columns}
         className='px-4'
         renderCard={row => {
@@ -153,12 +140,7 @@ function RouteComponent() {
           const primaryVariant = product.variants?.[0]
           if (!primaryVariant) return null
 
-          // --- UNIFIED ENGINE LOGIC: Yield & Stock ---
-          // In the unified model, we calculate yield for the base recipe (components where isAddon = false)
-          const maxServings = InventoryEngine.calculateRemainingYield(product, primaryVariant, [], [])
-
-          // --- UNIFIED ENGINE LOGIC: Profitability ---
-          // Split components into "Base Recipe" for cost and "Addons" for upsell UI
+          const maxServings = InventoryEngine.calculateRemainingYield(product, primaryVariant, [], [], orderItems)
           const recipeComponents = primaryVariant.components?.filter(c => !c.isAddon) || []
           const addonComponents = primaryVariant.components?.filter(c => c.isAddon) || []
 

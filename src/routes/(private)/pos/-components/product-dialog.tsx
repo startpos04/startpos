@@ -5,11 +5,13 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { usePOS } from '@/hooks/use-pos'
 import { InventoryEngine, posItem, PosProduct } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { OverlayProps } from '@/lib/overlay'
 import { cn } from '@/lib/utils'
 import { useForm, useStore, uuid } from '@tanstack/react-form'
+import { useSearch } from '@tanstack/react-router'
 import { Minus, Plus, Sparkles } from 'lucide-react'
 import { useMemo } from 'react'
 
@@ -20,6 +22,9 @@ interface ProductDialogProps extends OverlayProps {
 }
 
 export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: ProductDialogProps) {
+  const { orderId } = useSearch({ from: '/(private)/pos/' })
+  const { orderItems } = usePOS(orderId)
+
   const form = useForm({
     defaultValues: {
       selectedVariantId: product.variants?.[0]?.id || '',
@@ -54,7 +59,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
 
   // Calculate live yield based on the base recipe + currently selected addons
   const remainingYield = useMemo(
-    () => InventoryEngine.calculateRemainingYield(product, currentVariant, selectedAddonIds, cartItems),
+    () => InventoryEngine.calculateRemainingYield(product, currentVariant, selectedAddonIds, cartItems, orderItems),
     [product, currentVariant, selectedAddonIds, cartItems],
   )
 
@@ -113,8 +118,8 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                   </h4>
                   <div className='grid gap-2'>
                     {availableAddons.map(comp => {
-                      const reserved = InventoryEngine.getReservedMap(cartItems)
-                      const stockInfo = InventoryEngine.findPhysicalStock(comp.materialId, [product], '')
+                      const reserved = InventoryEngine.getReservedMap(cartItems, orderItems)
+                      const stockInfo = InventoryEngine.findPhysicalStock(comp.materialId, [product])
                       const isSoldOut = stockInfo.stock - (reserved[comp.materialId] || 0) < comp.quantityUsed
 
                       return (

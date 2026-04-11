@@ -1,9 +1,8 @@
 import { getColumns } from '@/components/custom/data-view'
 import GridView from '@/components/custom/data-view/grid-view'
 import { withForm } from '@/hooks/form'
+import { usePOS } from '@/hooks/use-pos'
 import { posItem } from '@/lib/conversion/inventory-engine'
-import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
-import { fetchPosProducts } from '@/lib/queries/fetch-pos-products'
 import { useStore } from '@tanstack/react-form'
 import { useSearch } from '@tanstack/react-router'
 import _ from 'lodash'
@@ -15,13 +14,16 @@ import { ProductCard } from './product-card'
 export const ProductGrid = withForm({
   ...posFormOpts,
   render: function ({ form }) {
-    const { q: searchQuery } = useSearch({ from: '/(private)/pos/' })
+    const { q: searchQuery, orderId } = useSearch({ from: '/(private)/pos/' })
     const cartItems = useStore(form.store, s => s.values.items)
-    const { data, isFetching } = fetchPosProducts(searchQuery)
-    const { isLoading } = fetchActiveOrders()
+    const { posProducts, isLoading } = usePOS(orderId, searchQuery)
 
     const columns = useMemo(
-      () => getColumns<NonNullable<typeof data>[number]>(h => [h.accessor('name', { header: 'Product' }), h.accessor('category.name', { header: 'Category' })]),
+      () =>
+        getColumns<NonNullable<typeof posProducts>[number]>(h => [
+          h.accessor('name', { header: 'Product' }),
+          h.accessor('category.name', { header: 'Category' }),
+        ]),
       [],
     )
 
@@ -49,9 +51,9 @@ export const ProductGrid = withForm({
         <PosHeader />
 
         <div className='flex flex-1 overflow-y-auto custom-scrollbar'>
-          <GridView<NonNullable<typeof data>[number]>
-            data={data}
-            isFetching={isFetching || isLoading}
+          <GridView<NonNullable<typeof posProducts>[number]>
+            data={posProducts}
+            isFetching={isLoading}
             columns={columns}
             className='px-4 pb-8'
             renderCard={row => <ProductCard key={row.original.id} product={row.original} cartItems={cartItems} onAdd={handleAddToCart} />}

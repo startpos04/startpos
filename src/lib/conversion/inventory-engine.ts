@@ -1,7 +1,6 @@
 import { Prettify } from 'better-auth'
 import { Inventory, Prisma } from 'prisma/generated/prisma/client'
 
-// --- Types & Props (Unchanged) ---
 export const posProductComponentProps = {
   unit: true,
   material: {
@@ -36,15 +35,14 @@ export type posItem = {
   addons: Prettify<Prisma.ProductComponentGetPayload<{ include: typeof posProductComponentProps }>>[]
 }
 
-let globalDbReserved: posItem[] = []
 export const InventoryEngine = {
   /**
    * CALCULATION LAYER: Sums up all materials.
    * Logic remains identical, but now accepts a combined list of Cart + DB items.
    */
-  getReservedMap: (cartItems: posItem[]) => {
+  getReservedMap: (cartItems: posItem[], orderItems?: posItem[]) => {
     const reserved: Record<string, number> = {}
-    const allItems = [...cartItems, ...globalDbReserved]
+    const allItems = [...cartItems, ...(orderItems || [])]
 
     allItems.forEach(item => {
       const activeVariant = item.variant
@@ -92,8 +90,14 @@ export const InventoryEngine = {
    * VALIDATION LAYER: Standard signature preserved.
    * When calling this, pass [...localCart, ...dbOrders] to the cartItems param.
    */
-  calculateRemainingYield: (product: PosProduct, variant: PosProduct['variants'][number], selectedComponentIds: string[], cartItems: posItem[]) => {
-    const reserved = InventoryEngine.getReservedMap(cartItems)
+  calculateRemainingYield: (
+    product: PosProduct,
+    variant: PosProduct['variants'][number],
+    selectedComponentIds: string[],
+    cartItems: posItem[],
+    orderItems?: posItem[],
+  ) => {
+    const reserved = InventoryEngine.getReservedMap(cartItems, orderItems)
     const unitReqs = InventoryEngine.getUnitRequirements(variant, selectedComponentIds)
 
     const yields = Object.entries(unitReqs).map(([materialId, amountPerUnit]) => {
@@ -109,11 +113,11 @@ export const InventoryEngine = {
   /**
    * Searches the tree for physical stock linked to a specific material ID.
    */
-  findPhysicalStock: (id: string, productOrList: PosProduct | PosProduct[], branchId?: string): { stock: number; name: string } => {
+  findPhysicalStock: (id: string, productOrList: PosProduct | PosProduct[]): { stock: number; name: string } => {
     let physicalStock = 0
     let displayName = id
 
-    const getQty = (inv: Inventory[]) => inv.filter(i => !branchId || i.branchId === branchId).reduce((acc, i) => acc + i.quantity, 0)
+    const getQty = (inv: Inventory[]) => inv.reduce((acc, i) => acc + i.quantity, 0)
     const products = Array.isArray(productOrList) ? productOrList : [productOrList]
 
     for (const p of products) {

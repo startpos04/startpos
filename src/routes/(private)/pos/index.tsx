@@ -118,6 +118,7 @@ function POSPage() {
       else toast.success('Order updated successfully')
       await queryClient.invalidateQueries({ queryKey: ['pos-products', searchQuery] })
       await queryClient.invalidateQueries({ queryKey: ['active-orders'] })
+      form.reset()
     } catch (error) {
       console.error('Sale failed', error)
     }
