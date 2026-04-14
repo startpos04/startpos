@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
-import { ArrowUpRight, Calendar, DollarSign, Download, PackageCheck, ShoppingCart, Timer, TrendingUp, Users, Zap } from 'lucide-react'
+import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
+import { ArrowUpRight, DollarSign, Download, PackageCheck, ShoppingCart, Timer, TrendingUp, Users, Zap } from 'lucide-react'
 import { useMemo } from 'react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
+import { DateRange, DateRangeInput } from '@/components/custom/form/date-rage-input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,16 +14,34 @@ import dayjs from '@/lib/dayjs'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(supervisor)/sales-reports')({
+  validateSearch: (search: Record<string, unknown>): { from?: string | undefined; to?: string | undefined } => ({
+    from: (search['from'] as string) || '',
+    to: (search['to'] as string) || undefined,
+  }),
   component: RouteComponent,
 })
 
 function RouteComponent() {
+  const { from, to } = useSearch({ from: '/(private)/(dashboard)/(supervisor)/sales-reports' })
+  const navigate = useNavigate({ from: Route.fullPath })
+
   const { data: transactions = [] } = useQuery({
-    queryKey: ['sales-reports-comprehensive'],
+    queryKey: ['sales-reports-comprehensive', from, to],
     queryFn: async () => {
+      const dateFilter =
+        from || to
+          ? {
+              createdAt: {
+                ...(from ? { gte: dayjs(from).startOf('day').toISOString() } : {}),
+                ...(to ? { lte: dayjs(to).endOf('day').toISOString() } : {}),
+              },
+            }
+          : {}
+
       const result = await crudAPI.transaction('findMany', {
+        where: dateFilter,
         include: {
-          items: { include: { variant: { include: { product: true } } } },
+          order: { include: { items: { include: { variant: { include: { product: true } } } } } },
           cashier: true,
         },
         orderBy: { createdAt: 'desc' },
@@ -32,6 +51,17 @@ function RouteComponent() {
       return result.value
     },
   })
+
+  const handleDateChange = (range: DateRange) => {
+    if (!range) return
+    navigate({
+      search: prev => ({
+        ...prev,
+        from: range.from ? dayjs(range.from).format('YYYY-MM-DD') : undefined,
+        to: range.to ? dayjs(range.to).format('YYYY-MM-DD') : undefined,
+      }),
+    })
+  }
 
   // --- COMPREHENSIVE DATA PROCESSING ---
   const stats = useMemo(() => {
@@ -76,7 +106,7 @@ function RouteComponent() {
       cashierMap[tx.cashierId].count += 1
 
       // Aggregate Products
-      tx.items.forEach(item => {
+      tx.order.items.forEach(item => {
         const key = item.variantId
         if (!productMap[key]) {
           productMap[key] = { name: item.variant.product.name, qty: 0, revenue: 0 }
@@ -116,11 +146,13 @@ function RouteComponent() {
           </p>
         </div>
         <div className='flex gap-2'>
-          <Button variant='outline' size='sm'>
-            <Calendar className='mr-2 h-4 w-4' /> Filter Date
-          </Button>
+          <DateRangeInput
+            value={{ from: from ? new Date(from) : undefined, to: to ? new Date(to) : undefined }}
+            onChange={handleDateChange}
+            placeholder='All time'
+          />
           <Button size='sm'>
-            <Download className='mr-2 h-4 w-4' /> Export Report
+            <Download /> Export Report
           </Button>
         </div>
       </div>
@@ -218,7 +250,7 @@ function RouteComponent() {
                                     <div className='h-2 w-2 rounded-full bg-emerald-500' />
                                     <span className='text-xs text-muted-foreground'>Revenue</span>
                                   </div>
-                                  <span className='text-xs font-bold text-foreground'>₱{payload[0].value?.toLocaleString()}</span>
+                                  <span className='text-xs font-bold text-foreground'>₱{payload[0]?.value?.toLocaleString()}</span>
                                 </div>
                                 <div className='flex items-center justify-between gap-8'>
                                   <div className='flex items-center gap-2'>
