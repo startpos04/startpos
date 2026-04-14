@@ -74,7 +74,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
           return (
             <Card key={order.id} className='overflow-hidden border-l-4 border-l-primary'>
               <CardHeader className='flex flex-row items-center justify-between space-y-0'>
-                <CardTitle className='text-lg font-bold'>Order #{order.orderNumber}</CardTitle>
+                <CardTitle className='text-lg font-bold'>Order {order.orderNumber}</CardTitle>
                 <Badge variant={order.status === 'PREPARING' ? 'default' : 'secondary'}>{order.status}</Badge>
               </CardHeader>
 

@@ -45,7 +45,7 @@ export const CartAside = withForm({
       <aside className='w-96 bg-card rounded-[2.5rem] border border-border flex flex-col shadow-xl space-y-2'>
         <div className='pt-6 px-6 space-y-2'>
           <div className='flex justify-between items-center'>
-            <h2 className='text-xl font-black'>{order ? `Order #${order.orderNumber}` : 'New Order'}</h2>
+            <h2 className='text-xl font-black'>{order ? `Order ${order.orderNumber}` : 'New Order'}</h2>
             <Button
               variant='ghost'
               size='sm'

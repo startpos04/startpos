@@ -32,6 +32,8 @@ export async function initialAccounts(prisma: PrismaClient) {
       bufferRate: 20,
       organizationId: org.id,
       serialNumber: 'SN-0001-001',
+      minInvoiceNo: 0,
+      maxInvoiceNo: 100000,
       locale: 'en-PH',
       currency: 'PHP',
       address: '123 Rizal Ave, Makati City',

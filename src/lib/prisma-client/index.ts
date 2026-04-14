@@ -29,3 +29,5 @@ export const getTenantPrisma = (organizationId: string, branchId?: string) => {
   // then to our intersection type to restore autocomplete.
   return scopedClient as any as TenantAwareClient<typeof scopedClient>
 }
+
+export type TenantPrismaClient = ReturnType<typeof getTenantPrisma>

@@ -1,7 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
+import { SequenceType } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { getTenantPrisma } from '../prisma-client'
+import { generateStructuredId } from '../prisma-client/generate-structured-id'
 
 const restockSchema = z.object({
   variantId: z.string(),
@@ -25,6 +27,7 @@ export const restockIngredient = createServerFn({ method: 'POST' })
       // 1. Create the Financial Purchase Record
       const purchase = await tx.purchase.create({
         data: {
+          purchaseId: await generateStructuredId(tx, SequenceType.PURCHASE),
           sourceName: data.sourceName || 'Manual Restock',
           totalCost: Math.round(data.unitCost * data.quantity),
           notes: data.reason,

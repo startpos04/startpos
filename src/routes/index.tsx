@@ -16,7 +16,8 @@ export const Route = createFileRoute('/')({
 // TODO: save the current product details to order details
 // TODO: export reports (csv, excel, pdf)
 // TODO: create product with variants
-// TODO: structured ids
 // TODO: edit product with variants
 // TODO: order splitting
 // TODO: lock order when payment is being processed
+
+// TODO: multiple cashier

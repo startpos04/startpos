@@ -1,7 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
+import { SequenceType } from 'prisma/generated/prisma/enums'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { PosProduct, posProductProps } from '../conversion/inventory-engine'
 import { getTenantPrisma } from '../prisma-client'
+import { generateStructuredId } from '../prisma-client/generate-structured-id'
 import { CreateSaleInput } from './create-pos-transaction'
 
 export const createPosOrder = createServerFn({ method: 'POST' })
@@ -55,6 +57,7 @@ export const createPosOrder = createServerFn({ method: 'POST' })
           },
         },
         create: {
+          orderNumber: await generateStructuredId(tx, SequenceType.ORDER),
           status: 'PENDING',
           orderType: 'DINE_IN',
           customerReference: data.customerReference || 'Walk-in Guest',

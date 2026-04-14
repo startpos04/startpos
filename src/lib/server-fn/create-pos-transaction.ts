@@ -1,13 +1,14 @@
 import { getOrderItems } from '@/hooks/use-pos'
 import { authStore } from '@/store/auth-store'
 import { createServerFn } from '@tanstack/react-start'
-import { Prisma } from 'prisma/generated/prisma/browser'
+import { Prisma, SequenceType } from 'prisma/generated/prisma/browser'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { VAT_RATE } from '../constants'
 import { InventoryEngine, PosProduct, PosProductComponent, posProductProps } from '../conversion/inventory-engine'
 import { CostingEngine } from '../costing'
 import { NotificationEngine } from '../notification/notification-engine'
 import { getTenantPrisma } from '../prisma-client'
+import { generateStructuredId } from '../prisma-client/generate-structured-id'
 import { ActiveOrder, activeOrderProps } from '../queries/fetch-active-orders'
 import { Prettify } from '../types'
 
@@ -109,13 +110,12 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
         create: {
           status: 'SERVED',
           orderType: 'DINE_IN',
+          orderNumber: await generateStructuredId(tx, SequenceType.ORDER),
           items: {
             create: data.items.map(item => {
               const product = dbProducts.find(p => p.id === item.productId)!
               const variant = product.variants.find(v => v.id === item.variantId)!
               return {
-                organizationId: context.user.organizationId,
-                branchId: context.user.branchId!,
                 variantId: item.variantId,
                 quantity: item.quantity,
                 unitPrice: Number(variant.price),
@@ -125,8 +125,6 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
                   create: item.addons.map(a => {
                     const comp = variant.components.find(c => c.id === a.id)!
                     return {
-                      organizationId: context.user.organizationId,
-                      branchId: context.user.branchId!,
                       addonId: comp.materialId,
                       quantity: a.quantityUsed,
                       priceAtSale: Number(comp.priceOverride || 0),
@@ -145,8 +143,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
 
       const transaction = (await tx.transaction.create({
         data: {
-          organizationId: context.user.organizationId,
-          branchId: context.user.branchId!,
+          invoiceNo: await generateStructuredId(tx, SequenceType.INVOICE),
           cashierId: user.id,
           customerId: null,
           orderId: order.id,

@@ -50,6 +50,7 @@ model Organization {
   payments           Payment[]
   variants           ProductVariant[]
   notifications      Notification[]
+  sequenceCounters   SequenceCounter[]
 
   @@index([deletedAt])
   @@map("organizations")
@@ -60,9 +61,9 @@ model Branch {
   name    String
   address String?
 
-  serialNumber String? // SN (printed receipts requirement)
-  minInvoiceNo Int? // for OR range tracking
-  maxInvoiceNo Int?
+  serialNumber String // SN (printed receipts requirement)
+  minInvoiceNo Int // for OR range tracking
+  maxInvoiceNo Int
 
   bufferRate Int     @default(20) // Percentage markup for profit calculations (e.g., 20 for 20%)
   locale     String? // For future localization needs (e.g., "en-US", "fr-FR")
@@ -90,6 +91,7 @@ model Branch {
   orderItemAddons   OrderItemAddon[]
   payments          Payment[]
   notifications     Notification[]
+  sequenceCounters  SequenceCounter[]
 
   @@index([deletedAt])
   @@map("branches")
@@ -356,6 +358,7 @@ model ProductUnit {
 // --- PURCHASING (EXPENDITURE TRACKING) ---
 model Purchase {
   id         String  @id @default(cuid())
+  purchaseId String
   sourceName String? // e.g. "Wholesale Mart", "Vendor X"
   totalCost  Int // Total cost of the purchase (in cents)
   notes      String?
@@ -494,7 +497,7 @@ enum OrderType {
 
 model Order {
   id                String      @id @default(cuid())
-  orderNumber       Int         @default(autoincrement())
+  orderNumber       String
   customerReference String? // e.g., "Buzzer 10", "Table 4"
   status            OrderStatus @default(PREPARING)
   orderType         OrderType   @default(DINE_IN)
@@ -714,4 +717,32 @@ model Notification {
   @@index([userId, isRead])
   @@index([organizationId])
   @@map("notifications")
+}
+
+enum SequenceType {
+  INVOICE
+  ORDER
+  PURCHASE
+  STOCK_TRANSFER
+  COLLECTION_RECEIPT
+}
+
+model SequenceCounter {
+  id             String       @id @default(cuid())
+  organizationId String
+  branchId       String
+  type           SequenceType // Changed from String to SequenceType
+
+  // Tracking time-based resets
+  year  Int
+  month Int? // Optional: for monthly reporting
+  day   Int? // REQUIRED: for daily kitchen order resets (e.g., #01, #02)
+
+  lastNumber Int @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  branch       Branch       @relation(fields: [branchId], references: [id])
+
+  @@unique([organizationId, branchId, type, year, month, day])
+  @@map("sequence_counters")
 }
