@@ -27,7 +27,11 @@ interface RouteComponentProps {
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients/$ingredientId/')({
   loader: ({ params }) => ({ ingredientId: params.ingredientId }),
-  component: () => <RouteComponent />,
+  component: () => (
+    <div className='px-4 pb-4'>
+      <RouteComponent />
+    </div>
+  ),
 })
 
 export function IngredientDetailsDialog({ open, onClose, ingredientId }: IngredientDetailsProps) {

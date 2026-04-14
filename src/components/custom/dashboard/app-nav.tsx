@@ -5,6 +5,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import { authClient } from '@/lib/better-auth/auth-client'
 import { useNavigate } from '@tanstack/react-router'
 import { AppBreadcrumb } from './app-breadcrumb'
+import { NotificationButton } from './notification-btn'
 
 function AppNav() {
   const navigate = useNavigate()
@@ -26,8 +27,14 @@ function AppNav() {
         <SidebarTrigger size='lg' />
         <Separator orientation='vertical' className='mr-2 ' />
         <AppBreadcrumb />
-        <div className='flex items-center justify-end grow gap-4'>
-          <ThemeToggle />
+
+        <div className='flex items-center justify-end grow gap-3'>
+          <div className='w-9'>
+            <ThemeToggle />
+          </div>
+
+          <NotificationButton />
+
           <Button variant='outline' size='sm' onClick={handleLogout}>
             Logout
           </Button>

@@ -49,6 +49,7 @@ model Organization {
   vendorSessions     VendorSession[]
   payments           Payment[]
   variants           ProductVariant[]
+  notifications      Notification[]
 
   @@index([deletedAt])
   @@map("organizations")
@@ -66,6 +67,8 @@ model Branch {
   bufferRate Int     @default(20) // Percentage markup for profit calculations (e.g., 20 for 20%)
   locale     String? // For future localization needs (e.g., "en-US", "fr-FR")
   currency   String? // For future multi-currency support (e.g., "USD", "EUR")
+
+  lowStockThreshold Int @default(20)
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -86,6 +89,7 @@ model Branch {
   orderItems        OrderItem[]
   orderItemAddons   OrderItemAddon[]
   payments          Payment[]
+  notifications     Notification[]
 
   @@index([deletedAt])
   @@map("branches")
@@ -140,6 +144,7 @@ model User {
   inventoryMovements InventoryMovement[]
   memberships        Membership[]
   vendorSessions     VendorSession[]
+  notifications      Notification[]
 
   @@index([deletedAt])
   @@map("users")
@@ -246,6 +251,8 @@ model ProductVariant {
   price       Int     @db.Integer // Price charged to customers (in cents to avoid float issues)
   costPrice   Int     @default(0) @db.Integer // Cost to acquire/make the product (in cents)
   variantType String?
+
+  lowStockThreshold Int?
 
   components ProductComponent[] @relation("ParentVariant")
   usedIn     ProductComponent[] @relation("ComponentVariant")
@@ -672,4 +679,39 @@ model Payment {
 
   @@index([organizationId, branchId])
   @@map("payments")
+}
+
+// --- Notifications ---
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Notification {
+  id       String               @id @default(cuid())
+  title    String
+  message  String
+  type     String // e.g., "LOW_STOCK", "NEW_ORDER", "SYSTEM"
+  priority NotificationPriority @default(MEDIUM)
+  isRead   Boolean              @default(false)
+  link     String? // URL or App Route to redirect the user (e.g., /orders/123)
+  metadata Json
+
+  // Targeting
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Scoping (Important for Multi-tenancy)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  branchId       String?
+  branch         Branch?      @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([organizationId])
+  @@map("notifications")
 }

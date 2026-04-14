@@ -16,6 +16,7 @@ import { Route as privatedashboardRouteRouteImport } from './routes/(private)/(d
 import { Route as privatePosIndexRouteImport } from './routes/(private)/pos/index'
 import { Route as privateOrdersIndexRouteImport } from './routes/(private)/orders/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as privatedashboardNotificationsRouteImport } from './routes/(private)/(dashboard)/notifications'
 import { Route as privatedashboardadminRouteRouteImport } from './routes/(private)/(dashboard)/(admin)/route'
 import { Route as privatedashboardsupervisorSalesReportsRouteImport } from './routes/(private)/(dashboard)/(supervisor)/sales-reports'
 import { Route as privatedashboardsupervisorInventoryReportsRouteImport } from './routes/(private)/(dashboard)/(supervisor)/inventory-reports'
@@ -62,6 +63,12 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const privatedashboardNotificationsRoute =
+  privatedashboardNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
 const privatedashboardadminRouteRoute =
   privatedashboardadminRouteRouteImport.update({
     id: '/(admin)',
@@ -137,6 +144,7 @@ const privatedashboardadminEmployeesEmployeeIdIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof publicLoginRoute
+  '/notifications': typeof privatedashboardNotificationsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/orders/': typeof privateOrdersIndexRoute
   '/pos/': typeof privatePosIndexRoute
@@ -155,6 +163,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof publicLoginRoute
+  '/notifications': typeof privatedashboardNotificationsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/orders': typeof privateOrdersIndexRoute
   '/pos': typeof privatePosIndexRoute
@@ -177,6 +186,7 @@ export interface FileRoutesById {
   '/(private)/(dashboard)': typeof privatedashboardRouteRouteWithChildren
   '/(public)/login': typeof publicLoginRoute
   '/(private)/(dashboard)/(admin)': typeof privatedashboardadminRouteRouteWithChildren
+  '/(private)/(dashboard)/notifications': typeof privatedashboardNotificationsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/(private)/orders/': typeof privateOrdersIndexRoute
   '/(private)/pos/': typeof privatePosIndexRoute
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/notifications'
     | '/api/auth/$'
     | '/orders/'
     | '/pos/'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/notifications'
     | '/api/auth/$'
     | '/orders'
     | '/pos'
@@ -236,6 +248,7 @@ export interface FileRouteTypes {
     | '/(private)/(dashboard)'
     | '/(public)/login'
     | '/(private)/(dashboard)/(admin)'
+    | '/(private)/(dashboard)/notifications'
     | '/api/auth/$'
     | '/(private)/orders/'
     | '/(private)/pos/'
@@ -309,6 +322,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/(private)/(dashboard)/notifications': {
+      id: '/(private)/(dashboard)/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof privatedashboardNotificationsRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
     }
     '/(private)/(dashboard)/(admin)': {
       id: '/(private)/(dashboard)/(admin)'
@@ -438,12 +458,14 @@ const privatedashboardadminRouteRouteWithChildren =
 
 interface privatedashboardRouteRouteChildren {
   privatedashboardadminRouteRoute: typeof privatedashboardadminRouteRouteWithChildren
+  privatedashboardNotificationsRoute: typeof privatedashboardNotificationsRoute
   privatedashboardsupervisorInventoryReportsRoute: typeof privatedashboardsupervisorInventoryReportsRoute
   privatedashboardsupervisorSalesReportsRoute: typeof privatedashboardsupervisorSalesReportsRoute
 }
 
 const privatedashboardRouteRouteChildren: privatedashboardRouteRouteChildren = {
   privatedashboardadminRouteRoute: privatedashboardadminRouteRouteWithChildren,
+  privatedashboardNotificationsRoute: privatedashboardNotificationsRoute,
   privatedashboardsupervisorInventoryReportsRoute:
     privatedashboardsupervisorInventoryReportsRoute,
   privatedashboardsupervisorSalesReportsRoute:

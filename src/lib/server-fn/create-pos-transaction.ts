@@ -6,6 +6,7 @@ import { authMiddleware } from '../better-auth/auth-middleware'
 import { VAT_RATE } from '../constants'
 import { InventoryEngine, PosProduct, PosProductComponent, posProductProps } from '../conversion/inventory-engine'
 import { CostingEngine } from '../costing'
+import { NotificationEngine } from '../notification/notification-engine'
 import { getTenantPrisma } from '../prisma-client'
 import { ActiveOrder, activeOrderProps } from '../queries/fetch-active-orders'
 import { Prettify } from '../types'
@@ -233,6 +234,10 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
           })
         }
       }
+
+      // --- BACKGROUND CHECK ---
+      // We do NOT await this. It runs in the background.
+      NotificationEngine.checkLowStock(Object.keys(reservedMap)).catch(console.error)
 
       return transaction
     })
