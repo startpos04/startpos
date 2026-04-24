@@ -2897,4 +2897,8 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true
 });
+const navigationRoute = new NavigationRoute(serwist.precacheStrategy, {
+  allowlist: [/^(?!\/__).*/]
+});
+serwist.registerCapture(navigationRoute);
 serwist.addEventListeners();

@@ -58,10 +58,15 @@ export type FetchInventoryReportsReturn = ReturnType<typeof fetchInventoryReport
 export type InventoryData = NonNullable<FetchInventoryReportsReturn['data']>
 
 export const Route = createFileRoute('/(private)/(dashboard)/(supervisor)/inventory-reports/')({
-  validateSearch: (search: Record<string, unknown>): { from?: string | undefined; to?: string | undefined } => ({
-    from: (search['from'] as string) || '',
-    to: (search['to'] as string) || undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { from?: string; to?: string } => {
+    const defaultFrom = dayjs().startOf('month').format('YYYY-MM-DD')
+    const defaultTo = dayjs().endOf('month').format('YYYY-MM-DD')
+
+    return {
+      from: (search['from'] as string) || defaultFrom,
+      to: (search['to'] as string) || defaultTo,
+    }
+  },
   component: RouteComponent,
 })
 
@@ -72,11 +77,12 @@ function RouteComponent() {
 
   const handleDateChange = (range: DateRange) => {
     if (!range) return
+
     navigate({
       search: prev => ({
         ...prev,
-        from: range.from ? dayjs(range.from).format('YYYY-MM-DD') : undefined,
-        to: range.to ? dayjs(range.to).format('YYYY-MM-DD') : undefined,
+        from: range.from ? dayjs(range.from).format('YYYY-MM-DD') : dayjs().startOf('month').format('YYYY-MM-DD'),
+        to: range.to ? dayjs(range.to).format('YYYY-MM-DD') : dayjs().endOf('month').format('YYYY-MM-DD'),
       }),
     })
   }
@@ -89,7 +95,10 @@ function RouteComponent() {
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Inventory Intelligence</h1>
           <p className='text-muted-foreground text-sm flex items-center gap-2'>
             <PackageCheck className='h-4 w-4 text-emerald-500' />
-            Organization-wide stock analysis for {dayjs().format('MMMM D, YYYY')}
+            Organization-wide stock analysis for{' '}
+            <span className='font-medium text-foreground'>
+              {from && to ? `${dayjs(from).format('MMM D, YYYY')} - ${dayjs(to).format('MMM D, YYYY')}` : dayjs().format('MMMM D, YYYY')}
+            </span>
           </p>
         </div>
         <div className='flex gap-2'>
