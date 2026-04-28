@@ -225,7 +225,7 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
               userId: user.id,
               type: 'OUT',
               quantity: usage.quantity,
-              reason: `Sale: ${transaction.id}`,
+              reason: `Sale: ${transaction.invoiceNo}`,
               unitId: unit.id,
             },
           })

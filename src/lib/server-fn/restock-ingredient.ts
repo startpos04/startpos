@@ -91,7 +91,7 @@ export const restockIngredient = createServerFn({ method: 'POST' })
           quantity: data.quantity,
           unitId: data.unitId,
           type: 'IN',
-          reason: data.reason || `Restocked via Purchase ${purchase.id}`,
+          reason: `${data.reason}: ${purchase.purchaseId}`,
         },
       })
 
