@@ -14,7 +14,6 @@ export const Route = createFileRoute('/')({
 })
 
 // TODO: save the current product details to order details
-// TODO: export reports (csv, excel, pdf)
 // TODO: create product with variants
 // TODO: edit product with variants
 // TODO: order splitting

@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import dayjs from '@/lib/dayjs'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
+import { downloadInventoryCsv } from '@/lib/server-fn/download-inventory'
+import { downloadCsv } from '@/lib/utils/download-csv'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
 import { Download, PackageCheck } from 'lucide-react'
@@ -87,6 +89,17 @@ function RouteComponent() {
     })
   }
 
+  const handleDownload = async () => {
+    try {
+      const response = await downloadInventoryCsv({ data: { from, to } })
+      if (!response.data) return
+
+      downloadCsv(response.data, `inventory-report-${Date.now()}.csv`)
+    } catch (error) {
+      console.error('Failed to download CSV:', error)
+    }
+  }
+
   return (
     <div className='flex flex-col gap-6 overflow-auto'>
       {/* HEADER */}
@@ -107,7 +120,7 @@ function RouteComponent() {
             onChange={handleDateChange}
             placeholder='All time'
           />
-          <Button size='sm'>
+          <Button size='sm' onClick={handleDownload}>
             <Download /> Export Excel
           </Button>
         </div>

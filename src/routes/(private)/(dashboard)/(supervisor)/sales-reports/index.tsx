@@ -2,6 +2,8 @@ import { DateRange, DateRangeInput } from '@/components/custom/form/date-rage-in
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import dayjs from '@/lib/dayjs'
+import { downloadTransactionsCSV } from '@/lib/server-fn/download-tranasctions'
+import { downloadCsv } from '@/lib/utils/download-csv'
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
 import { Download, PackageCheck } from 'lucide-react'
 import { useMemo } from 'react'
@@ -47,6 +49,17 @@ function RouteComponent() {
     })
   }
 
+  const handleDownload = async () => {
+    try {
+      const response = await downloadTransactionsCSV({ data: { from, to } })
+      if (!response.data) return
+
+      downloadCsv(response.data, `inventory-report-${Date.now()}.csv`)
+    } catch (error) {
+      console.error('Failed to download CSV:', error)
+    }
+  }
+
   return (
     <div className='flex flex-col gap-3 overflow-auto '>
       {/* HEADER */}
@@ -67,7 +80,7 @@ function RouteComponent() {
             onChange={handleDateChange}
             placeholder='All time'
           />
-          <Button size='sm'>
+          <Button size='sm' onClick={handleDownload}>
             <Download /> Export Report
           </Button>
         </div>

@@ -9,10 +9,11 @@ import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Edit, Package, Plus, Trash2 } from 'lucide-react'
+import { Database, Edit, Package, Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
 import { IngredientDetailsDialog } from './$ingredientId'
+import { RestockIngredientDialog } from './$ingredientId/-restock'
 import { CreateIngredientDialog } from './create'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients/')({
@@ -31,6 +32,11 @@ function RouteComponent() {
   const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, ingredientId: string) => {
     e.preventDefault()
     showModal(IngredientDetailsDialog, { ingredientId })
+  }
+
+  const handleRestock = (ingredient: NonNullable<typeof data>[number]) => {
+    const primaryVariant = ingredient.variants?.[0]
+    showModal(RestockIngredientDialog, { ingredient, variant: primaryVariant })
   }
 
   const columns = useMemo(
@@ -142,6 +148,14 @@ function RouteComponent() {
                     <Edit className='h-4 w-4' />
                   </Button>
                 </Link>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary'
+                  onClick={() => handleRestock(row.original)}
+                >
+                  <Database className='h-4 w-4' />
+                </Button>
                 <Button
                   variant='ghost'
                   size='icon'
