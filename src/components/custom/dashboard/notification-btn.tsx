@@ -7,44 +7,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useNotifications } from '@/hooks/use-notifications'
 import dayjs from '@/lib/dayjs'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Bell, Loader2 } from 'lucide-react'
+import { Bell, CheckCheck, Loader2 } from 'lucide-react'
 
 export function NotificationButton() {
   const navigate = useNavigate()
-
-  const { data: unreadCount = 0 } = useQuery({
-    queryKey: ['notifications', 'unread-count'],
-    queryFn: async () => {
-      const result = await crudAPI.notification('count', {
-        where: { isRead: false },
-      })
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-    refetchInterval: 30000,
-  })
-
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
-    queryKey: ['notifications', 'infinite'],
-    initialPageParam: null as string | null,
-    queryFn: async ({ pageParam }) => {
-      const result = await crudAPI.notification('findMany', {
-        take: 10,
-        orderBy: { createdAt: 'desc' },
-        ...(pageParam ? { cursor: { id: pageParam }, skip: 1 } : {}),
-      })
-
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-    getNextPageParam: lastPage => (lastPage.length === 10 ? lastPage[lastPage.length - 1]?.id : undefined),
-  })
-
-  const allNotifications = data?.pages.flat() ?? []
+  const { unreadCount, notifications, infiniteQuery, markAsRead, markAllRead } = useNotifications(10)
+  const { fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = infiniteQuery
 
   return (
     <DropdownMenu>
@@ -61,6 +32,21 @@ export function NotificationButton() {
       <DropdownMenuContent align='end' className='w-96'>
         <DropdownMenuLabel className='flex justify-between items-center'>
           Notifications
+          {unreadCount > 0 && (
+            <Button
+              variant='ghost'
+              size='sm'
+              className='h-auto p-1 text-xs font-normal text-muted-foreground hover:text-primary'
+              onClick={e => {
+                e.stopPropagation()
+                markAllRead.mutate()
+              }}
+              disabled={markAllRead.isPending}
+            >
+              {markAllRead.isPending ? <Loader2 className='mr-1 h-3 w-3 animate-spin' /> : <CheckCheck className='mr-1 h-3 w-3' />}
+              Mark all as read
+            </Button>
+          )}
           {isLoading && <Loader2 className='h-3 w-3 animate-spin' />}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -75,12 +61,15 @@ export function NotificationButton() {
             }
           }}
         >
-          {allNotifications.length === 0 && !isLoading ? (
+          {notifications.length === 0 && !isLoading ? (
             <div className='p-8 text-center text-xs text-muted-foreground'>No notifications yet.</div>
           ) : (
-            allNotifications.map(n => (
+            notifications.map(n => (
               <Link key={n.id} to={n.link!}>
-                <DropdownMenuItem className='flex flex-col items-start gap-1 p-4 whitespace-normal cursor-pointer'>
+                <DropdownMenuItem
+                  className='flex flex-col items-start gap-1 p-4 whitespace-normal cursor-pointer'
+                  onClick={() => (!n.isRead ? markAsRead.mutate({ id: n.id, link: n.link }) : navigate({ to: n.link! }))}
+                >
                   <div className='flex justify-between w-full gap-2'>
                     <span className={`text-sm ${!n.isRead ? 'font-bold' : 'font-semibold'}`}>{n.title}</span>
                     {!n.isRead && <div className='h-2 w-2 rounded-full bg-blue-500 shrink-0 mt-1' />}

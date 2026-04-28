@@ -3,10 +3,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useInView } from '@/hooks/use-in-view'
+import { useNotifications } from '@/hooks/use-notifications'
 import dayjs from '@/lib/dayjs'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { BellOff, CheckCheck, Loader2 } from 'lucide-react'
 
 export const Route = createFileRoute('/(private)/(dashboard)/notifications')({
@@ -14,22 +13,9 @@ export const Route = createFileRoute('/(private)/(dashboard)/notifications')({
 })
 
 function RouteComponent() {
-  const queryClient = useQueryClient()
-
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
-    queryKey: ['notifications', 'page'],
-    initialPageParam: null as string | null,
-    queryFn: async ({ pageParam }) => {
-      const result = await crudAPI.notification('findMany', {
-        take: 20,
-        orderBy: { createdAt: 'desc' },
-        ...(pageParam ? { cursor: { id: pageParam }, skip: 1 } : {}),
-      })
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-    getNextPageParam: lastPage => (lastPage.length === 20 ? lastPage[lastPage.length - 1]?.id : undefined),
-  })
+  const navigate = useNavigate()
+  const { notifications, unreadCount, infiniteQuery, markAsRead, markAllRead } = useNotifications(20)
+  const { fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = infiniteQuery
 
   const { ref } = useInView({
     threshold: 0.1,
@@ -40,24 +26,6 @@ function RouteComponent() {
     },
   })
 
-  // 2. Mark All as Read Mutation
-  const markAllRead = useMutation({
-    mutationFn: async () => {
-      const result = await crudAPI.notification('updateMany', {
-        where: { isRead: false },
-        data: { isRead: true },
-      })
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-    onSuccess: () => {
-      // Invalidate both count and list queries
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
-    },
-  })
-
-  const notifications = data?.pages.flat() ?? []
-
   return (
     <div className='space-y-6 flex flex-col grow h-1'>
       <div className='flex items-center justify-between max-w-4xl w-full mx-auto px-4'>
@@ -65,10 +33,14 @@ function RouteComponent() {
           <h1 className='text-3xl font-bold tracking-tight'>Notifications</h1>
           <p className='text-muted-foreground'>Manage your alerts and system updates.</p>
         </div>
-        <Button variant='outline' size='sm' onClick={() => markAllRead.mutate()} disabled={markAllRead.isPending}>
-          <CheckCheck className='mr-2 h-4 w-4' />
-          Mark all as read
-        </Button>
+
+        {/* Only show "Mark all as read" if there are actually unread notifications */}
+        {unreadCount > 0 && (
+          <Button variant='outline' size='sm' onClick={() => markAllRead.mutate()} disabled={markAllRead.isPending}>
+            {markAllRead.isPending ? <Loader2 className='mr-2 h-4 w-4 animate-spin' /> : <CheckCheck className='mr-2 h-4 w-4' />}
+            Mark all as read
+          </Button>
+        )}
       </div>
 
       <ScrollArea className='flex-1 min-h-0 w-full'>
@@ -86,7 +58,17 @@ function RouteComponent() {
             </div>
           ) : (
             notifications.map(n => (
-              <Link key={n.id} to={n.link!}>
+              <div
+                key={n.id}
+                className='cursor-pointer transition-opacity active:opacity-70'
+                onClick={() => {
+                  if (!n.isRead) {
+                    markAsRead.mutate({ id: n.id, link: n.link })
+                  } else if (n.link) {
+                    navigate({ to: n.link })
+                  }
+                }}
+              >
                 <Card className={!n.isRead ? 'border-l-4 border-l-primary' : 'opacity-80'}>
                   <CardContent className='p-4 flex items-start gap-4'>
                     <div className='flex-1 space-y-1'>
@@ -103,7 +85,7 @@ function RouteComponent() {
                     </div>
                   </CardContent>
                 </Card>
-              </Link>
+              </div>
             ))
           )}
 

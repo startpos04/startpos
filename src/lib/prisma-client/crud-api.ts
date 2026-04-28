@@ -8,7 +8,7 @@ import { authMiddleware } from '../better-auth/auth-middleware'
 
 type DB = typeof prisma
 type ModelName = Uncapitalize<Prisma.ModelName>
-type DelegateMethods = 'findMany' | 'findFirst' | 'findUnique' | 'create' | 'update' | 'updateMany' | 'upsert' | 'delete' | 'deleteMany' | 'count'
+type DelegateMethods = 'findMany' | 'findFirst' | 'findUnique' | 'create' | 'update' | 'updateMany' | 'upsert' | 'delete' | 'deleteMany' | 'count' | 'groupBy'
 
 /**
  * DeepPrettify: Resolves intersections into clean objects for the IDE.

@@ -53,7 +53,7 @@ export class NotificationEngine {
   /**
    * Internal helper to distribute notifications to all branch admins
    */
-  private static async send({ prisma, type, title, message, metadata }: any) {
+  private static async send({ prisma, type, title, message, metadata, link }: any) {
     const admins = await prisma.membership.findMany({
       where: { role: { in: [Role.ADMIN, Role.SUPERVISOR] } },
       select: { userId: true },
@@ -69,6 +69,7 @@ export class NotificationEngine {
         message,
         metadata: metadata ? JSON.stringify(metadata) : null,
         isRead: false,
+        link,
       })),
     })
   }
