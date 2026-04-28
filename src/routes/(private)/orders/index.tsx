@@ -6,11 +6,18 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { OverlayProps } from '@/lib/overlay'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
+import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Clock, User } from 'lucide-react'
 import { useMemo } from 'react'
 import { ActiveOrdersHeader } from './-components/header'
+
+interface RouteComponentProps {
+  onClose?: (() => void) | undefined
+  onCancel?: (() => void) | undefined
+}
 
 export const Route = createFileRoute('/(private)/orders/')({
   component: () => (
@@ -21,21 +28,22 @@ export const Route = createFileRoute('/(private)/orders/')({
   ),
 })
 
-export function ActiveOrdersDialog({ open, onClose }: OverlayProps) {
+export function ActiveOrdersDialog({ open, onClose, onCancel }: OverlayProps & { onCancel?: () => void }) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className='sm:max-w-7xl p-0 overflow-hidden border-none shadow-2xl'>
         <div className='py-6 gap-6 flex flex-col h-[80vh]'>
-          <RouteComponent onClose={onClose} />
+          <RouteComponent onClose={onClose} onCancel={onCancel} />
         </div>
       </DialogContent>
     </Dialog>
   )
 }
 
-function RouteComponent({ onClose }: { onClose?: () => void }) {
-  const { data: orders = [], isFetching } = fetchActiveOrders()
+function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { data: orders = [], isFetching } = fetchActiveOrders()
 
   const columns = useMemo(
     () =>
@@ -46,11 +54,6 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
       ]),
     [orders],
   )
-
-  const handleClick = (orderId: string) => {
-    onClose?.()
-    navigate({ to: '/pos', search: (prev: any) => ({ ...prev, orderId }) })
-  }
 
   return (
     <>
@@ -71,14 +74,32 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
         className='px-4'
         renderCard={row => {
           const order = row.original
+
+          const handleClick = () => {
+            onClose?.()
+            navigate({ to: '/pos', search: (prev: any) => ({ ...prev, orderId: order.id }) })
+          }
+
+          const handleCancel = async () => {
+            if (confirm('Are you sure you want to cancel this order?')) {
+              await crudAPI.order('update', {
+                where: { id: order.id },
+                data: { status: 'CANCELLED' },
+              })
+
+              onCancel?.()
+              await queryClient.invalidateQueries({ queryKey: ['active-orders'] })
+            }
+          }
+
           return (
-            <Card key={order.id} className='overflow-hidden border-l-4 border-l-primary'>
+            <Card key={order.id} className='overflow-hidden border-l-4 border-l-primary gap-1'>
               <CardHeader className='flex flex-row items-center justify-between space-y-0'>
                 <CardTitle className='text-lg font-bold'>Order {order.orderNumber}</CardTitle>
                 <Badge variant={order.status === 'PREPARING' ? 'default' : 'secondary'}>{order.status}</Badge>
               </CardHeader>
 
-              <CardContent className='space-y-4'>
+              <CardContent className='space-y-2'>
                 <div className='flex items-center text-sm gap-2'>
                   <User className='h-4 w-4 text-muted-foreground' />
                   <span className='font-medium'>{order.customerReference}</span>
@@ -94,7 +115,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
                   </span>
                 </div>
 
-                <Separator />
+                <Separator className='my-3' />
 
                 <div className='space-y-2'>
                   {order.items.map(item => (
@@ -122,12 +143,19 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
                   ))}
                 </div>
 
-                <div className='pt-2'>
+                <div className='pt-4 space-y-2'>
                   <button
                     className='w-full bg-primary text-primary-foreground py-2 rounded-md font-semibold text-sm hover:opacity-90 transition-opacity cursor-pointer'
-                    onClick={() => handleClick(order.id)}
+                    onClick={handleClick}
                   >
                     Pay Now
+                  </button>
+
+                  <button
+                    className='w-full py-2 text-muted-foreground font-bold hover:text-foreground hover:bg-muted rounded-md cursor-pointer'
+                    onClick={handleCancel}
+                  >
+                    Cancel
                   </button>
                 </div>
               </CardContent>

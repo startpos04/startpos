@@ -11,7 +11,7 @@ export function ThemeToggle() {
     setMounted(true)
   }, [])
 
-  if (!mounted) return <div className='h-7 w-12' />
+  if (!mounted) return <div className='h-7 w-7' />
 
   const isDark = resolvedTheme === 'dark'
 
@@ -24,7 +24,7 @@ export function ThemeToggle() {
   }
 
   return (
-    <div className='relative inline-flex items-center scale-150'>
+    <div className='relative inline-flex items-center scale-150 w-9'>
       <Switch
         id='theme-mode'
         checked={isDark}

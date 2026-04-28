@@ -8,13 +8,9 @@ export const ActiveOrdersHeader = function () {
     <header className='flex justify-between items-center bg-card/80 backdrop-blur-md p-4 rounded-[2.5rem] border border-border mx-4'>
       <Title />
 
-      <div className='flex items-center gap-3'>
-        <div className='w-10'>
-          <ThemeToggle />
-        </div>
-
+      <div className='flex items-center justify-end gap-1 w-36'>
+        <ThemeToggle />
         <PosButton />
-
         <ProfileDropdown />
       </div>
     </header>
