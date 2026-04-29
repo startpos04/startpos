@@ -20,7 +20,7 @@ services:
     build:
       context: .
       target: prisma-gen
-    command: ['bunx', 'prisma', 'studio', '--browser', 'none']
+    command: ['npx', 'prisma', 'studio', '--browser', 'none']
     container_name: prisma_studio
     depends_on:
       - db
@@ -45,6 +45,8 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+      - /app/prisma/generated 
+      - /app/prisma/seeder
     develop:
       watch:
         - action: sync

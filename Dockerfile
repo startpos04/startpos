@@ -14,7 +14,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # ---------- Prisma Generation stage ----------
 FROM install AS prisma-gen
-COPY prisma ./prisma/
+COPY . .
 RUN pnpm prisma generate
 
 # ---------- Build stage ----------
@@ -27,7 +27,12 @@ RUN pnpm run build
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+
 COPY --from=builder /app/.output ./.output
 COPY --from=builder /app/package.json ./
+
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
 EXPOSE 3000
 CMD ["node", ".output/server/index.mjs"]
