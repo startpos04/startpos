@@ -10,6 +10,51 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  studio:
+    build:
+      context: .
+      target: prisma-gen
+    command: ['bunx', 'prisma', 'studio', '--browser', 'none']
+    container_name: prisma_studio
+    depends_on:
+      - db
+    ports:
+      - '51212:51212'
+    env_file:
+      - .env
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prisma-gen
+    command: ['npm', 'run', 'dev']
+    container_name: app
+    depends_on:
+      - db
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - node_modules/
+            - .output/
+        - action: rebuild
+          path: package.json
 
 volumes:
   postgres_data:

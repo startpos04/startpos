@@ -3,24 +3,24 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 3000",
+    "dev": "vite dev --port 3000 --host 0.0.0.0",
     "build": "npm run generate && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "lint": "eslint",
     "format": "prettier",
     "check": "prettier --write . && eslint --fix",
-    "generate": "npx prisma generate && ts-node scripts/sync-meta.ts"
+    "generate": "npx prisma generate && npx tsx scripts/sync-meta.ts"
   },
   "prisma": {
-    "seed": "ts-node prisma/seeder/initialAccounts.ts"
+    "seed": "npx tsx prisma/seeder/initialAccounts.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
     "@better-auth/prisma-adapter": "^1.5.5",
     "@fontsource-variable/inter": "^5.2.8",
     "@prisma/adapter-pg": "^7.5.0",
-    "@prisma/client": "^7.5.0",
+    "@prisma/client": "^7.8.0",
     "@react-pdf/renderer": "^4.3.2",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-devtools": "^0.7.0",
@@ -82,9 +82,9 @@
     "dotenv": "^17.3.1",
     "jsdom": "^27.0.0",
     "prettier": "^3.5.3",
-    "prisma": "^7.5.0",
+    "prisma": "^7.8.0",
     "serwist": "^9.5.7",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.2",
     "vite": "^7.1.7",
     "vitest": "^3.0.5",
