@@ -1,6 +1,7 @@
 import { ThemeProvider } from '@/components/custom/theme/theme-provider'
 import { useSw } from '@/hooks/use-sw'
 import { getAuthUser } from '@/lib/better-auth/auth-server' // Import your server function
+import { APP_NAME } from '@/lib/constants'
 import Overlay from '@/lib/overlay'
 import { MyRouterContext } from '@/router'
 import { setUser } from '@/store/auth-store'
@@ -11,7 +12,7 @@ import appCss from '../styles.css?url'
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
-    meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }, { title: 'POS & Inventory System' }],
+    meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }, { title: `${APP_NAME} System` }],
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'manifest', href: '/manifest.json' },

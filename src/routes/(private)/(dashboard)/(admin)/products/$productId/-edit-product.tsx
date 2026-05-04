@@ -19,33 +19,31 @@ export function EditProductDialog({ productId, defaultValues, open, onClose }: E
     const result = await crudAPI.product('update', {
       where: { id: productId },
       data: {
-        ...productData, // No sku or price here
+        ...productData,
         type: value.type as any,
         image: value.image || null,
 
-        // 1. Update Addons (Product Level)
-        allowedAddons: {
-          upsert: allowedAddons.map(addon => ({
-            where: { id: addon.id || 'new-addon' }, // Ensure ID is valid or placeholder
-            update: {
-              priceOverride: addon.priceOverride,
-              defaultQuantity: addon.defaultQuantity,
-            },
-            create: {
-              addonId: addon.addon.id,
-              priceOverride: addon.priceOverride,
-              defaultQuantity: addon.defaultQuantity,
-              unitId: addon.unit.id,
-            },
-          })),
-        },
-
-        // 2. Update Variants (and their nested Ingredients)
         variants: {
           upsert: (variants.length === 0 ? [{ isDefault: true, id: value.variants?.[0]?.id, price, sku: '' }] : variants).map(v => {
             const isDefault = 'isDefault' in v
             const finalSku = isDefault ? sku : v.sku?.includes(sku) ? v.sku : `${sku}-${v.sku}`
             const finalName = isDefault ? productData.name : v.name || productData.name
+
+            const componentData = [
+              ...ingredients.map(ing => ({
+                materialId: ing.variant.id,
+                quantityUsed: ing.quantityUsed,
+                unitId: ing.unit.id,
+                isAddon: false,
+              })),
+              ...allowedAddons.map(addon => ({
+                materialId: addon.variant.id,
+                quantityUsed: addon.defaultQuantity || 1,
+                unitId: addon.unit.id,
+                priceOverride: addon.priceOverride,
+                isAddon: true,
+              })),
+            ]
 
             return {
               where: { id: v.id || 'new-variant' },
@@ -54,13 +52,9 @@ export function EditProductDialog({ productId, defaultValues, open, onClose }: E
                 sku: finalSku,
                 price: v.price,
                 variantType: isDefault ? 'DEFAULT' : v.variantType,
-                ingredients: {
-                  deleteMany: {}, // Simplest way to "update" ingredients is to replace them
-                  create: ingredients.map(ing => ({
-                    materialId: ing.variant.id,
-                    quantityUsed: ing.quantityUsed,
-                    unitId: ing.unit.id,
-                  })),
+                components: {
+                  deleteMany: {},
+                  create: componentData,
                 },
               },
               create: {
@@ -69,12 +63,8 @@ export function EditProductDialog({ productId, defaultValues, open, onClose }: E
                 price: v.price,
                 costPrice: 0,
                 variantType: isDefault ? 'DEFAULT' : v.variantType,
-                ingredients: {
-                  create: ingredients.map(ing => ({
-                    materialId: ing.variant.id,
-                    quantityUsed: ing.quantityUsed,
-                    unitId: ing.unit.id,
-                  })),
+                components: {
+                  create: componentData,
                 },
               },
             }
