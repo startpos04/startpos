@@ -1,12 +1,13 @@
+import { useForm } from '@tanstack/react-form'
+import { BadgeCheck, Save, UserCircle } from 'lucide-react'
+import { Role } from 'prisma/generated/prisma/enums'
+import type { ReactNode } from 'react'
+import z from 'zod'
 import { ImageInput } from '@/components/custom/form/image-input'
 import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useForm } from '@tanstack/react-form'
-import { BadgeCheck, Save, UserCircle } from 'lucide-react'
-import { ReactNode } from 'react'
-import z from 'zod'
 
 interface CreateAccountProps {
   defaultValues: CreateAccountFormData
@@ -22,7 +23,7 @@ const createAccountSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.email('Invalid email'),
   image: z.string().optional(),
-  role: z.enum(['ADMIN', 'SUPERVISOR', 'CASHIER']),
+  role: z.enum(Role),
 })
 
 export type CreateAccountFormData = z.infer<typeof createAccountSchema>

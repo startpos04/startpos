@@ -1,4 +1,4 @@
-import { Unit } from 'prisma/generated/prisma/browser'
+import type { Unit } from 'prisma/generated/prisma/browser'
 
 export type CostingStrategyType = 'FIFO' | 'MOVING_AVERAGE' | 'SPECIFIC'
 

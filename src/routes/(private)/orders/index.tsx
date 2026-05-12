@@ -1,17 +1,16 @@
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Clock, User } from 'lucide-react'
+import { useMemo } from 'react'
 import { getColumns } from '@/components/custom/data-view'
 import GridView from '@/components/custom/data-view/grid-view'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
+import { orderCollection } from '@/db/collections'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { OverlayProps } from '@/lib/overlay'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
+import type { OverlayProps } from '@/lib/overlay'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
-import { useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Clock, User } from 'lucide-react'
-import { useMemo } from 'react'
 import { ActiveOrdersHeader } from './-components/header'
 
 interface RouteComponentProps {
@@ -42,8 +41,7 @@ export function ActiveOrdersDialog({ open, onClose, onCancel }: OverlayProps & {
 
 function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { data: orders = [], isFetching } = fetchActiveOrders()
+  const { data: orders = [], isLoading } = fetchActiveOrders()
 
   const columns = useMemo(
     () =>
@@ -52,7 +50,7 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
         h.accessor('status', { header: 'Status' }),
         h.accessor('createdAt', { header: 'Time' }),
       ]),
-    [orders],
+    [],
   )
 
   return (
@@ -69,7 +67,7 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
 
       <GridView<NonNullable<typeof orders>[number]>
         data={orders}
-        isFetching={isFetching}
+        isFetching={isLoading}
         columns={columns}
         className='px-4'
         renderCard={row => {
@@ -77,18 +75,15 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
 
           const handleClick = () => {
             onClose?.()
-            navigate({ to: '/pos', search: (prev: any) => ({ ...prev, orderId: order.id }) })
+            navigate({ to: '/pos', search: prev => ({ ...prev, orderId: order.id }) })
           }
 
           const handleCancel = async () => {
             if (confirm('Are you sure you want to cancel this order?')) {
-              await crudAPI.order('update', {
-                where: { id: order.id },
-                data: { status: 'CANCELLED' },
+              await orderCollection.update(order.id, draft => {
+                draft.status = 'CANCELLED'
               })
-
               onCancel?.()
-              await queryClient.invalidateQueries({ queryKey: ['active-orders'] })
             }
           }
 
@@ -123,7 +118,7 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
                       <div className='flex justify-between text-sm'>
                         <span className='flex gap-2'>
                           <span className='font-bold text-primary'>{item.quantity}x</span>
-                          {[item.variant.product.name, item.variant.name ? `(${item.variant.name})` : ''].filter(Boolean).join(' ')}
+                          {[item.variant.product?.name, item.variant.name ? `(${item.variant.name})` : ''].filter(Boolean).join(' ')}
                         </span>
                         <span className='text-muted-foreground text-xs'>{PriceEngine.format(item.unitPrice)}</span>
                       </div>
@@ -145,6 +140,7 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
 
                 <div className='pt-4 space-y-2'>
                   <button
+                    type='button'
                     className='w-full bg-primary text-primary-foreground py-2 rounded-md font-semibold text-sm hover:opacity-90 transition-opacity cursor-pointer'
                     onClick={handleClick}
                   >
@@ -152,6 +148,7 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
                   </button>
 
                   <button
+                    type='button'
                     className='w-full py-2 text-muted-foreground font-bold hover:text-foreground hover:bg-muted rounded-md cursor-pointer'
                     onClick={handleCancel}
                   >

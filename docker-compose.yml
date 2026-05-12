@@ -43,7 +43,6 @@ services:
     env_file:
       - .env
     volumes:
-      - /app/node_modules
       - /app/prisma/generated
       - /app/prisma/seeder
     develop:

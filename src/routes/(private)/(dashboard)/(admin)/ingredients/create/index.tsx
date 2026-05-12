@@ -1,9 +1,10 @@
-import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useQueryClient } from '@tanstack/react-query'
+import type { Transaction } from '@tanstack/db'
 import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
-import { CreateIngredient, CreateIngredientFormData } from './-create-ingredients'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { productCollection, productVariantCollection } from '@/db/collections'
+import { authStore } from '@/store/auth-store'
+import { CreateIngredient, type CreateIngredientFormData } from './-create-ingredients'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients/create/')({
   component: () => <RouteComponent />,
@@ -20,36 +21,52 @@ export function CreateIngredientDialog({ open, onClose }: { open: boolean; onClo
 }
 
 function RouteComponent({ onClose }: { onClose?: () => void }) {
-  const queryClient = useQueryClient()
-
   const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
+    const { user } = authStore.state
     const { sku, price, ...productData } = value
+    const results: Record<string, Transaction<Record<string, unknown>>> = {}
 
-    const result = await crudAPI.product('create', {
-      data: {
+    try {
+      const productId = crypto.randomUUID()
+      results['products'] = await productCollection.insert({
         ...productData,
+        id: productId,
+        organizationId: user.organization.id,
         image: productData.image || null,
-        variants: {
-          create: [
-            {
-              sku: sku,
-              price: price,
-              name: '',
-              variantType: 'DEFAULT',
-            },
-          ],
-        },
-      },
-    })
+        requiresDeposit: false,
+        depositAmount: 0,
+        durationMinutes: null,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        deletedAt: null,
+      })
+      await results['products'].isPersisted.promise
 
-    result.match(
-      async () => {
-        await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
-        toast.success('Ingredient successfully added')
-        onClose?.()
-      },
-      error => toast.error(error),
-    )
+      results['productVariants'] = await productVariantCollection.insert({
+        id: crypto.randomUUID(),
+        organizationId: user.organization.id,
+        productId,
+        sku: sku,
+        price: price,
+        costPrice: price,
+        name: '',
+        image: null,
+        variantType: 'DEFAULT',
+        lowStockThreshold: user.branch.lowStockThreshold,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        deletedAt: null,
+      })
+      await results['products'].isPersisted.promise
+
+      toast.success('Ingredient successfully added')
+      onClose?.()
+    } catch (error) {
+      await Promise.all(Object.values(results).map(r => r.rollback()))
+
+      console.error('Transaction failed:', error)
+      toast.error('Failed to add ingredient. Please try again.')
+    }
   }
 
   return (

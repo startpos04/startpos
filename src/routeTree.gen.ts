@@ -9,8 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as publicRouteRouteImport } from './routes/(public)/route'
 import { Route as privateRouteRouteImport } from './routes/(private)/route'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as publicIndexRouteImport } from './routes/(public)/index'
 import { Route as publicLoginRouteImport } from './routes/(public)/login'
 import { Route as privatedashboardRouteRouteImport } from './routes/(private)/(dashboard)/route'
 import { Route as privatePosIndexRouteImport } from './routes/(private)/pos/index'
@@ -30,19 +31,23 @@ import { Route as privatedashboardadminIngredientsIngredientIdIndexRouteImport }
 import { Route as privatedashboardadminEmployeesCreateIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/create/index'
 import { Route as privatedashboardadminEmployeesEmployeeIdIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/$employeeId/index'
 
+const publicRouteRoute = publicRouteRouteImport.update({
+  id: '/(public)',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const privateRouteRoute = privateRouteRouteImport.update({
   id: '/(private)',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const publicIndexRoute = publicIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => publicRouteRoute,
 } as any)
 const publicLoginRoute = publicLoginRouteImport.update({
-  id: '/(public)/login',
+  id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => publicRouteRoute,
 } as any)
 const privatedashboardRouteRoute = privatedashboardRouteRouteImport.update({
   id: '/(dashboard)',
@@ -142,8 +147,8 @@ const privatedashboardadminEmployeesEmployeeIdIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/login': typeof publicLoginRoute
+  '/': typeof publicIndexRoute
   '/notifications': typeof privatedashboardNotificationsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/orders/': typeof privateOrdersIndexRoute
@@ -161,8 +166,8 @@ export interface FileRoutesByFullPath {
   '/products/create/': typeof privatedashboardadminProductsCreateIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/login': typeof publicLoginRoute
+  '/': typeof publicIndexRoute
   '/notifications': typeof privatedashboardNotificationsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/orders': typeof privateOrdersIndexRoute
@@ -181,10 +186,11 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/(private)': typeof privateRouteRouteWithChildren
+  '/(public)': typeof publicRouteRouteWithChildren
   '/(private)/(dashboard)': typeof privatedashboardRouteRouteWithChildren
   '/(public)/login': typeof publicLoginRoute
+  '/(public)/': typeof publicIndexRoute
   '/(private)/(dashboard)/(admin)': typeof privatedashboardadminRouteRouteWithChildren
   '/(private)/(dashboard)/notifications': typeof privatedashboardNotificationsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -205,8 +211,8 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/login'
+    | '/'
     | '/notifications'
     | '/api/auth/$'
     | '/orders/'
@@ -224,8 +230,8 @@ export interface FileRouteTypes {
     | '/products/create/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/login'
+    | '/'
     | '/notifications'
     | '/api/auth/$'
     | '/orders'
@@ -243,10 +249,11 @@ export interface FileRouteTypes {
     | '/products/create'
   id:
     | '__root__'
-    | '/'
     | '/(private)'
+    | '/(public)'
     | '/(private)/(dashboard)'
     | '/(public)/login'
+    | '/(public)/'
     | '/(private)/(dashboard)/(admin)'
     | '/(private)/(dashboard)/notifications'
     | '/api/auth/$'
@@ -266,14 +273,20 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   privateRouteRoute: typeof privateRouteRouteWithChildren
-  publicLoginRoute: typeof publicLoginRoute
+  publicRouteRoute: typeof publicRouteRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/(public)': {
+      id: '/(public)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof publicRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(private)': {
       id: '/(private)'
       path: ''
@@ -281,19 +294,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privateRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/(public)/': {
+      id: '/(public)/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof publicIndexRouteImport
+      parentRoute: typeof publicRouteRoute
     }
     '/(public)/login': {
       id: '/(public)/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof publicLoginRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof publicRouteRoute
     }
     '/(private)/(dashboard)': {
       id: '/(private)/(dashboard)'
@@ -493,10 +506,23 @@ const privateRouteRouteWithChildren = privateRouteRoute._addFileChildren(
   privateRouteRouteChildren,
 )
 
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  privateRouteRoute: privateRouteRouteWithChildren,
+interface publicRouteRouteChildren {
+  publicLoginRoute: typeof publicLoginRoute
+  publicIndexRoute: typeof publicIndexRoute
+}
+
+const publicRouteRouteChildren: publicRouteRouteChildren = {
   publicLoginRoute: publicLoginRoute,
+  publicIndexRoute: publicIndexRoute,
+}
+
+const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(
+  publicRouteRouteChildren,
+)
+
+const rootRouteChildren: RootRouteChildren = {
+  privateRouteRoute: privateRouteRouteWithChildren,
+  publicRouteRoute: publicRouteRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

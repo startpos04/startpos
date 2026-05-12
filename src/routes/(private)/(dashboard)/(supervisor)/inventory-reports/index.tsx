@@ -1,13 +1,21 @@
-import { DateRange, DateRangeInput } from '@/components/custom/form/date-rage-input'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import dayjs from '@/lib/dayjs'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { downloadInventoryCsv } from '@/lib/server-fn/download-inventory'
-import { downloadCsv } from '@/lib/utils/download-csv'
-import { useQuery } from '@tanstack/react-query'
+import { and, eq, gte, lte, not, toArray, useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
 import { Download, PackageCheck } from 'lucide-react'
+import { type DateRange, DateRangeInput } from '@/components/custom/form/date-rage-input'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  categoryCollection,
+  inventoryCollection,
+  inventoryMovementCollection,
+  productCollection,
+  productVariantCollection,
+  unitCollection,
+  userCollection,
+} from '@/db/collections'
+import dayjs from '@/lib/dayjs'
+import { downloadInventoryCsv } from '@/lib/server-fn/download-inventory'
+import { downloadCsv } from '@/lib/utils/download-csv'
 import { ActiveBatches } from './-components/active-batches'
 import { InventoryHealth } from './-components/inventory-health'
 import { LowStockAlert } from './-components/low-stock-alert'
@@ -16,45 +24,76 @@ import { StockLevels } from './-components/stock-levels'
 import { TotalStockValue } from './-components/total-stock-value'
 import { WasteRate } from './-components/waste-rate'
 
-export const fetchInventoryReports = (from?: string | Date, to?: string | Date) =>
-  useQuery({
-    queryKey: ['inventory-reports-detailed', from, to],
-    queryFn: async () => {
-      const dateFilter =
-        from || to
-          ? {
-              createdAt: {
-                ...(from ? { gte: dayjs(from).startOf('day').toISOString() } : {}),
-                ...(to ? { lte: dayjs(to).endOf('day').toISOString() } : {}),
-              },
-            }
-          : {}
+export const fetchInventoryReports = (from?: string | Date, to?: string | Date) => {
+  const result = useLiveQuery(
+    q =>
+      q
+        .from({ product: productCollection })
+        .where(({ product }) => not(eq(product.type, 'BUNDLE')))
+        .leftJoin({ category: categoryCollection }, ({ product, category }) => eq(product.categoryId, category.id))
+        .leftJoin({ baseUnit: unitCollection }, ({ product, baseUnit }) => eq(product.baseUnitId, baseUnit.id))
+        .select(({ product, category, baseUnit }) => ({
+          ...product,
+          category,
+          baseUnit,
 
-      const result = await crudAPI.product('findMany', {
-        where: { type: { not: 'BUNDLE' } },
-        include: {
-          category: true,
-          baseUnit: true,
-          variants: {
-            include: {
-              inventory: {
-                where: dateFilter,
-                include: { unit: true },
-              },
-              inventoryMovements: {
-                where: dateFilter,
-                orderBy: { createdAt: 'desc' },
-                include: { user: true, unit: true },
-              },
-            },
-          },
-        },
-      })
+          variants: toArray(
+            q
+              .from({ variant: productVariantCollection })
+              .where(({ variant }) => eq(variant.productId, product.id))
+              .select(({ variant }) => ({
+                ...variant,
 
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-  })
+                // Nested Inventory with Date Filter
+                inventory: toArray(
+                  q
+                    .from({ inv: inventoryCollection })
+                    .where(({ inv }) =>
+                      and(
+                        ...[
+                          eq(inv.variantId, variant.id),
+                          from ? gte(inv.createdAt, dayjs(from).startOf('day').toDate()) : true,
+                          to ? lte(inv.createdAt, dayjs(to).endOf('day').toDate()) : true,
+                        ],
+                      ),
+                    )
+                    .leftJoin({ u: unitCollection }, ({ inv, u }) => eq(inv.unitId, u.id))
+                    .select(({ inv, u }) => ({
+                      ...inv,
+                      unit: u,
+                    })),
+                ),
+
+                // Nested Inventory Movements with Date Filter and Sorting
+                inventoryMovements: toArray(
+                  q
+                    .from({ mov: inventoryMovementCollection })
+                    .where(({ mov }) =>
+                      and(
+                        ...[
+                          eq(mov.variantId, variant.id),
+                          from ? gte(mov.createdAt, dayjs(from).startOf('day').toDate()) : true,
+                          to ? lte(mov.createdAt, dayjs(to).endOf('day').toDate()) : true,
+                        ],
+                      ),
+                    )
+                    .orderBy(({ mov }) => [mov.createdAt, 'desc'])
+                    .leftJoin({ unit: unitCollection }, ({ mov, unit }) => eq(mov.unitId, unit.id))
+                    .leftJoin({ user: userCollection }, ({ mov, user }) => eq(mov.userId, user.id))
+                    .select(({ mov, user, unit }) => ({
+                      ...mov,
+                      user,
+                      unit,
+                    })),
+                ),
+              })),
+          ),
+        })),
+    [from, to], // Dependencies: Re-run query when date range changes
+  )
+
+  return { ...result, data: result.data.filter(prod => prod.category && prod.baseUnit) }
+}
 
 export type FetchInventoryReportsReturn = ReturnType<typeof fetchInventoryReports>
 export type InventoryData = NonNullable<FetchInventoryReportsReturn['data']>

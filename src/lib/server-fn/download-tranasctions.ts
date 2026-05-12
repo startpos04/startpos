@@ -1,12 +1,12 @@
-import dayjs from '@/lib/dayjs'
 import { createServerFn } from '@tanstack/react-start'
 import Papa from 'papaparse'
-import { Prisma } from 'prisma/generated/prisma/browser'
+import type { Prisma } from 'prisma/generated/prisma/browser'
 import z from 'zod'
+import dayjs from '@/lib/dayjs'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { PriceEngine } from '../conversion/price-engine'
 import { getTenantPrisma } from '../prisma-client'
-import { Prettify } from '../types'
+import type { Prettify } from '../types'
 
 const inventorySearchSchema = z.object({
   from: z.string().optional().catch(dayjs().startOf('month').format('YYYY-MM-DD')),

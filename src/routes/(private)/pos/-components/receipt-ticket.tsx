@@ -1,11 +1,11 @@
+import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+import { useStore } from '@tanstack/react-store'
 import { VAT_RATE } from '@/lib/constants'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
-import { CreatePosTransactionResponse } from '@/lib/server-fn/create-pos-transaction'
+import type { CreatePosTransactionResponse } from '@/lib/queries/create-pos-transaction'
 import { authStore } from '@/store/auth-store'
-import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
-import { useStore } from '@tanstack/react-store'
-import { posFormOpts } from '..'
+import type { posFormOpts } from '..'
 
 // Constants for predictable math
 const PAGE_WIDTH = 204 // Standard 58mm thermal paper
@@ -42,10 +42,10 @@ const styles = StyleSheet.create({
   kitchenAddon: { fontSize: 9, marginLeft: 10, fontStyle: 'italic' },
 })
 
-export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransactionResponse; data: NonNullable<(typeof posFormOpts)['defaultValues']> }) => {
+export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionResponse; data: NonNullable<(typeof posFormOpts)['defaultValues']> }) => {
   const user = useStore(authStore, state => state.user)
-  const t = transaction.data
-  const payment = t.payments?.[0]
+  const { transaction, payments } = result.data
+  const payment = payments[0]
 
   // --- ACCURATE HEIGHT CALCULATION ---
   const vPadding = PADDING * 2
@@ -88,15 +88,15 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
 
         <View style={styles.infoRow}>
           <Text>OR#:</Text>
-          <Text>{t.invoiceNo}</Text>
+          <Text>{transaction.invoiceNo}</Text>
         </View>
         <View style={styles.infoRow}>
           <Text>Date:</Text>
-          <Text>{dayjs(t.createdAt).format('DD/MM/YYYY HH:mm')}</Text>
+          <Text>{dayjs(transaction.createdAt).format('DD/MM/YYYY HH:mm')}</Text>
         </View>
         <View style={styles.infoRow}>
           <Text>Cashier:</Text>
-          <Text>{t.cashierId.slice(-6).toUpperCase()}</Text>
+          <Text>{transaction.cashierId.slice(-6).toUpperCase()}</Text>
         </View>
 
         <View style={styles.divider} />
@@ -107,16 +107,16 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
           <Text style={styles.columnPrice}>AMOUNT</Text>
         </View>
 
-        {data.items.map((item, i) => (
-          <View key={i} style={{ marginBottom: 4 }}>
+        {data.items.map(item => (
+          <View key={item.cartId} style={{ marginBottom: 4 }}>
             <View style={styles.row}>
               <Text style={styles.columnItem}>{[item.product.name, item.variant?.name ? `(${item.variant.name})` : ''].filter(Boolean).join(' ')}</Text>
               <Text style={styles.columnQty}>{item.quantity}</Text>
               <Text style={styles.columnPrice}>{PriceEngine.toDollars(Number(item.variant?.price) * item.quantity).toFixed(2)}</Text>
             </View>
 
-            {item.addons?.map((addon, ai) => (
-              <View key={ai} style={styles.addonRow}>
+            {item.addons?.map(addon => (
+              <View key={addon.id} style={styles.addonRow}>
                 <Text style={styles.columnItem}>+ {addon.material.product.name}</Text>
                 <Text style={styles.columnQty}>1</Text>
                 <Text style={styles.columnPrice}>{PriceEngine.toDollars(Number(addon.priceOverride)).toFixed(2)}</Text>
@@ -130,16 +130,16 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
         <View style={styles.totalsContainer}>
           <View style={styles.infoRow}>
             <Text>Vatable Sales</Text>
-            <Text>{PriceEngine.toDollars(t.totalAmount / 1.12).toFixed(2)}</Text>
+            <Text>{PriceEngine.toDollars(transaction.totalAmount / 1.12).toFixed(2)}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text>VAT Amount ({VAT_RATE * 100}%)</Text>
-            <Text>{PriceEngine.toDollars(t.taxAmount).toFixed(2)}</Text>
+            <Text>{PriceEngine.toDollars(transaction.taxAmount).toFixed(2)}</Text>
           </View>
           <View style={[styles.infoRow, styles.totalText]}>
             <Text>TOTAL AMOUNT</Text>
             <Text>
-              {user?.branch.currency} {PriceEngine.toDollars(t.totalAmount).toFixed(2)}
+              {user?.branch.currency} {PriceEngine.toDollars(transaction.totalAmount).toFixed(2)}
             </Text>
           </View>
           <View style={{ marginTop: 5, borderTopWidth: 0.5, borderTopStyle: 'dashed', paddingTop: 5 }}>
@@ -169,8 +169,8 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
       <Page size={[PAGE_WIDTH, kitchenHeight]} style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.kitchenTitle}>** ORDER SLIP **</Text>
-          <Text style={styles.kitchenSub}>Order #{t.invoiceNo.slice(-6)}</Text>
-          <Text>{dayjs(t.createdAt).format('hh:mm A')}</Text>
+          <Text style={styles.kitchenSub}>Order #{transaction.invoiceNo.slice(-6)}</Text>
+          <Text>{dayjs(transaction.createdAt).format('hh:mm A')}</Text>
         </View>
 
         <View style={styles.divider} />
@@ -180,8 +180,8 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
           <Text style={{ flex: 1, textAlign: 'right' }}>QTY</Text>
         </View>
 
-        {data.items.map((item, i) => (
-          <View key={i} style={{ marginBottom: 8, borderBottomWidth: 0.5, borderBottomColor: '#EEE', paddingBottom: 4 }}>
+        {data.items.map(item => (
+          <View key={item.cartId} style={{ marginBottom: 8, borderBottomWidth: 0.5, borderBottomColor: '#EEE', paddingBottom: 4 }}>
             <View style={styles.row}>
               <Text style={[styles.columnItem, styles.kitchenItem]}>
                 {[item.product.name, item.variant?.name ? `(${item.variant?.name})` : ''].filter(Boolean).join(' ')}
@@ -189,8 +189,8 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
               <Text style={[styles.columnQty, styles.kitchenItem]}>{item.quantity}</Text>
             </View>
 
-            {item.addons?.map((addon, ai) => (
-              <View key={ai} style={styles.addonRow}>
+            {item.addons?.map(addon => (
+              <View key={addon.id} style={styles.addonRow}>
                 <Text style={styles.kitchenAddon}>+ {addon.material.product.name}</Text>
               </View>
             ))}
@@ -201,7 +201,7 @@ export const ReceiptPDF = ({ transaction, data }: { transaction: CreatePosTransa
 
         <View style={styles.footer}>
           <Text>Prepared by: ________________</Text>
-          <Text style={{ marginTop: 5 }}>{dayjs(t.createdAt).format('DD MMM YYYY')}</Text>
+          <Text style={{ marginTop: 5 }}>{dayjs(transaction.createdAt).format('DD MMM YYYY')}</Text>
         </View>
       </Page>
     </Document>

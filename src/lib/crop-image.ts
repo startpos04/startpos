@@ -1,4 +1,6 @@
-export const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<string> => {
+import type { Area } from 'react-easy-crop'
+
+export const getCroppedImg = async (imageSrc: string, pixelCrop: Area): Promise<string> => {
   const image = new Image()
   image.src = imageSrc
   await new Promise(resolve => (image.onload = resolve))

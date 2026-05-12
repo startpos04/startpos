@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 import { PrismaClient } from 'prisma/generated/prisma/client'
-import { multiTenantExtension, TenantAwareClient } from './multi-tenant-extension'
+import { multiTenantExtension, type TenantAwareClient } from './multi-tenant-extension'
 import { softDeleteExtension } from './soft-delete-extension'
 
 // Establish the Database Connection
@@ -27,7 +27,7 @@ export const getTenantPrisma = (organizationId: string, branchId?: string) => {
   const scopedClient = prisma.$extends(multiTenantExtension(organizationId, branchId))
   // We cast to 'any' first to break the strict link,
   // then to our intersection type to restore autocomplete.
-  return scopedClient as any as TenantAwareClient<typeof scopedClient>
+  return scopedClient as unknown as TenantAwareClient<typeof scopedClient>
 }
 
 export type TenantPrismaClient = ReturnType<typeof getTenantPrisma>

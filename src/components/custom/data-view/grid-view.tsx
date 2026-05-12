@@ -1,11 +1,12 @@
+import { type ColumnDef, getCoreRowModel, type Row, useReactTable } from '@tanstack/react-table'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { ColumnDef, getCoreRowModel, Row, useReactTable } from '@tanstack/react-table'
 
 interface GridViewProps<T> {
   data: T[] | undefined
   isFetching: boolean
+  // biome-ignore lint/suspicious/noExplicitAny: V (Value) must be any to allow columns to have different return types
   columns: ColumnDef<T, any>[]
   renderCard: (row: Row<T>) => React.ReactNode
   emptyMessage?: string
@@ -14,8 +15,8 @@ interface GridViewProps<T> {
 
 const GridSkeleton = () => (
   <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-    {Array.from({ length: 8 }).map((_, i) => (
-      <Skeleton key={i} className='h-48 w-full rounded-2xl' />
+    {[...Array(8).keys()].map(value => (
+      <Skeleton key={value} className='h-48 w-full rounded-2xl' />
     ))}
   </div>
 )

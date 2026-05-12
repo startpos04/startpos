@@ -1,9 +1,9 @@
+import { ArrowRightLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import dayjs from '@/lib/dayjs'
 import { cn } from '@/lib/utils'
-import { ArrowRightLeft } from 'lucide-react'
-import { InventoryData } from '..'
+import type { InventoryData } from '..'
 
 export function RecentStockMovements({ inventoryData }: { inventoryData: InventoryData }) {
   return (

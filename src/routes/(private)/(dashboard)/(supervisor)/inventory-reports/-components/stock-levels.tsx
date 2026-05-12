@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { InventoryData } from '..'
+import type { InventoryData } from '..'
 
 export function StockLevels({ inventoryData }: { inventoryData: InventoryData }) {
   return (

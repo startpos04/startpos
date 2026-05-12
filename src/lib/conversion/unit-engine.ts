@@ -1,4 +1,4 @@
-import { Unit } from 'prisma/generated/prisma/browser'
+import type { Unit } from 'prisma/generated/prisma/browser'
 
 export const UnitEngine = {
   /** Clean up floating point noise (e.g., 1.4999999999 -> 1.5) */

@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle } from 'lucide-react'
-import { InventoryData } from '..'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { InventoryData } from '..'
 
 export function LowStockAlert({ inventoryData }: { inventoryData: InventoryData }) {
   const lowStockCount = inventoryData.filter(p => {

@@ -1,6 +1,6 @@
-import { authStore } from '@/store/auth-store'
 import { SequenceType } from 'prisma/generated/prisma/browser'
-import { TenantPrismaClient } from '.'
+import { authStore } from '@/store/auth-store'
+import type { TenantPrismaClient } from '.'
 
 type ExtendedTransactionClient = Parameters<Parameters<TenantPrismaClient['$transaction']>[0]>[0]
 

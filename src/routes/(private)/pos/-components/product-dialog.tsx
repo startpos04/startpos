@@ -1,3 +1,7 @@
+import { useForm, useStore, uuid } from '@tanstack/react-form'
+import { useSearch } from '@tanstack/react-router'
+import { Minus, Plus, Sparkles } from 'lucide-react'
+import { useMemo } from 'react'
 import Form from '@/components/custom/form'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -6,14 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { usePOS } from '@/hooks/use-pos'
-import { InventoryEngine, posItem, PosProduct } from '@/lib/conversion/inventory-engine'
+import { InventoryEngine, type PosProduct, type posItem } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { OverlayProps } from '@/lib/overlay'
+import type { OverlayProps } from '@/lib/overlay'
 import { cn } from '@/lib/utils'
-import { useForm, useStore, uuid } from '@tanstack/react-form'
-import { useSearch } from '@tanstack/react-router'
-import { Minus, Plus, Sparkles } from 'lucide-react'
-import { useMemo } from 'react'
 
 interface ProductDialogProps extends OverlayProps {
   product: PosProduct
@@ -32,7 +32,8 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
       quantity: 1,
     },
     onSubmit: async ({ value }) => {
-      const selectedVariant = product.variants?.find(v => v.id === value.selectedVariantId)!
+      const selectedVariant = product.variants?.find(v => v.id === value.selectedVariantId)
+      if (!selectedVariant) return
 
       // Map the selected component IDs back to the full component objects
       const selectedAddons = selectedVariant.components?.filter(c => value.selectedAddonIds.includes(c.id)) || []
@@ -52,16 +53,16 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
   const selectedVariantId = useStore(form.store, s => s.values.selectedVariantId)
 
   // Get the actual variant object for inventory calculation
-  const currentVariant = useMemo(() => product.variants?.find(v => v.id === selectedVariantId)!, [product, selectedVariantId])
+  const currentVariant = useMemo(() => product.variants?.find(v => v.id === selectedVariantId), [product, selectedVariantId])
 
   // Identify which components are actually addons for the current variant
   const availableAddons = useMemo(() => currentVariant?.components?.filter(c => c.isAddon) || [], [currentVariant])
 
   // Calculate live yield based on the base recipe + currently selected addons
-  const remainingYield = useMemo(
-    () => InventoryEngine.calculateRemainingYield(product, currentVariant, selectedAddonIds, cartItems, orderItems),
-    [product, currentVariant, selectedAddonIds, cartItems],
-  )
+  const remainingYield = useMemo(() => {
+    if (!currentVariant) return 0
+    return InventoryEngine.calculateRemainingYield(product, currentVariant, selectedAddonIds, cartItems, orderItems)
+  }, [product, currentVariant, selectedAddonIds, cartItems, orderItems])
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -124,6 +125,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
 
                       return (
                         <label
+                          htmlFor={comp.id}
                           key={comp.id}
                           className={cn(
                             'flex items-center justify-between p-3 rounded-2xl border transition-all',

@@ -1,58 +1,56 @@
-import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { CreateIngredient, CreateIngredientFormData } from '../create/-create-ingredients'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { productCollection, productVariantCollection } from '@/db/collections'
+import type { OverlayProps } from '@/lib/overlay'
+import { CreateIngredient, type CreateIngredientFormData } from '../create/-create-ingredients'
 
-export function EditIngredientDialog({
-  ingredientId,
-  defaultValues,
-  open,
-  onClose,
-}: {
+interface EditIngredientDialogProps extends OverlayProps {
   ingredientId: string
   defaultValues: CreateIngredientFormData
-  open: boolean
-  onClose: () => void
-}) {
-  const queryClient = useQueryClient()
+}
 
+export function EditIngredientDialog({ ingredientId, defaultValues, open, onClose }: EditIngredientDialogProps) {
   const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
     const { sku, price, ...productData } = value
 
-    const result = await crudAPI.product('update', {
-      where: { id: ingredientId },
-      data: {
+    // 1. Check if product exists
+    const exists = productCollection.has(ingredientId)
+
+    if (!exists) {
+      throw new Error(`Product with ID ${ingredientId} not found`)
+    }
+
+    // 2. Update the main Product record
+    const result = await productCollection.update(ingredientId, draft => {
+      // Spread existing data and apply updates
+      Object.assign(draft, {
         ...productData,
         image: productData.image || null,
-        variants: {
-          updateMany: {
-            where: { productId: ingredientId },
-            data: {
-              sku: sku,
-              price: price,
-              costPrice: price,
-            },
-          },
-        },
-      },
+      })
     })
 
-    result.match(
-      async () => {
-        await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
-        await queryClient.invalidateQueries({ queryKey: ['ingredient', ingredientId] })
-        toast.success('Ingredient successfully updated')
-        onClose?.()
-      },
-      error => {
-        if (error.includes('Unique constraint') && error.includes('sku')) {
-          toast.error('The SKU is already in use by another product.')
-        } else {
-          toast.error(error)
-        }
-      },
-    )
+    // 3. Handle the "updateMany" for Variants
+    // In TanStack DB, we find the IDs first
+    const variantIdsToUpdate = [...productVariantCollection.values()].filter(v => v.productId === ingredientId).map(v => v.id)
+
+    if (variantIdsToUpdate.length > 0) {
+      // Update all matching variants
+      // Note: If your version of TanStack DB doesn't support a batch update callback,
+      // you would loop through variantIdsToUpdate and call .update() on each.
+      for (const vId of variantIdsToUpdate) {
+        await productVariantCollection.update(vId, draft => {
+          draft.sku = sku
+          draft.price = price
+          draft.costPrice = price
+        })
+      }
+    }
+
+    if (result.error) toast.error(result.error.message)
+    else {
+      toast.success('Ingredient successfully updated')
+      onClose?.()
+    }
   }
 
   return (

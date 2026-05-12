@@ -1,8 +1,8 @@
+import { createFileRoute, Outlet } from '@tanstack/react-router'
 import AppNav from '@/components/custom/dashboard/app-nav'
 import { AppSidebar } from '@/components/custom/dashboard/app-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { createFileRoute, Outlet } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/(private)/(dashboard)')({
   component: RouteComponent,

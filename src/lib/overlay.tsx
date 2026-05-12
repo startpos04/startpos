@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: allowing any type for flexibility */
 import moment from 'dayjs'
 import { Component } from 'react'
 import { v4 as uuid } from 'uuid'
@@ -34,7 +35,7 @@ interface IOverlayState {
   dialogs: IDialogProps[]
   isMounted: boolean
 }
-interface IOverlayProps {}
+type IOverlayProps = object
 
 class Overlay extends Component<IOverlayProps, IOverlayState> {
   static instance: Overlay | null = null
@@ -66,7 +67,7 @@ class Overlay extends Component<IOverlayProps, IOverlayState> {
 
     const [...dialogs] = this.state.dialogs.filter(({ key, open }) => open || key)
 
-    let dialogIndex = dialogs.findIndex(dialog => dialog.key && dialog.key === key)
+    const dialogIndex = dialogs.findIndex(dialog => dialog.key && dialog.key === key)
 
     if (dialogIndex > -1) {
       const dialog = dialogs.splice(dialogIndex, 1)[0]

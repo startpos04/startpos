@@ -5,7 +5,7 @@ import { authMiddleware } from '../better-auth/auth-middleware'
 import { getTenantPrisma } from '../prisma-client'
 import { generateStructuredId } from '../prisma-client/generate-structured-id'
 
-const restockSchema = z.object({
+export const restockSchema = z.object({
   variantId: z.string(),
   quantity: z.number().gt(0),
   unitCost: z.number().gte(0),

@@ -1,6 +1,6 @@
-import { Input } from '@/components/ui/input'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Search } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 
 export const SearchInput = () => {
   const { q: searchQuery } = useSearch({ from: '/(private)/pos/' })

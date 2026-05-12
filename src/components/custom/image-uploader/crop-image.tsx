@@ -1,11 +1,17 @@
+import { useState } from 'react'
+import Cropper, { type Area } from 'react-easy-crop'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Slider } from '@/components/ui/slider' // Shadcn Slider
 import { getCroppedImg } from '@/lib/crop-image'
-import { useState } from 'react'
-import Cropper, { Area } from 'react-easy-crop'
+import type { OverlayProps } from '@/lib/overlay'
 
-export function CropImage({ open, onClose, tempImage, onCrop }: any) {
+interface CropImageProps extends OverlayProps {
+  tempImage: string
+  onCrop: (croppedBase64: string) => void
+}
+
+export function CropImage({ open, onClose, tempImage, onCrop }: CropImageProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
@@ -41,8 +47,10 @@ export function CropImage({ open, onClose, tempImage, onCrop }: any) {
 
         <div className='p-6 space-y-4'>
           <div className='space-y-2'>
-            <label className='text-xs text-muted-foreground uppercase font-bold'>Zoom</label>
-            <Slider value={[zoom]} min={1} max={3} step={0.1} onValueChange={([val]) => setZoom(Number(val))} />
+            <label htmlFor='zoom-slider' className='text-xs text-muted-foreground uppercase font-bold'>
+              Zoom
+            </label>
+            <Slider id='zoom-slider' value={[zoom]} min={1} max={3} step={0.1} onValueChange={([val]) => setZoom(Number(val))} />
           </div>
           <DialogFooter className='gap-2'>
             <Button variant='ghost' onClick={onClose}>

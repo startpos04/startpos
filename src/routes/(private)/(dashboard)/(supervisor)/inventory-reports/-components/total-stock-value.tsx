@@ -1,7 +1,7 @@
+import { DollarSign } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { DollarSign } from 'lucide-react'
-import { InventoryData } from '..'
+import type { InventoryData } from '..'
 
 export function TotalStockValue({ inventoryData }: { inventoryData: InventoryData }) {
   const totalValuation = inventoryData.reduce((acc, prod) => {

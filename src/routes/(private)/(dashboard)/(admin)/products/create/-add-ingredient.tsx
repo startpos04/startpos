@@ -1,3 +1,8 @@
+import { useForm, useStore } from '@tanstack/react-form'
+import { Check, Scale, Search, Utensils } from 'lucide-react'
+import type { Unit } from 'prisma/generated/prisma/browser'
+import * as React from 'react'
+import z from 'zod'
 import Form from '@/components/custom/form'
 import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
@@ -9,14 +14,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { showModal } from '@/lib/overlay'
-import { feIngredient, fetchIngredients } from '@/lib/queries/fetch-ingredients'
+import { type feIngredient, fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { cn } from '@/lib/utils'
-import { useForm, useStore } from '@tanstack/react-form'
-import { Check, Scale, Search, Utensils } from 'lucide-react'
-import { Unit } from 'prisma/generated/prisma/browser'
-import * as React from 'react'
-import z from 'zod'
 import { CreateIngredientDialog } from '../../ingredients/create'
 
 interface AddIngredientModalProps {
@@ -102,7 +102,8 @@ export function AddIngredientModal({ open, onClose, onAdd }: AddIngredientModalP
                           {filtered.map(product => (
                             <div key={product.id} className='mb-2'>
                               {product.variants.map(variant => (
-                                <div
+                                <button
+                                  type='button'
                                   key={variant.id}
                                   onClick={() => {
                                     idField.handleChange(variant.id)
@@ -131,7 +132,7 @@ export function AddIngredientModal({ open, onClose, onAdd }: AddIngredientModalP
                                     </div>
                                   </div>
                                   {idField.state.value === variant.id && <Check className='h-4 w-4 text-primary mr-2' />}
-                                </div>
+                                </button>
                               ))}
                             </div>
                           ))}

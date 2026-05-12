@@ -1,11 +1,12 @@
+import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
+import type { ReactNode } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
-import { ReactNode } from 'react'
 
 interface TableViewProps<T> {
   data: T[] | undefined
   isFetching: boolean
+  // biome-ignore lint/suspicious/noExplicitAny: V (Value) must be any to allow columns to have different return types
   columns: ColumnDef<T, any>[]
   emptyMessage?: string
   renderEmpty?: () => ReactNode
@@ -13,9 +14,9 @@ interface TableViewProps<T> {
 
 const TableRowSkeleton = ({ columns }: { columns: number }) => (
   <>
-    {Array.from({ length: 5 }).map((_, i) => (
+    {[...Array(5).keys()].map(i => (
       <TableRow key={`skeleton-${i}`} className='border-0 even:bg-muted/30'>
-        {Array.from({ length: columns }).map((_, j) => (
+        {[...Array(columns).keys()].map(j => (
           <TableCell key={`cell-${j}`} className='h-12 py-0.5'>
             <Skeleton className='w-full rounded-md h-4' />
           </TableCell>

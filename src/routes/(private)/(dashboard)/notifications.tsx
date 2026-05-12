@@ -1,3 +1,5 @@
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { BellOff, CheckCheck, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -5,8 +7,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useInView } from '@/hooks/use-in-view'
 import { useNotifications } from '@/hooks/use-notifications'
 import dayjs from '@/lib/dayjs'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { BellOff, CheckCheck, Loader2 } from 'lucide-react'
 
 export const Route = createFileRoute('/(private)/(dashboard)/notifications')({
   component: RouteComponent,
@@ -36,8 +36,8 @@ function RouteComponent() {
 
         {/* Only show "Mark all as read" if there are actually unread notifications */}
         {unreadCount > 0 && (
-          <Button variant='outline' size='sm' onClick={() => markAllRead.mutate()} disabled={markAllRead.isPending}>
-            {markAllRead.isPending ? <Loader2 className='mr-2 h-4 w-4 animate-spin' /> : <CheckCheck className='mr-2 h-4 w-4' />}
+          <Button variant='outline' size='sm' onClick={markAllRead}>
+            <CheckCheck className='mr-2 h-4 w-4' />
             Mark all as read
           </Button>
         )}
@@ -58,12 +58,13 @@ function RouteComponent() {
             </div>
           ) : (
             notifications.map(n => (
-              <div
+              <button
+                type='button'
                 key={n.id}
                 className='cursor-pointer transition-opacity active:opacity-70'
                 onClick={() => {
                   if (!n.isRead) {
-                    markAsRead.mutate({ id: n.id, link: n.link })
+                    markAsRead(n)
                   } else if (n.link) {
                     navigate({ to: n.link })
                   }
@@ -85,7 +86,7 @@ function RouteComponent() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+              </button>
             ))
           )}
 

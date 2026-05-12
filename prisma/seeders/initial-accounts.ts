@@ -1,5 +1,5 @@
 import { hashPassword } from 'better-auth/crypto'
-import { PrismaClient } from 'prisma/generated/prisma/client'
+import type { PrismaClient } from 'prisma/generated/prisma/client'
 import { Role, VatType } from 'prisma/generated/prisma/enums'
 
 export async function initialAccounts(prisma: PrismaClient) {

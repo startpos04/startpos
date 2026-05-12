@@ -1,13 +1,13 @@
+import { useQueryClient } from '@tanstack/react-query'
+import { useSearch } from '@tanstack/react-router'
+import { ReceiptText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { showModal } from '@/lib/overlay'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
-import { useQueryClient } from '@tanstack/react-query'
-import { useSearch } from '@tanstack/react-router'
-import { ReceiptText } from 'lucide-react'
 import { ActiveOrdersDialog } from '../../orders'
 
-export const ActiveOrdersButton = function () {
+export const ActiveOrdersButton = () => {
   const queryClient = useQueryClient()
   const { data: orders = [] } = fetchActiveOrders()
   const { q: searchQuery } = useSearch({ from: '/(private)/pos/' })

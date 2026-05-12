@@ -1,4 +1,4 @@
-import { CostingResult, InventoryBatchDTO } from './types'
+import type { CostingResult, InventoryBatchDTO } from './types'
 
 export const MovingAverageEngine = {
   /**

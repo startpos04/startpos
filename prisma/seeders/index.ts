@@ -1,7 +1,7 @@
-import { prisma } from '@/lib/prisma-client'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { prisma } from '@/lib/prisma-client'
 
 // Get the current file name to avoid self-importing
 const __filename = fileURLToPath(import.meta.url)

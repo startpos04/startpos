@@ -1,13 +1,13 @@
+import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router'
+import { useMemo } from 'react'
+import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/custom/theme/theme-provider'
 import { useSw } from '@/hooks/use-sw'
 import { getAuthUser } from '@/lib/better-auth/auth-server' // Import your server function
 import { APP_NAME } from '@/lib/constants'
 import Overlay from '@/lib/overlay'
-import { MyRouterContext } from '@/router'
+import type { MyRouterContext } from '@/router'
 import { setUser } from '@/store/auth-store'
-import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
-import { useMemo } from 'react'
-import { Toaster } from 'sonner'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
@@ -21,9 +21,13 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   }),
 
   beforeLoad: async () => {
-    const user = await getAuthUser()
-    setUser(user!)
-    return { user, isAuthenticated: !!user }
+    try {
+      const user = await getAuthUser()
+      setUser(user!)
+      return { user }
+    } catch {
+      return { user: undefined }
+    }
   },
 
   notFoundComponent: () => {
@@ -76,3 +80,13 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     </html>
   )
 }
+
+// TODO: error handling
+// TODO: loading state
+// TODO: revisit transaction seems every collection has its own transaction instance, need to unify them into a single transaction instance per request
+
+// TODO: save the current product details to order details
+// TODO: create product with variants
+// TODO: edit product with variants
+// TODO: order splitting
+// TODO: lock order when payment is being processed

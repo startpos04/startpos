@@ -1,7 +1,7 @@
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import dayjs from '@/lib/dayjs'
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { TransactionReportStats } from '../-utils/calculate-stats'
+import type { TransactionReportStats } from '../-utils/calculate-stats'
 
 export function RevenueVsCostTrend({ stats }: { stats: TransactionReportStats }) {
   return (
@@ -39,7 +39,7 @@ export function RevenueVsCostTrend({ stats }: { stats: TransactionReportStats })
             {/* Fix: Integrated Custom Tooltip */}
             <Tooltip
               content={({ active, payload, label }) => {
-                if (active && payload && payload.length) {
+                if (active && payload?.length) {
                   return (
                     <div className='rounded-lg border border-border bg-background p-3 shadow-xl'>
                       <p className='text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2'>{dayjs(label).format('MMMM DD, YYYY')}</p>

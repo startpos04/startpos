@@ -1,5 +1,6 @@
 {
   "include": ["**/*.ts", "**/*.tsx", "eslint.config.js", "prettier.config.js", "vite.config.js"],
+  "exclude": ["node_modules", "dist", "prisma/generated", "coverage", "playwright-report"],
 
   "compilerOptions": {
     "target": "ES2022",

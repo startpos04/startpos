@@ -1,16 +1,16 @@
+import { createServerFn } from '@tanstack/react-start'
+import { type Prisma, SequenceType } from 'prisma/generated/prisma/browser'
 import { getOrderItems } from '@/hooks/use-pos'
 import { authStore } from '@/store/auth-store'
-import { createServerFn } from '@tanstack/react-start'
-import { Prisma, SequenceType } from 'prisma/generated/prisma/browser'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { VAT_RATE } from '../constants'
-import { InventoryEngine, PosProduct, PosProductComponent, posProductProps } from '../conversion/inventory-engine'
+import { InventoryEngine, type PosProduct, type PosProductComponent, posProductProps } from '../conversion/inventory-engine'
 import { CostingEngine } from '../costing'
 import { NotificationEngine } from '../notification/notification-engine'
 import { getTenantPrisma } from '../prisma-client'
 import { generateStructuredId } from '../prisma-client/generate-structured-id'
-import { ActiveOrder, activeOrderProps } from '../queries/fetch-active-orders'
-import { Prettify } from '../types'
+import { type ActiveOrder, activeOrderProps } from '../queries/fetch-active-orders'
+import type { Prettify } from '../types'
 
 export interface SaleItem {
   cartId: string
@@ -49,18 +49,23 @@ export const createPosTransaction = createServerFn({ method: 'POST' })
       // --- 2. VALIDATION & STOCK GUARD ---
       const orderItems = getOrderItems(activeOrders, dbProducts)
 
-      const cartForValidation = data.items.map(item => {
-        const product = dbProducts.find(p => p.id === item.productId)!
-        const variant = product?.variants?.find(v => v.id === item.variantId)!
+      const cartForValidation = data.items
+        .flatMap(item => {
+          const product = dbProducts.find(p => p.id === item.productId)
+          const variant = product?.variants?.find(v => v.id === item.variantId)
+          if (!product || !variant) return []
 
-        return {
-          cartId: item.cartId,
-          product,
-          variant,
-          quantity: item.quantity,
-          addons: item.addons,
-        }
-      })
+          return [
+            {
+              cartId: item.cartId,
+              product,
+              variant,
+              quantity: item.quantity,
+              addons: item.addons,
+            },
+          ]
+        })
+        .filter(Boolean)
 
       // Backend Stock Guard
       for (const [variantId, amountNeeded] of Object.entries(InventoryEngine.getReservedMap(cartForValidation, orderItems))) {

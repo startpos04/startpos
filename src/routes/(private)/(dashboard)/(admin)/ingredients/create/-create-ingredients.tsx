@@ -1,3 +1,8 @@
+import { useForm } from '@tanstack/react-form'
+import { Info, Save, Warehouse } from 'lucide-react'
+import { ResourceType } from 'prisma/generated/prisma/enums'
+import type { ReactNode } from 'react'
+import { z } from 'zod'
 import { ImageInput } from '@/components/custom/form/image-input'
 import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
@@ -7,10 +12,6 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
-import { useForm } from '@tanstack/react-form'
-import { Info, Save, Warehouse } from 'lucide-react'
-import { ReactNode } from 'react'
-import { z } from 'zod'
 
 interface CreateIngredientProps {
   defaultValues: CreateIngredientFormData
@@ -28,7 +29,7 @@ const createIngredientSchema = z.object({
   image: z.string(),
   categoryId: z.string().min(1, 'Category required'),
   baseUnitId: z.string().min(1, 'Base unit required'),
-  type: z.literal('RAW_MATERIAL'),
+  type: z.enum(ResourceType),
   price: z.number().min(0),
   isAvailable: z.boolean(),
   hasExpiry: z.boolean(),

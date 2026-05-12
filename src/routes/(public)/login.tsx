@@ -1,50 +1,40 @@
+import { useForm } from '@tanstack/react-form'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Loader2 } from 'lucide-react'
+import z from 'zod'
+import Form from '@/components/custom/form'
+import { TextInput } from '@/components/custom/form/text-input'
 import { ThemeToggle } from '@/components/custom/theme/theme-toggle'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { authClient } from '@/lib/better-auth/auth-client'
-import { authStore } from '@/store/auth-store'
-import { useForm } from '@tanstack/react-form'
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import z from 'zod'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { useIsOnline } from '@/hooks/use-is-online'
+import { AuthEngine } from '@/lib/better-auth/auth-engine'
+import { RoleLandingPages } from '@/lib/better-auth/auth-server'
 
-export const loginValidator = z.object({
+const loginSchema = z.object({
   email: z.email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 })
+
+type LoginValues = z.infer<typeof loginSchema>
 
 export const Route = createFileRoute('/(public)/login')({
-  component: LoginComponent,
-  beforeLoad: async ({ context }) => {
-    const { isAuthenticated } = context
-    if (isAuthenticated) {
-      const { user } = authStore.state
-      throw redirect({ to: user.landingPage })
-    }
-  },
+  component: RouteComponent,
 })
 
-function LoginComponent() {
+function RouteComponent() {
+  const isOnline = useIsOnline()
   const navigate = useNavigate()
 
   const form = useForm({
-    defaultValues: {
-      email: '',
-      password: '',
-    },
+    defaultValues: { email: '', password: '' } as LoginValues,
+    validators: { onChange: loginSchema },
     onSubmit: async ({ value }) => {
-      await authClient.signIn.email(value, {
-        onRequest: () => console.info('Loading...'),
-        onSuccess: () => {
-          navigate({ to: '/', reloadDocument: true })
-        },
-        onError: ctx => alert(ctx.error.message),
-      })
-    },
-    validators: {
-      onBlur: loginValidator,
-      onChange: loginValidator,
+      if (isOnline) {
+        await AuthEngine.loginOnline(value.email, value.password, user => navigate({ to: RoleLandingPages[user.role] }))
+      } else {
+        await AuthEngine.loginOffline(value.email, value.password, user => navigate({ to: RoleLandingPages[user.role] }))
+      }
     },
   })
 
@@ -52,70 +42,29 @@ function LoginComponent() {
     <div className='flex flex-col items-center justify-center min-h-screen p-4'>
       <Card className='w-full max-w-md'>
         <CardHeader>
-          <div className='flex justify-between'>
+          <div className='flex justify-between items-center'>
             <CardTitle className='text-2xl font-bold'>Login</CardTitle>
             <ThemeToggle />
           </div>
-          <CardDescription>Enter your email below to login.</CardDescription>
+          <CardDescription>{isOnline ? 'Enter your credentials to sign in.' : 'Offline Mode: Use your last known credentials.'}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={e => {
-              e.preventDefault()
-              e.stopPropagation()
-              form.handleSubmit()
-            }}
-            className='space-y-6'
-          >
-            {/* Email Field */}
-            <form.Field name='email'>
-              {field => (
-                <div className='space-y-2'>
-                  <Label htmlFor={field.name}>Email</Label>
-                  <Input
-                    id={field.name}
-                    placeholder='name@example.com'
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={e => field.handleChange(e.target.value)}
-                  />
-                  {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-                    <p className='text-xs font-medium text-destructive'>{field.state.meta.errors.map(err => err?.message ?? err).join(', ')}</p>
-                  )}
-                </div>
-              )}
-            </form.Field>
+        <Form onSubmit={form.handleSubmit} className='space-y-6'>
+          <CardContent className='space-y-4'>
+            <form.Field name='email' children={field => <TextInput field={field} label='Email' placeholder='name@example.com' />} />
+            <form.Field name='password' children={field => <TextInput field={field} label='Password' type='password' />} />
+          </CardContent>
 
-            {/* Password Field */}
-            <form.Field name='password'>
-              {field => (
-                <div className='space-y-2'>
-                  <div className='flex items-center justify-between'>
-                    <Label htmlFor={field.name}>Password</Label>
-                  </div>
-                  <Input
-                    id={field.name}
-                    type='password'
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={e => field.handleChange(e.target.value)}
-                  />
-                  {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-                    <p className='text-xs font-medium text-destructive'>{field.state.meta.errors.map(err => err?.message ?? err).join(', ')}</p>
-                  )}
-                </div>
-              )}
-            </form.Field>
-
-            <form.Subscribe selector={state => [state.canSubmit, state.isSubmitting]}>
-              {([canSubmit, isSubmitting]) => (
+          <CardFooter className='flex flex-col gap-4'>
+            <form.Subscribe
+              selector={state => [state.canSubmit, state.isSubmitting]}
+              children={([canSubmit, isSubmitting]) => (
                 <Button type='submit' className='w-full' disabled={!canSubmit}>
-                  {isSubmitting ? 'Authenticating...' : 'Sign In'}
+                  {isSubmitting ? <Loader2 className='w-4 h-4 mr-2 animate-spin' /> : 'Sign in'}
                 </Button>
               )}
-            </form.Subscribe>
-          </form>
-        </CardContent>
+            />
+          </CardFooter>
+        </Form>
       </Card>
     </div>
   )

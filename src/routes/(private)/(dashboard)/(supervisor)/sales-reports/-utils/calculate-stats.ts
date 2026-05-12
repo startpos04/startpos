@@ -1,5 +1,5 @@
 import dayjs from '@/lib/dayjs'
-import { TransactionReport } from './fetch-transaction-reports'
+import type { TransactionReport } from './fetch-transaction-reports'
 
 export const calculateStats = (transactions: TransactionReport[]) => {
   const totalRevenue = transactions.reduce((acc, curr) => acc + curr.totalAmount, 0)
@@ -35,17 +35,17 @@ export const calculateStats = (transactions: TransactionReport[]) => {
 
     // Aggregate Cashier
     if (!cashierMap[tx.cashierId]) {
-      cashierMap[tx.cashierId] = { name: tx.cashier.name, total: 0, count: 0 }
+      cashierMap[tx.cashierId] = { name: tx.cashier.name || '', total: 0, count: 0 }
     }
 
     cashierMap[tx.cashierId]!.total += tx.totalAmount / 100
     cashierMap[tx.cashierId]!.count += 1
 
     // Aggregate Products
-    tx.order.items.forEach(item => {
+    tx.orderItems.forEach(item => {
       const key = item.variantId
       if (!productMap[key]) {
-        productMap[key] = { name: item.variant.product.name, qty: 0, revenue: 0 }
+        productMap[key] = { name: item.variant.product?.name || '', qty: 0, revenue: 0 }
       }
       productMap[key].qty += item.quantity
       productMap[key].revenue += (item.unitPrice * item.quantity) / 100

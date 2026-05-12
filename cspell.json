@@ -1,0 +1,6 @@
+{
+  "version": "0.2",
+  "import": ["./.vscode/settings.json"],
+  // You can still add global project words here if you want
+  "words": ["lefthook"]
+}

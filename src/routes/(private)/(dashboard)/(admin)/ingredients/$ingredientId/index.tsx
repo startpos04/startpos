@@ -1,3 +1,6 @@
+import { createFileRoute } from '@tanstack/react-router'
+import { useStore } from '@tanstack/react-store'
+import { Box, Edit, Layers, MapPin, Plus, Scale, TrendingDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -7,10 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import { showModal } from '@/lib/overlay'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
-import { Box, Edit, Layers, MapPin, Plus, Scale, TrendingDown } from 'lucide-react'
+import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
+import { authStore } from '@/store/auth-store'
 import { EditIngredientDialog } from './-edit-ingredient'
 import { RestockIngredientDialog } from './-restock'
 
@@ -45,40 +46,19 @@ export function IngredientDetailsDialog({ open, onClose, ingredientId }: Ingredi
 }
 
 function RouteComponent(props: RouteComponentProps) {
+  // biome-ignore lint/correctness/useHookAtTopLevel: This component is only used inside a Dialog, so it's guaranteed to be called in a React context. We need to get employeeId from either props (when opened via showModal) or from route params (when navigated directly).
   const ingredientId = props.ingredientId || Route.useLoaderData().ingredientId
-
-  const { data: ingredient, isLoading } = useQuery({
-    queryKey: ['ingredient', ingredientId],
-    queryFn: async () => {
-      const result = await crudAPI.product('findUnique', {
-        where: { id: ingredientId },
-        include: {
-          baseUnit: true,
-          category: true,
-          variants: {
-            include: {
-              inventory: { include: { unit: true } },
-              product: true,
-              usedIn: {
-                include: {
-                  host: { include: { product: true } },
-                  unit: true,
-                },
-              },
-            },
-          },
-        },
-      })
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-  })
+  const user = useStore(authStore, s => s.user)
+  const { data: ingredients, isLoading } = fetchIngredients(ingredientId)
+  const ingredient = ingredients.find(ing => ing.id === ingredientId)
 
   if (isLoading) return <div className='p-10 animate-pulse bg-muted rounded-xl h-125' />
   if (!ingredient) return <div className='p-6 text-center'>Ingredient not found.</div>
 
   // --- Realignment Logic: Variant-Centric Approach ---
   const primaryVariant = ingredient.variants?.[0]
+
+  console.log('Primary Variant:', ingredients)
 
   // Total stock across all batches of the primary variant
   const totalStock = primaryVariant?.inventory?.reduce((acc, inv) => acc + inv.quantity, 0) || 0
@@ -89,10 +69,10 @@ function RouteComponent(props: RouteComponentProps) {
   const currentCost = primaryVariant?.costPrice || 0
   const currentSku = primaryVariant?.sku || 'NO SKU'
 
-  const lowStockThreshold = 10
-  const isLowStock = totalStock < lowStockThreshold
+  const isLowStock = totalStock < (ingredient.variants[0]?.lowStockThreshold || user.branch.lowStockThreshold)
 
   const handleRestock = () => {
+    if (!primaryVariant) return
     showModal(RestockIngredientDialog, { ingredient, variant: primaryVariant })
   }
 
@@ -103,7 +83,7 @@ function RouteComponent(props: RouteComponentProps) {
         name: ingredient.name,
         sku: currentSku,
         image: ingredient.image || '',
-        type: ingredient.type as any,
+        type: ingredient.type,
         categoryId: ingredient.categoryId,
         baseUnitId: ingredient.baseUnitId,
         price: primaryVariant?.price || 0,

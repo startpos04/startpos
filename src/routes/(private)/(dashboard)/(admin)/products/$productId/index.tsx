@@ -1,16 +1,25 @@
+import { count, eq, toArray, useLiveQuery } from '@tanstack/react-db'
+import { createFileRoute } from '@tanstack/react-router'
+import { Box, DollarSign, Edit, Package, ShoppingCart, TrendingDown } from 'lucide-react'
+import type { Product, ProductVariant, Unit } from 'prisma/generated/prisma/browser'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  categoryCollection,
+  inventoryCollection,
+  orderItemCollection,
+  productCollection,
+  productComponentCollection,
+  productVariantCollection,
+  unitCollection,
+} from '@/db/collections'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import { showModal } from '@/lib/overlay'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
-import { Box, DollarSign, Edit, Package, ShoppingCart, TrendingDown } from 'lucide-react'
 import { EditProductDialog } from './-edit-product'
 
 interface ProductDetailsProps {
@@ -40,46 +49,87 @@ export function ProductDetailsDialog({ open, onClose, productId }: ProductDetail
 }
 
 function RouteComponent(props: RouteComponentProps) {
+  // biome-ignore lint/correctness/useHookAtTopLevel: This component is only used inside a Dialog, so it's guaranteed to be called in a React context. We need to get employeeId from either props (when opened via showModal) or from route params (when navigated directly).
   const productId = props.productId || Route.useLoaderData().productId
 
-  const { data: product, isLoading } = useQuery({
-    queryKey: ['product', productId],
-    queryFn: async () => {
-      const result = await crudAPI.product('findUnique', {
-        where: { id: productId },
-        include: {
-          baseUnit: true,
-          category: true,
-          variants: {
-            include: {
-              inventory: { include: { unit: true } },
-              components: {
-                include: {
-                  material: {
-                    include: {
-                      product: true,
-                    },
-                  },
-                  unit: true,
-                },
-              },
-              _count: { select: { orderItems: true } },
-            },
-          },
-          _count: { select: { variants: true } },
-        },
-      })
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-  })
+  const {
+    data: [product],
+    isLoading,
+  } = useLiveQuery(
+    q =>
+      q
+        .from({ product: productCollection })
+        .where(({ product }) => eq(product.id, productId))
+        .leftJoin({ category: categoryCollection }, ({ product, category }) => eq(product.categoryId, category.id))
+        .leftJoin({ baseUnit: unitCollection }, ({ product, baseUnit }) => eq(product.baseUnitId, baseUnit.id))
+        .select(({ product, category, baseUnit }) => ({
+          ...product,
+          category,
+          baseUnit,
+
+          variantCount: toArray(
+            q
+              .from({ vCount: productVariantCollection })
+              .where(({ vCount }) => eq(vCount.productId, product.id))
+              .groupBy(({ vCount }) => vCount.productId)
+              .select(({ vCount }) => ({ count: count(vCount.id) })),
+          ),
+
+          variants: toArray(
+            q
+              .from({ variant: productVariantCollection })
+              .where(({ variant }) => eq(variant.productId, product.id))
+              .select(({ variant }) => ({
+                ...variant,
+
+                // Nested Inventory with Unit join
+                inventory: toArray(
+                  q
+                    .from({ inv: inventoryCollection })
+                    .where(({ inv }) => eq(inv.variantId, variant.id))
+                    .leftJoin({ u: unitCollection }, ({ inv, u }) => eq(inv.unitId, u.id))
+                    .select(({ inv, u }) => ({
+                      ...inv,
+                      unit: u,
+                    })),
+                ),
+
+                components: toArray(
+                  q
+                    .from({ comp: productComponentCollection })
+                    .where(({ comp }) => eq(comp.hostId, variant.id))
+                    .leftJoin({ vpu: unitCollection }, ({ vpu, comp }) => eq(vpu.id, comp.unitId))
+                    .leftJoin({ material: productVariantCollection }, ({ material, comp }) => eq(material.id, comp.materialId))
+                    .leftJoin({ p: productCollection }, ({ p, material }) => eq(p.id, material.productId))
+                    .select(({ comp, vpu, material, p }) => ({
+                      ...comp,
+                      unit: vpu,
+                      material: {
+                        ...material,
+                        product: p,
+                      },
+                    })),
+                ),
+
+                orderItemsCount: toArray(
+                  q
+                    .from({ oi: orderItemCollection })
+                    .where(({ oi }) => eq(oi.variantId, variant.id))
+                    .groupBy(({ oi }) => oi.variantId)
+                    .select(({ oi }) => ({ count: count(oi.id) })),
+                ),
+              })),
+          ),
+        })),
+    [productId],
+  )
 
   if (isLoading) return <div className='p-10 animate-pulse bg-muted rounded-xl h-full' />
   if (!product) return <div className='p-6 text-center'>Product not found.</div>
 
   // --- CALCULATIONS ---
   const totalStock = product.variants.reduce((acc, v) => acc + v.inventory.reduce((iAcc, inv) => iAcc + inv.quantity, 0), 0)
-  const totalSales = product.variants.reduce((acc, v) => acc + v._count.orderItems, 0)
+  const totalSales = product.variants.reduce((acc, v) => acc + (v.orderItemsCount[0]?.count || 0), 0)
 
   const prices = product.variants.map(v => v.price)
   const minPrice = Math.min(...prices)
@@ -88,13 +138,13 @@ function RouteComponent(props: RouteComponentProps) {
   const isLowStock = totalStock < 10
 
   // Filter components to show only Recipe Ingredients (where isAddon is false)
-  const getRecipeIngredients = (variant: any) => {
-    return variant.components?.filter((c: any) => !c.isAddon) || []
+  const getRecipeIngredients = (variant: (typeof product)['variants'][number]) => {
+    return variant.components?.filter(c => !c.isAddon) || []
   }
 
   // Filter components to show only Paid Add-ons
-  const getAddons = (variant: any) => {
-    return variant.components?.filter((c: any) => c.isAddon) || []
+  const getAddons = (variant: (typeof product)['variants'][number]) => {
+    return variant.components?.filter(c => c.isAddon) || []
   }
 
   const handleEdit = () => {
@@ -104,7 +154,7 @@ function RouteComponent(props: RouteComponentProps) {
       productId: product.id,
       defaultValues: {
         name: product.name,
-        type: product.type as any,
+        type: product.type,
         categoryId: product.categoryId,
         baseUnitId: product.baseUnitId,
         image: product.image ?? '',
@@ -120,13 +170,13 @@ function RouteComponent(props: RouteComponentProps) {
             material: {
               id: c.material.productId,
               name: c.material.product.name,
-            },
+            } as Product,
             variant: {
               id: c.materialId,
               name: c.material.name,
-            },
+            } as ProductVariant,
             quantityUsed: Number(c.quantityUsed),
-            unit: c.unit,
+            unit: c.unit as Unit,
           })),
 
         allowedAddons: (primaryVariant?.components ?? [])
@@ -136,12 +186,12 @@ function RouteComponent(props: RouteComponentProps) {
             addon: {
               id: c.material.productId,
               name: c.material.product.name,
-            },
+            } as Product,
             variant: {
               id: c.materialId,
               name: c.material.name,
-            },
-            unit: c.unit,
+            } as ProductVariant,
+            unit: c.unit as Unit,
             defaultQuantity: Number(c.quantityUsed),
             priceOverride: c.priceOverride ? Number(c.priceOverride) / 100 : 0,
           })),
@@ -315,7 +365,7 @@ function RouteComponent(props: RouteComponentProps) {
                       </TableHeader>
                       <TableBody>
                         {ingredients.length > 0 ? (
-                          ingredients.map((comp: any) => (
+                          ingredients.map(comp => (
                             <TableRow key={comp.id}>
                               <TableCell>
                                 <div className='font-medium'>{comp.material.product.name}</div>
@@ -324,7 +374,7 @@ function RouteComponent(props: RouteComponentProps) {
                               <TableCell>
                                 {comp.quantityUsed} {comp.unit.abbreviation}
                               </TableCell>
-                              <TableCell className='text-right'>{PriceEngine.format(comp.quantityUsed * comp.material.costPrice)}</TableCell>
+                              <TableCell className='text-right'>{PriceEngine.format(comp.quantityUsed * (comp.material.costPrice || 0))}</TableCell>
                             </TableRow>
                           ))
                         ) : (
@@ -355,7 +405,7 @@ function RouteComponent(props: RouteComponentProps) {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {addons.map((addon: any) => (
+                          {addons.map(addon => (
                             <TableRow key={addon.id}>
                               <TableCell className='font-medium'>
                                 {addon.material.product.name} ({addon.material.name})
@@ -380,7 +430,15 @@ function RouteComponent(props: RouteComponentProps) {
   )
 }
 
-function StatCard({ label, value, subValue, icon, status = 'default' }: any) {
+interface StatCardProps {
+  label: string
+  value: string
+  subValue: string | undefined
+  icon: React.ReactNode
+  status?: 'default' | 'warning'
+}
+
+function StatCard({ label, value, subValue, icon, status = 'default' }: StatCardProps) {
   return (
     <Card className={status === 'warning' ? 'border-orange-200 bg-orange-50/30' : ''}>
       <CardContent className='p-4 flex items-center gap-4'>

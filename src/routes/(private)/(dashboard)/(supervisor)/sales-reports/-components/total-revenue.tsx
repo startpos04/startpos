@@ -1,7 +1,7 @@
+import { DollarSign } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { DollarSign } from 'lucide-react'
-import { TransactionReportStats } from '../-utils/calculate-stats'
+import type { TransactionReportStats } from '../-utils/calculate-stats'
 
 export function TotalRevenue({ stats }: { stats: TransactionReportStats }) {
   return (

@@ -1,9 +1,9 @@
+import { ArrowRight, CheckCircle2, RotateCcw, Wallet } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { ArrowRight, CheckCircle2, RotateCcw, Wallet } from 'lucide-react'
-import { useState } from 'react'
 
 interface PaymentDialogProps {
   open: boolean
@@ -49,14 +49,21 @@ export function PaymentDialog({ open, onClose, total, onConfirm, onSave }: Payme
           {/* Cash Input Section */}
           <div className='space-y-2'>
             <div className='flex justify-between items-end px-1'>
-              <label className='text-sm font-bold text-foreground/70'>Cash Received</label>
-              <button onClick={() => setTendered(0)} className='text-xs font-bold text-destructive flex items-center gap-1 hover:opacity-80 transition-opacity'>
+              <label htmlFor='cash-input' className='text-sm font-bold text-foreground/70'>
+                Cash Received
+              </label>
+              <button
+                type='button'
+                onClick={() => setTendered(0)}
+                className='text-xs font-bold text-destructive flex items-center gap-1 hover:opacity-80 transition-opacity'
+              >
                 <RotateCcw className='w-3 h-3' /> Reset
               </button>
             </div>
             <div className='relative'>
               <Wallet className='absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5' />
               <Input
+                id='cash-input'
                 type='number'
                 className='h-16 pl-12 text-2xl font-black rounded-xl border-2 focus-visible:ring-primary bg-background'
                 placeholder='0.00'

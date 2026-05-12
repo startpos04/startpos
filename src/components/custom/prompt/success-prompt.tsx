@@ -1,13 +1,13 @@
+import { CheckCircle2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Prettify } from '@/lib/types'
-import { CheckCircle2 } from 'lucide-react'
-import { ReactNode } from 'react'
+import type { Prettify } from '@/lib/types'
 
 const successPromptSchema = {
-  title: 'Action Successful' as String | ReactNode,
-  description: 'Your changes have been saved to the database. You can now continue your workflow.' as unknown as String | ReactNode,
-  btnText: 'OK' as String,
+  title: 'Action Successful' as string | ReactNode,
+  description: 'Your changes have been saved to the database. You can now continue your workflow.' as unknown as string | ReactNode,
+  btnText: 'OK' as string,
 }
 
 export type SuccessPromptProps = Prettify<

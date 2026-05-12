@@ -1,9 +1,9 @@
-import { Inventory } from 'prisma/generated/prisma/client'
+import type { Inventory } from 'prisma/generated/prisma/client'
 import { UnitEngine } from '../conversion/unit-engine'
 import { FIFOEngine } from './fifo-engine'
 import { MovingAverageEngine } from './moving-average-engine'
 import { SpecificEngine } from './specific-engine'
-import { CostingParams, CostingResult, CostingStrategyType, InventoryBatchDTO } from './types'
+import type { CostingParams, CostingResult, CostingStrategyType, InventoryBatchDTO } from './types'
 
 export const CostingEngine = {
   /**

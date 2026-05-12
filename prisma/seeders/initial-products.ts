@@ -1,4 +1,4 @@
-import { PrismaClient, ResourceType, UnitType } from 'prisma/generated/prisma/client'
+import { type PrismaClient, ResourceType, UnitType } from 'prisma/generated/prisma/client'
 
 export async function initialProducts(prisma: PrismaClient) {
   console.log('🍔 Populating Food Store with Unified Component Schema...')

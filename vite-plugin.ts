@@ -1,5 +1,5 @@
-import { injectManifest } from '@serwist/build'
 import path from 'node:path'
+import { injectManifest } from '@serwist/build'
 import type { Plugin } from 'vite'
 import { build } from 'vite'
 
@@ -47,6 +47,7 @@ async function buildServiceWorker(rootDir: string, production: boolean) {
       configFile: false,
       define: {
         'process.env.NODE_ENV': JSON.stringify(production ? 'production' : 'development'),
+        'process.env': JSON.stringify({ NODE_ENV: production ? 'production' : 'development' }),
       },
       build: {
         lib: {

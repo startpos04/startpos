@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: allowing any type for flexibility */
 import { SCHEMA_METADATA } from 'prisma/generated/metadata'
 import { Prisma } from 'prisma/generated/prisma/client'
 
@@ -87,7 +88,9 @@ export const multiTenantExtension = (organizationId: string, branchId?: string) 
                         })
                       } else {
                         const items = Array.isArray(nestedData[op]) ? nestedData[op] : [nestedData[op]]
-                        items.forEach(item => injectIds(item, nestedModelName))
+                        items.forEach(item => {
+                          injectIds(item, nestedModelName)
+                        })
                       }
                     }
                   })

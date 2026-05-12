@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShoppingCart } from 'lucide-react'
-import { TransactionReport } from '../-utils/fetch-transaction-reports'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { TransactionReport } from '../-utils/fetch-transaction-reports'
 
 export function TotalTransactions({ transactions }: { transactions: TransactionReport[] }) {
   return (

@@ -1,6 +1,6 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Zap } from 'lucide-react'
-import { TransactionReportStats } from '../-utils/calculate-stats'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import type { TransactionReportStats } from '../-utils/calculate-stats'
 
 export function TopSellers({ stats }: { stats: TransactionReportStats }) {
   return (
@@ -13,8 +13,8 @@ export function TopSellers({ stats }: { stats: TransactionReportStats }) {
       </CardHeader>
       <CardContent>
         <div className='space-y-4'>
-          {stats.topProducts.map((product, i) => (
-            <div key={i} className='flex items-center justify-between'>
+          {stats.topProducts.map(product => (
+            <div key={product.name} className='flex items-center justify-between'>
               <div className='space-y-1'>
                 <p className='text-sm font-medium leading-none'>{product.name}</p>
                 <p className='text-xs text-muted-foreground'>{product.qty} units</p>

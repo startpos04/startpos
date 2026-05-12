@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
-import { Prisma } from 'prisma/generated/prisma/browser'
-import { crudAPI } from '../prisma-client/crud-api'
-import { Prettify } from '../types'
+import { eq, inArray, toArray, useLiveQuery } from '@tanstack/react-db'
+import type { Prisma } from 'prisma/generated/prisma/browser'
+import { orderCollection, orderItemAddonCollection, orderItemCollection, productCollection, productVariantCollection } from '@/db/collections'
+import type { Prettify } from '../types'
 
 export const activeOrderProps = {
   items: {
@@ -14,20 +14,46 @@ export const activeOrderProps = {
 
 export type ActiveOrder = Prettify<Prisma.OrderGetPayload<{ include: typeof activeOrderProps }>>
 
-export const fetchActiveOrders = () =>
-  useQuery({
-    queryKey: ['active-orders'],
-    queryFn: async () => {
-      const result = await crudAPI.order('findMany', {
-        where: {
-          status: { in: ['PREPARING', 'PENDING'] },
-        },
-        include: activeOrderProps,
-      })
+export const fetchActiveOrders = () => {
+  const result = useLiveQuery(
+    q =>
+      q
+        .from({ order: orderCollection })
+        .where(({ order }) => inArray(order.status, ['PREPARING', 'PENDING']))
+        .orderBy(({ order }) => order.orderNumber, 'desc')
+        .select(({ order }) => ({
+          ...order,
+          items: toArray(
+            q
+              .from({ item: orderItemCollection })
+              .where(({ item }) => eq(item.orderId, order.id))
+              .leftJoin({ variant: productVariantCollection }, ({ variant, item }) => eq(item.variantId, variant.id))
+              .leftJoin({ p: productCollection }, ({ p, variant }) => eq(p.id, variant.productId))
+              .select(({ item, variant, p }) => ({
+                ...item,
+                variant: {
+                  ...variant,
+                  product: p,
+                },
+                selectedAddons: toArray(
+                  q
+                    .from({ sAddon: orderItemAddonCollection })
+                    .where(({ sAddon }) => eq(sAddon.orderItemId, item.id))
+                    .leftJoin({ a: productVariantCollection }, ({ a, sAddon }) => eq(a.id, sAddon.addonId))
+                    .leftJoin({ ap: productCollection }, ({ ap, a }) => eq(ap.id, a.productId))
+                    .select(({ sAddon, a, ap }) => ({
+                      ...sAddon,
+                      addon: {
+                        ...a,
+                        product: ap,
+                      },
+                    })),
+                ),
+              })),
+          ),
+        })),
+    [],
+  )
 
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  })
+  return { ...result, data: result.data as unknown as ActiveOrder[] }
+}

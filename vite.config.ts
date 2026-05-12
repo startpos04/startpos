@@ -19,6 +19,34 @@ const config = defineConfig({
     viteReact(),
     tanstackSerwistPlugin(),
   ],
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+    },
+  },
+  // 2. For Preview (npm run preview)
+  // This is where your "blocked:COEP" error is coming from
+  preview: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+    },
+  },
+  optimizeDeps: {
+    exclude: ['@tanstack/browser-db-sqlite-persistence'],
+  },
+  build: {
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+  },
 })
 
 export default config

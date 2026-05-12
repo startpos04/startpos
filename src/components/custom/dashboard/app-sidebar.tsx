@@ -1,3 +1,9 @@
+// Changed: Added Link for better navigation
+import { Link, useLocation } from '@tanstack/react-router'
+import { useStore } from '@tanstack/react-store'
+import { BookOpenIcon, BotIcon, ChevronRightIcon, GalleryVerticalEndIcon, TerminalSquareIcon } from 'lucide-react'
+import { Role } from 'prisma/generated/prisma/enums'
+import * as React from 'react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   Sidebar,
@@ -14,12 +20,6 @@ import {
 } from '@/components/ui/sidebar'
 import { APP_NAME } from '@/lib/constants'
 import { authStore } from '@/store/auth-store'
-// Changed: Added Link for better navigation
-import { Link, useLocation } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
-import { BookOpenIcon, BotIcon, ChevronRightIcon, GalleryVerticalEndIcon, TerminalSquareIcon } from 'lucide-react'
-import { Role } from 'prisma/generated/prisma/enums'
-import * as React from 'react'
 
 interface Items {
   title: string
@@ -48,7 +48,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       if (currentPath === itemUrl) return true
       // Nested match: check if current path starts with itemUrl
       // Example: /employees/admin-1 starts with /employees
-      return currentPath.startsWith(itemUrl + '/')
+      return currentPath.startsWith(`${itemUrl}/`)
     },
     [location.pathname],
   )
@@ -111,7 +111,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       })
 
     return data
-  }, [user.id, isRouteActive])
+  }, [isRouteActive, user])
 
   return (
     <Sidebar collapsible='icon' {...props}>

@@ -1,7 +1,8 @@
-import { getTenantPrisma, prisma } from '@/lib/prisma-client'
+/** biome-ignore-all lint/suspicious/noExplicitAny: allowing any type for flexibility */
 import { createServerFn } from '@tanstack/react-start'
-import { err, ok, Result, ResultAsync } from 'neverthrow'
-import { Prisma } from 'prisma/generated/prisma/client'
+import { err, ok, type Result, ResultAsync } from 'neverthrow'
+import type { Prisma } from 'prisma/generated/prisma/client'
+import { getTenantPrisma, type prisma } from '@/lib/prisma-client'
 import { authMiddleware } from '../better-auth/auth-middleware'
 
 // --- ADVANCED TYPES ---
@@ -51,7 +52,7 @@ const crudServerFn = createServerFn({ method: 'POST' })
     const tenantPrisma = getTenantPrisma(context.user.organizationId, context.user.branchId!)
     const delegate = (tenantPrisma as any)[data.table]
 
-    if (!delegate || !delegate[data.action]) {
+    if (!delegate?.[data.action]) {
       return { error: `Invalid operation: ${data.action} on ${data.table}` }
     }
 

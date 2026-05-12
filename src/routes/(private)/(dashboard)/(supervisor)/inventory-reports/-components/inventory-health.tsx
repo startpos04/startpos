@@ -1,8 +1,8 @@
+import { TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import dayjs from '@/lib/dayjs'
-import { TrendingUp } from 'lucide-react'
-import { InventoryData } from '..'
+import type { InventoryData } from '..'
 
 export function InventoryHealth({ inventoryData }: { inventoryData: InventoryData }) {
   const categoryMap: Record<string, number> = {}
@@ -11,7 +11,7 @@ export function InventoryHealth({ inventoryData }: { inventoryData: InventoryDat
   inventoryData.forEach(product => {
     const productValue = product.variants.reduce((vAcc, v) => vAcc + v.inventory.reduce((iAcc, inv) => iAcc + inv.quantity * inv.costPrice, 0), 0)
 
-    categoryMap[product.category.name] = (categoryMap[product.category.name] || 0) + productValue
+    categoryMap[product.category.name as string] = (categoryMap[product.category.name as string] || 0) + productValue
     totalOrgValue += productValue
   })
 

@@ -1,6 +1,6 @@
+import { MovementType, type PrismaClient, ResourceType } from 'prisma/generated/prisma/client'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { UnitEngine } from '@/lib/conversion/unit-engine'
-import { MovementType, PrismaClient, ResourceType } from 'prisma/generated/prisma/client'
 
 export async function initialInventory(prisma: PrismaClient) {
   console.log('📦 Normalizing Costs & Seeding Variant Inventory...')
@@ -47,8 +47,9 @@ export async function initialInventory(prisma: PrismaClient) {
       const bulkPriceCents = PriceEngine.toCents(150.0) // ₱150.00 base
       const normalizedCostPriceCents = Math.round(PriceEngine.costPerBase(bulkPriceCents, purchaseUnit))
 
-      const purchaseQty = 10 // Start with 10 bulk units (10kg or 10L)
-      const totalInBaseUnits = UnitEngine.toBase(purchaseQty, purchaseUnit)
+      const purchaseQty = 1 // Start with 10 bulk units (10kg or 10L)
+      let totalInBaseUnits = UnitEngine.toBase(purchaseQty, purchaseUnit)
+      if (purchaseUnit.abbreviation === 'pcs') totalInBaseUnits = totalInBaseUnits * 500
 
       // 2. Update Variant (Costs live here)
       // This is crucial because ProductComponent references this costPrice for profit margins

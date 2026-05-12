@@ -1,7 +1,7 @@
+import type { AnyFieldApi } from '@tanstack/react-form'
 import { Field } from '@/components/ui/field'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { AnyFieldApi } from '@tanstack/react-form'
 
 interface SelectInputProps<T> {
   label: string
@@ -15,7 +15,7 @@ export function SelectInput<T>({ label, field, options, placeholder }: SelectInp
   return (
     <Field>
       <Label>{label}</Label>
-      <Select value={field.state.value} onValueChange={val => field.handleChange(val as any)}>
+      <Select value={field.state.value} onValueChange={val => field.handleChange(val)}>
         <SelectTrigger onBlur={field.handleBlur}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
@@ -28,7 +28,7 @@ export function SelectInput<T>({ label, field, options, placeholder }: SelectInp
         </SelectContent>
       </Select>
 
-      {field.state.meta.errors.length > 0 && <p className='text-xs text-red-500'>{field.state.meta.errors.map((err: any) => err.message ?? err).join(', ')}</p>}
+      {field.state.meta.errors.length > 0 && <p className='text-xs text-red-500'>{field.state.meta.errors.map(err => err.message ?? err).join(', ')}</p>}
     </Field>
   )
 }

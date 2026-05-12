@@ -1,8 +1,7 @@
-import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { CreateAccount, CreateAccountFormData } from '../create/-create-account'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { userCollection } from '@/db/collections'
+import { CreateAccount, type CreateAccountFormData } from '../create/-create-account'
 
 export function EditEmployeeDialog({
   employeeId,
@@ -15,26 +14,17 @@ export function EditEmployeeDialog({
   open: boolean
   onClose: () => void
 }) {
-  const queryClient = useQueryClient()
-
   const handleSubmit = async ({ value }: { value: CreateAccountFormData }) => {
-    const result = await crudAPI.user('update', {
-      where: { id: employeeId },
-      data: {
-        ...value,
-        image: value.image || null,
-      },
+    const result = await userCollection.update(employeeId, draft => {
+      Object.assign(draft, value)
+      draft.image = value.image || null
     })
 
-    result.match(
-      async () => {
-        await queryClient.invalidateQueries({ queryKey: ['employees'] })
-        await queryClient.invalidateQueries({ queryKey: ['employee', employeeId] })
-        toast.success('Employee successfully added')
-        onClose?.()
-      },
-      error => toast.error(error),
-    )
+    if (result.error) toast.error(result.error.message)
+    else {
+      toast.success('Employee successfully updated')
+      onClose()
+    }
   }
 
   return (

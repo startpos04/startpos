@@ -1,9 +1,9 @@
-import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useQueryClient } from '@tanstack/react-query'
+import type { Transaction } from '@tanstack/db'
 import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
-import { CreateAccount, CreateAccountFormData } from './-create-account'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { userCollection } from '@/db/collections'
+import { CreateAccount, type CreateAccountFormData } from './-create-account'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/create/')({
   component: () => <RouteComponent />,
@@ -20,25 +20,29 @@ export function CreateEmployeeDialog({ open, onClose }: { open: boolean; onClose
 }
 
 function RouteComponent({ onClose }: { onClose?: () => void }) {
-  const queryClient = useQueryClient()
-
   const handleSubmit = async ({ value }: { value: CreateAccountFormData }) => {
-    const result = await crudAPI.user('create', {
-      data: {
+    const results: Record<string, Transaction<Record<string, unknown>>> = {}
+
+    try {
+      results['employee'] = await userCollection.insert({
         ...value,
+        id: crypto.randomUUID(),
         image: value.image || null,
         emailVerified: false,
-      },
-    })
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        deletedAt: null,
+      })
+      await results['employee'].isPersisted.promise
 
-    result.match(
-      async () => {
-        await queryClient.invalidateQueries({ queryKey: ['employees'] })
-        toast.success('Employee successfully added')
-        onClose?.()
-      },
-      error => toast.error(error),
-    )
+      onClose?.()
+      toast.success('Employee successfully added')
+    } catch (error) {
+      await Promise.all(Object.values(results).map(r => r.rollback()))
+
+      console.error('Transaction failed:', error)
+      toast.error('Failed to add Employee. Please try again.')
+    }
   }
 
   return (

@@ -1,14 +1,14 @@
+import { useLiveQuery } from '@tanstack/react-db'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { Edit, Plus, Trash2 } from 'lucide-react'
+import { useCallback, useMemo } from 'react'
+import { toast } from 'sonner'
 import { getColumns } from '@/components/custom/data-view'
 import { TableView } from '@/components/custom/data-view/table-view'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { userCollection } from '@/db/collections'
 import { showModal } from '@/lib/overlay'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { Edit, Plus, Trash2 } from 'lucide-react'
-import { useMemo } from 'react'
-import { toast } from 'sonner'
 import { EmployeeDetailsDialog } from './$employeeId'
 import { CreateEmployeeDialog } from './create'
 
@@ -17,32 +17,19 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/'
 })
 
 function RouteComponent() {
-  const queryClient = useQueryClient()
-
-  const { data, isFetching } = useQuery({
-    queryKey: ['employees'],
-    queryFn: async () => {
-      const result = await crudAPI.user('findMany')
-
-      if (result.isErr()) {
-        throw new Error(result.error)
-      }
-
-      return result.value
-    },
-  })
+  const { data, isLoading } = useLiveQuery(q => q.from({ user: userCollection }))
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     showModal(CreateEmployeeDialog)
   }
 
-  const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, employeeId: string) => {
+  const handleEdit = useCallback((e: React.MouseEvent<HTMLAnchorElement>, employeeId: string) => {
     e.preventDefault()
     showModal(EmployeeDetailsDialog, {
       employeeId,
     })
-  }
+  }, [])
 
   const columns = useMemo(
     () =>
@@ -83,15 +70,12 @@ function RouteComponent() {
           header: () => <div className='text-right pr-4'>Actions</div>,
           cell: ({ row }) => {
             const handleDelete = async () => {
-              const result = await crudAPI.user('update', { where: { id: row.original.id }, data: { deletedAt: { set: new Date() } } })
+              const result = await userCollection.update(row.original.id, draft => {
+                draft.deletedAt = new Date()
+              })
 
-              result.match(
-                async () => {
-                  toast.success('Account successfully deleted')
-                  await queryClient.invalidateQueries({ queryKey: ['employees'] })
-                },
-                error => toast.error(error),
-              )
+              if (result.error) toast.error(result.error.message)
+              else toast.success('Account successfully deleted')
             }
 
             return (
@@ -109,7 +93,7 @@ function RouteComponent() {
           },
         }),
       ]),
-    [data],
+    [handleEdit],
   )
 
   return (
@@ -126,7 +110,7 @@ function RouteComponent() {
         </a>
       </div>
 
-      <TableView data={data} isFetching={isFetching} columns={columns} />
+      <TableView data={data} isFetching={isLoading} columns={columns} />
     </div>
   )
 }

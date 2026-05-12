@@ -1,8 +1,8 @@
+import { ArrowUpRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { ArrowUpRight } from 'lucide-react'
-import { TransactionReportStats } from '../-utils/calculate-stats'
-import { TransactionReport } from '../-utils/fetch-transaction-reports'
+import type { TransactionReportStats } from '../-utils/calculate-stats'
+import type { TransactionReport } from '../-utils/fetch-transaction-reports'
 
 export function AverageOrderSize({ transactions, stats }: { transactions: TransactionReport[]; stats: TransactionReportStats }) {
   return (

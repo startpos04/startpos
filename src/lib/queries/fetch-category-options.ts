@@ -1,15 +1,15 @@
-import { useQuery } from '@tanstack/react-query'
-import { crudAPI } from '../prisma-client/crud-api'
+import { useLiveQuery } from '@tanstack/react-db'
+import { categoryCollection } from '@/db/collections'
 
-export const fetchCategoryOptions = () =>
-  useQuery({
-    queryKey: ['categoryOptions'],
-    queryFn: async () => {
-      const result = await crudAPI.category('findMany')
+export const fetchCategoryOptions = () => {
+  const result = useLiveQuery(q => q.from({ category: categoryCollection }))
 
-      if (result.isErr()) throw new Error(result.error)
-      return result.value.map(item => ({ label: item.name, value: item.id }))
-    },
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  })
+  return {
+    ...result,
+    data: result.data?.map(item => ({
+      label: item.name,
+      value: item.id,
+      data: item,
+    })),
+  }
+}

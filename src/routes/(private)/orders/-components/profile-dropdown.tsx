@@ -1,60 +1,24 @@
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { authClient } from '@/lib/better-auth/auth-client'
-import { authStore } from '@/store/auth-store'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
-import { LayoutDashboard, LogOut, UserCircle } from 'lucide-react'
+import { LayoutDashboard } from 'lucide-react'
+import { Role } from 'prisma/generated/prisma/enums'
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
+import { authStore } from '@/store/auth-store'
+import { ProfileDropdown as BaseProfileDropdown } from '../../../../components/custom/dashboard/profile-dropdown'
 
-export const ProfileDropdown = function () {
+export const ProfileDropdown = () => {
   const user = useStore(authStore, state => state.user)
-  const navigate = useNavigate()
-
-  const handleLogout = () => {
-    authClient.signOut(
-      {},
-      {
-        onSuccess: () => navigate({ to: '/', reloadDocument: true }),
-      },
-    )
-  }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant='ghost' className='h-10 w-10 '>
-          <UserCircle className='w-6! h-6!' />
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align='end' className='w-56 mt-2 rounded-2xl p-2'>
-        <DropdownMenuLabel className='px-2 py-1.5 text-xs font-black uppercase text-muted-foreground tracking-widest'>
-          {user.name || 'Account'} ({user.role})
-        </DropdownMenuLabel>
-
-        <DropdownMenuSeparator className='my-2' />
-
-        {user.role !== 'CASHIER' && (
-          <DropdownMenuItem asChild className='rounded-xl cursor-pointer py-3'>
-            <Link to='/'>
-              <LayoutDashboard className='w-4 h-4 mr-2' />
-              <span className='font-bold'>Dashboard</span>
-            </Link>
-          </DropdownMenuItem>
-        )}
-
-        <DropdownMenuItem className='rounded-xl cursor-pointer py-3 text-destructive focus:text-destructive focus:bg-destructive/10' onClick={handleLogout}>
-          <LogOut className='w-4 h-4 mr-2' />
-          <span className='font-bold'>Logout</span>
+    <BaseProfileDropdown>
+      {user.role !== Role.CASHIER && (
+        <DropdownMenuItem asChild className='flex items-center gap-3 rounded-xl cursor-pointer py-3 px-3 transition-all focus:bg-accent hover:bg-accent'>
+          <Link to='/'>
+            <LayoutDashboard className='w-4! h-4!' />
+            <span className='font-bold'>Dashboard</span>
+          </Link>
         </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      )}
+    </BaseProfileDropdown>
   )
 }

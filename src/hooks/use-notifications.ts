@@ -1,76 +1,59 @@
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
+import { count, eq, useLiveInfiniteQuery, useLiveQuery } from '@tanstack/react-db'
+import type { Notification } from 'prisma/generated/prisma/browser'
+import { notificationsCollection } from '@/db/collections'
 
 export function useNotifications(pageSize = 10) {
-  const queryClient = useQueryClient()
-  const navigate = useNavigate()
-
-  // Unread Count
-  const unreadQuery = useQuery({
-    queryKey: ['notifications', 'unread-count'],
-    queryFn: async () => {
-      const result = await crudAPI.notification('count', {
-        where: { isRead: false },
-      })
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-    refetchInterval: 30000,
-  })
+  const { data: unread } = useLiveQuery(q =>
+    q
+      .from({ notification: notificationsCollection })
+      .where(({ notification }) => eq(notification.isRead, false))
+      .groupBy(({ notification }) => notification.isRead)
+      .select(({ notification }) => ({
+        count: count(notification.id),
+      })),
+  )
 
   // Infinite List
-  const infiniteQuery = useInfiniteQuery({
-    queryKey: ['notifications', 'list', pageSize],
-    initialPageParam: null as string | null,
-    queryFn: async ({ pageParam }) => {
-      const result = await crudAPI.notification('findMany', {
-        take: pageSize,
-        orderBy: { createdAt: 'desc' },
-        ...(pageParam ? { cursor: { id: pageParam }, skip: 1 } : {}),
-      })
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
+  const infiniteQuery = useLiveInfiniteQuery(
+    q =>
+      q
+        .from({ notification: notificationsCollection })
+        .orderBy(({ notification }) => notification.createdAt, 'desc')
+        .select(({ notification }) => ({
+          ...notification,
+        })),
+    {
+      initialPageParam: 0,
+      pageSize: pageSize,
+      getNextPageParam: (lastPage, allPages) => {
+        if (lastPage.length < pageSize) return undefined
+        return allPages.length * pageSize
+      },
     },
-    getNextPageParam: lastPage => (lastPage.length === pageSize ? lastPage[lastPage.length - 1]?.id : undefined),
-  })
+  )
 
   // Mutation: Mark Single as Read
-  const markAsRead = useMutation({
-    mutationFn: async ({ id, link }: { id: string; link?: string | null }) => {
-      const result = await crudAPI.notification('update', {
-        where: { id },
-        data: { isRead: true },
-      })
-      if (result.isErr()) throw new Error(result.error)
-      return { value: result.value, link }
-    },
-    onSuccess: data => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
-      if (data.link) {
-        navigate({ to: data.link })
-      }
-    },
-  })
+  const markAsRead = async (data: Notification) => {
+    const result = await notificationsCollection.update(data.id, draft => {
+      draft.isRead = true
+    })
+
+    if (result.error) throw new Error(result.error.message)
+    return { value: data, link: data.link }
+  }
 
   // Mutation: Mark All as Read
-  const markAllRead = useMutation({
-    mutationFn: async () => {
-      const result = await crudAPI.notification('updateMany', {
-        where: { isRead: false },
-        data: { isRead: true },
+  const markAllRead = async () => {
+    const unreadItems = [...notificationsCollection.values()].filter(n => !n.isRead)
+    for (const item of unreadItems) {
+      await notificationsCollection.update(item.id, draft => {
+        draft.isRead = true
       })
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
-    },
-  })
-
+    }
+  }
   return {
-    unreadCount: unreadQuery.data ?? 0,
-    notifications: infiniteQuery.data?.pages.flat() ?? [],
+    unreadCount: unread[0]?.count || 0,
+    notifications: infiniteQuery.data,
     infiniteQuery,
     markAsRead,
     markAllRead,

@@ -1,8 +1,8 @@
+import { Users } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { Users } from 'lucide-react'
-import { TransactionReportStats } from '../-utils/calculate-stats'
+import type { TransactionReportStats } from '../-utils/calculate-stats'
 
 export function StaffPerformance({ stats }: { stats: TransactionReportStats }) {
   return (
@@ -14,8 +14,8 @@ export function StaffPerformance({ stats }: { stats: TransactionReportStats }) {
         <CardDescription>Revenue processed per cashier</CardDescription>
       </CardHeader>
       <CardContent>
-        {stats.topCashiers.map((cashier, i) => (
-          <div key={i} className='flex items-center gap-4'>
+        {stats.topCashiers.map(cashier => (
+          <div key={cashier.name} className='flex items-center gap-4'>
             <Avatar className='h-10 w-10 border'>
               <AvatarFallback className='bg-primary/5 text-primary text-xs'>{cashier.name.substring(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
@@ -24,7 +24,7 @@ export function StaffPerformance({ stats }: { stats: TransactionReportStats }) {
                 <p className='text-sm font-bold'>{cashier.name}</p>
                 <span className='text-xs font-medium'>₱{cashier.total.toLocaleString()}</span>
               </div>
-              <Progress value={(cashier.total / stats.topCashiers[0]?.total! || 0) * 100} className='h-1' />
+              <Progress value={(cashier.total / (stats.topCashiers[0]?.total || 0) || 0) * 100} className='h-1' />
               <p className='text-[10px] text-muted-foreground'>{cashier.count} transactions</p>
             </div>
           </div>

@@ -1,3 +1,6 @@
+import { useNavigate } from '@tanstack/react-router'
+import { useStore } from '@tanstack/react-store'
+import { CreditCard, Minus, Plus, UserPlus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,15 +12,13 @@ import { VAT_RATE } from '@/lib/constants'
 import { InventoryEngine } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
-import { useNavigate } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
-import { CreditCard, Minus, Plus, UserPlus } from 'lucide-react'
 import { posFormOpts } from '..'
 import { PaymentDialog } from './payment-dialog'
+import { ProductGridModal } from './product-grid'
 
 export const CartAside = withForm({
   ...posFormOpts,
-  render: function ({ form }) {
+  render: ({ form }) => {
     const order = useStore(form.store, s => s.values.order)
     const { orderItems } = usePOS(order?.id)
     const navigate = useNavigate()
@@ -38,12 +39,16 @@ export const CartAside = withForm({
 
     const handleNewOrder = () => {
       form.reset()
-      navigate({ to: '.', search: (prev: any) => ({ ...prev, orderId: undefined }), replace: true })
+      navigate({ to: '.', search: prev => ({ ...prev, orderId: undefined }), replace: true })
+    }
+
+    const handleAddItem = () => {
+      showModal(ProductGridModal, { form })
     }
 
     return (
-      <aside className='w-96 bg-card rounded-[2.5rem] border border-border flex flex-col shadow-xl space-y-2'>
-        <div className='pt-6 px-6 space-y-2'>
+      <aside className='md:w-96 grow md:grow-0 md:bg-card rounded-[2.5rem] md:border border-border flex flex-col shadow-xl space-y-2'>
+        <div className='md:pt-6 pt-0 px-0 md:px-6 space-y-2'>
           <div className='flex justify-between items-center'>
             <h2 className='text-xl font-black'>{order ? `Order ${order.orderNumber}` : 'New Order'}</h2>
             <Button
@@ -67,7 +72,7 @@ export const CartAside = withForm({
                   onBlur={field.handleBlur}
                   onChange={e => field.handleChange(e.target.value)}
                   placeholder='Customer Name / Table #'
-                  className='h-12 pl-10 rounded-2xl border-dashed border-border bg-transparent focus-visible:border-solid focus-visible:ring-primary/20 transition-all placeholder:text-muted-foreground placeholder:text-xs text-sm font-medium'
+                  className='h-8 md:h-12 pl-10 rounded-2xl border-dashed border-border bg-transparent focus-visible:border-solid focus-visible:ring-primary/20 transition-all placeholder:text-muted-foreground placeholder:text-xs text-sm font-medium'
                 />
               </div>
             )}
@@ -177,6 +182,12 @@ export const CartAside = withForm({
                 </div>
               )}
             </form.Field>
+            <div className='md:hidden flex justify-center mt-6'>
+              <Button onClick={handleAddItem}>
+                <Plus className='h-4 w-4' />
+                Add Item
+              </Button>
+            </div>
           </div>
         </ScrollArea>
 
@@ -192,7 +203,7 @@ export const CartAside = withForm({
             const total = subtotal + tax
 
             return (
-              <div className='p-6 bg-muted/30 border-t border-border space-y-4 rounded-t-[2rem]'>
+              <div className='p-4 md:p-6 bg-muted/30 border-t border-border space-y-4 rounded-t-[2rem]'>
                 <div className='space-y-1.5'>
                   <div className='flex justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider'>
                     <span>Subtotal</span>
@@ -202,7 +213,7 @@ export const CartAside = withForm({
                     <span>VAT ({VAT_RATE * 100}%)</span>
                     <span className='font-mono'>{PriceEngine.format(tax)}</span>
                   </div>
-                  <Separator className='my-3 bg-border/50' />
+                  <Separator className='mt-3 bg-border/50' />
                   <div className='flex justify-between items-end'>
                     <span className='text-sm font-black uppercase'>Grand Total</span>
                     <span className='text-2xl font-black text-primary font-mono tracking-tighter'>{PriceEngine.format(total)}</span>
@@ -210,7 +221,7 @@ export const CartAside = withForm({
                 </div>
                 <Button
                   disabled={items.length === 0}
-                  className='w-full py-8 rounded-2xl text-lg font-black shadow-lg shadow-primary/20 transition-transform active:scale-[0.98]'
+                  className='w-full py-6 md:py-8 rounded-2xl text-lg font-black shadow-lg shadow-primary/20 transition-transform active:scale-[0.98]'
                   onClick={() => handleConfirm(total)}
                 >
                   <CreditCard className='h-6! w-6!' />

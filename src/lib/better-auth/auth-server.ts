@@ -1,10 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
-import { Branch, Organization } from 'prisma/generated/prisma/browser'
+import type { Branch, Organization } from 'prisma/generated/prisma/browser'
 import { Role } from 'prisma/generated/prisma/enums'
 import { getTenantPrisma } from '../prisma-client'
 import { authMiddleware } from './auth-middleware'
 
-const RoleLandingPages: Record<Role, string> = {
+export const RoleLandingPages: Record<Role, string> = {
   [Role.ADMIN]: '/employees',
   [Role.SUPERVISOR]: '/sales-reports',
   [Role.CASHIER]: '/pos',
@@ -14,7 +14,7 @@ const RoleLandingPages: Record<Role, string> = {
 export const getAuthUser = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
-    if (!context || !context.user) return undefined
+    if (!context?.user) return undefined
     const prisma = getTenantPrisma(context.user.organizationId, context.user.branchId!)
 
     const [userData, branch, organization] = await Promise.all([

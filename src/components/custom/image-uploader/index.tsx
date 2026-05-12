@@ -1,8 +1,8 @@
+import { Camera, Image as ImageIcon, Upload, X } from 'lucide-react'
+import { type MouseEvent, useCallback, useState } from 'react'
+import { useDropzone } from 'react-dropzone'
 import { Button } from '@/components/ui/button'
 import { showModal } from '@/lib/overlay'
-import { Camera, Image as ImageIcon, Upload, X } from 'lucide-react'
-import { MouseEvent, useCallback, useState } from 'react'
-import { useDropzone } from 'react-dropzone'
 import { CameraCapture } from './camera-capture'
 import { CropImage } from './crop-image'
 
@@ -15,15 +15,26 @@ interface ImageUploaderProps {
 export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
   const [isCameraOpen, setIsCameraOpen] = useState(false)
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      handleCameraCapture(reader.result as string)
-    }
-    reader.readAsDataURL(file)
-  }, [])
+  const handleCameraCapture = useCallback(
+    (tempImage: string) => {
+      showModal(CropImage, { tempImage, onCrop: onChange })
+      setIsCameraOpen(false)
+    },
+    [onChange],
+  )
+
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = () => {
+        handleCameraCapture(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    },
+    [handleCameraCapture],
+  )
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
@@ -36,11 +47,6 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
   const handleCameraOpen = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
     setIsCameraOpen(true)
-  }
-
-  const handleCameraCapture = (tempImage: string) => {
-    showModal(CropImage, { tempImage, onCrop: onChange })
-    setIsCameraOpen(false)
   }
 
   if (isCameraOpen) {

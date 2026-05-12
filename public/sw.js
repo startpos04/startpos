@@ -2891,14 +2891,28 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     return {};
   }
 }
+const isProd = false;
 const serwist = new Serwist({
-  precacheEntries: self.__SW_MANIFEST ?? [],
+  disableDevLogs: !isProd,
+  precacheEntries: [],
   skipWaiting: true,
   clientsClaim: true,
-  navigationPreload: true
+  navigationPreload: isProd,
+  // 2. Runtime Caching solves the "No route found" warnings
+  runtimeCaching: [
+    {
+      // For Dev: Try network first so you see fresh changes.
+      // If network fails (offline), fall back to cache.
+      matcher: ({ request }) => request.mode === "navigate" || request.destination === "script",
+      handler: new NetworkFirst({
+        cacheName: "dev-offline-backup"
+      })
+    },
+    {
+      // Keep server functions NetworkOnly even in dev
+      matcher: ({ url }) => url.pathname.startsWith("/_serverFn"),
+      handler: new NetworkOnly()
+    }
+  ]
 });
-const navigationRoute = new NavigationRoute(serwist.precacheStrategy, {
-  allowlist: [/^(?!\/__).*/]
-});
-serwist.registerCapture(navigationRoute);
 serwist.addEventListeners();

@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: allowing any type for flexibility */
 import { Prisma } from 'prisma/generated/prisma/client'
 
 export const softDeleteExtension = Prisma.defineExtension({
@@ -12,7 +13,7 @@ export const softDeleteExtension = Prisma.defineExtension({
 
         // --- ENFORCE SOFT DELETE POLICY ---
         if (operation === 'delete' || operation === 'deleteMany') {
-          throw new Error(`[Prisma Error]: Hard deletes are FORBIDDEN on model "${model}". ` + `Please use .update() to set "deletedAt: new Date()" instead.`)
+          throw new Error(`[Prisma Error]: Hard deletes are FORBIDDEN on model "${model}". Please use .update() to set "deletedAt: new Date()" instead.`)
         }
 
         // --- AUTOMATIC FILTERING ---

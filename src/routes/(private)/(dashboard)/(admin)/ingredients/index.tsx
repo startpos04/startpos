@@ -1,17 +1,16 @@
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { Database, Edit, Package, Plus, Trash2 } from 'lucide-react'
+import { useCallback, useMemo } from 'react'
+import { toast } from 'sonner'
 import { getColumns } from '@/components/custom/data-view'
 import { TableView } from '@/components/custom/data-view/table-view'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { productCollection } from '@/db/collections'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
-import { useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { Database, Edit, Package, Plus, Trash2 } from 'lucide-react'
-import { useMemo } from 'react'
-import { toast } from 'sonner'
 import { IngredientDetailsDialog } from './$ingredientId'
 import { RestockIngredientDialog } from './$ingredientId/-restock'
 import { CreateIngredientDialog } from './create'
@@ -21,23 +20,23 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients
 })
 
 function RouteComponent() {
-  const queryClient = useQueryClient()
-  const { data, isFetching } = fetchIngredients()
+  const { data, isLoading } = fetchIngredients()
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     showModal(CreateIngredientDialog)
   }
 
-  const handleEdit = (e: React.MouseEvent<HTMLAnchorElement>, ingredientId: string) => {
+  const handleEdit = useCallback((e: React.MouseEvent<HTMLAnchorElement>, ingredientId: string) => {
     e.preventDefault()
     showModal(IngredientDetailsDialog, { ingredientId })
-  }
+  }, [])
 
-  const handleRestock = (ingredient: NonNullable<typeof data>[number]) => {
+  const handleRestock = useCallback((ingredient: NonNullable<typeof data>[number]) => {
     const primaryVariant = ingredient.variants?.[0]
+    if (!primaryVariant) return
     showModal(RestockIngredientDialog, { ingredient, variant: primaryVariant })
-  }
+  }, [])
 
   const columns = useMemo(
     () =>
@@ -70,12 +69,12 @@ function RouteComponent() {
             </div>
           ),
         }),
-        h.accessor('baseUnit.abbreviation', {
+        h.accessor('baseUnit', {
           header: 'Unit',
           maxSize: 60,
           cell: info => (
             <Badge variant='outline' className='rounded-md font-bold px-2 py-0 text-[10px] border-border text-muted-foreground'>
-              {info.getValue()?.toUpperCase() ?? 'PCS'}
+              {info.getValue()?.toUpperCase?.() ?? 'PCS'}
             </Badge>
           ),
         }),
@@ -122,18 +121,12 @@ function RouteComponent() {
             const handleDelete = async () => {
               if (!confirm('Are you sure you want to delete this ingredient? This will affect products using this recipe.')) return
 
-              const result = await crudAPI.product('update', {
-                where: { id: row.original.id },
-                data: { deletedAt: { set: new Date() } },
+              const result = await productCollection.update(row.original.id, draft => {
+                draft.deletedAt = new Date()
               })
 
-              result.match(
-                async () => {
-                  toast.success('Ingredient archived successfully')
-                  await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
-                },
-                error => toast.error(error),
-              )
+              if (result.error) toast.error(result.error.message)
+              else toast.success('Ingredient archived successfully')
             }
 
             return (
@@ -169,7 +162,7 @@ function RouteComponent() {
           },
         }),
       ]),
-    [data],
+    [handleEdit, handleRestock],
   )
 
   return (
@@ -177,7 +170,7 @@ function RouteComponent() {
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
         <div>
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Ingredients</h1>
-          <p className='text-muted-foreground text-sm'>Manage raw materials and track stock levels for your MERN POS.</p>
+          <p className='text-muted-foreground text-sm'>Manage raw materials and track stock levels for your POS.</p>
         </div>
         <a href='/ingredients/create' onClick={handleAdd} className='contents'>
           <Button className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer'>
@@ -188,7 +181,7 @@ function RouteComponent() {
 
       <TableView
         data={data}
-        isFetching={isFetching}
+        isFetching={isLoading}
         columns={columns}
         renderEmpty={() => (
           <div className='flex flex-col items-center justify-center py-20 text-center'>

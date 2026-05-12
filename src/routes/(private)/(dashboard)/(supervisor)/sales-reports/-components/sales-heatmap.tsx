@@ -1,7 +1,7 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Timer } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { TransactionReportStats } from '../-utils/calculate-stats'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import type { TransactionReportStats } from '../-utils/calculate-stats'
 
 export function SalesHeatmap({ stats }: { stats: TransactionReportStats }) {
   return (
@@ -23,7 +23,7 @@ export function SalesHeatmap({ stats }: { stats: TransactionReportStats }) {
             <Tooltip
               cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
               content={({ active, payload, label }) => {
-                if (active && payload && payload.length) {
+                if (active && payload?.length) {
                   return (
                     <div className='rounded-lg border border-border bg-background p-3 shadow-md ring-1 ring-black/5'>
                       <p className='text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1'>Time: {label}</p>

@@ -1,5 +1,5 @@
-import { Prettify } from 'better-auth'
-import { Inventory, Prisma } from 'prisma/generated/prisma/client'
+import type { Prettify } from 'better-auth'
+import type { Inventory, Prisma } from 'prisma/generated/prisma/client'
 
 export const posProductComponentProps = {
   unit: true,
@@ -18,7 +18,15 @@ export const posProductProps = {
     include: {
       inventory: true,
       components: {
-        include: posProductComponentProps,
+        include: {
+          unit: true,
+          material: {
+            include: {
+              inventory: true,
+              product: true,
+            },
+          },
+        },
       },
     },
   },

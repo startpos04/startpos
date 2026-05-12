@@ -1,3 +1,5 @@
+import { Link, useNavigate } from '@tanstack/react-router'
+import { Bell, CheckCheck, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -9,8 +11,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useNotifications } from '@/hooks/use-notifications'
 import dayjs from '@/lib/dayjs'
-import { Link, useNavigate } from '@tanstack/react-router'
-import { Bell, CheckCheck, Loader2 } from 'lucide-react'
 
 export function NotificationButton() {
   const navigate = useNavigate()
@@ -39,11 +39,10 @@ export function NotificationButton() {
               className='h-auto p-1 text-xs font-normal text-muted-foreground hover:text-primary'
               onClick={e => {
                 e.stopPropagation()
-                markAllRead.mutate()
+                markAllRead()
               }}
-              disabled={markAllRead.isPending}
             >
-              {markAllRead.isPending ? <Loader2 className='mr-1 h-3 w-3 animate-spin' /> : <CheckCheck className='mr-1 h-3 w-3' />}
+              <CheckCheck className='mr-1 h-3 w-3' />
               Mark all as read
             </Button>
           )}
@@ -68,7 +67,7 @@ export function NotificationButton() {
               <Link key={n.id} to={n.link!}>
                 <DropdownMenuItem
                   className='flex flex-col items-start gap-1 p-4 whitespace-normal cursor-pointer'
-                  onClick={() => (!n.isRead ? markAsRead.mutate({ id: n.id, link: n.link }) : navigate({ to: n.link! }))}
+                  onClick={() => (!n.isRead ? markAsRead(n) : navigate({ to: n.link! }))}
                 >
                   <div className='flex justify-between w-full gap-2'>
                     <span className={`text-sm ${!n.isRead ? 'font-bold' : 'font-semibold'}`}>{n.title}</span>

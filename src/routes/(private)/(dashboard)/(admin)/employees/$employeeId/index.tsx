@@ -1,16 +1,24 @@
+import { count, eq, toArray, useLiveQuery } from '@tanstack/react-db'
+import { createFileRoute } from '@tanstack/react-router'
+import { Calendar, Edit, Mail, Package, Receipt, ShieldAlert, Smartphone, User as UserIcon } from 'lucide-react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  branchCollection,
+  inventoryMovementCollection,
+  membershipCollection,
+  organizationCollection,
+  sessionCollection,
+  transactionCollection,
+  userCollection,
+} from '@/db/collections'
 import dayjs from '@/lib/dayjs'
 import { showModal } from '@/lib/overlay'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
-import { Calendar, Edit, Mail, Package, Receipt, ShieldAlert, Smartphone, User as UserIcon } from 'lucide-react'
-import { toast } from 'sonner'
 import { EditEmployeeDialog } from './-edit-account'
 
 interface EditEmployeeDialogProps {
@@ -40,53 +48,88 @@ export function EmployeeDetailsDialog({ open, onClose, employeeId }: EditEmploye
 }
 
 function RouteComponent(props: RouteComponentProps) {
-  const employeeId = props.employeeId || Route.useLoaderData().employeeId
-  const queryClient = useQueryClient()
+  // biome-ignore lint/correctness/useHookAtTopLevel: This component is only used inside a Dialog, so it's guaranteed to be called in a React context. We need to get employeeId from either props (when opened via showModal) or from route params (when navigated directly).
+  const employeeId = props.employeeId ?? Route.useLoaderData().employeeId
 
   const {
-    data: employee,
+    data: [employee],
     isLoading,
-    error,
-  } = useQuery({
-    queryKey: ['employee', employeeId],
-    queryFn: async () => {
-      const result = await crudAPI.user('findUnique', {
-        where: { id: employeeId },
-        include: {
-          memberships: { include: { organization: true, branch: true } },
-          sessions: { orderBy: { expiresAt: 'desc' }, take: 1 },
-          // Fetching actual transaction data for revenue calculation
-          processedSales: {
-            select: { totalAmount: true },
-          },
-          _count: {
-            select: {
-              processedSales: true,
-              performedServices: true,
-              inventoryMovements: true,
-            },
-          },
-        },
-      })
+  } = useLiveQuery(q =>
+    q
+      .from({ user: userCollection })
+      .where(({ user }) => eq(user.id, employeeId))
+      .select(({ user }) => ({
+        ...user,
+        // 1. Memberships with Org and Branch joins
+        memberships: toArray(
+          q
+            .from({ membership: membershipCollection })
+            .where(({ membership }) => eq(membership.userId, user.id))
+            .leftJoin({ org: organizationCollection }, ({ membership, org }) => eq(membership.organizationId, org.id))
+            .leftJoin({ branch: branchCollection }, ({ membership, branch }) => eq(membership.branchId, branch.id))
+            .select(({ membership, org, branch }) => ({
+              ...membership,
+              organization: org,
+              branch: branch,
+            })),
+        ),
 
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-  })
+        // 2. Latest Session
+        sessions: toArray(
+          q
+            .from({ session: sessionCollection })
+            .where(({ session }) => eq(session.userId, user.id))
+            .orderBy(({ session }) => session.expiresAt, 'desc')
+            .limit(1),
+        ),
+
+        // 3. Processed Sales (Revenue calculation)
+        processedSalesHistory: toArray(
+          q
+            .from({ sale: transactionCollection })
+            .where(({ sale }) => eq(sale.cashierId, user.id))
+            .select(({ sale }) => ({ totalAmount: sale.totalAmount })),
+        ),
+
+        // 4. Counts (Replacement for Prisma's _count)
+        processedSales: toArray(
+          q
+            .from({ sale: transactionCollection })
+            .where(({ sale }) => eq(sale.cashierId, user.id))
+            .groupBy(({ sale }) => sale.cashierId)
+            .select(({ sale }) => ({ count: count(sale.id) })),
+        ),
+        performedServices: toArray(
+          q
+            .from({ service: transactionCollection })
+            .where(({ service }) => eq(service.providerId, user.id))
+            .groupBy(({ service }) => service.providerId)
+            .select(({ service }) => ({ count: count(service.id) })),
+        ),
+        inventoryMovements: toArray(
+          q
+            .from({ move: inventoryMovementCollection })
+            .where(({ move }) => eq(move.userId, user.id))
+            .groupBy(({ move }) => move.userId)
+            .select(({ move }) => ({ count: count(move.id) })),
+        ),
+      })),
+  )
 
   // FUNCTIONALITY: Revoke Sessions Mutation
-  const { mutate: revokeSessions, isPending: isRevoking } = useMutation({
-    mutationFn: async () => {
-      const result = await crudAPI.session('deleteMany', { where: { userId: employeeId } })
-      if (result.isErr()) throw new Error(result.error)
-      return result.value
-    },
-    onSuccess: () => {
-      toast.success('All sessions revoked. User will be logged out.')
-      queryClient.invalidateQueries({ queryKey: ['employee', employeeId] })
-    },
-    onError: err => toast.error(`Failed to revoke sessions: ${err.message}`),
-  })
+  const handleRevokeSession = async () => {
+    const unreadItems = [...sessionCollection.values()].filter(s => s.userId === employeeId)
+    for (const item of unreadItems) {
+      const result = await sessionCollection.delete(item.id)
+
+      if (result.error) {
+        toast.error(`Failed to revoke sessions: ${result.error.message}`)
+        return
+      }
+    }
+
+    toast.success('All sessions revoked. User will be logged out.')
+  }
 
   if (isLoading)
     return (
@@ -95,10 +138,10 @@ function RouteComponent(props: RouteComponentProps) {
         <div className='h-80 bg-muted rounded-xl' />
       </div>
     )
-  if (error || !employee) return <div className='p-6 text-destructive'>Employee not found.</div>
+  if (!employee) return <div className='p-6 text-destructive'>Employee not found.</div>
 
   // CALCULATION: Real Revenue from processedSales (stored in cents)
-  const totalRevenueCents = employee.processedSales?.reduce((acc: number, sale) => acc + sale.totalAmount, 0) || 0
+  const totalRevenueCents = employee.processedSalesHistory?.reduce((acc: number, sale) => acc + sale.totalAmount, 0) || 0
   const totalRevenue = totalRevenueCents / 100
   const salesTarget = 10000 // Set a dynamic target or keep static
   const targetReached = Math.min(Math.round((totalRevenue / salesTarget) * 100), 100)
@@ -109,7 +152,7 @@ function RouteComponent(props: RouteComponentProps) {
       defaultValues: {
         email: employee.email,
         name: employee.name,
-        role: employee.role as any,
+        role: employee.role,
         image: employee.image || '',
       },
     })
@@ -178,11 +221,11 @@ function RouteComponent(props: RouteComponentProps) {
               </CardHeader>
               <CardContent className='grid grid-cols-2 gap-4'>
                 <div>
-                  <p className='text-2xl font-bold'>{employee._count?.processedSales || 0}</p>
+                  <p className='text-2xl font-bold'>{employee.processedSales[0]?.count || 0}</p>
                   <p className='text-xs text-muted-foreground uppercase'>Sales Processed</p>
                 </div>
                 <div>
-                  <p className='text-2xl font-bold'>{employee._count?.performedServices || 0}</p>
+                  <p className='text-2xl font-bold'>{employee.performedServices[0]?.count}</p>
                   <p className='text-xs text-muted-foreground uppercase'>Services Rendered</p>
                 </div>
               </CardContent>
@@ -201,8 +244,8 @@ function RouteComponent(props: RouteComponentProps) {
                   <p className='text-sm font-bold'>Revoke All Sessions</p>
                   <p className='text-xs text-muted-foreground'>Force user to log out from all devices (clears session table).</p>
                 </div>
-                <Button variant='destructive' size='sm' disabled={isRevoking} onClick={() => revokeSessions()}>
-                  {isRevoking ? 'Revoking...' : 'Sign Out Everywhere'}
+                <Button variant='destructive' size='sm' onClick={handleRevokeSession}>
+                  Sign Out Everywhere
                 </Button>
               </div>
             </CardContent>
@@ -242,7 +285,7 @@ function RouteComponent(props: RouteComponentProps) {
                       <p className='text-sm font-medium'>Service Volume</p>
                       <Smartphone className='h-4 w-4' />
                     </div>
-                    <p className='text-2xl font-bold mt-2'>{employee._count.performedServices}</p>
+                    <p className='text-2xl font-bold mt-2'>{employee.performedServices[0]?.count}</p>
                     <p className='text-xs text-muted-foreground mt-1'>Lifetime tasks</p>
                   </CardContent>
                 </Card>
@@ -253,7 +296,7 @@ function RouteComponent(props: RouteComponentProps) {
                       <p className='text-sm font-medium'>Logistics Activity</p>
                       <Package className='h-4 w-4' />
                     </div>
-                    <p className='text-2xl font-bold mt-2'>{employee._count.inventoryMovements}</p>
+                    <p className='text-2xl font-bold mt-2'>{employee.inventoryMovements[0]?.count}</p>
                     <p className='text-xs text-muted-foreground mt-1'>Inventory adjustments</p>
                   </CardContent>
                 </Card>

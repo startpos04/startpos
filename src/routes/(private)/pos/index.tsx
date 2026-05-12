@@ -1,18 +1,23 @@
-import { SuccessPrompt } from '@/components/custom/prompt/success-prompt'
-import { useAppForm } from '@/hooks/form'
-import { posItem } from '@/lib/conversion/inventory-engine'
-import { showModal } from '@/lib/overlay'
-import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
-import { fetchPosProducts } from '@/lib/queries/fetch-pos-products'
-import { createPosOrder } from '@/lib/server-fn/create-pos-order'
-import { createPosTransaction } from '@/lib/server-fn/create-pos-transaction'
 import { pdf } from '@react-pdf/renderer'
+import { useLiveQuery } from '@tanstack/react-db'
 import { formOptions, uuid } from '@tanstack/react-form'
-import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
-import { Order } from 'prisma/generated/prisma/browser'
+import type { Order } from 'prisma/generated/prisma/browser'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
+import { SuccessPrompt } from '@/components/custom/prompt/success-prompt'
+import { ThemeToggle } from '@/components/custom/theme/theme-toggle'
+import { sequenceCounterCollection } from '@/db/collections'
+import { useAppForm } from '@/hooks/form'
+import { useIsMobile } from '@/hooks/use-mobile'
+import type { posItem } from '@/lib/conversion/inventory-engine'
+import { showModal } from '@/lib/overlay'
+import { createPosOrder } from '@/lib/queries/create-pos-order'
+import { createPosTransaction } from '@/lib/queries/create-pos-transaction'
+import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
+import { fetchPosProducts } from '@/lib/queries/fetch-pos-products'
+import { ProfileDropdown } from '../orders/-components/profile-dropdown'
+import { ActiveOrdersButton } from './-components/active-orders-btn'
 import { CartAside } from './-components/cart-aside'
 import { ProductGrid } from './-components/product-grid'
 import { ReceiptPDF } from './-components/receipt-ticket'
@@ -38,15 +43,16 @@ export const Route = createFileRoute('/(private)/pos/')({
 
 function POSPage() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
+  const isMobile = useIsMobile()
   const { q: searchQuery, orderId } = useSearch({ from: '/(private)/pos/' })
   const { data: activeOrders = [], isLoading: isFetchingActiveOrders } = fetchActiveOrders()
   const { data: posProducts = [], isLoading: isPosProductsLoading } = fetchPosProducts(searchQuery)
+  useLiveQuery(q => q.from({ sequence: sequenceCounterCollection }))
 
   const handleConfirm = async (value: typeof posFormOpts.defaultValues) => {
     try {
-      const result = await createPosTransaction({
-        data: {
+      const result = await createPosTransaction(
+        {
           orderId: orderId!,
           customerReference: value.customerReference,
           payment: {
@@ -60,9 +66,12 @@ function POSPage() {
             addons: item.addons,
           })),
         },
-      })
+        posProducts,
+      )
 
-      const doc = <ReceiptPDF transaction={result} data={value} />
+      if (!result) return
+
+      const doc = <ReceiptPDF result={result} data={value} />
       const asBlob = await pdf(doc).toBlob()
       const url = URL.createObjectURL(asBlob)
 
@@ -86,10 +95,8 @@ function POSPage() {
         btnText: 'Next Customer',
       })
 
-      await queryClient.invalidateQueries({ queryKey: ['pos-products', searchQuery] })
-      await queryClient.invalidateQueries({ queryKey: ['active-orders'] })
       form.reset()
-      navigate({ to: '.', search: (prev: any) => ({ ...prev, orderId: undefined }), replace: true })
+      navigate({ to: '.', search: prev => ({ ...prev, orderId: undefined }), replace: true })
     } catch (error) {
       console.error('Sale failed', error)
     }
@@ -97,8 +104,8 @@ function POSPage() {
 
   const handlePayLater = async (value: typeof posFormOpts.defaultValues) => {
     try {
-      await createPosOrder({
-        data: {
+      await createPosOrder(
+        {
           orderId: orderId!,
           customerReference: value.customerReference,
           payment: {
@@ -112,12 +119,11 @@ function POSPage() {
             addons: item.addons,
           })),
         },
-      })
+        posProducts,
+      )
 
       if (!orderId) toast.success('Order created successfully')
       else toast.success('Order updated successfully')
-      await queryClient.invalidateQueries({ queryKey: ['pos-products', searchQuery] })
-      await queryClient.invalidateQueries({ queryKey: ['active-orders'] })
       form.reset()
     } catch (error) {
       console.error('Sale failed', error)
@@ -171,8 +177,18 @@ function POSPage() {
   }
 
   return (
-    <div className='flex h-screen w-full bg-background p-4 gap-4 overflow-hidden'>
-      <ProductGrid form={form} />
+    <div className='flex h-screen flex-col md:flex-row w-full bg-background p-2 pb-0 md:p-4 gap-2 md:gap-4 overflow-hidden'>
+      {isMobile ? (
+        <div className='flex items-center justify-end gap-1'>
+          <div className='w-10 ml-5'>
+            <ThemeToggle />
+          </div>
+          <ActiveOrdersButton />
+          <ProfileDropdown />
+        </div>
+      ) : (
+        <ProductGrid form={form} />
+      )}
       <CartAside form={form} />
     </div>
   )

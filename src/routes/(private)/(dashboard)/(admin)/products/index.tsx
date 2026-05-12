@@ -1,3 +1,9 @@
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { useStore } from '@tanstack/react-store'
+import { Coffee, Info, Layers, Plus, Sparkles, TrendingUp } from 'lucide-react'
+import numeral from 'numeral'
+import { useMemo } from 'react'
+import { toast } from 'sonner'
 import { getColumns } from '@/components/custom/data-view'
 import GridView from '@/components/custom/data-view/grid-view'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -6,16 +12,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { productCollection } from '@/db/collections'
 import { usePOS } from '@/hooks/use-pos'
 import { InventoryEngine } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
 import { authStore } from '@/store/auth-store'
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
-import { Coffee, Info, Layers, Plus, Sparkles, TrendingUp } from 'lucide-react'
-import numeral from 'numeral'
-import { useMemo } from 'react'
 import { ProductDetailsDialog } from './$productId'
 import { EditProductDialog } from './$productId/-edit-product'
 import { CreateProductDialog } from './create'
@@ -41,13 +43,13 @@ function RouteComponent() {
         h.accessor('variants', {
           header: 'Starting From',
           cell: info => {
-            const variants = info.getValue() as any[]
+            const variants = info.getValue() as NonNullable<typeof posProducts>[number]['variants']
             const minPrice = variants.length > 0 ? Math.min(...variants.map(v => v.price)) : 0
             return <span className='font-mono'>{PriceEngine.format(minPrice)}</span>
           },
         }),
       ]),
-    [posProducts],
+    [],
   )
 
   const handleDetail = (e: React.MouseEvent<HTMLAnchorElement>, productId: string) => {
@@ -63,7 +65,7 @@ function RouteComponent() {
       productId: product.id,
       defaultValues: {
         name: product.name,
-        type: product.type as any,
+        type: product.type,
         categoryId: product.categoryId,
         baseUnitId: product.baseUnitId,
         image: product.image ?? '',
@@ -116,6 +118,17 @@ function RouteComponent() {
     })
   }
 
+  const handleDelete = async (product: NonNullable<typeof posProducts>[number]) => {
+    if (!confirm('Are you sure you want to delete this product? This will affect products using this recipe.')) return
+
+    const result = await productCollection.update(product.id, draft => {
+      draft.deletedAt = new Date()
+    })
+
+    if (result.error) toast.error(result.error.message)
+    else toast.success('Product archived successfully')
+  }
+
   return (
     <>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4'>
@@ -125,7 +138,7 @@ function RouteComponent() {
         </div>
         <a href='/products/create' onClick={handleAdd} className='contents'>
           <Button className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
-            <Plus className='h-4 w-4 mr-2' /> Add Product
+            <Plus className='h-4! w-4! mr-2' /> Add Product
           </Button>
         </a>
       </div>
@@ -295,6 +308,17 @@ function RouteComponent() {
                       EDIT
                     </Button>
                   </Link>
+                </div>
+
+                <div>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    onClick={() => handleDelete(product)}
+                    className='w-full h-8 text-muted-foreground font-bold hover:text-foreground hover:bg-muted rounded-xl flex items-center justify-center gap-2'
+                  >
+                    Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>

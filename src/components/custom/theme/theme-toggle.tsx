@@ -1,7 +1,7 @@
-import { Switch } from '@/components/ui/switch'
 import { Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
+import { Switch } from '@/components/ui/switch'
 
 export function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme()

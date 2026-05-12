@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { History } from 'lucide-react'
-import { InventoryData } from '..'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { InventoryData } from '..'
 
 export function ActiveBatches({ inventoryData }: { inventoryData: InventoryData }) {
   const activeBatchesCount = inventoryData.reduce((acc, p) => acc + p.variants.reduce((va, v) => va + v.inventory.length, 0), 0)

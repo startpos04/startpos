@@ -1,14 +1,14 @@
+import { useSearch } from '@tanstack/react-router'
+import { Coffee, Layers, Sparkles } from 'lucide-react'
+import { useMemo } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePOS } from '@/hooks/use-pos'
-import { InventoryEngine, posItem, PosProduct } from '@/lib/conversion/inventory-engine'
+import { InventoryEngine, type PosProduct, type posItem } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
 import { cn } from '@/lib/utils'
-import { useSearch } from '@tanstack/react-router'
-import { Coffee, Layers, Sparkles } from 'lucide-react'
-import { useMemo } from 'react'
 import { ProductDialog } from './product-dialog'
 
 interface ProductCardProps {

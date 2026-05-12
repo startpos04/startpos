@@ -51,6 +51,7 @@ model Organization {
   variants           ProductVariant[]
   notifications      Notification[]
   sequenceCounters   SequenceCounter[]
+  purchases          Purchase[]
 
   @@index([deletedAt])
   @@map("organizations")
@@ -366,8 +367,11 @@ model Purchase {
   sourceName String? // e.g. "Wholesale Mart", "Vendor X"
   totalCost  Int // Total cost of the purchase (in cents)
   notes      String?
-  branchId   String
-  branch     Branch  @relation(fields: [branchId], references: [id])
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branchId       String
+  branch         Branch       @relation(fields: [branchId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -752,6 +756,9 @@ model SequenceCounter {
 
   organization Organization @relation(fields: [organizationId], references: [id])
   branch       Branch       @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([organizationId, branchId, type, year, month, day])
   @@map("sequence_counters")

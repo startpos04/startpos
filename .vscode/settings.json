@@ -1,49 +1,63 @@
 {
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.defaultFormatter": "biomejs.biome",
   "editor.formatOnSave": true,
-  // Ensure Prettier handles specific languages
+  "editor.codeActionsOnSave": {
+    "source.organizeImports.biome": "explicit",
+    "source.fixAll.biome": "explicit"
+  },
+  // Ensure Biome handles these languages
   "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
   },
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
   },
   "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "biomejs.biome"
   },
+  "[jsonc]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  // Keep your other settings
   "cSpell.words": [
     "asku",
     "autoincrement",
+    "biomejs",
     "bunx",
+    "cachier",
     "CHED",
     "CHKN",
     "cuid",
+    "datamodel",
+    "dexie",
+    "DMMF",
     "dpage",
+    "Financials",
+    "ilike",
+    "lefthook",
+    "mfeat",
     "neverthrow",
+    "OPFS",
     "papaparse",
-    "pgadmin",
+    "paralleldrive",
     "Reqs",
     "serwist",
     "Skus",
+    "Syncable",
     "TOMA",
     "Uncapitalize",
-    "unparse",
     "Upsell",
-    "Vatable"
+    "Vatable",
+    "WASQ"
   ],
-  "eslint.workingDirectories": [
-    {
-      "mode": "auto"
-    }
-  ],
-  "[jsonc]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "editor.codeActionsOnSave": {
-    "source.organizeImports": "always"
-  },
   "[prisma]": {
-    "editor.defaultFormatter": "prisma.prisma",
+    "editor.defaultFormatter": "Prisma.prisma",
     "editor.formatOnSave": true
   }
 }

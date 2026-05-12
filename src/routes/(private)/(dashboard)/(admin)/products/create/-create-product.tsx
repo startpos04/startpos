@@ -1,3 +1,8 @@
+import { useForm } from '@tanstack/react-form'
+import { Package, Plus, PlusCircle, Save, Utensils, Warehouse, X } from 'lucide-react'
+import { ResourceType, type Unit } from 'prisma/generated/prisma/browser'
+import type { ReactNode } from 'react'
+import { z } from 'zod'
 import { ImageInput } from '@/components/custom/form/image-input'
 import { MoneyInput } from '@/components/custom/form/money-input'
 import { SelectInput } from '@/components/custom/form/select-input'
@@ -11,11 +16,6 @@ import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
-import { useForm } from '@tanstack/react-form'
-import { Package, Plus, PlusCircle, Save, Utensils, Warehouse, X } from 'lucide-react'
-import { Unit } from 'prisma/generated/prisma/browser'
-import { ReactNode } from 'react'
-import { z } from 'zod'
 import { AddAddonModal } from './-add-addon'
 import { AddIngredientModal } from './-add-ingredient'
 
@@ -32,7 +32,7 @@ export const createProductSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().min(1, 'SKU is required'),
   price: z.number().nonnegative('Price must be 0 or greater'),
-  type: z.enum(['BUNDLE', 'SINGLE', 'SERVICE']),
+  type: z.enum(ResourceType),
   categoryId: z.string().min(1, 'Category is required'),
   baseUnitId: z.string().min(1, 'Base Unit is required'),
   image: z.string(),
@@ -71,7 +71,7 @@ export const createProductSchema = z.object({
     z.object({
       id: z.string(),
       addon: z.object({
-        id: z.string(), // This is the Product ID
+        id: z.string().nullable(), // This is the Product ID
         name: z.string().nullable(),
       }),
       variant: z.object({
@@ -129,6 +129,7 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
   }
 
   const removeItem = (field: 'ingredients' | 'variants' | 'allowedAddons', index: number) => {
+    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form's recursive types make generic array filtering difficult to type-narrow; logic is safe.
     form.setFieldValue(field, (prev: any[]) => prev.filter((_, i) => i !== index))
   }
 
@@ -180,7 +181,7 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
                   children={ingredients => (
                     <div className='space-y-2'>
                       {ingredients.map((ing, idx) => (
-                        <div key={idx} className='flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/50'>
+                        <div key={ing.id} className='flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/50'>
                           <div className='flex flex-col'>
                             <span className='font-medium text-sm'>
                               {[ing.material.name, ing.variant?.name ? `(${ing.variant.name})` : ''].filter(Boolean).join(' ')}
@@ -245,7 +246,7 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
                   children={addons => (
                     <div className='space-y-2'>
                       {addons.map((a, idx) => (
-                        <div key={idx} className='flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/50'>
+                        <div key={a.id} className='flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/50'>
                           <div className='flex flex-col'>
                             <span className='font-medium text-xs'>{a.addon.name}</span>
                             <span className='text-[10px] text-muted-foreground'>{PriceEngine.format(a.priceOverride)}</span>
@@ -276,7 +277,7 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
               disabled={!canSubmit || isSubmitting}
               className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl flex gap-2 transition-all hover:scale-[1.01]'
             >
-              <Save className='w-5 h-5' /> {isSubmitting ? textBtn.isSubmitting : textBtn.default}
+              <Save className='w-5! h-5!' /> {isSubmitting ? textBtn.isSubmitting : textBtn.default}
             </Button>
           )}
         />

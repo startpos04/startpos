@@ -1,3 +1,7 @@
+import { useForm, useStore } from '@tanstack/react-form'
+import { CalendarDays, Hash, ReceiptIndianRupee, Save } from 'lucide-react'
+import { useMemo } from 'react'
+import { toast } from 'sonner'
 import { MoneyInput } from '@/components/custom/form/money-input'
 import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
@@ -5,32 +9,27 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import dayjs from '@/lib/dayjs'
-import { OverlayProps } from '@/lib/overlay'
+import type { OverlayProps } from '@/lib/overlay'
+import type { feIngredient } from '@/lib/queries/fetch-ingredients'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
-import { restockIngredient } from '@/lib/server-fn/restock-ingredient'
+import { restockIngredient } from '@/lib/queries/restock-ingredient'
 import { authStore } from '@/store/auth-store'
-import { useForm, useStore } from '@tanstack/react-form'
-import { useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, Hash, ReceiptIndianRupee, Save } from 'lucide-react'
-import { useMemo } from 'react'
-import { toast } from 'sonner'
 
 interface RestockIngredientDialogProps extends OverlayProps {
-  ingredient: any
-  variant: any
+  ingredient: feIngredient
+  variant: feIngredient['variants'][number]
 }
 
-export function RestockIngredientDialog({ open, onClose, ingredient, variant }: RestockIngredientDialogProps) {
-  const queryClient = useQueryClient()
+export function RestockIngredientDialog({ open, onClose, variant }: RestockIngredientDialogProps) {
   const user = useStore(authStore, state => state.user)
   const { data: unitOptions = [] } = fetchUnitOptions()
 
-  // 2. Generate a default batch number (e.g., BN-20231027-A1B2)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally regenerating batch number only when Dialog visibility toggles
   const defaultBatchNumber = useMemo(() => {
     const datePart = dayjs().format('YYYYMMDD')
     const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase()
     return `BN-${datePart}-${randomPart}`
-  }, [open]) // Re-generates only when the dialog is re-opened
+  }, [open])
 
   const form = useForm({
     defaultValues: {
@@ -50,15 +49,11 @@ export function RestockIngredientDialog({ open, onClose, ingredient, variant }: 
         return
       }
       try {
-        await restockIngredient({ data: value })
+        await restockIngredient(value)
         toast.success(`Inventory updated for ${variant.name || variant.product?.name}`)
 
-        // Invalidate specific keys for your POS/Inventory tables
-        await queryClient.invalidateQueries({ queryKey: ['ingredient', ingredient.id] })
-        await queryClient.invalidateQueries({ queryKey: ['ingredients'] })
-
-        onClose()
-      } catch (error) {
+        onClose?.()
+      } catch {
         toast.error('Restock failed. Check your connection or permissions.')
       }
     },

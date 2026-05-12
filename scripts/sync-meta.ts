@@ -1,6 +1,7 @@
 import pkg from '@prisma/internals'
 import fs from 'fs'
 import path from 'path'
+
 const { getDMMF } = pkg
 
 async function generate() {
@@ -17,14 +18,14 @@ async function generate() {
   // Parse the schema using the DMMF engine
   const dmmf = await getDMMF({ datamodel: schema })
 
-  const modelMetadata: Record<string, any> = {}
+  const modelMetadata: Record<string, unknown> = {}
 
   dmmf.datamodel.models.forEach(model => {
     modelMetadata[model.name] = {
       hasOrg: model.fields.some(f => f.name === 'organizationId'),
       hasBranch: model.fields.some(f => f.name === 'branchId'),
       // Map the relation field name to the actual Model name
-      relations: model.fields.filter(f => f.kind === 'object').reduce((acc, f) => ({ ...acc, [f.name]: f.type }), {}),
+      relations: Object.fromEntries(model.fields.filter(f => f.kind === 'object').map(f => [f.name, f.type])),
     }
   })
 
