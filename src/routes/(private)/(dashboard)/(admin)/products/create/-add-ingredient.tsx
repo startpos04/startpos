@@ -3,7 +3,7 @@ import { Check, Scale, Search, Utensils } from 'lucide-react'
 import type { Unit } from 'prisma/generated/prisma/browser'
 import * as React from 'react'
 import z from 'zod'
-import Form from '@/components/custom/form'
+import { Form } from '@/components/custom/form'
 import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -100,7 +100,7 @@ export function AddIngredientModal({ open, onClose, onAdd }: AddIngredientModalP
                       <ScrollArea className='h-64 pr-3'>
                         <div className='space-y-1'>
                           {filtered.map(product => (
-                            <div key={product.id} className='mb-2'>
+                            <div key={product.id} className='mb-2 '>
                               {product.variants.map(variant => (
                                 <button
                                   type='button'
@@ -111,7 +111,7 @@ export function AddIngredientModal({ open, onClose, onAdd }: AddIngredientModalP
                                     unitField.handleChange(product.baseUnitId)
                                   }}
                                   className={cn(
-                                    'flex items-center justify-between p-2 rounded-xl cursor-pointer border transition-all mb-1',
+                                    'flex items-center justify-between p-2 rounded-xl cursor-pointer border transition-all mb-1 w-full',
                                     idField.state.value === variant.id ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-muted/50',
                                   )}
                                 >

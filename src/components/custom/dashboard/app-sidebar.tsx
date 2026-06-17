@@ -1,8 +1,9 @@
 // Changed: Added Link for better navigation
+
 import { Link, useLocation } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
-import { BookOpenIcon, BotIcon, ChevronRightIcon, GalleryVerticalEndIcon, TerminalSquareIcon } from 'lucide-react'
-import { Role } from 'prisma/generated/prisma/enums'
+import { BookOpenIcon, BotIcon, ChevronRightIcon, ClipboardPenLine, GalleryVerticalEndIcon, SettingsIcon, TerminalSquareIcon } from 'lucide-react'
+import { BusinessType, Role } from 'prisma/generated/prisma/enums'
 import * as React from 'react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
@@ -69,8 +70,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           items: [
             { title: 'Employees', url: '/employees' },
             { title: 'Products', url: '/products' },
-            { title: 'Ingredients', url: '/ingredients' },
-          ],
+            user.business.businessType === BusinessType.RESTAURANT ? { title: 'Ingredients', url: '/ingredients' } : null,
+          ].filter(Boolean),
         },
         {
           title: 'Supervisor',
@@ -82,13 +83,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             { title: 'Inventory Reports', url: '/inventory-reports' },
           ],
         },
+        user.systemConfigs.ENABLE_TASK
+          ? {
+              title: 'Tasks',
+              url: '/tasks',
+              icon: <ClipboardPenLine />,
+              allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER],
+            }
+          : null,
         {
           title: 'POS',
           url: '/pos',
           icon: <BookOpenIcon />,
           allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER],
         },
-      ] as Items[],
+        {
+          title: 'Settings',
+          url: '/settings',
+          icon: <SettingsIcon />,
+          allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+        },
+      ].filter(Boolean) as Items[],
     }
 
     data.items = data.items

@@ -71,10 +71,10 @@ async function buildServiceWorker(rootDir: string, production: boolean) {
         swSrc: swDest,
         swDest,
         globDirectory: outDir,
-        globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest,woff,woff2}'],
+        globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest,json,woff,woff2}'],
         injectionPoint: 'self.__SW_MANIFEST',
       })
-      console.log(`✅ [SERWIST] Precached ${result.count} files`)
+      console.info(`✅ [SERWIST] Precached ${result.count} files`)
     }
   } catch (error) {
     console.error('❌ [SERWIST] Build failed:', error)

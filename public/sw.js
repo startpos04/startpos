@@ -2332,6 +2332,114 @@ class PrecacheFallbackPlugin {
     return void 0;
   }
 }
+class CacheFirst extends Strategy {
+  async _handle(request, handler) {
+    const logs = [];
+    {
+      finalAssertExports.isInstance(request, Request, {
+        moduleName: "serwist",
+        className: this.constructor.name,
+        funcName: "makeRequest",
+        paramName: "request"
+      });
+    }
+    let response = await handler.cacheMatch(request);
+    let error;
+    if (!response) {
+      {
+        logs.push(`No response found in the '${this.cacheName}' cache. Will respond with a network request.`);
+      }
+      try {
+        response = await handler.fetchAndCachePut(request);
+      } catch (err) {
+        if (err instanceof Error) {
+          error = err;
+        }
+      }
+      {
+        if (response) {
+          logs.push("Got response from network.");
+        } else {
+          logs.push("Unable to get a response from the network.");
+        }
+      }
+    } else {
+      {
+        logs.push(`Found a cached response in the '${this.cacheName}' cache.`);
+      }
+    }
+    {
+      logger.groupCollapsed(messages.strategyStart(this.constructor.name, request));
+      for (const log of logs) {
+        logger.log(log);
+      }
+      messages.printFinalResponse(response);
+      logger.groupEnd();
+    }
+    if (!response) {
+      throw new SerwistError("no-response", {
+        url: request.url,
+        error
+      });
+    }
+    return response;
+  }
+}
+class StaleWhileRevalidate extends Strategy {
+  constructor(options = {}) {
+    super(options);
+    if (!this.plugins.some((p) => "cacheWillUpdate" in p)) {
+      this.plugins.unshift(cacheOkAndOpaquePlugin);
+    }
+  }
+  async _handle(request, handler) {
+    const logs = [];
+    {
+      finalAssertExports.isInstance(request, Request, {
+        moduleName: "serwist",
+        className: this.constructor.name,
+        funcName: "handle",
+        paramName: "request"
+      });
+    }
+    const fetchAndCachePromise = handler.fetchAndCachePut(request).catch(() => {
+    });
+    void handler.waitUntil(fetchAndCachePromise);
+    let response = await handler.cacheMatch(request);
+    let error;
+    if (response) {
+      {
+        logs.push(`Found a cached response in the '${this.cacheName}' cache. Will update with the network response in the background.`);
+      }
+    } else {
+      {
+        logs.push(`No response found in the '${this.cacheName}' cache. Will wait for the network response.`);
+      }
+      try {
+        response = await fetchAndCachePromise;
+      } catch (err) {
+        if (err instanceof Error) {
+          error = err;
+        }
+      }
+    }
+    {
+      logger.groupCollapsed(messages.strategyStart(this.constructor.name, request));
+      for (const log of logs) {
+        logger.log(log);
+      }
+      messages.printFinalResponse(response);
+      logger.groupEnd();
+    }
+    if (!response) {
+      throw new SerwistError("no-response", {
+        url: request.url,
+        error
+      });
+    }
+    return response;
+  }
+}
 class PrecacheRoute extends Route {
   constructor(serwist2, options) {
     const match = ({ request }) => {
@@ -2891,28 +2999,60 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     return {};
   }
 }
-const isProd = false;
+const isProd = typeof process !== "undefined" ? false : true;
 const serwist = new Serwist({
-  disableDevLogs: !isProd,
-  precacheEntries: [],
+  disableDevLogs: false,
+  precacheEntries: isProd ? self.__SW_MANIFEST ?? [] : [],
   skipWaiting: true,
   clientsClaim: true,
+  // 1. Fix: Navigation Preload can cause 500 errors if the server/SW isn't ready.
+  // We keep it enabled but ensure the handler below supports it.
   navigationPreload: isProd,
-  // 2. Runtime Caching solves the "No route found" warnings
-  runtimeCaching: [
+  runtimeCaching: isProd ? [
     {
-      // For Dev: Try network first so you see fresh changes.
-      // If network fails (offline), fall back to cache.
-      matcher: ({ request }) => request.mode === "navigate" || request.destination === "script",
+      // 2. Fix: Explicitly handle navigation in Production as a fallback.
+      // This prevents "ERR_FAILED" if the precache fails.
+      matcher: ({ request }) => request.mode === "navigate",
       handler: new NetworkFirst({
-        cacheName: "dev-offline-backup"
+        cacheName: "pages-cache"
       })
     },
     {
-      // Keep server functions NetworkOnly even in dev
+      matcher: ({ url }) => url.host === "images.unsplash.com",
+      handler: new CacheFirst({
+        cacheName: "unsplash-images"
+      })
+    },
+    {
       matcher: ({ url }) => url.pathname.startsWith("/_serverFn"),
+      handler: new NetworkOnly()
+    },
+    {
+      matcher: ({ request }) => request.destination === "style" || request.destination === "image" || request.destination === "font",
+      handler: new CacheFirst({
+        cacheName: "static-assets"
+      })
+    },
+    {
+      matcher: ({ request }) => request.destination === "script" || request.destination === "worker",
+      handler: new StaleWhileRevalidate({
+        cacheName: "js-chunks"
+      })
+    }
+  ] : [
+    {
+      // 3. Fix: Pure "Pass-through" for Dev.
+      // Using NetworkOnly for EVERYTHING in dev to avoid any caching confusion.
+      matcher: () => true,
       handler: new NetworkOnly()
     }
   ]
 });
+if (isProd) {
+  const navigationRoute = new NavigationRoute(serwist.precacheStrategy, {
+    allowlist: [/^(?!\/__).*/],
+    denylist: [/^\/_serverFn/]
+  });
+  serwist.registerCapture(navigationRoute);
+}
 serwist.addEventListeners();

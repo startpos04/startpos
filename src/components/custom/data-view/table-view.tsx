@@ -1,15 +1,17 @@
-import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
-import type { ReactNode } from 'react'
+import { type ColumnDef, flexRender } from '@tanstack/react-table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import type { DataViewProps } from '.'
+import { DataViewPagination } from './pagination'
+import { useDataView } from './use-data-view'
 
-interface TableViewProps<T> {
-  data: T[] | undefined
-  isFetching: boolean
+export interface TableViewProps<T> extends DataViewProps<T> {
   // biome-ignore lint/suspicious/noExplicitAny: V (Value) must be any to allow columns to have different return types
   columns: ColumnDef<T, any>[]
-  emptyMessage?: string
-  renderEmpty?: () => ReactNode
+  selectableRow?: {
+    onClick: (product: T) => void
+  }
 }
 
 const TableRowSkeleton = ({ columns }: { columns: number }) => (
@@ -26,51 +28,53 @@ const TableRowSkeleton = ({ columns }: { columns: number }) => (
   </>
 )
 
-export function TableView<T>({ data, isFetching, columns, renderEmpty, emptyMessage = 'No records found.' }: TableViewProps<T>) {
-  const table = useReactTable({
-    data: data ?? [],
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  })
+export function TableView<T>(props: TableViewProps<T>) {
+  const { data, className, isFetching, columns, renderEmpty, emptyMessage = 'No records found.', paginable, searchable, selectableRow } = props
+  const table = useDataView<T>({ data, columns, paginable, searchable })
 
   return (
-    <div className='rounded-xl border border-border bg-card shadow-sm grow h-1 overflow-auto relative'>
-      <Table>
-        <TableHeader className='bg-muted/50'>
-          {/* Removed sticky/top-0 from here */}
-          {table.getHeaderGroups().map(headerGroup => (
-            <TableRow key={headerGroup.id} className='hover:bg-transparent border-b border-border'>
-              {headerGroup.headers.map(header => (
-                <TableHead key={header.id} className='text-muted-foreground font-semibold h-11 sticky top-0 bg-muted z-10'>
-                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {isFetching && !data?.length ? (
-            <TableRowSkeleton columns={columns.length} />
-          ) : table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map(row => (
-              <TableRow key={row.id} className='group border-0 transition-colors even:bg-muted/20 hover:bg-muted/50'>
-                {row.getVisibleCells().map(cell => (
-                  <TableCell key={cell.id} className='h-11 py-0.5'>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
+    <div className={cn('flex grow flex-col gap-2', className)}>
+      <div className='rounded-xl border border-border bg-card shadow-sm grow h-1 overflow-auto relative'>
+        <Table>
+          <TableHeader className='bg-muted/50'>
+            {table.getHeaderGroups().map(headerGroup => (
+              <TableRow key={headerGroup.id} className='hover:bg-transparent border-b border-border'>
+                {headerGroup.headers.map(header => (
+                  <TableHead key={header.id} className='text-muted-foreground font-semibold h-11 sticky top-0 bg-muted z-10'>
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
                 ))}
               </TableRow>
-            ))
-          ) : null}
-        </TableBody>
-      </Table>
-      {(isFetching && !data?.length) || table.getRowModel().rows?.length ? null : (
-        <div className='h-full text-center text-muted-foreground absolute inset-0 flex items-center justify-center'>
-          {renderEmpty ? renderEmpty() : emptyMessage}
-        </div>
-      )}
+            ))}
+          </TableHeader>
+          <TableBody>
+            {isFetching ? (
+              <TableRowSkeleton columns={columns.length} />
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map(row => (
+                <TableRow
+                  key={row.id}
+                  className={cn('group border-0 transition-colors even:bg-muted/20 hover:bg-muted/50', selectableRow ? 'cursor-pointer' : '')}
+                  onClick={() => selectableRow?.onClick(row.original)}
+                >
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id} className='h-11 py-0.5'>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : null}
+          </TableBody>
+        </Table>
+        {(isFetching && !data?.length) || table.getRowModel().rows?.length ? null : (
+          <div className='h-full text-center text-muted-foreground absolute inset-0 flex items-center justify-center'>
+            {renderEmpty ? renderEmpty() : emptyMessage}
+          </div>
+        )}
+      </div>
+
+      {paginable && <DataViewPagination table={table} totalItems={paginable.totalItems} />}
     </div>
   )
 }
-
-export default TableView

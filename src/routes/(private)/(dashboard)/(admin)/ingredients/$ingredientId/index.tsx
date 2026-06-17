@@ -9,16 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
-import { showModal } from '@/lib/overlay'
+import { type OverlayProps, showModal } from '@/lib/overlay'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { authStore } from '@/store/auth-store'
 import { EditIngredientDialog } from './-edit-ingredient'
 import { RestockIngredientDialog } from './-restock'
 
-interface IngredientDetailsProps {
+interface IngredientDetailsProps extends OverlayProps {
   ingredientId: string
-  open: boolean
-  onClose: () => void
 }
 
 interface RouteComponentProps {
@@ -58,8 +56,6 @@ function RouteComponent(props: RouteComponentProps) {
   // --- Realignment Logic: Variant-Centric Approach ---
   const primaryVariant = ingredient.variants?.[0]
 
-  console.log('Primary Variant:', ingredients)
-
   // Total stock across all batches of the primary variant
   const totalStock = primaryVariant?.inventory?.reduce((acc, inv) => acc + inv.quantity, 0) || 0
 
@@ -69,7 +65,7 @@ function RouteComponent(props: RouteComponentProps) {
   const currentCost = primaryVariant?.costPrice || 0
   const currentSku = primaryVariant?.sku || 'NO SKU'
 
-  const isLowStock = totalStock < (ingredient.variants[0]?.lowStockThreshold || user.branch.lowStockThreshold)
+  const isLowStock = totalStock < (ingredient.variants[0]?.lowStockThreshold || user.systemConfigs.LOW_STOCK_THRESHOLD)
 
   const handleRestock = () => {
     if (!primaryVariant) return
@@ -250,7 +246,7 @@ function RouteComponent(props: RouteComponentProps) {
                       <p className='text-[9px] text-muted-foreground uppercase font-black tracking-widest'>Location</p>
                       <div className='flex items-center gap-1 text-sm'>
                         <MapPin className='w-3 h-3 text-muted-foreground' />
-                        {batch.location || 'Not Set'}
+                        {batch.location?.name}
                       </div>
                     </div>
                     <div>

@@ -1,8 +1,9 @@
 import { useForm } from '@tanstack/react-form'
 import { Package, Plus, PlusCircle, Save, Utensils, Warehouse, X } from 'lucide-react'
-import { ResourceType, type Unit } from 'prisma/generated/prisma/browser'
+import { ResourceType, type Unit, VariantAttributeType } from 'prisma/generated/prisma/browser'
 import type { ReactNode } from 'react'
 import { z } from 'zod'
+import { Form } from '@/components/custom/form'
 import { ImageInput } from '@/components/custom/form/image-input'
 import { MoneyInput } from '@/components/custom/form/money-input'
 import { SelectInput } from '@/components/custom/form/select-input'
@@ -12,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
+import { productVariantCollection } from '@/db/collections'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
@@ -20,6 +22,7 @@ import { AddAddonModal } from './-add-addon'
 import { AddIngredientModal } from './-add-ingredient'
 
 interface CreateProductProps {
+  variantId?: string | undefined
   defaultValues: CreateProductFormData
   onSubmit: ({ value }: { value: CreateProductFormData }) => Promise<void>
   children: ReactNode
@@ -28,66 +31,111 @@ interface CreateProductProps {
     isSubmitting: string
   }
 }
-export const createProductSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  sku: z.string().min(1, 'SKU is required'),
-  price: z.number().nonnegative('Price must be 0 or greater'),
-  type: z.enum(ResourceType),
-  categoryId: z.string().min(1, 'Category is required'),
-  baseUnitId: z.string().min(1, 'Base Unit is required'),
-  image: z.string(),
-  isAvailable: z.boolean(),
-  hasExpiry: z.boolean(),
+const createProductSchema = (variantId?: string) =>
+  z.object({
+    name: z.string().min(1, 'Name is required'),
+    sku: z
+      .string()
+      .min(1, 'SKU is required')
+      .refine(
+        val => {
+          const existingVariant = [...productVariantCollection.values()].find(u => u.sku === val)
+          if (existingVariant?.id === variantId) return true
+          return !existingVariant
+        },
+        { message: 'This SKU is already in use', path: ['sku'] },
+      ),
+    price: z.number().nonnegative('Price must be 0 or greater'),
+    type: z.enum(ResourceType),
+    categoryId: z.string().min(1, 'Category is required'),
+    baseUnitId: z.string().min(1, 'Base Unit is required'),
+    image: z.string(),
+    isAvailable: z.boolean(),
+    hasExpiry: z.boolean(),
 
-  // These will be mapped to Variants in the handleSubmit
-  ingredients: z.array(
-    z.object({
-      id: z.string(),
-      material: z.object({
-        id: z.string(), // This is a Product ID (the raw material)
-        name: z.string(),
+    // These will be mapped to Variants in the handleSubmit
+    ingredients: z.array(
+      z.object({
+        id: z.string(),
+        material: z.object({
+          id: z.string(), // This is a Product ID (the raw material)
+          name: z.string(),
+        }),
+        variant: z.object({
+          id: z.string(), // This is the Variant ID of the raw material
+          name: z.string().nullable(),
+        }),
+        quantityUsed: z.number().positive(),
+        unit: z.custom<Unit>(),
       }),
-      variant: z.object({
-        id: z.string(), // This is the Variant ID of the raw material
-        name: z.string().nullable(),
+    ),
+
+    variants: z
+      .array(
+        z.object({
+          id: z.string(),
+          attributeType: z.enum(VariantAttributeType),
+          name: z.string().nullable(),
+          sku: z.string().nullable(),
+          price: z.number().nonnegative(),
+          // Optional: You could allow per-variant ingredients here in the future
+        }),
+      )
+      .superRefine((variants, ctx) => {
+        const formSkus = new Set<string>()
+
+        variants.forEach((variant, index) => {
+          if (!variant.sku) return
+
+          const currentSku = variant.sku.trim()
+
+          // Check A: Is it a duplicate within the form itself?
+          if (formSkus.has(currentSku)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Duplicate SKU inside this product builder',
+              path: [index, 'sku'], // Correctly highlights variants[index].sku
+            })
+            return
+          }
+          formSkus.add(currentSku)
+
+          // Check B: Does it conflict with an already saved database variant?
+          const dbConflict = [...productVariantCollection.values()].find(u => u.sku === currentSku)
+
+          // If it exists in the database, make sure it isn't the variant we are currently updating
+          if (dbConflict && dbConflict.id !== variant.id && dbConflict.id !== variantId) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'This SKU is already in use by another product',
+              path: [index, 'sku'], // Correctly highlights variants[index].sku
+            })
+          }
+        })
       }),
-      quantityUsed: z.number().positive(),
-      unit: z.custom<Unit>(),
-    }),
-  ),
 
-  variants: z.array(
-    z.object({
-      id: z.string(),
-      variantType: z.string().nullable(),
-      name: z.string().nullable(),
-      sku: z.string().nullable(),
-      price: z.number().nonnegative(),
-      // Optional: You could allow per-variant ingredients here in the future
-    }),
-  ),
-
-  allowedAddons: z.array(
-    z.object({
-      id: z.string(),
-      addon: z.object({
-        id: z.string().nullable(), // This is the Product ID
-        name: z.string().nullable(),
+    allowedAddons: z.array(
+      z.object({
+        id: z.string(),
+        addon: z.object({
+          id: z.string().nullable(), // This is the Product ID
+          name: z.string().nullable(),
+        }),
+        variant: z.object({
+          id: z.string(), // This is the Variant ID of the raw material
+          name: z.string().nullable(),
+        }),
+        unit: z.custom<Unit>(), // Added unit for the addon relation
+        defaultQuantity: z.number().nonnegative(),
+        priceOverride: z.number().nonnegative(),
       }),
-      variant: z.object({
-        id: z.string(), // This is the Variant ID of the raw material
-        name: z.string().nullable(),
-      }),
-      unit: z.custom<Unit>(), // Added unit for the addon relation
-      defaultQuantity: z.number().nonnegative(),
-      priceOverride: z.number().nonnegative(),
-    }),
-  ),
-})
+    ),
+  })
 
-export type CreateProductFormData = z.infer<typeof createProductSchema>
+const schema = createProductSchema()
+export type CreateProductFormData = z.infer<typeof schema>
 
-export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: CreateProductProps) {
+export function CreateProduct({ variantId, onSubmit, defaultValues, children, textBtn }: CreateProductProps) {
   const { data: categoryOptions = [] } = fetchCategoryOptions()
   const { data: unitOptions = [] } = fetchUnitOptions()
 
@@ -95,7 +143,7 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
     defaultValues,
     onSubmit,
     validators: {
-      onChange: createProductSchema,
+      onChange: createProductSchema(variantId),
     },
   })
 
@@ -134,7 +182,7 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
   }
 
   return (
-    <div className='flex flex-col gap-4 grow'>
+    <Form className='flex flex-col gap-4 grow' onSubmit={form.handleSubmit}>
       {children}
 
       <ScrollArea className='h-1 grow w-full'>
@@ -270,10 +318,21 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
 
       <div className='pt-4'>
         <form.Subscribe
+          selector={state => [state.errors]}
+          children={([errors]) =>
+            errors.length > 0 && (
+              <div className='p-3 text-xs font-mono text-red-600 rounded-xl border border-red-200'>
+                <strong>Form Errors:</strong>
+                <pre>{JSON.stringify(errors, null, 2)}</pre>
+              </div>
+            )
+          }
+        />
+        <form.Subscribe
           selector={state => [state.canSubmit, state.isSubmitting]}
           children={([canSubmit, isSubmitting]) => (
             <Button
-              onClick={() => form.handleSubmit()}
+              type='submit'
               disabled={!canSubmit || isSubmitting}
               className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl flex gap-2 transition-all hover:scale-[1.01]'
             >
@@ -282,6 +341,6 @@ export function CreateProduct({ onSubmit, defaultValues, children, textBtn }: Cr
           )}
         />
       </div>
-    </div>
+    </Form>
   )
 }

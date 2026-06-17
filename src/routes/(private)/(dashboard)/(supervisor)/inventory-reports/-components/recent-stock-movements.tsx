@@ -1,4 +1,5 @@
 import { ArrowRightLeft } from 'lucide-react'
+import { MovementType } from 'prisma/generated/prisma/enums'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import dayjs from '@/lib/dayjs'
@@ -63,11 +64,12 @@ export function RecentStockMovements({ inventoryData }: { inventoryData: Invento
                   variant='outline'
                   className={cn(
                     'text-[10px] font-bold uppercase tracking-tight border-transparent',
-                    m.type === 'IN' && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400',
-                    m.type === 'OUT' && 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400',
-                    m.type === 'WASTE' && 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400',
-                    m.type === 'ADJUST' && 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400',
-                    m.type === 'TRANSFER' && 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400',
+                    m.type === MovementType.IN && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400',
+                    m.type === MovementType.OUT && 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400',
+                    m.type === MovementType.WASTE && 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400',
+                    m.type === MovementType.ADJUST && 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400',
+                    m.type === MovementType.EXTERNAL_TRANSFER && 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400',
+                    m.type === MovementType.INTERNAL_TRANSFER && 'bg-purple-100 text-pink-700 dark:bg-pink-950/40 dark:text-pink-400',
                   )}
                 >
                   {m.type}

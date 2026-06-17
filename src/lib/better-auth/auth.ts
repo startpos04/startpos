@@ -23,7 +23,7 @@ export const auth = betterAuth({
         required: false,
         defaultValue: Role.CASHIER,
       },
-      organizationId: { type: 'string', required: true },
+      businessId: { type: 'string', required: true },
       branchId: { type: 'string', required: false },
     },
   },
@@ -39,7 +39,7 @@ export const auth = betterAuth({
             return {
               data: {
                 ...session,
-                organizationId: membership.organizationId,
+                businessId: membership.businessId,
                 branchId: membership.branchId,
               },
             }
@@ -52,7 +52,7 @@ export const auth = betterAuth({
   },
   session: {
     additionalFields: {
-      organizationId: { type: 'string' },
+      businessId: { type: 'string' },
       branchId: { type: 'string' },
     },
   },

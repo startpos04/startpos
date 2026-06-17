@@ -17,7 +17,7 @@ dayjs.extend(utc)
 
 const api = crudAPI as any
 
-export let localDB = null as unknown as BrowserWASQLiteDatabase
+let localDB = null as unknown as BrowserWASQLiteDatabase
 export let persistence = null as unknown as PersistedCollectionPersistence
 
 if (typeof window !== 'undefined') {

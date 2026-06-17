@@ -10,21 +10,19 @@ import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   branchCollection,
+  businessCollection,
   inventoryMovementCollection,
   membershipCollection,
-  organizationCollection,
   sessionCollection,
   transactionCollection,
   userCollection,
 } from '@/db/collections'
 import dayjs from '@/lib/dayjs'
-import { showModal } from '@/lib/overlay'
+import { type OverlayProps, showModal } from '@/lib/overlay'
 import { EditEmployeeDialog } from './-edit-account'
 
-interface EditEmployeeDialogProps {
+interface EditEmployeeDialogProps extends OverlayProps {
   employeeId: string
-  open: boolean
-  onClose: () => void
 }
 
 interface RouteComponentProps {
@@ -65,11 +63,11 @@ function RouteComponent(props: RouteComponentProps) {
           q
             .from({ membership: membershipCollection })
             .where(({ membership }) => eq(membership.userId, user.id))
-            .leftJoin({ org: organizationCollection }, ({ membership, org }) => eq(membership.organizationId, org.id))
+            .leftJoin({ org: businessCollection }, ({ membership, org }) => eq(membership.businessId, org.id))
             .leftJoin({ branch: branchCollection }, ({ membership, branch }) => eq(membership.branchId, branch.id))
             .select(({ membership, org, branch }) => ({
               ...membership,
-              organization: org,
+              business: org,
               branch: branch,
             })),
         ),

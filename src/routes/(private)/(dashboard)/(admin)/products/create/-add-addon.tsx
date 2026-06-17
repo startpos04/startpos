@@ -3,7 +3,7 @@ import { Check, PlusCircle, Scale, Search } from 'lucide-react'
 import type { Unit } from 'prisma/generated/prisma/browser'
 import * as React from 'react'
 import z from 'zod'
-import Form from '@/components/custom/form'
+import { Form } from '@/components/custom/form'
 import { MoneyInput } from '@/components/custom/form/money-input'
 import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
@@ -113,7 +113,7 @@ export function AddAddonModal({ open, onClose, onAdd }: AddAddonModalProps) {
                                     unitField.handleChange(product.baseUnitId)
                                   }}
                                   className={cn(
-                                    'flex items-center justify-between p-2 rounded-xl cursor-pointer border transition-all mb-1',
+                                    'flex items-center justify-between p-2 rounded-xl cursor-pointer border transition-all mb-1 w-full',
                                     idField.state.value === variant.id ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-muted/50',
                                   )}
                                 >

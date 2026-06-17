@@ -1,17 +1,16 @@
-import type { Transaction } from '@tanstack/db'
-import { SequenceType } from 'prisma/generated/prisma/enums'
-import { toast } from 'sonner'
+import { OrderStatus, OrderType, SequenceType } from 'prisma/generated/prisma/enums'
 import { orderCollection, orderItemAddonCollection, orderItemCollection } from '@/db/collections'
+import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { authStore } from '@/store/auth-store'
-import type { PosProduct } from '../conversion/inventory-engine'
-import type { CreateSaleInput } from '../server-fn/create-pos-transaction'
+import type { CreateSaleInput } from './create-pos-transaction'
+import type { posProduct } from './fetch-pos-products'
 import { fetchStructuredId } from './fetch-structured-id'
 
-export const createPosOrder = async (data: CreateSaleInput, posOrders: PosProduct[]) => {
+export const createPosOrder = async (data: CreateSaleInput, posOrders: posProduct[]) => {
   const { user } = authStore.state
-  const productIds = data.items.map(item => item.productId)
-  const dbProducts = posOrders.filter(p => productIds.includes(p.id)) as PosProduct[]
-  const results: Record<string, Transaction<Record<string, unknown>>> = {}
+  const productIds = data.items.map(item => item.product.id)
+  const dbProducts = posOrders.filter(p => productIds.includes(p.id)) as posProduct[]
+  const localDBTransaction = new LocalDBTransaction()
 
   try {
     const orderId = data.orderId || crypto.randomUUID()
@@ -19,10 +18,11 @@ export const createPosOrder = async (data: CreateSaleInput, posOrders: PosProduc
 
     if (exists) {
       // UPDATE EXISTING ORDER
-      results['order'] = await orderCollection.update(orderId, draft => {
-        draft.customerReference = data.customerReference || 'Walk-in Guest'
-      })
-      await results['order'].isPersisted.promise
+      await localDBTransaction.step(
+        orderCollection.update(orderId, draft => {
+          draft.customerReference = data.customer.customerReference || 'Walk-in Guest'
+        }),
+      )
 
       // Get all Item IDs belonging to this order
       const itemsInOrder = [...orderItemCollection.values()].filter(i => i.orderId === orderId)
@@ -34,53 +34,53 @@ export const createPosOrder = async (data: CreateSaleInput, posOrders: PosProduc
 
         // Delete Addons by IDs
         if (addonIdsToDelete.length > 0) {
-          results['orderItemAddon'] = await orderItemAddonCollection.delete(addonIdsToDelete)
-          await results['orderItemAddon'].isPersisted.promise
+          localDBTransaction.step(orderItemAddonCollection.delete(addonIdsToDelete))
         }
 
         // Delete Items by IDs
-        results['orderItem'] = await orderItemCollection.delete(itemIds)
-        await results['orderItem'].isPersisted.promise
+        await localDBTransaction.step(orderItemCollection.delete(itemIds))
       }
     } else {
       // --- 2. PREPARE DATA STRUCTURES ---
-      const orderNumber = await fetchStructuredId(SequenceType.ORDER)
+      const orderNumber = await fetchStructuredId(localDBTransaction, SequenceType.ORDER)
 
       // INSERT NEW ORDER
-      results['order'] = await orderCollection.insert({
-        id: orderId,
-        orderNumber,
-        status: 'PENDING',
-        orderType: 'DINE_IN',
-        customerReference: data.customerReference || 'Walk-in Guest',
-        organizationId: user.organization.id,
-        branchId: user.branch.id,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-      })
-      await results['order'].isPersisted.promise
+      await localDBTransaction.step(
+        orderCollection.insert({
+          id: orderId,
+          orderNumber,
+          status: OrderStatus.PENDING,
+          orderType: OrderType.DINE_IN,
+          customerReference: data.customer.customerReference || 'Walk-in Guest',
+          businessId: user.business.id,
+          branchId: user.branch.id,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+        }),
+      )
     }
 
     // CREATE ITEMS & ADDONS ---
     for (const item of data.items) {
-      const product = dbProducts.find(p => p.id === item.productId)!
-      const variant = product.variants.find(v => v.id === item.variantId)!
+      const product = dbProducts.find(p => p.id === item.product.id)!
+      const variant = product.variants.find(v => v.id === item.variant.id)!
       const itemId = crypto.randomUUID()
 
-      results['orderItem'] = await orderItemCollection.insert({
-        id: itemId,
-        orderId: orderId,
-        variantId: item.variantId,
-        quantity: item.quantity,
-        unitPrice: Number(variant.price),
-        unitCost: Number(variant.costPrice || 0),
-        unitId: product.baseUnitId,
-        organizationId: user.organization.id,
-        branchId: user.branch.id,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-      })
-      await results['orderItem'].isPersisted.promise
+      await localDBTransaction.step(
+        orderItemCollection.insert({
+          id: itemId,
+          orderId: orderId,
+          variantId: item.variant.id,
+          quantity: item.quantity,
+          unitPrice: Number(variant.price),
+          unitCost: Number(variant.costPrice || 0),
+          unitId: product.baseUnitId,
+          businessId: user.business.id,
+          branchId: user.branch.id,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+        }),
+      )
 
       if (item.addons.length > 0) {
         const addonsToInsert = item.addons.map(a => {
@@ -92,34 +92,20 @@ export const createPosOrder = async (data: CreateSaleInput, posOrders: PosProduc
             quantity: a.quantityUsed,
             priceAtSale: Number(comp.priceOverride || 0),
             costAtSale: Number(comp.material.costPrice || 0),
-            organizationId: user.organization.id,
+            businessId: user.business.id,
             branchId: user.branch.id,
             updatedAt: new Date(),
             createdAt: new Date(),
           }
         })
-        results['orderItemAddon'] = await orderItemAddonCollection.insert(addonsToInsert)
-        await results['orderItemAddon'].isPersisted.promise
+        await localDBTransaction.step(orderItemAddonCollection.insert(addonsToInsert))
       }
     }
 
-    // Return the "Order" with items attached (simulating Prisma's include)
-    const finalOrder = [...orderCollection.values()].find(o => o.id === orderId)
-    return {
-      data: {
-        ...finalOrder,
-        items: [...orderItemCollection.values()].find(i => i.orderId === orderId),
-      },
-    }
+    return { data: true }
   } catch (error) {
-    await Promise.all(Object.values(results).map(r => r.rollback()))
-
     console.error('Transaction failed:', error)
-    toast.error('Failed to add order. Please try again.')
 
-    return null
+    return { data: false, error }
   }
 }
-
-type CreatePosOrderFn = typeof createPosOrder
-export type CreatePosOrderResponse = Awaited<ReturnType<CreatePosOrderFn>>

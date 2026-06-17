@@ -12,8 +12,8 @@ export async function generateStructuredId(tx: ExtendedTransactionClient, type: 
 
   const counter = await tx.sequenceCounter.upsert({
     where: {
-      organizationId_branchId_type_year_month_day: {
-        organizationId: user.organization.id,
+      businessId_branchId_type_year_month_day: {
+        businessId: user.business.id,
         branchId: user.branch.id,
         type,
         year,

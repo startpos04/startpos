@@ -1,12 +1,18 @@
-import type { Prisma } from 'prisma/generated/prisma/browser'
-import { Role } from 'prisma/generated/prisma/enums'
+import { NotificationPriority, type NotificationType, Role, TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
+import {
+  inventoryCollection,
+  membershipCollection,
+  notificationCollection,
+  operationalTaskCollection,
+  productCollection,
+  productVariantCollection,
+} from '@/db/collections'
+import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { authStore } from '@/store/auth-store'
-import { getTenantPrisma } from '../prisma-client'
-import type { Prettify } from '../types'
 
 interface SendNotificationParams {
-  prisma: ReturnType<typeof getTenantPrisma>
-  type: string
+  localDBTransaction: LocalDBTransaction
+  type: NotificationType
   title: string
   message: string
   metadata?: Record<string, unknown>
@@ -20,38 +26,84 @@ export const NotificationEngine = {
   async checkLowStock(variantIds: string[]) {
     try {
       const { user } = authStore.state
-      const prisma = getTenantPrisma(user.organization.id, user.branch.id)
+      const localDBTransaction = new LocalDBTransaction()
 
-      const inventorySums = (await prisma.inventory.groupBy({
-        by: ['variantId'],
-        where: {
-          variantId: { in: variantIds },
-          quantity: { gt: 0 },
+      // 1. Group by variantId and sum quantity where quantity > 0
+      // Simulating Prisma's groupBy using Array.reduce on the local collection
+      const activeInventory = [...inventoryCollection.values()].filter(item => variantIds.includes(item.variantId) && item.quantity > 0)
+
+      const inventorySumsMap = activeInventory.reduce(
+        (acc, item) => {
+          acc[item.variantId] = (acc[item.variantId] || 0) + item.quantity
+          return acc
         },
-        _sum: { quantity: true },
-      })) as Prettify<Prisma.InventoryGroupByOutputType & { _sum: { quantity: number | null } }>[]
+        {} as Record<string, number>,
+      )
 
-      const variants = (await prisma.productVariant.findMany({
-        where: { id: { in: variantIds } },
-        include: { product: true },
-      })) as Prettify<Prisma.ProductVariantGetPayload<{ include: { product: true } }>>[]
+      // 2. Fetch variants and manually join their parent product
+      const variants = [...productVariantCollection.values()]
+        .filter(variant => variantIds.includes(variant.id))
+        .map(variant => {
+          const product = [...productCollection.values()].find(p => p.id === variant.productId)
+          return {
+            ...variant,
+            product, // Mimics Prisma's include: { product: true }
+          }
+        })
 
       // 3. Compare and Notify
       for (const variant of variants) {
-        const sumRecord = inventorySums.find(s => s.variantId === variant.id)
-        const currentTotal = sumRecord?._sum?.quantity || 0
-
-        const threshold = variant.lowStockThreshold ?? user.branch.lowStockThreshold
+        const currentTotal = inventorySumsMap[variant.id] || 0
+        const threshold = variant.lowStockThreshold ?? user.systemConfigs.LOW_STOCK_THRESHOLD
 
         if (threshold !== undefined && currentTotal <= threshold) {
-          await NotificationEngine.send({
-            prisma,
-            type: 'LOW_STOCK',
-            title: 'Low Stock Alert',
-            message: `${[variant?.product.name, variant?.name ? `(${variant.name})` : ''].filter(Boolean).join(' ')} is low: ${currentTotal} remaining (Threshold: ${threshold}).`,
-            metadata: { variantId: variant.id, currentTotal },
-            link: `/ingredients/${variant?.product.id}`,
-          })
+          const admins = [...membershipCollection.values()].filter(member => ([Role.ADMIN, Role.SUPERVISOR] as Role[]).includes(member.role))
+          if (admins.length === 0) return
+
+          const taskId = crypto.randomUUID()
+          await localDBTransaction.step(
+            operationalTaskCollection.insert({
+              id: crypto.randomUUID(),
+              type: TaskType.SHELF_REFILL,
+              status: TaskStatus.PENDING,
+              notes: `Auto-generated task: Low stock threshold breached for variant ${variant.id}`,
+              dueDate: new Date(),
+              creatorId: user.id,
+              approverId: user.id,
+              clerkId: user.id,
+              metadata: {
+                variantId: variant.id,
+                currentTotal,
+                link: `/ingredients/${variant.product?.id}`,
+                suggestedQty: threshold - currentTotal > 0 ? threshold - currentTotal : 10,
+                approvedQty: threshold - currentTotal > 0 ? threshold - currentTotal : 10,
+                verifiedQty: null,
+              },
+              approvedAt: new Date(),
+              inProgressAt: new Date(),
+              fulfilledAt: null,
+              businessId: user.business.id,
+              branchId: user.branch.id,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              reviewedAt: null,
+              reviewerId: null,
+              canceledAt: null,
+              cancelerId: null,
+            }),
+          )
+
+          await NotificationEngine.send(
+            admins.map(admin => admin.id),
+            {
+              localDBTransaction,
+              type: 'LOW_STOCK',
+              title: 'Low Stock Alert',
+              message: `${[variant.product?.name, variant.name ? `(${variant.name})` : ''].filter(Boolean).join(' ')} is low: ${currentTotal} remaining (Threshold: ${threshold}).`,
+              metadata: { variantId: variant.id, currentTotal },
+              link: `/tasks/${taskId}`,
+            },
+          )
         }
       }
     } catch (error) {
@@ -62,24 +114,25 @@ export const NotificationEngine = {
   /**
    * Internal helper to distribute notifications to all branch admins
    */
-  async send({ prisma, type, title, message, metadata, link }: SendNotificationParams) {
-    const admins = await prisma.membership.findMany({
-      where: { role: { in: [Role.ADMIN, Role.SUPERVISOR] } },
-      select: { userId: true },
-    })
+  async send(receiverIds: string[], { localDBTransaction, type, title, message, metadata, link }: SendNotificationParams) {
+    const { user } = authStore.state
 
-    if (admins.length === 0) return
+    const notificationsToInsert = receiverIds.map(receiverId => ({
+      id: crypto.randomUUID(),
+      userId: receiverId,
+      priority: NotificationPriority.MEDIUM,
+      type,
+      title,
+      message,
+      link,
+      isRead: false,
+      metadata: metadata ? JSON.stringify(metadata) : '{}',
+      businessId: user.business.id,
+      branchId: user.branch.id,
+      createdAt: new Date(),
+    }))
 
-    await prisma.notification.createMany({
-      data: admins.map(admin => ({
-        userId: admin.userId,
-        type,
-        title,
-        message,
-        metadata: metadata ? JSON.stringify(metadata) : '{}',
-        isRead: false,
-        link,
-      })),
-    })
+    // Step the mutation via the transaction engine
+    await localDBTransaction.step(notificationCollection.insert(notificationsToInsert))
   },
 }

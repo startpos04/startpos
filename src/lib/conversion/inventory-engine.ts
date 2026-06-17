@@ -1,7 +1,8 @@
 import type { Prettify } from 'better-auth'
 import type { Inventory, Prisma } from 'prisma/generated/prisma/client'
+import type { posProduct } from '../queries/fetch-pos-products'
 
-export const posProductComponentProps = {
+const posProductComponentProps = {
   unit: true,
   material: {
     include: {
@@ -11,35 +12,13 @@ export const posProductComponentProps = {
   },
 } satisfies Prisma.ProductComponentInclude
 
-export const posProductProps = {
-  category: true,
-  baseUnit: true,
-  variants: {
-    include: {
-      inventory: true,
-      components: {
-        include: {
-          unit: true,
-          material: {
-            include: {
-              inventory: true,
-              product: true,
-            },
-          },
-        },
-      },
-    },
-  },
-} satisfies Prisma.ProductInclude
-
-export type PosProduct = Prettify<Prisma.ProductGetPayload<{ include: typeof posProductProps }>>
 export type PosProductComponent = Prettify<Prisma.ProductComponentGetPayload<{ include: typeof posProductComponentProps }>>
 
 export type posItem = {
   cartId: string
-  product: PosProduct
+  product: posProduct
   quantity: number
-  variant: NonNullable<PosProduct['variants']>[number]
+  variant: NonNullable<posProduct['variants']>[number]
   addons: Prettify<Prisma.ProductComponentGetPayload<{ include: typeof posProductComponentProps }>>[]
 }
 
@@ -76,7 +55,7 @@ export const InventoryEngine = {
   /**
    * Calculates requirements for a specific configuration
    */
-  getUnitRequirements: (variant: PosProduct['variants'][number], selectedComponentIds: string[]) => {
+  getUnitRequirements: (variant: posProduct['variants'][number], selectedComponentIds: string[]) => {
     const requirements: Record<string, number> = {}
 
     if (!variant.components || variant.components.length === 0) {
@@ -99,8 +78,8 @@ export const InventoryEngine = {
    * When calling this, pass [...localCart, ...dbOrders] to the cartItems param.
    */
   calculateRemainingYield: (
-    product: PosProduct,
-    variant: PosProduct['variants'][number],
+    product: posProduct,
+    variant: posProduct['variants'][number],
     selectedComponentIds: string[],
     cartItems: posItem[],
     orderItems?: posItem[],
@@ -121,7 +100,7 @@ export const InventoryEngine = {
   /**
    * Searches the tree for physical stock linked to a specific material ID.
    */
-  findPhysicalStock: (id: string, productOrList: PosProduct | PosProduct[]): { stock: number; name: string } => {
+  findPhysicalStock: (id: string, productOrList: posProduct | posProduct[]): { stock: number; name: string } => {
     let physicalStock = 0
     let displayName = id
 

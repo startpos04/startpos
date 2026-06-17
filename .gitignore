@@ -22,3 +22,4 @@ todos.json
 /playwright/.auth/
 
 /coverage/
+.fallow/

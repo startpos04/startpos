@@ -1,13 +1,19 @@
 import { persistedCollectionOptions } from '@tanstack/browser-db-sqlite-persistence'
 import { type Collection, createCollection } from '@tanstack/db'
 import { z } from 'zod'
+import type { ServerUser } from '@/lib/better-auth/auth-server'
 import { persistence } from '.'
 
-export const LocalAuthSchema = z.object({
+export type LocalUser = ServerUser & {
+  id: string
+  email: string
+}
+
+const LocalAuthSchema = z.object({
   id: z.string(),
   email: z.email(),
   hashedPassword: z.string(),
-  profile: z.any(),
+  profile: z.object({}) as unknown as z.ZodType<LocalUser>,
   expiresAt: z.number(),
 })
 

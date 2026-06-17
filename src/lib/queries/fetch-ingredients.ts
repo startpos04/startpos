@@ -2,6 +2,7 @@ import { eq, toArray, useLiveQuery } from '@tanstack/react-db'
 import {
   categoryCollection,
   inventoryCollection,
+  locationCollection,
   productCollection,
   productComponentCollection,
   productVariantCollection,
@@ -33,12 +34,11 @@ export const fetchIngredients = (ingredientId?: string) => {
                   q
                     .from({ inv: inventoryCollection })
                     .where(({ inv }) => eq(inv.variantId, variant.id))
-                    .leftJoin({ u: unitCollection }, ({ inv, u }) => eq(inv.unitId, u.id))
-                    .select(({ inv, u }) => ({
-                      ...inv,
-                      unit: u,
-                    })),
+                    .leftJoin({ unit: unitCollection }, ({ inv, unit }) => eq(inv.unitId, unit.id))
+                    .leftJoin({ location: locationCollection }, ({ inv, location }) => eq(inv.locationId, location.id))
+                    .select(({ inv, unit, location }) => ({ ...inv, unit, location })),
                 ),
+                components: [],
                 usedIn: toArray(
                   q
                     .from({ comp: productComponentCollection })

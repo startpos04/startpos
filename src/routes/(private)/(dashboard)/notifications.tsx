@@ -82,7 +82,7 @@ function RouteComponent() {
                         )}
                         <span className='text-xs text-muted-foreground ml-auto'>{dayjs(n.createdAt).format('MMM DD, YYYY hh:mm A')}</span>
                       </div>
-                      <p className='text-sm text-muted-foreground leading-relaxed'>{n.message}</p>
+                      <p className='text-sm text-muted-foreground leading-relaxed text-left'>{n.message}</p>
                     </div>
                   </CardContent>
                 </Card>

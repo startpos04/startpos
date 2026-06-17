@@ -1,0 +1,4 @@
+business_id,business_name,business_slug,business_type,branch_id,branch_name,serial_number,min_invoice,max_invoice,branch_code,user_id,user_email,user_name,user_role,user_image
+org-1,Main Resto Group,main-resto,RESTAURANT,branch-1,Downtown Outlet,SN-0001-001,0,100000,00000,admin-1,admin@store.com,Admin User,ADMIN,https://api.dicebear.com/7.x/avataaars/svg?seed=Felix
+org-1,Main Resto Group,main-resto,RESTAURANT,branch-1,Downtown Outlet,SN-0001-001,0,100000,00000,sup-1,supervisor@store.com,Supervisor User,SUPERVISOR,https://api.dicebear.com/7.x/avataaars/svg?seed=Sasha
+org-1,Main Resto Group,main-resto,RESTAURANT,branch-1,Downtown Outlet,SN-0001-001,0,100000,00000,cash-1,cashier@store.com,Cashier User,CASHIER,https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka

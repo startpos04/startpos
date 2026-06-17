@@ -20,11 +20,11 @@ const globalForPrisma = global as unknown as { prisma: BasePrismaClient }
 
 export const prisma = globalForPrisma.prisma || createBaseClient()
 
-if (process.env['APP_ENV'] !== 'production') globalForPrisma.prisma = prisma
+if (process.env['NODE_ENV'] !== 'production') globalForPrisma.prisma = prisma
 
 // Chaining for Multi-Tenancy
-export const getTenantPrisma = (organizationId: string, branchId?: string) => {
-  const scopedClient = prisma.$extends(multiTenantExtension(organizationId, branchId))
+export const getTenantPrisma = (businessId: string, branchId?: string) => {
+  const scopedClient = prisma.$extends(multiTenantExtension(businessId, branchId))
   // We cast to 'any' first to break the strict link,
   // then to our intersection type to restore autocomplete.
   return scopedClient as unknown as TenantAwareClient<typeof scopedClient>

@@ -1,5 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: allowing any type for flexibility */
-import { and, eq, gt, ilike, or, toArray, useLiveQuery } from '@tanstack/react-db'
+import { and, count, eq, gt, type InitialQueryBuilder, ilike, not, or, toArray, useLiveQuery } from '@tanstack/react-db'
+import type { Prisma } from 'prisma/generated/prisma/client'
+import { ResourceType } from 'prisma/generated/prisma/enums'
 import {
   categoryCollection,
   inventoryCollection,
@@ -8,25 +10,80 @@ import {
   productVariantCollection,
   unitCollection,
 } from '@/db/collections'
-import type { PosProduct } from '../conversion/inventory-engine'
+import type { Prettify } from '../types'
 
-export const fetchPosProducts = (searchQuery: string | undefined) => {
+export interface fetchPosProductsProps {
+  searchQuery?: string | undefined
+  page: number
+  pageSize: number
+  all?: boolean
+}
+
+const posProductSchema = {
+  category: true,
+  baseUnit: true,
+  variants: {
+    include: {
+      inventory: true,
+      components: {
+        include: {
+          unit: true,
+          material: {
+            include: {
+              inventory: true,
+              product: true,
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.ProductInclude
+export type posProduct = Prettify<Prisma.ProductGetPayload<{ include: typeof posProductSchema }>>
+
+export const fetchPosProducts = ({ searchQuery, page, pageSize, all }: fetchPosProductsProps) => {
   const inventories = useLiveQuery(q => q.from({ inv: inventoryCollection }), [])
-  // searchQuery = 'Diet Soda'
+
+  const baseQuery = (q: InitialQueryBuilder) => {
+    if (all) return q.from({ product: productCollection }).where(({ product }) => not(eq(product.type, ResourceType.RAW_MATERIAL)))
+    else return q.from({ product: productCollection }).where(({ product }) => eq(product.isAvailable, true))
+  }
+
+  const totalCountResult = useLiveQuery(
+    q =>
+      baseQuery(q)
+        .join({ variant: productVariantCollection }, ({ product, variant }) => eq(product.id, variant.productId))
+        .where(({ variant, product }) =>
+          and(
+            gt(variant.price, 0),
+            or(searchQuery ? ilike(product.name, `%${searchQuery}%`) : undefined, searchQuery ? ilike(variant.name, `%${searchQuery}%`) : undefined),
+          ),
+        )
+        .distinct()
+        .leftJoin({ category: categoryCollection }, ({ product, category }) => eq(product.categoryId, category.id))
+        .leftJoin({ baseUnit: unitCollection }, ({ product, baseUnit }) => eq(product.baseUnitId, baseUnit.id))
+        .select(({ product }) => ({
+          total: count(product.id),
+        })),
+    [searchQuery],
+  )
 
   const result = useLiveQuery(
     q =>
-      q
-        .from({ product: productCollection })
-        .where(({ product }) => eq(product.isAvailable, true))
+      baseQuery(q)
         .join({ variant: productVariantCollection }, ({ product, variant }) => eq(product.id, variant.productId))
         .where(({ variant, product }) =>
-          and(gt(variant.price, 0), or(searchQuery ? ilike(product.name, searchQuery) : undefined, searchQuery ? ilike(variant.name, searchQuery) : undefined)),
+          and(
+            gt(variant.price, 0),
+            or(searchQuery ? ilike(product.name, `%${searchQuery}%`) : undefined, searchQuery ? ilike(variant.name, `%${searchQuery}%`) : undefined),
+          ),
         )
         .distinct()
         .leftJoin({ category: categoryCollection }, ({ product, category }) => eq(product.categoryId, category.id))
         .leftJoin({ baseUnit: unitCollection }, ({ product, baseUnit }) => eq(product.baseUnitId, baseUnit.id))
         .orderBy(({ product }) => product.name, 'desc')
+        .limit(pageSize)
+        .offset((page - 1) * pageSize)
         .select(({ product, baseUnit, category }) => ({
           ...product,
           category,
@@ -58,7 +115,7 @@ export const fetchPosProducts = (searchQuery: string | undefined) => {
               })),
           ),
         })),
-    [],
+    [searchQuery],
   )
 
   result.data.forEach(product => {
@@ -70,5 +127,10 @@ export const fetchPosProducts = (searchQuery: string | undefined) => {
     })
   })
 
-  return { ...result, data: result.data as unknown as PosProduct[] }
+  return {
+    ...result,
+    data: result.data as unknown as posProduct[],
+    totalItems: Math.max((totalCountResult.data?.[0]?.total ?? 0) - (searchQuery ? 0 : 2), 0),
+    isLoading: totalCountResult.isLoading || result.isLoading,
+  }
 }

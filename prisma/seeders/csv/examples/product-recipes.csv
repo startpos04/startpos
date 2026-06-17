@@ -1,0 +1,8 @@
+hostVariantId,materialVariantId,unitAbbreviation,quantityUsed,isAddon,priceOverride
+var-sisig-bowl,var-extra-rice,g,1,FALSE,
+var-chicken-rice,var-extra-rice,g,1,FALSE,
+var-chicken-rice,var-raw-chicken-pc,kg,1,FALSE,
+var-milktea-std,var-tapioca-pearls,g,1,FALSE,
+var-sisig-bowl,var-extra-rice,g,1,TRUE,30
+var-sisig-bowl,var-extra-egg,pcs,1,TRUE,
+var-milktea-std,var-tapioca-pearls,g,2,TRUE,40

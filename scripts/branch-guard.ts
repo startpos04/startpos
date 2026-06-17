@@ -1,3 +1,4 @@
+// fallow-ignore-file unused-file
 import { spawnSync } from 'node:child_process'
 
 // Get current branch name using standard Node child_process
@@ -10,11 +11,11 @@ const branch = result.stdout?.trim()
 const protectedBranches = ['main']
 
 if (branch && protectedBranches.includes(branch)) {
-  console.log(`\n\x1b[31m❌ PROTECTED BRANCH: ${branch}\x1b[0m`)
-  console.log('──────────────────────────────────────────────────────')
-  console.log(`Direct actions on "${branch}" are restricted.`)
-  console.log('Please use a feature branch (e.g., feat/my-task).')
-  console.log('──────────────────────────────────────────────────────\n')
+  console.info(`\n\x1b[31m❌ PROTECTED BRANCH: ${branch}\x1b[0m`)
+  console.info('──────────────────────────────────────────────────────')
+  console.info(`Direct actions on "${branch}" are restricted.`)
+  console.info('Please use a feature branch (e.g., feat/my-task).')
+  console.info('──────────────────────────────────────────────────────\n')
   process.exit(1)
 }
 

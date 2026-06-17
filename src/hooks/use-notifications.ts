@@ -1,11 +1,13 @@
 import { count, eq, useLiveInfiniteQuery, useLiveQuery } from '@tanstack/react-db'
 import type { Notification } from 'prisma/generated/prisma/browser'
-import { notificationsCollection } from '@/db/collections'
+import { toast } from 'sonner'
+import { notificationCollection } from '@/db/collections'
+import { LocalDBTransaction } from '@/db/local-db-transaction'
 
 export function useNotifications(pageSize = 10) {
   const { data: unread } = useLiveQuery(q =>
     q
-      .from({ notification: notificationsCollection })
+      .from({ notification: notificationCollection })
       .where(({ notification }) => eq(notification.isRead, false))
       .groupBy(({ notification }) => notification.isRead)
       .select(({ notification }) => ({
@@ -17,7 +19,7 @@ export function useNotifications(pageSize = 10) {
   const infiniteQuery = useLiveInfiniteQuery(
     q =>
       q
-        .from({ notification: notificationsCollection })
+        .from({ notification: notificationCollection })
         .orderBy(({ notification }) => notification.createdAt, 'desc')
         .select(({ notification }) => ({
           ...notification,
@@ -34,19 +36,28 @@ export function useNotifications(pageSize = 10) {
 
   // Mutation: Mark Single as Read
   const markAsRead = async (data: Notification) => {
-    const result = await notificationsCollection.update(data.id, draft => {
-      draft.isRead = true
-    })
+    const localDBTransaction = new LocalDBTransaction()
+    try {
+      await localDBTransaction.step(
+        notificationCollection.update(data.id, draft => {
+          draft.isRead = true
+        }),
+      )
 
-    if (result.error) throw new Error(result.error.message)
-    return { value: data, link: data.link }
+      return { value: data, link: data.link }
+    } catch (error) {
+      console.error('Transaction failed:', error)
+      toast.error('Failed to mark notification as read. Please try again.')
+
+      return null
+    }
   }
 
   // Mutation: Mark All as Read
   const markAllRead = async () => {
-    const unreadItems = [...notificationsCollection.values()].filter(n => !n.isRead)
+    const unreadItems = [...notificationCollection.values()].filter(n => !n.isRead)
     for (const item of unreadItems) {
-      await notificationsCollection.update(item.id, draft => {
+      await notificationCollection.update(item.id, draft => {
         draft.isRead = true
       })
     }

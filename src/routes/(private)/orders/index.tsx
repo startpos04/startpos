@@ -1,17 +1,40 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Clock, User } from 'lucide-react'
-import { useMemo } from 'react'
-import { getColumns } from '@/components/custom/data-view'
-import GridView from '@/components/custom/data-view/grid-view'
+import { useStore } from '@tanstack/react-store'
+import { Ban, CheckCheck, ChevronDown, Clock, CreditCard, DollarSign, Play, SquarePen, Undo2, User } from 'lucide-react'
+import { OrderStatus } from 'prisma/generated/prisma/browser'
+import { toast } from 'sonner'
+import { GridView } from '@/components/custom/data-view/grid-view'
+import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
+import { FeatureDisabledPage } from '@/components/pages/feature-disabled-page'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
 import { orderCollection } from '@/db/collections'
+import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import type { OverlayProps } from '@/lib/overlay'
+import { type OverlayProps, showModal } from '@/lib/overlay'
+import { createPosRefund } from '@/lib/queries/create-pos-refund'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
+import { cn } from '@/lib/utils'
+import { authStore } from '@/store/auth-store'
 import { ActiveOrdersHeader } from './-components/header'
+
+const statusVariants: Record<OrderStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  [OrderStatus.PENDING]: 'outline',
+  [OrderStatus.PREPARING]: 'default',
+  [OrderStatus.SERVED]: 'secondary',
+  [OrderStatus.CANCELLED]: 'destructive',
+}
 
 interface RouteComponentProps {
   onClose?: (() => void) | undefined
@@ -19,12 +42,17 @@ interface RouteComponentProps {
 }
 
 export const Route = createFileRoute('/(private)/orders/')({
-  component: () => (
-    <div className='py-6 space-y-6'>
-      <ActiveOrdersHeader />
-      <RouteComponent />
-    </div>
-  ),
+  component: () => {
+    const user = useStore(authStore, state => state.user)
+    if (!user.systemConfigs.ENABLE_ORDER) return <FeatureDisabledPage />
+
+    return (
+      <div className='py-6 space-y-6'>
+        <ActiveOrdersHeader />
+        <RouteComponent />
+      </div>
+    )
+  },
 })
 
 export function ActiveOrdersDialog({ open, onClose, onCancel }: OverlayProps & { onCancel?: () => void }) {
@@ -43,16 +71,6 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
   const navigate = useNavigate()
   const { data: orders = [], isLoading } = fetchActiveOrders()
 
-  const columns = useMemo(
-    () =>
-      getColumns<NonNullable<typeof orders>[number]>(h => [
-        h.accessor('orderNumber', { header: 'Order #' }),
-        h.accessor('status', { header: 'Status' }),
-        h.accessor('createdAt', { header: 'Time' }),
-      ]),
-    [],
-  )
-
   return (
     <>
       <div className='flex justify-between items-center px-4'>
@@ -68,30 +86,129 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
       <GridView<NonNullable<typeof orders>[number]>
         data={orders}
         isFetching={isLoading}
-        columns={columns}
         className='px-4'
         renderCard={row => {
           const order = row.original
 
-          const handleClick = () => {
+          // BACK TO PENDING STATUS
+          const handlePending = async () => {
+            const localDBTransaction = new LocalDBTransaction()
+
+            try {
+              await localDBTransaction.step(
+                orderCollection.update(order.id, draft => {
+                  draft.status = OrderStatus.PENDING
+                }),
+              )
+
+              toast.success('Order marked as pending')
+            } catch (error) {
+              console.error('Transaction failed:', error)
+              toast.error('Failed to update order. Please try again.')
+            }
+          }
+
+          // PREPARE ORDER
+          const handlePrepare = async () => {
+            const localDBTransaction = new LocalDBTransaction()
+
+            try {
+              await localDBTransaction.step(
+                orderCollection.update(order.id, draft => {
+                  draft.status = OrderStatus.PREPARING
+                }),
+              )
+
+              toast.success('Order marked as preparing')
+            } catch (error) {
+              console.error('Transaction failed:', error)
+              toast.error('Failed to update order. Please try again.')
+            }
+          }
+
+          // MARK AS SERVED
+          const handleServe = async () => {
+            showModal(WarningPrompt, {
+              title: 'Mark as Served',
+              description: 'Are you sure you want to mark this order as served?',
+              onConfirm: async () => {
+                const localDBTransaction = new LocalDBTransaction()
+
+                try {
+                  await localDBTransaction.step(
+                    orderCollection.update(order.id, draft => {
+                      draft.status = OrderStatus.SERVED
+                    }),
+                  )
+
+                  toast.success('Order marked as served')
+                  return true
+                } catch (error) {
+                  console.error('Transaction failed:', error)
+                  toast.error('Failed to update order. Please try again.')
+                }
+                return false
+              },
+            })
+          }
+
+          // PAY NOW
+          const handlePay = () => {
+            if (order.status !== 'SERVED') return
             onClose?.()
             navigate({ to: '/pos', search: prev => ({ ...prev, orderId: order.id }) })
           }
 
+          // Cancel Order
           const handleCancel = async () => {
-            if (confirm('Are you sure you want to cancel this order?')) {
-              await orderCollection.update(order.id, draft => {
-                draft.status = 'CANCELLED'
-              })
-              onCancel?.()
-            }
+            showModal(WarningPrompt, {
+              title: 'Cancel Order',
+              description: 'Are you sure you want to cancel this order?',
+              onConfirm: async () => {
+                const localDBTransaction = new LocalDBTransaction()
+
+                try {
+                  await localDBTransaction.step(
+                    orderCollection.update(order.id, draft => {
+                      draft.status = 'CANCELLED'
+                    }),
+                  )
+
+                  toast.success('Order cancelled successfully')
+                  onCancel?.()
+                  return true
+                } catch (error) {
+                  console.error('Transaction failed:', error)
+                  toast.error('Failed to cancel order. Please try again.')
+                }
+                return false
+              },
+            })
+          }
+
+          // Cancel Order
+          const handleRefund = () => {
+            showModal(WarningPrompt, {
+              title: 'Refund Order',
+              description: 'Are you sure you want to refund this order?',
+              onConfirm: async () => {
+                const result = await createPosRefund(order.transaction.id!)
+
+                if (result.error) {
+                  toast.error('Failed to process refund. Please try again.')
+                  return false
+                }
+
+                return true
+              },
+            })
           }
 
           return (
             <Card key={order.id} className='overflow-hidden border-l-4 border-l-primary gap-1'>
               <CardHeader className='flex flex-row items-center justify-between space-y-0'>
                 <CardTitle className='text-lg font-bold'>Order {order.orderNumber}</CardTitle>
-                <Badge variant={order.status === 'PREPARING' ? 'default' : 'secondary'}>{order.status}</Badge>
+                <Badge variant={statusVariants[order.status]}>{order.status}</Badge>
               </CardHeader>
 
               <CardContent className='space-y-2'>
@@ -107,6 +224,13 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
                       hour: '2-digit',
                       minute: '2-digit',
                     })}
+                  </span>
+                </div>
+
+                <div className='flex items-center text-sm gap-2'>
+                  <DollarSign className='h-4 w-4 text-muted-foreground' />
+                  <span className={cn('font-bold text-xs', order.transaction ? 'text-green-600' : 'text-amber-600')}>
+                    {order.transaction ? 'PAID' : 'UNPAID'}
                   </span>
                 </div>
 
@@ -138,22 +262,80 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
                   ))}
                 </div>
 
-                <div className='pt-4 space-y-2'>
-                  <button
-                    type='button'
-                    className='w-full bg-primary text-primary-foreground py-2 rounded-md font-semibold text-sm hover:opacity-90 transition-opacity cursor-pointer'
-                    onClick={handleClick}
-                  >
-                    Pay Now
-                  </button>
+                <div className='pt-4'>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant='outline' className='w-full flex justify-between items-center font-bold'>
+                        Actions
+                        <ChevronDown className='h-4 w-4 opacity-50' />
+                      </Button>
+                    </DropdownMenuTrigger>
 
-                  <button
-                    type='button'
-                    className='w-full py-2 text-muted-foreground font-bold hover:text-foreground hover:bg-muted rounded-md cursor-pointer'
-                    onClick={handleCancel}
-                  >
-                    Cancel
-                  </button>
+                    <DropdownMenuContent align='end' className='w-50'>
+                      <DropdownMenuLabel>Manage Order</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+
+                      {/* REVERT/BACK TO PENDING STATUS */}
+                      {!['PENDING', 'SERVED'].includes(order.status) && (
+                        <DropdownMenuItem onClick={handlePending}>
+                          <Undo2 className='mr-2 h-4 w-4' />
+                          <span>Back to Pending</span>
+                        </DropdownMenuItem>
+                      )}
+
+                      {/* PREPARE ORDER */}
+                      {order.status === OrderStatus.PENDING && (
+                        <DropdownMenuItem onClick={handlePrepare}>
+                          <Play className='mr-2 h-4 w-4 text-primary' />
+                          <span>Prepare Order</span>
+                        </DropdownMenuItem>
+                      )}
+
+                      {/* MARK AS SERVED */}
+                      {order.status === OrderStatus.PREPARING && (
+                        <DropdownMenuItem onClick={handleServe}>
+                          <CheckCheck className='mr-2 h-4 w-4 text-blue-600' />
+                          <span>Mark as Served</span>
+                        </DropdownMenuItem>
+                      )}
+
+                      {/* PAY NOW */}
+                      {!order.transaction && order.status !== OrderStatus.PENDING && (
+                        <DropdownMenuItem onClick={handlePay}>
+                          <CreditCard className='mr-2 h-4 w-4 text-green-600' />
+                          <span>Pay Now</span>
+                        </DropdownMenuItem>
+                      )}
+
+                      {/* UPDATE ORDER */}
+                      {!order.transaction && order.status === OrderStatus.PENDING && (
+                        <DropdownMenuItem onClick={handlePay}>
+                          <SquarePen className='mr-2 h-4 w-4 text-green-600' />
+                          <span>Update Order</span>
+                        </DropdownMenuItem>
+                      )}
+
+                      <DropdownMenuSeparator />
+
+                      {/* DESTRUCTIVE ACTIONS REFUND/CANCEL */}
+                      {order.status === OrderStatus.PENDING ? (
+                        <DropdownMenuItem
+                          onClick={order.transaction ? handleRefund : handleCancel}
+                          className='text-destructive focus:text-destructive focus:bg-destructive/10'
+                        >
+                          {order.transaction ? (
+                            <>
+                              <Undo2 className='mr-2 h-4 w-4' /> Refund Order
+                            </>
+                          ) : (
+                            <>
+                              <Ban className='mr-2 h-4 w-4' /> Cancel Order
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                      ) : null}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardContent>
             </Card>

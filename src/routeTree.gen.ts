@@ -9,16 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as publicRouteRouteImport } from './routes/(public)/route'
 import { Route as privateRouteRouteImport } from './routes/(private)/route'
 import { Route as publicIndexRouteImport } from './routes/(public)/index'
 import { Route as publicLoginRouteImport } from './routes/(public)/login'
 import { Route as privatedashboardRouteRouteImport } from './routes/(private)/(dashboard)/route'
+import { Route as privateTasksIndexRouteImport } from './routes/(private)/tasks/index'
 import { Route as privatePosIndexRouteImport } from './routes/(private)/pos/index'
 import { Route as privateOrdersIndexRouteImport } from './routes/(private)/orders/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as privatedashboardNotificationsRouteImport } from './routes/(private)/(dashboard)/notifications'
 import { Route as privatedashboardadminRouteRouteImport } from './routes/(private)/(dashboard)/(admin)/route'
+import { Route as privateTasksCreateIndexRouteImport } from './routes/(private)/tasks/create/index'
+import { Route as privateTasksTaskIdIndexRouteImport } from './routes/(private)/tasks/$taskId/index'
+import { Route as privatedashboardSettingsIndexRouteImport } from './routes/(private)/(dashboard)/settings/index'
 import { Route as privatedashboardsupervisorSalesReportsIndexRouteImport } from './routes/(private)/(dashboard)/(supervisor)/sales-reports/index'
 import { Route as privatedashboardsupervisorInventoryReportsIndexRouteImport } from './routes/(private)/(dashboard)/(supervisor)/inventory-reports/index'
 import { Route as privatedashboardadminProductsIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/products/index'
@@ -31,6 +36,11 @@ import { Route as privatedashboardadminIngredientsIngredientIdIndexRouteImport }
 import { Route as privatedashboardadminEmployeesCreateIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/create/index'
 import { Route as privatedashboardadminEmployeesEmployeeIdIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/$employeeId/index'
 
+const UnauthorizedRoute = UnauthorizedRouteImport.update({
+  id: '/unauthorized',
+  path: '/unauthorized',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const publicRouteRoute = publicRouteRouteImport.update({
   id: '/(public)',
   getParentRoute: () => rootRouteImport,
@@ -51,6 +61,11 @@ const publicLoginRoute = publicLoginRouteImport.update({
 } as any)
 const privatedashboardRouteRoute = privatedashboardRouteRouteImport.update({
   id: '/(dashboard)',
+  getParentRoute: () => privateRouteRoute,
+} as any)
+const privateTasksIndexRoute = privateTasksIndexRouteImport.update({
+  id: '/tasks/',
+  path: '/tasks/',
   getParentRoute: () => privateRouteRoute,
 } as any)
 const privatePosIndexRoute = privatePosIndexRouteImport.update({
@@ -77,6 +92,22 @@ const privatedashboardNotificationsRoute =
 const privatedashboardadminRouteRoute =
   privatedashboardadminRouteRouteImport.update({
     id: '/(admin)',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privateTasksCreateIndexRoute = privateTasksCreateIndexRouteImport.update({
+  id: '/tasks/create/',
+  path: '/tasks/create/',
+  getParentRoute: () => privateRouteRoute,
+} as any)
+const privateTasksTaskIdIndexRoute = privateTasksTaskIdIndexRouteImport.update({
+  id: '/tasks/$taskId/',
+  path: '/tasks/$taskId/',
+  getParentRoute: () => privateRouteRoute,
+} as any)
+const privatedashboardSettingsIndexRoute =
+  privatedashboardSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
     getParentRoute: () => privatedashboardRouteRoute,
   } as any)
 const privatedashboardsupervisorSalesReportsIndexRoute =
@@ -147,12 +178,17 @@ const privatedashboardadminEmployeesEmployeeIdIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/unauthorized': typeof UnauthorizedRoute
   '/login': typeof publicLoginRoute
   '/': typeof publicIndexRoute
   '/notifications': typeof privatedashboardNotificationsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/orders/': typeof privateOrdersIndexRoute
   '/pos/': typeof privatePosIndexRoute
+  '/tasks/': typeof privateTasksIndexRoute
+  '/settings/': typeof privatedashboardSettingsIndexRoute
+  '/tasks/$taskId/': typeof privateTasksTaskIdIndexRoute
+  '/tasks/create/': typeof privateTasksCreateIndexRoute
   '/employees/': typeof privatedashboardadminEmployeesIndexRoute
   '/ingredients/': typeof privatedashboardadminIngredientsIndexRoute
   '/products/': typeof privatedashboardadminProductsIndexRoute
@@ -166,12 +202,17 @@ export interface FileRoutesByFullPath {
   '/products/create/': typeof privatedashboardadminProductsCreateIndexRoute
 }
 export interface FileRoutesByTo {
+  '/unauthorized': typeof UnauthorizedRoute
   '/login': typeof publicLoginRoute
   '/': typeof publicIndexRoute
   '/notifications': typeof privatedashboardNotificationsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/orders': typeof privateOrdersIndexRoute
   '/pos': typeof privatePosIndexRoute
+  '/tasks': typeof privateTasksIndexRoute
+  '/settings': typeof privatedashboardSettingsIndexRoute
+  '/tasks/$taskId': typeof privateTasksTaskIdIndexRoute
+  '/tasks/create': typeof privateTasksCreateIndexRoute
   '/employees': typeof privatedashboardadminEmployeesIndexRoute
   '/ingredients': typeof privatedashboardadminIngredientsIndexRoute
   '/products': typeof privatedashboardadminProductsIndexRoute
@@ -188,6 +229,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(private)': typeof privateRouteRouteWithChildren
   '/(public)': typeof publicRouteRouteWithChildren
+  '/unauthorized': typeof UnauthorizedRoute
   '/(private)/(dashboard)': typeof privatedashboardRouteRouteWithChildren
   '/(public)/login': typeof publicLoginRoute
   '/(public)/': typeof publicIndexRoute
@@ -196,6 +238,10 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/(private)/orders/': typeof privateOrdersIndexRoute
   '/(private)/pos/': typeof privatePosIndexRoute
+  '/(private)/tasks/': typeof privateTasksIndexRoute
+  '/(private)/(dashboard)/settings/': typeof privatedashboardSettingsIndexRoute
+  '/(private)/tasks/$taskId/': typeof privateTasksTaskIdIndexRoute
+  '/(private)/tasks/create/': typeof privateTasksCreateIndexRoute
   '/(private)/(dashboard)/(admin)/employees/': typeof privatedashboardadminEmployeesIndexRoute
   '/(private)/(dashboard)/(admin)/ingredients/': typeof privatedashboardadminIngredientsIndexRoute
   '/(private)/(dashboard)/(admin)/products/': typeof privatedashboardadminProductsIndexRoute
@@ -211,12 +257,17 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/unauthorized'
     | '/login'
     | '/'
     | '/notifications'
     | '/api/auth/$'
     | '/orders/'
     | '/pos/'
+    | '/tasks/'
+    | '/settings/'
+    | '/tasks/$taskId/'
+    | '/tasks/create/'
     | '/employees/'
     | '/ingredients/'
     | '/products/'
@@ -230,12 +281,17 @@ export interface FileRouteTypes {
     | '/products/create/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/unauthorized'
     | '/login'
     | '/'
     | '/notifications'
     | '/api/auth/$'
     | '/orders'
     | '/pos'
+    | '/tasks'
+    | '/settings'
+    | '/tasks/$taskId'
+    | '/tasks/create'
     | '/employees'
     | '/ingredients'
     | '/products'
@@ -251,6 +307,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/(private)'
     | '/(public)'
+    | '/unauthorized'
     | '/(private)/(dashboard)'
     | '/(public)/login'
     | '/(public)/'
@@ -259,6 +316,10 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/(private)/orders/'
     | '/(private)/pos/'
+    | '/(private)/tasks/'
+    | '/(private)/(dashboard)/settings/'
+    | '/(private)/tasks/$taskId/'
+    | '/(private)/tasks/create/'
     | '/(private)/(dashboard)/(admin)/employees/'
     | '/(private)/(dashboard)/(admin)/ingredients/'
     | '/(private)/(dashboard)/(admin)/products/'
@@ -275,11 +336,19 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   privateRouteRoute: typeof privateRouteRouteWithChildren
   publicRouteRoute: typeof publicRouteRouteWithChildren
+  UnauthorizedRoute: typeof UnauthorizedRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/unauthorized': {
+      id: '/unauthorized'
+      path: '/unauthorized'
+      fullPath: '/unauthorized'
+      preLoaderRoute: typeof UnauthorizedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(public)': {
       id: '/(public)'
       path: ''
@@ -315,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardRouteRouteImport
       parentRoute: typeof privateRouteRoute
     }
+    '/(private)/tasks/': {
+      id: '/(private)/tasks/'
+      path: '/tasks'
+      fullPath: '/tasks/'
+      preLoaderRoute: typeof privateTasksIndexRouteImport
+      parentRoute: typeof privateRouteRoute
+    }
     '/(private)/pos/': {
       id: '/(private)/pos/'
       path: '/pos'
@@ -348,6 +424,27 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: ''
       preLoaderRoute: typeof privatedashboardadminRouteRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/tasks/create/': {
+      id: '/(private)/tasks/create/'
+      path: '/tasks/create'
+      fullPath: '/tasks/create/'
+      preLoaderRoute: typeof privateTasksCreateIndexRouteImport
+      parentRoute: typeof privateRouteRoute
+    }
+    '/(private)/tasks/$taskId/': {
+      id: '/(private)/tasks/$taskId/'
+      path: '/tasks/$taskId'
+      fullPath: '/tasks/$taskId/'
+      preLoaderRoute: typeof privateTasksTaskIdIndexRouteImport
+      parentRoute: typeof privateRouteRoute
+    }
+    '/(private)/(dashboard)/settings/': {
+      id: '/(private)/(dashboard)/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof privatedashboardSettingsIndexRouteImport
       parentRoute: typeof privatedashboardRouteRoute
     }
     '/(private)/(dashboard)/(supervisor)/sales-reports/': {
@@ -472,6 +569,7 @@ const privatedashboardadminRouteRouteWithChildren =
 interface privatedashboardRouteRouteChildren {
   privatedashboardadminRouteRoute: typeof privatedashboardadminRouteRouteWithChildren
   privatedashboardNotificationsRoute: typeof privatedashboardNotificationsRoute
+  privatedashboardSettingsIndexRoute: typeof privatedashboardSettingsIndexRoute
   privatedashboardsupervisorInventoryReportsIndexRoute: typeof privatedashboardsupervisorInventoryReportsIndexRoute
   privatedashboardsupervisorSalesReportsIndexRoute: typeof privatedashboardsupervisorSalesReportsIndexRoute
 }
@@ -479,6 +577,7 @@ interface privatedashboardRouteRouteChildren {
 const privatedashboardRouteRouteChildren: privatedashboardRouteRouteChildren = {
   privatedashboardadminRouteRoute: privatedashboardadminRouteRouteWithChildren,
   privatedashboardNotificationsRoute: privatedashboardNotificationsRoute,
+  privatedashboardSettingsIndexRoute: privatedashboardSettingsIndexRoute,
   privatedashboardsupervisorInventoryReportsIndexRoute:
     privatedashboardsupervisorInventoryReportsIndexRoute,
   privatedashboardsupervisorSalesReportsIndexRoute:
@@ -494,12 +593,18 @@ interface privateRouteRouteChildren {
   privatedashboardRouteRoute: typeof privatedashboardRouteRouteWithChildren
   privateOrdersIndexRoute: typeof privateOrdersIndexRoute
   privatePosIndexRoute: typeof privatePosIndexRoute
+  privateTasksIndexRoute: typeof privateTasksIndexRoute
+  privateTasksTaskIdIndexRoute: typeof privateTasksTaskIdIndexRoute
+  privateTasksCreateIndexRoute: typeof privateTasksCreateIndexRoute
 }
 
 const privateRouteRouteChildren: privateRouteRouteChildren = {
   privatedashboardRouteRoute: privatedashboardRouteRouteWithChildren,
   privateOrdersIndexRoute: privateOrdersIndexRoute,
   privatePosIndexRoute: privatePosIndexRoute,
+  privateTasksIndexRoute: privateTasksIndexRoute,
+  privateTasksTaskIdIndexRoute: privateTasksTaskIdIndexRoute,
+  privateTasksCreateIndexRoute: privateTasksCreateIndexRoute,
 }
 
 const privateRouteRouteWithChildren = privateRouteRoute._addFileChildren(
@@ -523,6 +628,7 @@ const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   privateRouteRoute: privateRouteRouteWithChildren,
   publicRouteRoute: publicRouteRouteWithChildren,
+  UnauthorizedRoute: UnauthorizedRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

@@ -17,12 +17,12 @@ type DelegateMethods = 'findMany' | 'findFirst' | 'findUnique' | 'create' | 'upd
 type DeepPrettify<T> = T extends Date ? T : T extends object ? { [K in keyof T]: DeepPrettify<T[K]> } & {} : T
 
 /**
- * DeepStrip: Recursively removes organizationId and branchId from the input types.
+ * DeepStrip: Recursively removes businessId and branchId from the input types.
  * This keeps your frontend code clean while the server handles the multi-tenancy.
  */
 type DeepStrip<T> = T extends object
   ? {
-      [K in keyof T as K extends 'organizationId' | 'branchId' ? never : K]: T[K] extends Array<infer U> ? Array<DeepStrip<U>> : DeepStrip<T[K]>
+      [K in keyof T as K extends 'businessId' | 'branchId' ? never : K]: T[K] extends Array<infer U> ? Array<DeepStrip<U>> : DeepStrip<T[K]>
     }
   : T
 
@@ -49,7 +49,7 @@ const crudServerFn = createServerFn({ method: 'POST' })
   .inputValidator((d: { table: string; action: string; args?: any }) => d)
   .handler(async ({ context, data }): Promise<{ value: any } | { error: any }> => {
     // The server ignores whatever IDs might have been sent and uses the Auth Context
-    const tenantPrisma = getTenantPrisma(context.user.organizationId, context.user.branchId!)
+    const tenantPrisma = getTenantPrisma(context.user.businessId, context.user.branchId!)
     const delegate = (tenantPrisma as any)[data.table]
 
     if (!delegate?.[data.action]) {

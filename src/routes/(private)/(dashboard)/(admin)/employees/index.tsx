@@ -5,9 +5,11 @@ import { useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 import { getColumns } from '@/components/custom/data-view'
 import { TableView } from '@/components/custom/data-view/table-view'
+import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { userCollection } from '@/db/collections'
+import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { showModal } from '@/lib/overlay'
 import { EmployeeDetailsDialog } from './$employeeId'
 import { CreateEmployeeDialog } from './create'
@@ -70,12 +72,28 @@ function RouteComponent() {
           header: () => <div className='text-right pr-4'>Actions</div>,
           cell: ({ row }) => {
             const handleDelete = async () => {
-              const result = await userCollection.update(row.original.id, draft => {
-                draft.deletedAt = new Date()
-              })
+              showModal(WarningPrompt, {
+                title: 'Delete Employee',
+                description: 'Are you sure you want to delete this employee? This will affect their access to the system.',
+                onConfirm: async () => {
+                  const localDBTransaction = new LocalDBTransaction()
 
-              if (result.error) toast.error(result.error.message)
-              else toast.success('Account successfully deleted')
+                  try {
+                    await localDBTransaction.step(
+                      userCollection.update(row.original.id, draft => {
+                        draft.deletedAt = new Date()
+                      }),
+                    )
+
+                    toast.success('Employee archived successfully')
+                    return true
+                  } catch (error) {
+                    console.error('Transaction failed:', error)
+                    toast.error('Failed to archive employee. Please try again.')
+                  }
+                  return false
+                },
+              })
             }
 
             return (

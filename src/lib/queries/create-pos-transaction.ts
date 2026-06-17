@@ -1,4 +1,6 @@
-import { SequenceType } from 'prisma/generated/prisma/enums'
+import type { Order, OrderItem } from 'prisma/generated/prisma/browser'
+import type { OrderItemAddon } from 'prisma/generated/prisma/client'
+import { InvoiceType, OrderStatus, OrderType, PaymentMethod, SequenceType, TaxCategory, TaxLineType, TransactionType } from 'prisma/generated/prisma/enums'
 import {
   inventoryCollection,
   inventoryMovementCollection,
@@ -7,229 +9,309 @@ import {
   orderItemCollection,
   paymentCollection,
   transactionCollection,
+  transactionTaxLineCollection,
 } from '@/db/collections'
+import { LocalDBTransaction } from '@/db/local-db-transaction'
+import type { PaymentLine } from '@/routes/(private)/pos/-components/payment-dialog'
 import { authStore } from '@/store/auth-store'
-import { VAT_RATE } from '../constants'
-import { InventoryEngine, type PosProduct } from '../conversion/inventory-engine'
+import { InventoryEngine, type posItem } from '../conversion/inventory-engine'
+import { TaxEngine } from '../conversion/tax-engine'
 import { CostingEngine } from '../costing'
-import type { CreateSaleInput } from '../server-fn/create-pos-transaction'
+import type { posProduct } from './fetch-pos-products'
 import { fetchStructuredId } from './fetch-structured-id'
 
-export const createPosTransaction = async (data: CreateSaleInput, posOrders: PosProduct[]) => {
-  const { user } = authStore.state
-  const productIds = data.items.map(item => item.productId)
-  const dbProducts = posOrders.filter(p => productIds.includes(p.id)) as PosProduct[]
-
-  // --- 1. VALIDATION & STOCK GUARD ---
-  const cartForValidation = data.items.map(item => {
-    const product = dbProducts.find(p => p.id === item.productId)
-    const variant = product?.variants?.find(v => v.id === item.variantId)
-    if (!product || !variant) throw new Error('Product or variant not found for validation')
-
-    return { cartId: item.cartId, product, variant, quantity: item.quantity, addons: item.addons }
-  })
-
-  for (const [variantId, amountNeeded] of Object.entries(InventoryEngine.getReservedMap(cartForValidation, []))) {
-    const { stock, name } = InventoryEngine.findPhysicalStock(variantId, dbProducts)
-    if (stock < amountNeeded) throw new Error(`Insufficient stock for ${name}. Needed: ${amountNeeded}, Available: ${stock}`)
+export interface CreateSaleInput {
+  orderId?: string
+  items: posItem[]
+  payments: PaymentLine[]
+  compliance: {
+    scPwdName?: string
+    scPwdIdNumber?: number
   }
+  customer: {
+    customerReference: string | null
+    notes?: string
+    customerId: string
+    buyerName?: string
+    buyerTaxId?: string
+    buyerAddress?: string
+  }
+}
 
-  // --- 2. TOTALS CALCULATION ---
-  const totals = data.items.reduce(
-    (acc, item) => {
-      const product = dbProducts.find(p => p.id === item.productId)!
-      const variant = product.variants.find(v => v.id === item.variantId)!
-      const basePrice = Number(variant.price)
+export const createPosTransaction = async (data: CreateSaleInput, posOrders: posProduct[]) => {
+  try {
+    const { user } = authStore.state
+    const productIds = data.items.map(item => item.product.id)
+    const dbProducts = posOrders.filter(p => productIds.includes(p.id)) as posProduct[]
+    const localDBTransaction = new LocalDBTransaction()
+
+    // --- 1. VALIDATION & STOCK GUARD ---
+    const cartForValidation = data.items.map(item => {
+      const product = dbProducts.find(p => p.id === item.product.id)
+      const variant = product?.variants?.find(v => v.id === item.variant.id)
+      if (!product || !variant) throw new Error('Product or variant not found for validation')
+
+      return { cartId: item.cartId, product, variant, quantity: item.quantity, addons: item.addons }
+    })
+
+    for (const [variantId, amountNeeded] of Object.entries(InventoryEngine.getReservedMap(cartForValidation, []))) {
+      const { stock, name } = InventoryEngine.findPhysicalStock(variantId, dbProducts)
+      if (stock < amountNeeded) throw new Error(`Insufficient stock for ${name}. Needed: ${amountNeeded}, Available: ${stock}`)
+    }
+
+    // --- 2. INTEGRATE TAX-ENGINE FOR TOTALS & TAX BREAKDOWNS ---
+    const engineLineItems = TaxEngine.buildLineItems(data.items)
+
+    // Calculate total cost side using the dataset reduce block
+    const totalDiscount = data.payments.reduce((total, { discount }) => total + (discount || 0), 0) || 0
+    const totalScPwdDiscount = data.payments.reduce((total, { scPwdDiscount }) => total + (scPwdDiscount || 0), 0) || 0
+
+    const totalCost = data.items.reduce((acc, item) => {
+      const product = dbProducts.find(p => p.id === item.product.id)!
+      const variant = product.variants.find(v => v.id === item.variant.id)!
       const baseCost = Number(variant.costPrice || 0)
+      const addonsCost = item.addons.reduce((sum, a) => {
+        const component = variant.components.find(c => c.id === a.id)!
+        return sum + Number(component.material.costPrice || 0) * a.quantityUsed
+      }, 0)
+      return acc + (baseCost + addonsCost) * item.quantity
+    }, 0)
 
-      const addonsTotals = item.addons.reduce(
-        (sum, a) => {
-          const component = variant.components.find(c => c.id === a.id)!
-          return {
-            price: sum.price + Number(component.priceOverride || 0) * a.quantityUsed,
-            cost: sum.cost + Number(component.material.costPrice || 0) * a.quantityUsed,
-          }
-        },
-        { price: 0, cost: 0 },
+    // Execute complete structural summary matrix including structural support for SC/PWD & general discounts
+    const vatSummary = TaxEngine.summarize(
+      engineLineItems,
+      {
+        vatRate: user.systemConfigs.VAT_RATE,
+        priceConfiguration: user.systemConfigs.PRICE_CONFIGURATION,
+        isVatRegistered: user.systemConfigs.IS_VAT_REGISTERED,
+      },
+      {
+        discount: totalDiscount,
+        scPwdDiscount: totalScPwdDiscount,
+      },
+    )
+
+    // --- 3. UPSERT ORDER ---
+    let order: Order | null = null
+    const orderId = data.orderId ?? crypto.randomUUID()
+    if (orderCollection.has(orderId)) {
+      await localDBTransaction.step(
+        orderCollection.update(orderId, draft => {
+          draft.customerReference = data.customer.customerReference || 'Walk-in Guest'
+        }),
       )
-
-      const lineSubtotal = (basePrice + addonsTotals.price) * item.quantity
-      const lineCost = (baseCost + addonsTotals.cost) * item.quantity
-      const lineTax = Math.round(lineSubtotal * VAT_RATE)
-
-      return { tax: acc.tax + lineTax, total: acc.total + (lineSubtotal + lineTax), cost: acc.cost + lineCost }
-    },
-    { tax: 0, total: 0, cost: 0 },
-  )
-
-  // --- 3. UPSERT ORDER ---
-  const orderId = data.orderId || crypto.randomUUID()
-  if (orderCollection.has(orderId)) {
-    await orderCollection.update(orderId, draft => {
-      draft.customerReference = data.customerReference || 'Walk-in Guest'
-      draft.status = 'SERVED'
-    })
-    // Clean up existing items/addons for rewrite
-    const itemsInOrder = [...orderItemCollection.values()].filter(i => i.orderId === orderId)
-    const itemIds = itemsInOrder.map(i => i.id)
-    if (itemIds.length > 0) {
-      const addonIds = [...orderItemAddonCollection.values()].filter(a => itemIds.includes(a.orderItemId)).map(a => a.id)
-      if (addonIds.length > 0) await orderItemAddonCollection.delete(addonIds)
-      await orderItemCollection.delete(itemIds)
-    }
-  } else {
-    const orderNumber = await fetchStructuredId(SequenceType.ORDER)
-    await orderCollection.insert({
-      id: orderId,
-      orderNumber,
-      status: 'SERVED',
-      orderType: 'DINE_IN',
-      customerReference: data.customerReference || 'Walk-in Guest',
-      organizationId: user.organization.id,
-      branchId: user.branch.id,
-      updatedAt: new Date(),
-      createdAt: new Date(),
-    })
-  }
-
-  // --- 4. CREATE ITEMS & ADDONS ---
-  for (const item of data.items) {
-    const product = dbProducts.find(p => p.id === item.productId)!
-    const variant = product.variants.find(v => v.id === item.variantId)!
-    const itemId = crypto.randomUUID()
-
-    await orderItemCollection.insert({
-      id: itemId,
-      orderId,
-      variantId: item.variantId,
-      quantity: item.quantity,
-      unitPrice: Number(variant.price),
-      unitCost: Number(variant.costPrice || 0),
-      unitId: product.baseUnitId,
-      organizationId: user.organization.id,
-      branchId: user.branch.id,
-      updatedAt: new Date(),
-      createdAt: new Date(),
-    })
-
-    if (item.addons.length > 0) {
-      const addons = item.addons.map(a => {
-        const comp = variant.components.find(c => c.id === a.id)!
-        return {
-          id: crypto.randomUUID(),
-          orderItemId: itemId,
-          addonId: comp.materialId,
-          quantity: a.quantityUsed,
-          priceAtSale: Number(comp.priceOverride || 0),
-          costAtSale: Number(comp.material.costPrice || 0),
-          organizationId: user.organization.id,
-          branchId: user.branch.id,
-          updatedAt: new Date(),
-          createdAt: new Date(),
-        }
-      })
-      await orderItemAddonCollection.insert(addons)
-    }
-  }
-
-  // --- 5. CREATE TRANSACTION & PAYMENT ---
-  const transactionId = crypto.randomUUID()
-  const invoiceNo = await fetchStructuredId(SequenceType.INVOICE)
-
-  await transactionCollection.insert({
-    id: transactionId,
-    invoiceNo,
-    orderId,
-    cashierId: user?.id,
-    totalAmount: totals.total,
-    taxAmount: totals.tax,
-    discount: 0,
-    totalCost: totals.cost,
-    status: 'COMPLETED',
-    type: 'SALE',
-    bufferRate: user.branch.bufferRate,
-    startTime: null,
-    endTime: null,
-    notes: null,
-    queueNumber: null,
-    providerId: null,
-    customerId: null,
-    sessionId: null,
-    organizationId: user.organization.id,
-    branchId: user.branch.id,
-    updatedAt: new Date(),
-    createdAt: new Date(),
-  })
-
-  await paymentCollection.insert({
-    id: crypto.randomUUID(),
-    transactionId,
-    referenceNo: '',
-    method: 'CASH',
-    amount: totals.total,
-    tendered: data.payment.tendered,
-    change: data.payment.tendered - totals.total,
-    organizationId: user.organization.id,
-    branchId: user.branch.id,
-    createdAt: new Date(),
-  })
-
-  // --- 6. DECREMENT INVENTORY (FIFO) ---
-  const reservedMap = InventoryEngine.getReservedMap(cartForValidation)
-  for (const [vId, totalQty] of Object.entries(reservedMap)) {
-    const productWithVariant = dbProducts.find(p => p.variants.some(v => v.id === vId))
-    const unit =
-      productWithVariant?.baseUnit ||
-      dbProducts
-        .flatMap(p => p.variants)
-        .flatMap(v => v.components)
-        .find(c => c.materialId === vId)?.unit
-
-    if (!unit) continue
-
-    const inventoryBatches = [...inventoryCollection.values()]
-      .filter(i => i.variantId === vId && i.quantity > 0)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-
-    const plan = CostingEngine.prepareConsumption('FIFO', { variantId: vId, quantity: totalQty, unit }, inventoryBatches)
-
-    for (const usage of plan.consumed || []) {
-      await inventoryCollection.update(usage.inventoryId, draft => {
-        draft.quantity -= usage.quantity
-      })
-
-      await inventoryMovementCollection.insert({
-        id: crypto.randomUUID(),
-        variantId: vId,
-        inventoryId: usage.inventoryId,
-        userId: user?.id,
-        type: 'OUT',
-        quantity: usage.quantity,
-        reason: `Sale: ${invoiceNo}`,
-        unitId: unit.id,
-        targetBranchId: null,
-        organizationId: user.organization.id,
+      // Clean up existing items/addons for rewrite
+      const itemsInOrder = [...orderItemCollection.values()].filter(i => i.orderId === orderId)
+      const itemIds = itemsInOrder.map(i => i.id)
+      if (itemIds.length > 0) {
+        const addonIds = [...orderItemAddonCollection.values()].filter(a => itemIds.includes(a.orderItemId)).map(a => a.id)
+        if (addonIds.length > 0) await localDBTransaction.step(orderItemAddonCollection.delete(addonIds))
+        await localDBTransaction.step(orderItemCollection.delete(itemIds))
+      }
+      order = orderCollection.get(orderId) as unknown as Order
+    } else {
+      order = {
+        id: orderId,
+        orderNumber: await fetchStructuredId(localDBTransaction, SequenceType.ORDER),
+        status: OrderStatus.PENDING,
+        orderType: OrderType.DINE_IN,
+        customerReference: data.customer.customerReference || 'Walk-in Guest',
+        businessId: user.business.id,
         branchId: user.branch.id,
         updatedAt: new Date(),
         createdAt: new Date(),
-      })
+      }
+      await localDBTransaction.step(orderCollection.insert(order))
     }
-  }
 
-  return {
-    data: {
-      transaction: transactionCollection.get(transactionId)!,
-      payments: [...paymentCollection.values()].filter(p => p.transactionId === transactionId),
-      order: {
-        ...orderCollection.get(orderId),
-        items: [...orderItemCollection.values()]
-          .filter(i => i.orderId === orderId)
-          .map(item => ({
-            ...item,
-            selectedAddons: [...orderItemAddonCollection.values()].filter(a => a.orderItemId === item.id),
-          })),
+    // --- 4. CREATE ITEMS & ADDONS ---
+    const items: (OrderItem & { selectedAddons: OrderItemAddon[] })[] = []
+    for (let i = 0; i < items.length; i++) {
+      const item = data.items[i]
+      if (!item) continue
+
+      const product = dbProducts.find(p => p.id === item.product.id)!
+      const variant = product.variants.find(v => v.id === item.variant.id)!
+      const itemId = crypto.randomUUID()
+      items[i] = {
+        id: itemId,
+        orderId,
+        variantId: item.variant.id,
+        quantity: item.quantity,
+        unitPrice: Number(variant.price),
+        unitCost: Number(variant.costPrice || 0),
+        unitId: product.baseUnitId,
+        businessId: user.business.id,
+        branchId: user.branch.id,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        selectedAddons: [],
+      }
+      const currentItem = items[i]
+      if (!currentItem) continue
+
+      await localDBTransaction.step(orderItemCollection.insert(currentItem))
+
+      if (item.addons.length > 0) {
+        currentItem.selectedAddons = item.addons.map(a => {
+          const comp = variant.components.find(c => c.id === a.id)!
+          return {
+            id: crypto.randomUUID(),
+            orderItemId: itemId,
+            addonId: comp.materialId,
+            quantity: a.quantityUsed,
+            priceAtSale: Number(comp.priceOverride || 0),
+            costAtSale: Number(comp.material.costPrice || 0),
+            businessId: user.business.id,
+            branchId: user.branch.id,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          }
+        })
+        await localDBTransaction.step(orderItemAddonCollection.insert(currentItem.selectedAddons))
+      }
+    }
+
+    // --- 5. CREATE TRANSACTION & PAYMENT MAP ---
+    const transaction = {
+      id: crypto.randomUUID(),
+      invoiceNo: await fetchStructuredId(localDBTransaction, SequenceType.INVOICE),
+      orderId,
+      type: TransactionType.SALE,
+      priceConfiguration: user.systemConfigs.PRICE_CONFIGURATION,
+      invoiceType: InvoiceType.SALES_INVOICE,
+      totalAmount: vatSummary.totalAmount,
+      totalCost,
+      taxAmount: vatSummary.taxAmount,
+      discount: totalDiscount + totalScPwdDiscount,
+      bufferRate: user.systemConfigs.BUFFER_RATE,
+      complianceData: {
+        ptuNumber: user.complianceRegistry.BIR_PTU_NUMBER,
+        ptuIssuedAt: user.complianceRegistry.BIR_PTU_ISSUED_AT,
+        vatableSales: vatSummary.vatableSales,
+        vatAmount: vatSummary.vatAmount,
+        vatExemptSales: vatSummary.vatExemptSales,
+        zeroRatedSales: vatSummary.zeroRatedSales,
+        scPwdName: data.compliance.scPwdName || null,
+        scPwdIdNumber: data.compliance.scPwdIdNumber || null,
+        scPwdDiscount: totalScPwdDiscount,
       },
-    },
+      cashierId: user.id,
+      businessId: user.business.id,
+      branchId: user.branch.id,
+      startTime: null,
+      endTime: null,
+      notes: data.customer.notes || null,
+      customerId: data.customer.customerId || null,
+      buyerName: data.customer.buyerName || null,
+      buyerTaxId: data.customer.buyerTaxId || null,
+      buyerAddress: data.customer.buyerAddress || null,
+      providerId: null,
+      sessionId: null,
+      originalTransactionId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    await localDBTransaction.step(transactionCollection.insert(transaction))
+
+    // --- DYNAMIC LEDGER POPULATION BY REVALUING CATEGORY BASES ---
+    const activeCategories = [
+      { category: TaxCategory.STANDARD, taxable: vatSummary.vatableSales, tax: vatSummary.vatAmount, rate: vatSummary.vatRate },
+      { category: TaxCategory.EXEMPT, taxable: vatSummary.vatExemptSales, tax: 0, rate: 0 },
+      { category: TaxCategory.ZERO_RATED, taxable: vatSummary.zeroRatedSales, tax: 0, rate: 0 },
+    ]
+
+    for (const item of activeCategories) {
+      if (item.taxable === 0 && item.tax === 0) continue
+
+      const taxLineEntry = {
+        id: crypto.randomUUID(),
+        transactionId: transaction.id,
+        type: TaxLineType.VAT,
+        category: item.category,
+        rate: item.rate,
+        taxableAmount: item.taxable,
+        taxAmount: item.tax,
+      }
+      await localDBTransaction.step(transactionTaxLineCollection.insert(taxLineEntry))
+    }
+
+    const payments = data.payments.map(payment => ({
+      id: crypto.randomUUID(),
+      transactionId: transaction.id,
+      referenceNo: payment.referenceNo || '',
+      method: payment.method || PaymentMethod.CASH,
+      platform: payment.platform || null,
+      amount: vatSummary.totalAmount,
+      tendered: payment.tendered,
+      change: payment.tendered - vatSummary.totalAmount,
+      businessId: user.business.id,
+      branchId: user.branch.id,
+      createdAt: new Date(),
+    }))
+    await localDBTransaction.step(paymentCollection.insert(payments))
+
+    // --- 6. DECREMENT INVENTORY (FIFO) ---
+    const reservedMap = InventoryEngine.getReservedMap(cartForValidation)
+    for (const [vId, totalQty] of Object.entries(reservedMap)) {
+      const productWithVariant = dbProducts.find(p => p.variants.some(v => v.id === vId))
+      const unit =
+        productWithVariant?.baseUnit ||
+        dbProducts
+          .flatMap(p => p.variants)
+          .flatMap(v => v.components)
+          .find(c => c.materialId === vId)?.unit
+
+      if (!unit) continue
+
+      const inventoryBatches = [...inventoryCollection.values()]
+        .filter(i => i.variantId === vId && i.quantity > 0)
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+
+      const plan = CostingEngine.prepareConsumption('FIFO', { variantId: vId, quantity: totalQty, unit }, inventoryBatches)
+
+      for (const usage of plan.consumed || []) {
+        await localDBTransaction.step(
+          inventoryCollection.update(usage.inventoryId, draft => {
+            draft.quantity -= usage.quantity
+          }),
+        )
+
+        await localDBTransaction.step(
+          inventoryMovementCollection.insert({
+            id: crypto.randomUUID(),
+            variantId: vId,
+            transactionId: transaction.id,
+            inventoryId: usage.inventoryId,
+            userId: user?.id,
+            type: 'OUT',
+            quantity: usage.quantity,
+            reason: `Sale: ${transaction.invoiceNo}`,
+            unitId: unit.id,
+            purchaseId: null,
+            locationId: null,
+            targetBranchId: null,
+            businessId: user.business.id,
+            branchId: user.branch.id,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+            operationalTaskId: null,
+          }),
+        )
+      }
+    }
+
+    return {
+      data: {
+        transaction,
+        payments,
+        order: { ...order, items },
+      },
+    }
+  } catch (error) {
+    console.error('Error in createPosTransaction:', error)
+
+    return { error }
   }
 }
 

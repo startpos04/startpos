@@ -124,6 +124,16 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 
+  @keyframes scale-bump {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.2);
+      color: var(--primary); /* Optional: shifts to emerald green at peak bump */
+    }
+  }
+
   @keyframes ping {
     75%,
     100% {
@@ -133,6 +143,7 @@
   }
 
   /* 2. Map the Keyframes to the Tailwind Utility Variable */
+  --animate-scale-bump: scale-bump 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   --animate-ping: ping 0.9s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 

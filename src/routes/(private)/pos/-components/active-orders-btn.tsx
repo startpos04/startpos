@@ -10,7 +10,7 @@ import { ActiveOrdersDialog } from '../../orders'
 export const ActiveOrdersButton = () => {
   const queryClient = useQueryClient()
   const { data: orders = [] } = fetchActiveOrders()
-  const { q: searchQuery } = useSearch({ from: '/(private)/pos/' })
+  const { search: searchQuery } = useSearch({ from: '/(private)/pos/' })
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()

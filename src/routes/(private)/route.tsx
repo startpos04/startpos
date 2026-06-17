@@ -2,6 +2,7 @@ import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { AppWrapper } from '@/components/custom/app-wrapper'
+import Loading from '@/components/custom/loading'
 import { localAuthCollection } from '@/db/local-auth'
 import { useIsOnline } from '@/hooks/use-is-online'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
@@ -38,5 +39,6 @@ function RouteComponent() {
     }
   }, [localAuths.isReady, navigate, user])
 
+  if (!user) return <Loading className='w-screen h-screen' />
   return <Outlet />
 }

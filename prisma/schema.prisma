@@ -9,27 +9,101 @@ datasource db {
   provider = "postgresql"
 }
 
-enum VatType {
-  VAT
-  NON_VAT
+enum TaxCategory {
+  STANDARD // 12% VAT in PH, 9% GST in SG
+  REDUCED // Lower tier taxes for specific essentials
+  EXEMPT // Tax-exempt goods
+  ZERO_RATED // 0% export taxes
+}
+
+enum TaxCalculationType {
+  VAT // Value Added Tax / GST (Value-added input/output)
+  SALES_TAX // Add-on consumption tax (US style)
+}
+
+enum BusinessType {
+  RESTAURANT // Focused on tables, addons, and modifiers
+  GROCERY // Focused on barcode scanning, bulk items, and quick checkout
+  RETAIL // General retail (clothing, hardware, etc.)
+}
+
+// --- NEW LOCALIZATION & CONFIG ENGINE ---
+enum ConfigScope {
+  BUSINESS
+  BRANCH
+  USER
+}
+
+enum ConfigKey {
+  LOW_STOCK_THRESHOLD
+  VAT_RATE
+  IS_VAT_REGISTERED
+  PRICE_CONFIGURATION
+  BUFFER_RATE
+  LOCALE
+  CURRENCY
+  ENABLE_PRINT_RECEIPT
+  ENABLE_ORDER_TAB
+  ENABLE_ORDER
+  ENABLE_CASH_RECONCILIATION
+  ENABLE_TASK
+}
+
+enum ComplianceKey {
+  BIR_TIN
+  BIR_PTU_NUMBER
+  BIR_PTU_ISSUED_AT
+}
+
+model SystemConfig {
+  id    String      @id @default(cuid())
+  key   ConfigKey
+  value String // Stored as a string representation (e.g., "20", "true", "INCLUSIVE", "en-PH")
+  scope ConfigScope
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String?
+  branch     Branch?   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, businessId, scope])
+  @@unique([key, branchId, scope])
+  @@unique([key, userId, scope])
+  @@index([key])
+  @@map("system_config")
+}
+
+model ComplianceRegistry {
+  id    String        @id @default(cuid())
+  key   ComplianceKey
+  value String
+
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String?
+  branch     Branch?   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, businessId])
+  @@unique([key, branchId])
+  @@map("compliance_registries")
 }
 
 // --- MULTI TENANCY ---
-model Organization {
-  id   String  @id @default(cuid())
-  name String
-  slug String  @unique
-  logo String?
-
-  tin               String?
-  businessStyle     String?
-  vatType           VatType @default(VAT)
-  permitToUse       String? // BIR PTU number
-  accreditedPrinter String? // BIR Accredited Printer number
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+model Business {
+  id           String       @id @default(cuid())
+  name         String
+  slug         String       @unique
+  logo         String?
+  businessType BusinessType
 
   members            Membership[]
   branches           Branch[]
@@ -52,47 +126,57 @@ model Organization {
   notifications      Notification[]
   sequenceCounters   SequenceCounter[]
   purchases          Purchase[]
+  operationalTasks   OperationalTask[]
+  systemConfigs      SystemConfig[] // Added for localized config
+  complianceRegistry ComplianceRegistry[] // Added for country compliance IDs
+  locations          Location[]
+  suppliers          Supplier[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([deletedAt])
-  @@map("organizations")
+  @@map("businesses")
 }
 
 model Branch {
   id      String  @id @default(cuid())
   name    String
   address String?
+  country String  @default("PH")
 
   serialNumber String // SN (printed receipts requirement)
   minInvoiceNo Int // for OR range tracking
   maxInvoiceNo Int
 
-  bufferRate Int     @default(20) // Percentage markup for profit calculations (e.g., 20 for 20%)
-  locale     String? // For future localization needs (e.g., "en-US", "fr-FR")
-  currency   String? // For future multi-currency support (e.g., "USD", "EUR")
+  branchCode String @default("00001") // The "00001" or "000" suffix for the TIN
 
-  lowStockThreshold Int @default(20)
+  members            Membership[]
+  inventory          Inventory[]
+  transactions       Transaction[]
+  orders             Order[] // Added for Branch-level orders
+  movements          InventoryMovement[]  @relation("SourceBranch")
+  receivedTransfers  InventoryMovement[]  @relation("DestinationBranch")
+  purchases          Purchase[]
+  vendorSessions     VendorSession[]
+  purchaseItems      PurchaseItem[]
+  orderItems         OrderItem[]
+  orderItemAddons    OrderItemAddon[]
+  payments           Payment[]
+  notifications      Notification[]
+  sequenceCounters   SequenceCounter[]
+  operationalTasks   OperationalTask[]
+  systemConfigs      SystemConfig[] // Added for localized config
+  complianceRegistry ComplianceRegistry[] // Added for country compliance IDs
+  locations          Location[]
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-
-  members           Membership[]
-  inventory         Inventory[]
-  transactions      Transaction[]
-  orders            Order[] // Added for Branch-level orders
-  movements         InventoryMovement[] @relation("SourceBranch")
-  receivedTransfers InventoryMovement[] @relation("DestinationBranch")
-  purchases         Purchase[]
-  vendorSessions    VendorSession[]
-  purchaseItems     PurchaseItem[]
-  orderItems        OrderItem[]
-  orderItemAddons   OrderItemAddon[]
-  payments          Payment[]
-  notifications     Notification[]
-  sequenceCounters  SequenceCounter[]
 
   @@index([deletedAt])
   @@map("branches")
@@ -105,17 +189,16 @@ model Membership {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  branchId String?
-  branch   Branch? @relation(fields: [branchId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String?
+  branch     Branch?  @relation(fields: [branchId], references: [id])
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  @@unique([userId, organizationId])
+  @@unique([userId, businessId])
   @@index([deletedAt])
   @@map("memberships")
 }
@@ -136,10 +219,6 @@ model User {
   image         String?
   role          Role    @default(CASHIER)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
   sessions           Session[]
   accounts           Account[]
   processedSales     Transaction[]       @relation("CashierRelation")
@@ -148,6 +227,16 @@ model User {
   memberships        Membership[]
   vendorSessions     VendorSession[]
   notifications      Notification[]
+  createdTasks       OperationalTask[]   @relation("TaskCreator")
+  approvedTasks      OperationalTask[]   @relation("TaskApprover")
+  fulfilledTasks     OperationalTask[]   @relation("TaskClerk")
+  reviewedTasks      OperationalTask[]   @relation("TaskReviewer")
+  canceledTasks      OperationalTask[]   @relation("TaskCanceler")
+  systemConfigs      SystemConfig[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([deletedAt])
   @@map("users")
@@ -157,15 +246,15 @@ model User {
 
 // Need for better auth management, but can be extended for other purposes like tracking user sessions, devices, etc.
 model Session {
-  id             String   @id @default(cuid())
-  expiresAt      DateTime
-  token          String   @unique
-  ipAddress      String?
-  userAgent      String?
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organizationId String
-  branchId       String
+  id         String   @id @default(cuid())
+  expiresAt  DateTime
+  token      String   @unique
+  ipAddress  String?
+  userAgent  String?
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId String
+  branchId   String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -179,8 +268,8 @@ model Account {
   accountId  String
   providerId String
   userId     String
-  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   password   String?
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -196,17 +285,27 @@ enum ResourceType {
   BUNDLE
 }
 
+enum VariantAttributeType {
+  SIZE // e.g., Small, Medium, Large, 12oz, 1L
+  COLOR // e.g., Red, Blue, Black
+  FLAVOR // e.g., Vanilla, Chocolate, Spicy
+  MATERIAL // e.g., Cotton, Plastic, Stainless Steel
+  PORTION // e.g., Single Shot, Double, Extra Rice
+  STYLE // e.g., Matte, Glossy, Long Sleeve
+  UNSPECIFIED // Fallback tier for custom default single-item variants
+}
+
 model Category {
-  id             String @id @default(cuid())
-  name           String @unique
-  organizationId String
+  id         String @id @default(cuid())
+  name       String @unique
+  businessId String
+
+  products Product[]
+  business Business  @relation(fields: [businessId], references: [id])
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-
-  products     Product[]
-  organization Organization @relation(fields: [organizationId], references: [id])
 
   @@index([deletedAt])
   @@map("categories")
@@ -232,8 +331,8 @@ model Product {
 
   variants ProductVariant[]
 
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  organizationId String
+  business   Business @relation(fields: [businessId], references: [id])
+  businessId String
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -248,12 +347,13 @@ model ProductVariant {
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  name        String?
-  image       String?
-  sku         String? @unique
-  price       Int     @db.Integer // Price charged to customers (in cents to avoid float issues)
-  costPrice   Int     @default(0) @db.Integer // Cost to acquire/make the product (in cents)
-  variantType String?
+  name          String?
+  image         String?
+  sku           String?              @unique
+  price         Int                  @db.Integer // Price charged to customers (in cents to avoid float issues)
+  costPrice     Int                  @default(0) @db.Integer // Cost to acquire/make the product (in cents)
+  attributeType VariantAttributeType @default(UNSPECIFIED)
+  taxCategory   TaxCategory          @default(STANDARD) // Broadened categorization for multi-country support
 
   lowStockThreshold Int?
 
@@ -267,14 +367,14 @@ model ProductVariant {
   productUnits       ProductUnit[]
   purchaseItems      PurchaseItem[]
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  @@index([organizationId, productId])
+  @@index([businessId, sku])
   @@map("product_variants")
 }
 
@@ -293,15 +393,15 @@ model ProductComponent {
   host     ProductVariant @relation("ParentVariant", fields: [hostId], references: [id])
   material ProductVariant @relation("ComponentVariant", fields: [materialId], references: [id])
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@unique([hostId, materialId, isAddon])
-  @@index([organizationId])
+  @@index([businessId])
   @@map("product_components")
 }
 
@@ -323,13 +423,7 @@ model Unit {
 
   conversionFactor Float   @default(1)
   isBaseUnit       Boolean @default(false)
-  organizationId   String
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  organization  Organization        @relation(fields: [organizationId], references: [id])
   products      Product[]           @relation("ProductBaseUnit")
   components    ProductComponent[]
   inventory     Inventory[]
@@ -337,6 +431,13 @@ model Unit {
   orderItems    OrderItem[]
   productUnits  ProductUnit[]
   purchaseItems PurchaseItem[]
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([deletedAt])
   @@map("units")
@@ -349,34 +450,61 @@ model ProductUnit {
   isPurchaseUnit Boolean @default(false)
   isSalesUnit    Boolean @default(true)
 
+  conversionFactor Float @default(1)
+
   variant ProductVariant @relation(fields: [variantId], references: [id])
   unit    Unit           @relation(fields: [unitId], references: [id])
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
 
   @@unique([variantId, unitId])
-  @@index([organizationId])
+  @@index([businessId])
   @@map("product_units")
 }
 
 // --- PURCHASING (EXPENDITURE TRACKING) ---
+model Supplier {
+  id        String  @id @default(cuid())
+  name      String // e.g., "San Miguel Corp", "Mega Q-Mart Wholesale"
+  taxId     String? // Supplier's TIN for cost-side tax audit compliance
+  contactNo String?
+  email     String?
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  purchases Purchase[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([name, businessId]) // Clean tenant scope
+  @@map("suppliers")
+}
+
 model Purchase {
   id         String  @id @default(cuid())
   purchaseId String
-  sourceName String? // e.g. "Wholesale Mart", "Vendor X"
   totalCost  Int // Total cost of the purchase (in cents)
   notes      String?
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  branchId       String
-  branch         Branch       @relation(fields: [branchId], references: [id])
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  items              PurchaseItem[]
+  inventoryMovements InventoryMovement[]
+  operationalTask    OperationalTask?    @relation(fields: [operationalTaskId], references: [id])
+  operationalTaskId  String?
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  items PurchaseItem[]
 
   @@map("purchases")
 }
@@ -392,12 +520,12 @@ model PurchaseItem {
   unit       Unit           @relation(fields: [unitId], references: [id])
   unitCost   Int
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  branchId       String
-  branch         Branch       @relation(fields: [branchId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
 
-  @@index([organizationId, branchId])
+  @@index([businessId, branchId])
   @@map("purchase_items")
 }
 
@@ -407,7 +535,32 @@ enum MovementType {
   OUT // Sale, Usage
   ADJUST // Manual Correction
   WASTE // Damage, Expiry
-  TRANSFER // Movement between branches (Main Kitchen to Cart)
+  EXTERNAL_TRANSFER // Movement between branches (Main Kitchen to Cart)
+  INTERNAL_TRANSFER // Movement between rooms in the SAME branch
+}
+
+model Location {
+  id          String  @id @default(cuid())
+  name        String // e.g., "Warehouse A", "Main Counter Freezer", "Display Rack 1"
+  description String?
+  contact     String?
+  address     String?
+
+  inventories        Inventory[]
+  inventoryMovements InventoryMovement[]
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([name, branchId])
+  @@index([deletedAt])
+  @@map("locations")
 }
 
 model Inventory {
@@ -420,20 +573,22 @@ model Inventory {
   expiryDate  DateTime?
   quantity    Float
   costPrice   Int            @default(0) // Cost per unit (in cents) for this specific batch
-  location    String?
 
-  lastRestocked DateTime @default(now())
-  branch        Branch   @relation(fields: [branchId], references: [id])
-  branchId      String
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  organizationId     String
-  organization       Organization        @relation(fields: [organizationId], references: [id])
   inventoryMovements InventoryMovement[] @relation("SourceInventory")
 
-  @@index([organizationId, branchId])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branch     Branch   @relation(fields: [branchId], references: [id])
+  branchId   String
+
+  lastRestocked DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([businessId, branchId, variantId])
   @@map("inventory")
 }
 
@@ -452,19 +607,30 @@ model InventoryMovement {
   inventoryId String
   inventory   Inventory @relation("SourceInventory", fields: [inventoryId], references: [id])
 
-  branchId String
-  branch   Branch @relation("SourceBranch", fields: [branchId], references: [id])
-
   targetBranchId String?
   targetBranch   Branch? @relation("DestinationBranch", fields: [targetBranchId], references: [id])
+
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  transactionId String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+
+  purchaseId String?
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id])
+
+  operationalTask   OperationalTask? @relation(fields: [operationalTaskId], references: [id])
+  operationalTaskId String?
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation("SourceBranch", fields: [branchId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-
-  @@index([organizationId, branchId])
+  @@index([businessId, branchId, variantId, createdAt])
   @@map("inventory_movements")
 }
 
@@ -476,14 +642,17 @@ model Customer {
   phone       String?
   dateOfBirth DateTime?
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  taxId   String? // Abstracted from tin (Required for Corporate Sales globally)
+  address String? // Required for large-value billing tracking across borders
+
+  transactions Transaction[]
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-
-  transactions Transaction[]
 
   @@index([deletedAt])
   @@map("customers")
@@ -514,15 +683,16 @@ model Order {
 
   items OrderItem[]
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  branchId       String
-  branch         Branch       @relation(fields: [branchId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([organizationId, branchId])
+  @@index([businessId, branchId])
+  @@index([status, createdAt])
   @@map("orders")
 }
 
@@ -533,16 +703,28 @@ enum TransactionType {
   ADJUSTMENT
 }
 
-enum TransactionStatus {
-  COMPLETED
-  CANCELLED
+enum PriceConfiguration {
+  INCLUSIVE // Tax is already in the price (Retail standard)
+  EXCLUSIVE // Tax is added on top of the price (Corporate/Service standard)
+}
+
+enum InvoiceType {
+  SALES_INVOICE // For goods
+  COLLECTION_RECEIPT // For services (common BIR/Global distinction)
+}
+
+enum TaxLineType {
+  VAT // Value Added Tax (PH)
+  GST // Goods and Services Tax (SG)
+  SALES_TAX // Local/State Sales Tax (US)
 }
 
 model Transaction {
-  id        String            @id @default(cuid())
-  invoiceNo String            @unique @default(cuid())
-  type      TransactionType   @default(SALE)
-  status    TransactionStatus @default(COMPLETED)
+  id                 String             @id @default(cuid())
+  invoiceNo          String             @unique
+  type               TransactionType    @default(SALE)
+  priceConfiguration PriceConfiguration @default(INCLUSIVE)
+  invoiceType        InvoiceType        @default(SALES_INVOICE)
 
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id])
@@ -560,30 +742,57 @@ model Transaction {
   endTime   DateTime?
 
   // Contextual Data
-  notes       String? @db.Text // Clinical notes, room requests, etc.
-  queueNumber Int?    @default(autoincrement())
+  notes String? @db.Text // Clinical notes, room requests, etc.
 
-  cashierId  String
-  cashier    User           @relation("CashierRelation", fields: [cashierId], references: [id])
-  providerId String?
-  provider   User?          @relation("ServiceProvider", fields: [providerId], references: [id])
-  customerId String?
-  customer   Customer?      @relation(fields: [customerId], references: [id])
+  // Dynamic Compliance & Regional Data Bucket
+  // Holds context metrics safely (e.g., PH Senior/PWD entries, custom buyer fields)
+  // PH Format: { "scPwdId": "123", "scPwdName": "Name", "scPwdDiscount": 500, "buyerTin": "000-00" }
+  complianceData Json? @default("{}")
+
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  buyerName    String?
+  buyerTaxId   String?
+  buyerAddress String?
+
+  cashierId             String
+  cashier               User                 @relation("CashierRelation", fields: [cashierId], references: [id])
+  providerId            String?
+  provider              User?                @relation("ServiceProvider", fields: [providerId], references: [id])
+  sessionId             String?
+  session               VendorSession?       @relation(fields: [sessionId], references: [id])
+  originalTransactionId String?
+  originalTransaction   Transaction?         @relation("RefundReference", fields: [originalTransactionId], references: [id])
+  refunds               Transaction[]        @relation("RefundReference")
+  payments              Payment[]
+  taxLines              TransactionTaxLine[] // Replaces hardcoded PH VAT breakdowns natively
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
   branchId   String
-  branch     Branch         @relation(fields: [branchId], references: [id])
-  sessionId  String?
-  session    VendorSession? @relation(fields: [sessionId], references: [id])
+  branch     Branch   @relation(fields: [branchId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  inventoryMovements InventoryMovement[]
 
-  payments Payment[]
-
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-
-  @@index([organizationId, branchId])
+  @@index([businessId, branchId, createdAt])
+  @@index([cashierId])
   @@map("transactions")
+}
+
+model TransactionTaxLine {
+  id            String      @id @default(cuid())
+  type          TaxLineType
+  category      TaxCategory
+  rate          Float // e.g., 12.0, 9.0
+  taxableAmount Int // Net amount subjected to this specific rate tier
+  taxAmount     Int // Computed tax component collected
+
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("transaction_tax_lines")
 }
 
 model OrderItem {
@@ -604,15 +813,16 @@ model OrderItem {
 
   selectedAddons OrderItemAddon[]
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  branchId       String
-  branch         Branch       @relation(fields: [branchId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([organizationId, branchId])
+  @@index([orderId])
+  @@index([businessId, orderId])
   @@map("order_items")
 }
 
@@ -627,15 +837,17 @@ model OrderItemAddon {
   priceAtSale Int // Price charged for this addon at time of sale (in cents)
   costAtSale  Int            @default(0) // Cost of this addon at time of sale (in cents)
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  branchId       String
-  branch         Branch       @relation(fields: [branchId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([organizationId, branchId])
+  @@index([orderItemId])
+  @@index([businessId, orderItemId])
+  @@index([businessId, branchId])
   @@map("order_item_addons")
 }
 
@@ -647,25 +859,30 @@ enum SessionStatus {
 }
 
 model VendorSession {
-  id       String @id @default(cuid())
-  userId   String
-  user     User   @relation(fields: [userId], references: [id])
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  startTime   DateTime      @default(now())
-  endTime     DateTime?
-  openingCash Int           @default(0)
-  closingCash Int?
-  status      SessionStatus @default(OPEN)
-  notes       String?
+  startTime    DateTime      @default(now())
+  endTime      DateTime?
+  openingCash  Int           @default(0)
+  closingCash  Int?
+  expectedCash Int?
+  verifiedCash Int?
+  status       SessionStatus @default(OPEN)
+  notes        String?
 
   transactions Transaction[]
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  operationalTask   OperationalTask @relation(fields: [operationalTaskId], references: [id])
+  operationalTaskId String          @unique
 
-  @@index([organizationId, branchId])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  @@index([businessId, branchId])
   @@map("vendor_sessions")
 }
 
@@ -682,19 +899,20 @@ model Payment {
   tendered    Int // The raw amount handed over (for cash)
   change      Int // Tendered - amount
   method      PaymentMethod @default(CASH)
+  platform    String?
   referenceNo String? // Reference # for GCash/Maya/Cards
 
   transactionId String
   transaction   Transaction @relation(fields: [transactionId], references: [id])
 
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
   createdAt DateTime @default(now())
 
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  branchId       String
-  branch         Branch       @relation(fields: [branchId], references: [id])
-
-  @@index([organizationId, branchId])
+  @@index([businessId, branchId])
   @@map("payments")
 }
 
@@ -706,11 +924,19 @@ enum NotificationPriority {
   URGENT
 }
 
+enum NotificationType {
+  LOW_STOCK
+  NEW_ORDER
+  SYSTEM_ALERT
+  TASK_ASSIGNED
+  COMPLIANCE_REMINDER
+}
+
 model Notification {
   id       String               @id @default(cuid())
   title    String
   message  String
-  type     String // e.g., "LOW_STOCK", "NEW_ORDER", "SYSTEM"
+  type     NotificationType
   priority NotificationPriority @default(MEDIUM)
   isRead   Boolean              @default(false)
   link     String? // URL or App Route to redirect the user (e.g., /orders/123)
@@ -721,15 +947,15 @@ model Notification {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Scoping (Important for Multi-tenancy)
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  branchId       String?
-  branch         Branch?      @relation(fields: [branchId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String?
+  branch     Branch?  @relation(fields: [branchId], references: [id])
 
   createdAt DateTime @default(now())
 
   @@index([userId, isRead])
-  @@index([organizationId])
+  @@index([businessId])
   @@map("notifications")
 }
 
@@ -739,27 +965,104 @@ enum SequenceType {
   PURCHASE
   STOCK_TRANSFER
   COLLECTION_RECEIPT
+  REFUND
 }
 
 model SequenceCounter {
-  id             String       @id @default(cuid())
-  organizationId String
-  branchId       String
-  type           SequenceType // Changed from String to SequenceType
+  id         String       @id @default(cuid())
+  businessId String
+  branchId   String
+  type       SequenceType // Changed from String to SequenceType
 
   // Tracking time-based resets
   year  Int
   month Int? // Optional: for monthly reporting
-  day   Int? // REQUIRED: for daily kitchen order resets (e.g., #01, #02)
+  day   Int? // Optional: Only used if type == ORDER
 
   lastNumber Int @default(0)
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  branch       Branch       @relation(fields: [branchId], references: [id])
+  business Business @relation(fields: [businessId], references: [id])
+  branch   Branch   @relation(fields: [branchId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([organizationId, branchId, type, year, month, day])
+  @@unique([businessId, branchId, type, year, month, day])
   @@map("sequence_counters")
+}
+
+// --- TASKS MANAGEMENT ---
+enum TaskType {
+  // Inventory Movements
+  SHELF_REFILL // Bodega -> Front Shelf
+  PURCHASE_REQUEST // External Supplier -> Store
+  BRANCH_TRANSFER // Branch A -> Branch B
+
+  // Inventory Control
+  STOCK_COUNT // Physical audit of stock
+  WASTE_DISPOSAL // Writing off damaged/expired goods
+
+  // Financial Control
+  CASH_RECONCILIATION // Auditing the cash drawer
+
+  GENERAL_CHORE // For general task
+}
+
+enum TaskStatus {
+  DRAFT // Created by any employee; saved locally/private, hidden from main queues until submitted.
+  PENDING // Submitted to management; actively awaiting review, modification, or authorization.
+  APPROVED // Authorized by management; green-lit for execution and visible on the designated Clerk's to-do list.
+  IN_PROGRESS // The designated Clerk has physically begun working on the task.
+  FULFILLED // The physical work is finished, and inventory/cash data updates have been applied to the DB.
+  REVIEWED // Post-completion audit completed; double-checked, verified, and locked by a supervisor.
+  CANCELLED // Rejected by management or scrapped by the creator before execution; terminal state.
+}
+
+model OperationalTask {
+  id      String     @id @default(cuid())
+  type    TaskType
+  status  TaskStatus @default(DRAFT)
+  notes   String?
+  dueDate DateTime?
+
+  // Accountability
+  creatorId  String?
+  creator    User?   @relation("TaskCreator", fields: [creatorId], references: [id])
+  approverId String?
+  approver   User?   @relation("TaskApprover", fields: [approverId], references: [id])
+  clerkId    String?
+  clerk      User?   @relation("TaskClerk", fields: [clerkId], references: [id])
+  reviewerId String?
+  reviewer   User?   @relation("TaskReviewer", fields: [reviewerId], references: [id])
+  cancelerId String?
+  canceler   User?   @relation("TaskCanceler", fields: [cancelerId], references: [id])
+
+  // The "Context"
+  // Store variantId, purchaseId, vendorSessionId, etc., inside this JSON
+  // Example: { "variantId": "123", "source": "Backroom" }
+  metadata Json? @default("{}")
+
+  approvedAt   DateTime?
+  inProgressAt DateTime?
+  fulfilledAt  DateTime?
+  reviewedAt   DateTime?
+  canceledAt   DateTime?
+
+  purchases          Purchase[]
+  vendorSessions     VendorSession[]
+  inventoryMovements InventoryMovement[]
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, branchId, status])
+  @@index([type])
+  @@index([clerkId])
+  @@index([reviewerId])
+  @@map("operational_tasks")
 }

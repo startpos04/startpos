@@ -8,7 +8,7 @@ import { Prisma } from 'prisma/generated/prisma/client'
  */
 type StripTenant<T> = T extends object
   ? {
-      [K in keyof T]?: K extends 'organizationId' | 'branchId' ? T[K] | undefined | null : T[K] extends (infer U)[] ? StripTenant<U>[] : StripTenant<T[K]>
+      [K in keyof T]?: K extends 'businessId' | 'branchId' ? T[K] | undefined | null : T[K] extends (infer U)[] ? StripTenant<U>[] : StripTenant<T[K]>
     }
   : T
 
@@ -25,13 +25,13 @@ export type TenantAwareClient<T> = {
         : T[K]
 }
 
-export const multiTenantExtension = (organizationId: string, branchId?: string) => {
+export const multiTenantExtension = (businessId: string, branchId?: string) => {
   return Prisma.defineExtension({
     name: 'multiTenant',
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }: any) {
-          const systemModels = ['Organization', 'User', 'Account', 'Session']
+          const systemModels = ['Business', 'User', 'Account', 'Session']
           if (systemModels.includes(model)) return query(args)
 
           const modelKey = model as keyof typeof SCHEMA_METADATA
@@ -49,7 +49,7 @@ export const multiTenantExtension = (organizationId: string, branchId?: string) 
             const itemsToProcess = Array.isArray(data) ? data : [data]
 
             itemsToProcess.forEach(item => {
-              if (meta.hasOrg) item.organizationId = organizationId
+              if (meta.hasOrg) item.businessId = businessId
               if (meta.hasBranch && branchId) item.branchId = branchId
             })
 
@@ -77,14 +77,14 @@ export const multiTenantExtension = (organizationId: string, branchId?: string) 
                           // IMPORTANT: Inject into the 'where' block to ensure tenant isolation
                           if (item.where) {
                             const nestedMeta = SCHEMA_METADATA[nestedModelName as keyof typeof SCHEMA_METADATA]
-                            if (nestedMeta?.hasOrg) item.where.organizationId = organizationId
+                            if (nestedMeta?.hasOrg) item.where.businessId = businessId
                           }
                         })
                       } else if (op === 'connectOrCreate') {
                         const items = Array.isArray(nestedData[op]) ? nestedData[op] : [nestedData[op]]
                         items.forEach(item => {
                           if (item.create) injectIds(item.create, nestedModelName)
-                          if (item.where && meta.hasOrg) item.where.organizationId = organizationId
+                          if (item.where && meta.hasOrg) item.where.businessId = businessId
                         })
                       } else {
                         const items = Array.isArray(nestedData[op]) ? nestedData[op] : [nestedData[op]]
@@ -122,11 +122,11 @@ export const multiTenantExtension = (organizationId: string, branchId?: string) 
           if (filterOps.includes(operation)) {
             args.where = args.where || {}
 
-            if (args.where.organizationId && args.where.organizationId !== organizationId) {
-              throw new Error(`Unauthorized access to Organization ${args.where.organizationId}`)
+            if (args.where.businessId && args.where.businessId !== businessId) {
+              throw new Error(`Unauthorized access to Business ${args.where.businessId}`)
             }
 
-            if (topLevelMeta?.hasOrg) args.where.organizationId = organizationId
+            if (topLevelMeta?.hasOrg) args.where.businessId = businessId
             if (topLevelMeta?.hasBranch && branchId) args.where.branchId = branchId
           }
 

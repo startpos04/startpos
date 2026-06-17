@@ -1,10 +1,10 @@
 import { uuid } from '@tanstack/react-form'
 import { useMemo } from 'react'
-import type { PosProduct, posItem } from '@/lib/conversion/inventory-engine'
+import type { posItem } from '@/lib/conversion/inventory-engine'
 import { type ActiveOrder, fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
-import { fetchPosProducts } from '@/lib/queries/fetch-pos-products'
+import { fetchPosProducts, type fetchPosProductsProps, type posProduct } from '@/lib/queries/fetch-pos-products'
 
-export const getOrderItems = (activeOrders: ActiveOrder[], posProducts: PosProduct[], orderId?: string): posItem[] => {
+const getOrderItems = (activeOrders: ActiveOrder[], posProducts: posProduct[], orderId?: string): posItem[] => {
   return activeOrders
     .filter(o => orderId !== o.id)
     .flatMap(o => {
@@ -30,8 +30,12 @@ export const getOrderItems = (activeOrders: ActiveOrder[], posProducts: PosProdu
     })
 }
 
-export function usePOS(orderId?: string, searchQuery?: string) {
-  const { data: posProducts = [], isLoading: isLoadingPosProducts } = fetchPosProducts(searchQuery)
+interface usePOSProps extends fetchPosProductsProps {
+  orderId?: string | undefined
+}
+
+export function usePOS({ orderId, ...props }: usePOSProps) {
+  const { data: posProducts = [], totalItems: totalItemsPosProducts, isLoading: isLoadingPosProducts } = fetchPosProducts(props)
   const { data: activeOrders = [], isLoading: isLoadingActiveOrders } = fetchActiveOrders()
 
   const orderItems = useMemo(() => {
@@ -39,5 +43,5 @@ export function usePOS(orderId?: string, searchQuery?: string) {
     return getOrderItems(activeOrders, posProducts, orderId)
   }, [isLoadingPosProducts, isLoadingActiveOrders, orderId, activeOrders, posProducts])
 
-  return { orderItems, posProducts, activeOrders, isLoading: isLoadingPosProducts || isLoadingActiveOrders }
+  return { orderItems, posProducts, activeOrders, isLoading: isLoadingPosProducts || isLoadingActiveOrders, totalItemsPosProducts }
 }

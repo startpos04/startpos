@@ -3,8 +3,8 @@ import Cropper, { type Area } from 'react-easy-crop'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Slider } from '@/components/ui/slider' // Shadcn Slider
-import { getCroppedImg } from '@/lib/crop-image'
 import type { OverlayProps } from '@/lib/overlay'
+import { getCroppedImg } from '@/lib/utils/crop-image'
 
 interface CropImageProps extends OverlayProps {
   tempImage: string
@@ -18,9 +18,20 @@ export function CropImage({ open, onClose, tempImage, onCrop }: CropImageProps) 
 
   const handleSaveCrop = async () => {
     if (tempImage && croppedAreaPixels) {
-      const croppedBase64 = await getCroppedImg(tempImage, croppedAreaPixels)
-      onCrop(croppedBase64)
-      onClose()
+      try {
+        // Enforce consistent 600x600 square export structure
+        const croppedBase64 = await getCroppedImg(tempImage, croppedAreaPixels, {
+          targetWidth: 600,
+          targetHeight: 600,
+          format: 'image/webp',
+          quality: 0.9,
+        })
+
+        onCrop(croppedBase64)
+        onClose()
+      } catch (error) {
+        console.error('Failed to generate cropped profile image:', error)
+      }
     }
   }
 

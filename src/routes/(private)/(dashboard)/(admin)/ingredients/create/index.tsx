@@ -1,8 +1,9 @@
-import type { Transaction } from '@tanstack/db'
 import { createFileRoute } from '@tanstack/react-router'
+import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { productCollection, productVariantCollection } from '@/db/collections'
+import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { authStore } from '@/store/auth-store'
 import { CreateIngredient, type CreateIngredientFormData } from './-create-ingredients'
 
@@ -22,48 +23,49 @@ export function CreateIngredientDialog({ open, onClose }: { open: boolean; onClo
 
 function RouteComponent({ onClose }: { onClose?: () => void }) {
   const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
-    const { user } = authStore.state
+    const localDBTransaction = new LocalDBTransaction()
     const { sku, price, ...productData } = value
-    const results: Record<string, Transaction<Record<string, unknown>>> = {}
+    const { user } = authStore.state
 
     try {
       const productId = crypto.randomUUID()
-      results['products'] = await productCollection.insert({
-        ...productData,
-        id: productId,
-        organizationId: user.organization.id,
-        image: productData.image || null,
-        requiresDeposit: false,
-        depositAmount: 0,
-        durationMinutes: null,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-        deletedAt: null,
-      })
-      await results['products'].isPersisted.promise
+      await localDBTransaction.step(
+        productCollection.insert({
+          ...productData,
+          id: productId,
+          businessId: user.business.id,
+          image: productData.image || null,
+          requiresDeposit: false,
+          depositAmount: 0,
+          durationMinutes: null,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+          deletedAt: null,
+        }),
+      )
 
-      results['productVariants'] = await productVariantCollection.insert({
-        id: crypto.randomUUID(),
-        organizationId: user.organization.id,
-        productId,
-        sku: sku,
-        price: price,
-        costPrice: price,
-        name: '',
-        image: null,
-        variantType: 'DEFAULT',
-        lowStockThreshold: user.branch.lowStockThreshold,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-        deletedAt: null,
-      })
-      await results['products'].isPersisted.promise
+      await localDBTransaction.step(
+        productVariantCollection.insert({
+          id: crypto.randomUUID(),
+          businessId: user.business.id,
+          productId,
+          sku: sku,
+          price: price,
+          costPrice: price,
+          name: '',
+          image: null,
+          attributeType: VariantAttributeType.UNSPECIFIED,
+          taxCategory: TaxCategory.STANDARD,
+          lowStockThreshold: user.systemConfigs.LOW_STOCK_THRESHOLD,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+          deletedAt: null,
+        }),
+      )
 
       toast.success('Ingredient successfully added')
       onClose?.()
     } catch (error) {
-      await Promise.all(Object.values(results).map(r => r.rollback()))
-
       console.error('Transaction failed:', error)
       toast.error('Failed to add ingredient. Please try again.')
     }

@@ -19,5 +19,3 @@ export function Form({ onSubmit, children, ...props }: FormProps) {
     </form>
   )
 }
-
-export default Form

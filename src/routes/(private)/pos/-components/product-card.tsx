@@ -5,22 +5,23 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePOS } from '@/hooks/use-pos'
-import { InventoryEngine, type PosProduct, type posItem } from '@/lib/conversion/inventory-engine'
+import { InventoryEngine, type posItem } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { showModal } from '@/lib/overlay'
+import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { cn } from '@/lib/utils'
 import { ProductDialog } from './product-dialog'
 
 interface ProductCardProps {
   cartItems: posItem[]
-  product: PosProduct
+  product: posProduct
   onAdd: (item: posItem) => void
 }
 
 export function ProductCard({ cartItems, product, onAdd }: ProductCardProps) {
-  const { orderId } = useSearch({ from: '/(private)/pos/' })
   const variant = product.variants[0]!
-  const { orderItems } = usePOS(orderId)
+  const { orderId, search = '', page = 1, pageSize = 20 } = useSearch({ from: '/(private)/pos/' })
+  const { orderItems } = usePOS({ orderId, searchQuery: search, page, pageSize })
 
   const addonComponents = useMemo(() => variant.components?.filter(c => c.isAddon) || [], [variant])
   const maxAvailable = useMemo(

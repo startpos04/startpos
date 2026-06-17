@@ -1,6 +1,5 @@
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { useStore } from '@tanstack/react-store'
-import { VAT_RATE } from '@/lib/constants'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import type { CreatePosTransactionResponse } from '@/lib/queries/create-pos-transaction'
@@ -44,6 +43,7 @@ const styles = StyleSheet.create({
 
 export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionResponse; data: NonNullable<(typeof posFormOpts)['defaultValues']> }) => {
   const user = useStore(authStore, state => state.user)
+  if (result.error || !result.data) return null
   const { transaction, payments } = result.data
   const payment = payments[0]
 
@@ -62,16 +62,17 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
 
   const totalHeight = receiptHeader + receiptInfo + receiptItemsHeight + receiptFooter + vPadding + 20 // 20pt safety buffer
 
-  // 2. Kitchen Slip Height (Larger fonts)
-  const kitchenHeader = 80
-  const kitchenFooter = 60
-  const kitchenItemsHeight = data.items.reduce((acc, item) => {
-    const itemLines = item.product.name.length > 18 ? 28 : 18
-    const addonsHeight = (item.addons?.length || 0) * 12
-    return acc + itemLines + addonsHeight + 8 // 8 is marginBottom
-  }, 0)
-
-  const kitchenHeight = kitchenHeader + kitchenItemsHeight + kitchenFooter + vPadding + 20
+  let kitchenHeight = 0
+  if (user.systemConfigs.ENABLE_ORDER_TAB) {
+    const kitchenHeader = 80
+    const kitchenFooter = 60
+    const kitchenItemsHeight = data.items.reduce((acc, item) => {
+      const itemLines = item.product.name.length > 18 ? 28 : 18
+      const addonsHeight = (item.addons?.length || 0) * 12
+      return acc + itemLines + addonsHeight + 8 // 8 is marginBottom
+    }, 0)
+    kitchenHeight = kitchenHeader + kitchenItemsHeight + kitchenFooter + vPadding + 20
+  }
 
   return (
     <Document>
@@ -80,7 +81,7 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
         <View style={styles.header}>
           <Text style={styles.storeName}>{user?.branch.name}</Text>
           <Text style={styles.address}>{user?.branch.address}</Text>
-          <Text style={styles.address}>VAT REG TIN: {user?.organization.tin}</Text>
+          <Text style={styles.address}>VAT REG TIN: {user?.complianceRegistry?.BIR_TIN}</Text>
           <Text style={styles.address}>SN: {user?.branch.serialNumber}</Text>
         </View>
 
@@ -98,6 +99,14 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
           <Text>Cashier:</Text>
           <Text>{transaction.cashierId.slice(-6).toUpperCase()}</Text>
         </View>
+
+        {/* If custom order tab references exist (like tables or buzzers), display them on the receipt */}
+        {user.systemConfigs.ENABLE_ORDER_TAB && transaction.notes && (
+          <View style={styles.infoRow}>
+            <Text>Routing:</Text>
+            <Text>{(transaction.notes as string).replace('Order Tab Ref: ', '')}</Text>
+          </View>
+        )}
 
         <View style={styles.divider} />
 
@@ -130,16 +139,16 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
         <View style={styles.totalsContainer}>
           <View style={styles.infoRow}>
             <Text>Vatable Sales</Text>
-            <Text>{PriceEngine.toDollars(transaction.totalAmount / 1.12).toFixed(2)}</Text>
+            <Text>{PriceEngine.toDollars(transaction.totalAmount / (1 + user.systemConfigs.VAT_RATE)).toFixed(2)}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text>VAT Amount ({VAT_RATE * 100}%)</Text>
+            <Text>VAT Amount ({user.systemConfigs.VAT_RATE * 100}%)</Text>
             <Text>{PriceEngine.toDollars(transaction.taxAmount).toFixed(2)}</Text>
           </View>
           <View style={[styles.infoRow, styles.totalText]}>
             <Text>TOTAL AMOUNT</Text>
             <Text>
-              {user?.branch.currency} {PriceEngine.toDollars(transaction.totalAmount).toFixed(2)}
+              {user?.systemConfigs.CURRENCY} {PriceEngine.toDollars(transaction.totalAmount).toFixed(2)}
             </Text>
           </View>
           <View style={{ marginTop: 5, borderTopWidth: 0.5, borderTopStyle: 'dashed', paddingTop: 5 }}>
@@ -166,44 +175,46 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
       </Page>
 
       {/* KITCHEN SLIP */}
-      <Page size={[PAGE_WIDTH, kitchenHeight]} style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.kitchenTitle}>** ORDER SLIP **</Text>
-          <Text style={styles.kitchenSub}>Order #{transaction.invoiceNo.slice(-6)}</Text>
-          <Text>{dayjs(transaction.createdAt).format('hh:mm A')}</Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.tableHeader}>
-          <Text style={{ flex: 4 }}>ITEM</Text>
-          <Text style={{ flex: 1, textAlign: 'right' }}>QTY</Text>
-        </View>
-
-        {data.items.map(item => (
-          <View key={item.cartId} style={{ marginBottom: 8, borderBottomWidth: 0.5, borderBottomColor: '#EEE', paddingBottom: 4 }}>
-            <View style={styles.row}>
-              <Text style={[styles.columnItem, styles.kitchenItem]}>
-                {[item.product.name, item.variant?.name ? `(${item.variant?.name})` : ''].filter(Boolean).join(' ')}
-              </Text>
-              <Text style={[styles.columnQty, styles.kitchenItem]}>{item.quantity}</Text>
-            </View>
-
-            {item.addons?.map(addon => (
-              <View key={addon.id} style={styles.addonRow}>
-                <Text style={styles.kitchenAddon}>+ {addon.material.product.name}</Text>
-              </View>
-            ))}
+      {user.systemConfigs.ENABLE_ORDER_TAB && (
+        <Page size={[PAGE_WIDTH, kitchenHeight]} style={styles.page}>
+          <View style={styles.header}>
+            <Text style={styles.kitchenTitle}>** ORDER SLIP **</Text>
+            <Text style={styles.kitchenSub}>Order #{transaction.invoiceNo.slice(-6)}</Text>
+            <Text>{dayjs(transaction.createdAt).format('hh:mm A')}</Text>
           </View>
-        ))}
 
-        <View style={styles.divider} />
+          <View style={styles.divider} />
 
-        <View style={styles.footer}>
-          <Text>Prepared by: ________________</Text>
-          <Text style={{ marginTop: 5 }}>{dayjs(transaction.createdAt).format('DD MMM YYYY')}</Text>
-        </View>
-      </Page>
+          <View style={styles.tableHeader}>
+            <Text style={{ flex: 4 }}>ITEM</Text>
+            <Text style={{ flex: 1, textAlign: 'right' }}>QTY</Text>
+          </View>
+
+          {data.items.map(item => (
+            <View key={item.cartId} style={{ marginBottom: 8, borderBottomWidth: 0.5, borderBottomColor: '#EEE', paddingBottom: 4 }}>
+              <View style={styles.row}>
+                <Text style={[styles.columnItem, styles.kitchenItem]}>
+                  {[item.product.name, item.variant?.name ? `(${item.variant?.name})` : ''].filter(Boolean).join(' ')}
+                </Text>
+                <Text style={[styles.columnQty, styles.kitchenItem]}>{item.quantity}</Text>
+              </View>
+
+              {item.addons?.map(addon => (
+                <View key={addon.id} style={styles.addonRow}>
+                  <Text style={styles.kitchenAddon}>+ {addon.material.product.name}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
+
+          <View style={styles.divider} />
+
+          <View style={styles.footer}>
+            <Text>Prepared by: ________________</Text>
+            <Text style={{ marginTop: 5 }}>{dayjs(transaction.createdAt).format('DD MMM YYYY')}</Text>
+          </View>
+        </Page>
+      )}
     </Document>
   )
 }

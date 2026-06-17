@@ -1,8 +1,8 @@
-import type { Transaction } from '@tanstack/db'
 import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { userCollection } from '@/db/collections'
+import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { CreateAccount, type CreateAccountFormData } from './-create-account'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/create/')({
@@ -21,25 +21,24 @@ export function CreateEmployeeDialog({ open, onClose }: { open: boolean; onClose
 
 function RouteComponent({ onClose }: { onClose?: () => void }) {
   const handleSubmit = async ({ value }: { value: CreateAccountFormData }) => {
-    const results: Record<string, Transaction<Record<string, unknown>>> = {}
+    const localDBTransaction = new LocalDBTransaction()
 
     try {
-      results['employee'] = await userCollection.insert({
-        ...value,
-        id: crypto.randomUUID(),
-        image: value.image || null,
-        emailVerified: false,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-        deletedAt: null,
-      })
-      await results['employee'].isPersisted.promise
+      await localDBTransaction.step(
+        userCollection.insert({
+          ...value,
+          id: crypto.randomUUID(),
+          image: value.image || null,
+          emailVerified: false,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+          deletedAt: null,
+        }),
+      )
 
       onClose?.()
       toast.success('Employee successfully added')
     } catch (error) {
-      await Promise.all(Object.values(results).map(r => r.rollback()))
-
       console.error('Transaction failed:', error)
       toast.error('Failed to add Employee. Please try again.')
     }

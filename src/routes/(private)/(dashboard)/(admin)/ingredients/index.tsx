@@ -1,14 +1,16 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Database, Edit, Package, Plus, Trash2 } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 import { getColumns } from '@/components/custom/data-view'
 import { TableView } from '@/components/custom/data-view/table-view'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
+import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
 import { Button } from '@/components/ui/button'
 import { productCollection } from '@/db/collections'
-import { PriceEngine } from '@/lib/conversion/price-engine'
+import { LocalDBTransaction } from '@/db/local-db-transaction'
+import { productCols } from '@/lib/columns/product-columns'
+import { tableCols } from '@/lib/columns/table-columns'
 import { showModal } from '@/lib/overlay'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { IngredientDetailsDialog } from './$ingredientId'
@@ -40,128 +42,83 @@ function RouteComponent() {
 
   const columns = useMemo(
     () =>
-      getColumns<NonNullable<typeof data>[number]>(h => [
-        h.display({
-          id: 'number',
-          maxSize: 20,
-          header: 'No.',
-          cell: info => <span className='text-xs font-mono text-muted-foreground/50'>{(info.row.index + 1).toString().padStart(2, '0')}</span>,
-        }),
-        h.accessor('image', {
-          header: 'Avatar',
-          maxSize: 40,
-          cell: info => {
-            const item = info.row.original
-            return (
-              <Avatar className='h-9 w-9 border border-border/50 shadow-sm'>
-                <AvatarImage src={item.image ?? ''} alt={item.name} />
-                <AvatarFallback className='bg-primary/5 text-primary text-xs font-bold'>{item.name?.charAt(0)}</AvatarFallback>
-              </Avatar>
-            )
-          },
-        }),
-        h.accessor('name', {
-          header: 'Ingredient',
-          cell: info => (
-            <div className='flex flex-col'>
-              <span className='font-medium'>{info.getValue()}</span>
-              <span className='text-[10px] text-muted-foreground uppercase font-mono'>{info.row.original.variants[0]?.sku}</span>
-            </div>
-          ),
-        }),
-        h.accessor('baseUnit', {
-          header: 'Unit',
-          maxSize: 60,
-          cell: info => (
-            <Badge variant='outline' className='rounded-md font-bold px-2 py-0 text-[10px] border-border text-muted-foreground'>
-              {info.getValue()?.toUpperCase?.() ?? 'PCS'}
-            </Badge>
-          ),
-        }),
-        h.display({
-          id: 'stock',
-          header: 'Stock Level',
-          cell: info => {
-            const item = info.row.original
-            // Raw materials should only have one primary variant for inventory tracking
-            const primaryVariant = item.variants[0]
-            const totalStock = primaryVariant?.inventory?.reduce((acc, curr) => acc + Number(curr.quantity), 0) ?? 0
+      getColumns<NonNullable<typeof data>[number]>(
+        h =>
+          [
+            tableCols.number(h),
+            productCols.image(h),
+            productCols.name(h),
+            productCols.sku(h),
+            productCols.category(h),
+            productCols.price(h),
+            productCols.cost(h),
+            productCols.netMargin(h),
+            productCols.stockStatus(h),
+            productCols.stockTotal(h),
+            productCols.totalValue(h),
+            productCols.showInPOS(h),
+            tableCols.action(h, {
+              cell: ({ row }) => {
+                const handleDelete = async () => {
+                  showModal(WarningPrompt, {
+                    title: 'Delete Ingredient',
+                    description: 'Are you sure you want to delete this ingredient? This will affect products using this recipe.',
+                    onConfirm: async () => {
+                      const localDBTransaction = new LocalDBTransaction()
 
-            const isLow = totalStock < 50 // Threshold example
-            const isOut = totalStock <= 0
+                      try {
+                        await localDBTransaction.step(
+                          productCollection.update(row.original.id, draft => {
+                            draft.deletedAt = new Date()
+                          }),
+                        )
 
-            return (
-              <div className='flex items-center gap-3'>
-                <div className='flex flex-col'>
-                  <div className='flex items-center gap-1.5'>
-                    <span className={`text-sm font-bold ${isOut ? 'text-destructive' : isLow ? 'text-orange-500' : 'text-foreground'}`}>
-                      {totalStock.toLocaleString()}
-                    </span>
-                    <span className='text-[10px] font-medium text-muted-foreground'>{item.baseUnit?.abbreviation}</span>
+                        toast.success('Ingredient archived successfully')
+                        return true
+                      } catch (error) {
+                        console.error('Transaction failed:', error)
+                        toast.error('Failed to archive ingredient. Please try again.')
+                        return false
+                      }
+                    },
+                  })
+                }
+
+                return (
+                  <div className='flex justify-end gap-2 pr-2'>
+                    <Link
+                      to='/ingredients/$ingredientId'
+                      params={{ ingredientId: row.original.id }}
+                      onClick={e => handleEdit(e, row.original.id)}
+                      className='contents'
+                    >
+                      <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary'>
+                        <Edit className='h-4 w-4' />
+                      </Button>
+                    </Link>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      className='h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary'
+                      onClick={() => handleRestock(row.original)}
+                    >
+                      <Database className='h-4 w-4' />
+                    </Button>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      className='h-8 w-8 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive'
+                      onClick={handleDelete}
+                    >
+                      <Trash2 className='h-4 w-4' />
+                    </Button>
                   </div>
-                </div>
-              </div>
-            )
-          },
-        }),
-        h.display({
-          id: 'costPerUnit',
-          header: 'Cost Price',
-          cell: info => {
-            const item = info.row.original
-            const cost = item.variants[0]?.costPrice ?? 0
-            return <span className='font-mono font-bold text-sm'>{PriceEngine.format(cost)}</span>
-          },
-        }),
-        h.display({
-          maxSize: 100,
-          id: 'actions',
-          header: () => <div className='text-right pr-4'>Actions</div>,
-          cell: ({ row }) => {
-            const handleDelete = async () => {
-              if (!confirm('Are you sure you want to delete this ingredient? This will affect products using this recipe.')) return
-
-              const result = await productCollection.update(row.original.id, draft => {
-                draft.deletedAt = new Date()
-              })
-
-              if (result.error) toast.error(result.error.message)
-              else toast.success('Ingredient archived successfully')
-            }
-
-            return (
-              <div className='flex justify-end gap-2 pr-2'>
-                <Link
-                  to='/ingredients/$ingredientId'
-                  params={{ ingredientId: row.original.id }}
-                  onClick={e => handleEdit(e, row.original.id)}
-                  className='contents'
-                >
-                  <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary'>
-                    <Edit className='h-4 w-4' />
-                  </Button>
-                </Link>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary'
-                  onClick={() => handleRestock(row.original)}
-                >
-                  <Database className='h-4 w-4' />
-                </Button>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='h-8 w-8 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive'
-                  onClick={handleDelete}
-                >
-                  <Trash2 className='h-4 w-4' />
-                </Button>
-              </div>
-            )
-          },
-        }),
-      ]),
+                )
+              },
+            }),
+            // biome-ignore lint/suspicious/noExplicitAny: TODO: fix any
+          ] as ColumnDef<NonNullable<typeof data>[number], any>[],
+      ),
     [handleEdit, handleRestock],
   )
 

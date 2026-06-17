@@ -22,7 +22,7 @@ async function generate() {
 
   dmmf.datamodel.models.forEach(model => {
     modelMetadata[model.name] = {
-      hasOrg: model.fields.some(f => f.name === 'organizationId'),
+      hasOrg: model.fields.some(f => f.name === 'businessId'),
       hasBranch: model.fields.some(f => f.name === 'branchId'),
       // Map the relation field name to the actual Model name
       relations: Object.fromEntries(model.fields.filter(f => f.kind === 'object').map(f => [f.name, f.type])),
@@ -33,7 +33,7 @@ async function generate() {
   const content = `// AUTO-GENERATED - DO NOT EDIT\nexport const SCHEMA_METADATA = ${JSON.stringify(modelMetadata, null, 2)} as const;`
 
   fs.writeFileSync(outputPath, content)
-  console.log('✅ Metadata synced successfully to prisma/generated/metadata.ts')
+  console.info('✅ Metadata synced successfully to prisma/generated/metadata.ts')
 }
 
 generate().catch(err => {

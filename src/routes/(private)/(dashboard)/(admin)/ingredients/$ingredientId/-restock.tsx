@@ -2,6 +2,7 @@ import { useForm, useStore } from '@tanstack/react-form'
 import { CalendarDays, Hash, ReceiptIndianRupee, Save } from 'lucide-react'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
+import { z } from 'zod'
 import { MoneyInput } from '@/components/custom/form/money-input'
 import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
@@ -11,9 +12,23 @@ import { Separator } from '@/components/ui/separator'
 import dayjs from '@/lib/dayjs'
 import type { OverlayProps } from '@/lib/overlay'
 import type { feIngredient } from '@/lib/queries/fetch-ingredients'
+import { fetchLocationOptions } from '@/lib/queries/fetch-location-options'
+import { fetchSupplierOptions } from '@/lib/queries/fetch-supplier-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { restockIngredient } from '@/lib/queries/restock-ingredient'
 import { authStore } from '@/store/auth-store'
+
+const restockSchema = z.object({
+  variantId: z.string().min(1, 'Variant ID is required'),
+  quantity: z.number().positive('Quantity must be greater than 0'),
+  unitId: z.string().min(1, 'Unit is required'),
+  unitCost: z.number().nonnegative('Unit cost cannot be negative'),
+  batchNumber: z.string().min(1, 'Batch number is required'),
+  expiryDate: z.string(),
+  supplierId: z.string().min(1, 'Supplier is required'),
+  locationId: z.string().min(1, 'Location is required'),
+  reason: z.string().min(1, 'Reason/Note is required'),
+})
 
 interface RestockIngredientDialogProps extends OverlayProps {
   ingredient: feIngredient
@@ -23,15 +38,19 @@ interface RestockIngredientDialogProps extends OverlayProps {
 export function RestockIngredientDialog({ open, onClose, variant }: RestockIngredientDialogProps) {
   const user = useStore(authStore, state => state.user)
   const { data: unitOptions = [] } = fetchUnitOptions()
+  const { data: locationOptions = [] } = fetchLocationOptions()
+  const { data: supplierOptions = [] } = fetchSupplierOptions()
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally regenerating batch number only when Dialog visibility toggles
   const defaultBatchNumber = useMemo(() => {
     const datePart = dayjs().format('YYYYMMDD')
     const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase()
     return `BN-${datePart}-${randomPart}`
-  }, [open])
+  }, [])
 
   const form = useForm({
+    validators: {
+      onChange: restockSchema,
+    },
     defaultValues: {
       variantId: variant.id,
       quantity: 0,
@@ -39,19 +58,14 @@ export function RestockIngredientDialog({ open, onClose, variant }: RestockIngre
       unitCost: Number(variant.costPrice || 0),
       batchNumber: defaultBatchNumber,
       expiryDate: '',
-      location: '',
-      sourceName: '',
+      supplierId: '',
+      locationId: '',
       reason: 'Manual Restock',
     },
     onSubmit: async ({ value }) => {
-      if (value.quantity <= 0) {
-        toast.error('Please enter a valid quantity')
-        return
-      }
       try {
         await restockIngredient(value)
         toast.success(`Inventory updated for ${variant.name || variant.product?.name}`)
-
         onClose?.()
       } catch {
         toast.error('Restock failed. Check your connection or permissions.')
@@ -61,7 +75,11 @@ export function RestockIngredientDialog({ open, onClose, variant }: RestockIngre
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-lg p-4 space-y-6 overflow-hidden border-none shadow-2xl bg-background gap-0'>
+      <DialogContent
+        className='sm:max-w-lg p-4 space-y-6 overflow-hidden border-none shadow-2xl bg-background gap-0'
+        onEscapeKeyDown={e => e.preventDefault()}
+        onInteractOutside={e => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className='text-3xl font-bold tracking-tight'>Restock Inventory</DialogTitle>
           <DialogDescription className='text-emerald-100 text-base'>
@@ -97,7 +115,7 @@ export function RestockIngredientDialog({ open, onClose, variant }: RestockIngre
                 children={field => (
                   <MoneyInput
                     field={field}
-                    label={`Unit Cost (${user.branch.currency || 'PHP'})`}
+                    label={`Unit Cost (${user.systemConfigs.CURRENCY})`}
                     type='number'
                     placeholder='0.00'
                     className='rounded-xl font-mono'
@@ -127,12 +145,12 @@ export function RestockIngredientDialog({ open, onClose, variant }: RestockIngre
           {/* Section 3: Storage & Source */}
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <form.Field
-              name='location'
-              children={field => <TextInput field={field} label='Storage Location' placeholder='Aisle 1 / Fridge' className='rounded-xl' />}
+              name='locationId'
+              children={field => <SelectInput field={field} label='Location' options={locationOptions} placeholder='Select location' />}
             />
             <form.Field
-              name='sourceName'
-              children={field => <TextInput field={field} label='Supplier Name' placeholder='Wholesale Mart' className='rounded-xl' />}
+              name='supplierId'
+              children={field => <SelectInput field={field} label='Supplier' options={supplierOptions} placeholder='Select supplier' />}
             />
           </div>
 

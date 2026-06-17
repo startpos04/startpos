@@ -1,15 +1,18 @@
 import { QueryClient } from '@tanstack/react-query'
 import type {
   Branch,
+  Business,
   Category,
+  Customer,
   Inventory,
   InventoryMovement,
+  Location,
   Membership,
   Notification,
+  OperationalTask,
   Order,
   OrderItem,
   OrderItemAddon,
-  Organization,
   Payment,
   Product,
   ProductComponent,
@@ -18,18 +21,23 @@ import type {
   PurchaseItem,
   SequenceCounter,
   Session,
+  Supplier,
   Transaction,
+  TransactionTaxLine,
   Unit,
   User,
+  VendorSession,
 } from 'prisma/generated/prisma/browser'
+import type { TaskMetadata, TransactionComplianceData } from '@/lib/types'
 import { createSyncableCollection } from '.'
 
 const queryClient = new QueryClient()
+const SCHEMA_VERSION = 10
 
-export const organizationCollection = createSyncableCollection<Organization>({
-  id: 'organizations',
-  apiKey: 'organization',
-  schemaVersion: 6,
+export const businessCollection = createSyncableCollection<Business>({
+  id: 'businesses',
+  apiKey: 'business',
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'eager',
   queryClient,
 })
@@ -37,7 +45,7 @@ export const organizationCollection = createSyncableCollection<Organization>({
 export const branchCollection = createSyncableCollection<Branch>({
   id: 'branches',
   apiKey: 'branch',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'eager',
   queryClient,
 })
@@ -45,7 +53,7 @@ export const branchCollection = createSyncableCollection<Branch>({
 export const categoryCollection = createSyncableCollection<Category>({
   id: 'categories',
   apiKey: 'category',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'eager',
   queryClient,
 })
@@ -53,7 +61,7 @@ export const categoryCollection = createSyncableCollection<Category>({
 export const unitCollection = createSyncableCollection<Unit>({
   id: 'units',
   apiKey: 'unit',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'eager',
   queryClient,
 })
@@ -61,7 +69,7 @@ export const unitCollection = createSyncableCollection<Unit>({
 export const productCollection = createSyncableCollection<Product>({
   id: 'products',
   apiKey: 'product',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'eager',
   queryClient,
 })
@@ -69,7 +77,7 @@ export const productCollection = createSyncableCollection<Product>({
 export const productVariantCollection = createSyncableCollection<ProductVariant>({
   id: 'productVariants',
   apiKey: 'productVariant',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'eager',
   queryClient,
 })
@@ -77,7 +85,7 @@ export const productVariantCollection = createSyncableCollection<ProductVariant>
 export const productComponentCollection = createSyncableCollection<ProductComponent>({
   id: 'productComponents',
   apiKey: 'productComponent',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'eager',
   queryClient,
 })
@@ -85,7 +93,7 @@ export const productComponentCollection = createSyncableCollection<ProductCompon
 export const sequenceCounterCollection = createSyncableCollection<SequenceCounter>({
   id: 'sequenceCounters',
   apiKey: 'sequenceCounter',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'eager',
   queryClient,
 })
@@ -93,7 +101,31 @@ export const sequenceCounterCollection = createSyncableCollection<SequenceCounte
 export const userCollection = createSyncableCollection<User>({
   id: 'users',
   apiKey: 'user',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'eager',
+  queryClient,
+})
+
+export const locationCollection = createSyncableCollection<Location>({
+  id: 'locations',
+  apiKey: 'location',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'eager',
+  queryClient,
+})
+
+export const supplierCollection = createSyncableCollection<Supplier>({
+  id: 'suppliers',
+  apiKey: 'supplier',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'eager',
+  queryClient,
+})
+
+export const customerCollection = createSyncableCollection<Customer>({
+  id: 'customers',
+  apiKey: 'customer',
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'eager',
   queryClient,
 })
@@ -101,7 +133,7 @@ export const userCollection = createSyncableCollection<User>({
 export const membershipCollection = createSyncableCollection<Membership>({
   id: 'memberships',
   apiKey: 'membership',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
   queryClient,
 })
@@ -109,7 +141,7 @@ export const membershipCollection = createSyncableCollection<Membership>({
 export const sessionCollection = createSyncableCollection<Session>({
   id: 'sessions',
   apiKey: 'session',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
   queryClient,
 })
@@ -117,7 +149,7 @@ export const sessionCollection = createSyncableCollection<Session>({
 export const inventoryCollection = createSyncableCollection<Inventory>({
   id: 'inventories',
   apiKey: 'inventory',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
   queryClient,
 })
@@ -125,15 +157,23 @@ export const inventoryCollection = createSyncableCollection<Inventory>({
 export const inventoryMovementCollection = createSyncableCollection<InventoryMovement>({
   id: 'inventoryMovements',
   apiKey: 'inventoryMovement',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
   queryClient,
 })
 
-export const transactionCollection = createSyncableCollection<Transaction>({
+export const transactionCollection = createSyncableCollection<Omit<Transaction, 'complianceData'> & { complianceData: TransactionComplianceData }>({
   id: 'transactions',
   apiKey: 'transaction',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand',
+  queryClient,
+})
+
+export const transactionTaxLineCollection = createSyncableCollection<TransactionTaxLine>({
+  id: 'transactionTaxLines',
+  apiKey: 'transactionTaxLine',
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
   queryClient,
 })
@@ -141,7 +181,7 @@ export const transactionCollection = createSyncableCollection<Transaction>({
 export const paymentCollection = createSyncableCollection<Payment>({
   id: 'payments',
   apiKey: 'payment',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
   queryClient,
 })
@@ -149,7 +189,7 @@ export const paymentCollection = createSyncableCollection<Payment>({
 export const orderCollection = createSyncableCollection<Order>({
   id: 'orders',
   apiKey: 'order',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
   queryClient,
 })
@@ -157,7 +197,7 @@ export const orderCollection = createSyncableCollection<Order>({
 export const orderItemCollection = createSyncableCollection<OrderItem>({
   id: 'orderItems',
   apiKey: 'orderItem',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
   queryClient,
 })
@@ -165,7 +205,7 @@ export const orderItemCollection = createSyncableCollection<OrderItem>({
 export const orderItemAddonCollection = createSyncableCollection<OrderItemAddon>({
   id: 'orderItemAddons',
   apiKey: 'orderItemAddon',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
   queryClient,
 })
@@ -173,7 +213,7 @@ export const orderItemAddonCollection = createSyncableCollection<OrderItemAddon>
 export const purchaseCollection = createSyncableCollection<Purchase>({
   id: 'purchases',
   apiKey: 'purchase',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
   queryClient,
 })
@@ -181,15 +221,31 @@ export const purchaseCollection = createSyncableCollection<Purchase>({
 export const purchaseItemCollection = createSyncableCollection<PurchaseItem>({
   id: 'purchaseItems',
   apiKey: 'purchaseItem',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
   queryClient,
 })
 
-export const notificationsCollection = createSyncableCollection<Notification>({
+export const notificationCollection = createSyncableCollection<Notification>({
   id: 'notifications',
   apiKey: 'notification',
-  schemaVersion: 6,
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand',
+  queryClient,
+})
+
+export const operationalTaskCollection = createSyncableCollection<Omit<OperationalTask, 'metadata'> & { metadata: TaskMetadata }>({
+  id: 'operationalTasks',
+  apiKey: 'operationalTask',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand',
+  queryClient,
+})
+
+export const vendorSessionCollection = createSyncableCollection<VendorSession>({
+  id: 'vendorSessions',
+  apiKey: 'vendorSession',
+  schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
   queryClient,
 })

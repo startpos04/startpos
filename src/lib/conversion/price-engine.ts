@@ -17,9 +17,9 @@ export const PriceEngine = {
   format(cents: number): string {
     const { user } = authStore.state
 
-    return new Intl.NumberFormat(user.branch?.locale || 'en-PH', {
+    return new Intl.NumberFormat(user.systemConfigs.LOCALE, {
       style: 'currency',
-      currency: user.branch?.currency || 'PHP',
+      currency: user.systemConfigs.CURRENCY,
     }).format(this.toDollars(cents))
   },
 

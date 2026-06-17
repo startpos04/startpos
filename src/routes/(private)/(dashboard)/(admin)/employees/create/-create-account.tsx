@@ -8,6 +8,7 @@ import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { userCollection } from '@/db/collections'
 
 interface CreateAccountProps {
   defaultValues: CreateAccountFormData
@@ -21,7 +22,13 @@ interface CreateAccountProps {
 
 const createAccountSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  email: z.email('Invalid email'),
+  email: z.email('Invalid email').refine(
+    val => {
+      const existingUser = [...userCollection.values()].find(u => u.email === val)
+      return !existingUser
+    },
+    { message: 'This email is already in use' },
+  ),
   image: z.string().optional(),
   role: z.enum(Role),
 })

@@ -1,3 +1,4 @@
+// fallow-ignore-file unused-file
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 
@@ -22,28 +23,28 @@ const result = spawnSync('pnpm', ['exec', 'commitlint', '--edit', commitMsgFile]
 })
 
 if (result.status !== 0) {
-  console.log(result.stdout?.toString())
-  console.log(result.stderr?.toString())
+  console.info(result.stdout?.toString())
+  console.info(result.stderr?.toString())
 
   // --- FIX: Extract core message if it already has a type prefix ---
   // This prevents "feat: feat: message" suggestions
   const cleanMsg = currentMsg.includes(':') ? currentMsg.split(':').slice(1).join(':').trim() : currentMsg
 
-  console.log('\n\x1b[31m%s\x1b[0m', '❌ INVALID COMMIT MESSAGE FORMAT')
-  console.log('\x1b[36m%s\x1b[0m', '──────────────────────────────────────────────────────')
+  console.info('\n\x1b[31m%s\x1b[0m', '❌ INVALID COMMIT MESSAGE FORMAT')
+  console.info('\x1b[36m%s\x1b[0m', '──────────────────────────────────────────────────────')
 
-  console.log(`Your message: \x1b[31m"${currentMsg}"\x1b[0m`)
+  console.info(`Your message: \x1b[31m"${currentMsg}"\x1b[0m`)
 
-  console.log('\n\x1b[33m%s\x1b[0m', '💡 Try one of these instead:')
-  console.log(`   \x1b[32mfeat: ${cleanMsg}\x1b[0m  \x1b[90m(if this is a new feature)\x1b[0m`)
-  console.log(`   \x1b[32mfix: ${cleanMsg}\x1b[0m   \x1b[90m(if this is a bug fix)\x1b[0m`)
-  console.log(`   \x1b[32mchore: ${cleanMsg}\x1b[0m \x1b[90m(if this is a config/maintenance task)\x1b[0m`)
+  console.info('\n\x1b[33m%s\x1b[0m', '💡 Try one of these instead:')
+  console.info(`   \x1b[32mfeat: ${cleanMsg}\x1b[0m  \x1b[90m(if this is a new feature)\x1b[0m`)
+  console.info(`   \x1b[32mfix: ${cleanMsg}\x1b[0m   \x1b[90m(if this is a bug fix)\x1b[0m`)
+  console.info(`   \x1b[32mchore: ${cleanMsg}\x1b[0m \x1b[90m(if this is a config/maintenance task)\x1b[0m`)
 
-  console.log('\n\x1b[35m%s\x1b[0m', '📋 All valid types:')
-  console.log('\x1b[90mfeat, fix, chore, docs, style, refactor, perf, test, build, ci, revert\x1b[0m')
+  console.info('\n\x1b[35m%s\x1b[0m', '📋 All valid types:')
+  console.info('\x1b[90mfeat, fix, chore, docs, style, refactor, perf, test, build, ci, revert\x1b[0m')
 
-  console.log('\x1b[36m%s\x1b[0m', '──────────────────────────────────────────────────────')
-  console.log('Format: <type>: <description>')
+  console.info('\x1b[36m%s\x1b[0m', '──────────────────────────────────────────────────────')
+  console.info('Format: <type>: <description>')
 
   process.exit(1)
 }
@@ -57,13 +58,13 @@ const spellResult = spawnSync('pnpm', ['cspell', 'stdin', '--no-progress', '--no
 })
 
 if (spellResult.status !== 0) {
-  console.log('\n\x1b[31m%s\x1b[0m', '❌ SPELLING ERROR IN COMMIT MESSAGE')
-  console.log('\x1b[36m%s\x1b[0m', '──────────────────────────────────────────────────────')
-  console.log(spellResult.stdout?.toString())
-  console.log('\x1b[33m%s\x1b[0m', '💡 Tip: Add project-specific words to .vscode/settings.json under "cSpell.words"')
-  console.log('\x1b[36m%s\x1b[0m', '──────────────────────────────────────────────────────')
+  console.info('\n\x1b[31m%s\x1b[0m', '❌ SPELLING ERROR IN COMMIT MESSAGE')
+  console.info('\x1b[36m%s\x1b[0m', '──────────────────────────────────────────────────────')
+  console.info(spellResult.stdout?.toString())
+  console.info('\x1b[33m%s\x1b[0m', '💡 Tip: Add project-specific words to .vscode/settings.json under "cSpell.words"')
+  console.info('\x1b[36m%s\x1b[0m', '──────────────────────────────────────────────────────')
   process.exit(1)
 }
 
-console.log('\x1b[32m%s\x1b[0m', '✅ Commit message looks good!')
+console.info('\x1b[32m%s\x1b[0m', '✅ Commit message looks good!')
 process.exit(0)

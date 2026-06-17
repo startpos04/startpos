@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { productVariantCollection } from '@/db/collections'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 
@@ -25,7 +26,16 @@ interface CreateIngredientProps {
 
 const createIngredientSchema = z.object({
   name: z.string().min(2, 'Name required'),
-  sku: z.string().min(1, 'SKU required'),
+  sku: z
+    .string()
+    .min(1, 'SKU required')
+    .refine(
+      val => {
+        const existingVariant = [...productVariantCollection.values()].find(u => u.sku === val)
+        return !existingVariant
+      },
+      { message: 'This SKU is already in use' },
+    ),
   image: z.string(),
   categoryId: z.string().min(1, 'Category required'),
   baseUnitId: z.string().min(1, 'Base unit required'),

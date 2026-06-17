@@ -147,7 +147,7 @@ function RouteComponent() {
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Inventory Intelligence</h1>
           <p className='text-muted-foreground text-sm flex items-center gap-2'>
             <PackageCheck className='h-4 w-4 text-emerald-500' />
-            Organization-wide stock analysis for{' '}
+            Business-wide stock analysis for{' '}
             <span className='font-medium text-foreground'>
               {from && to ? `${dayjs(from).format('MMM D, YYYY')} - ${dayjs(to).format('MMM D, YYYY')}` : dayjs().format('MMMM D, YYYY')}
             </span>

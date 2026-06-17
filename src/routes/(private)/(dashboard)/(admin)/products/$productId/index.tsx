@@ -1,7 +1,7 @@
 import { count, eq, toArray, useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute } from '@tanstack/react-router'
 import { Box, DollarSign, Edit, Package, ShoppingCart, TrendingDown } from 'lucide-react'
-import type { Product, ProductVariant, Unit } from 'prisma/generated/prisma/browser'
+import { type Product, type ProductVariant, type Unit, VariantAttributeType } from 'prisma/generated/prisma/browser'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   categoryCollection,
   inventoryCollection,
+  locationCollection,
   orderItemCollection,
   productCollection,
   productComponentCollection,
@@ -19,13 +20,11 @@ import {
 } from '@/db/collections'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
-import { showModal } from '@/lib/overlay'
+import { type OverlayProps, showModal } from '@/lib/overlay'
 import { EditProductDialog } from './-edit-product'
 
-interface ProductDetailsProps {
+interface ProductDetailsProps extends OverlayProps {
   productId: string
-  open: boolean
-  onClose: () => void
 }
 
 interface RouteComponentProps {
@@ -87,11 +86,9 @@ function RouteComponent(props: RouteComponentProps) {
                   q
                     .from({ inv: inventoryCollection })
                     .where(({ inv }) => eq(inv.variantId, variant.id))
-                    .leftJoin({ u: unitCollection }, ({ inv, u }) => eq(inv.unitId, u.id))
-                    .select(({ inv, u }) => ({
-                      ...inv,
-                      unit: u,
-                    })),
+                    .leftJoin({ unit: unitCollection }, ({ inv, unit }) => eq(inv.unitId, unit.id))
+                    .leftJoin({ location: locationCollection }, ({ inv, location }) => eq(inv.locationId, location.id))
+                    .select(({ inv, unit, location }) => ({ ...inv, unit, location })),
                 ),
 
                 components: toArray(
@@ -148,7 +145,7 @@ function RouteComponent(props: RouteComponentProps) {
   }
 
   const handleEdit = () => {
-    const primaryVariant = product.variants.find(v => v.variantType === 'DEFAULT') || product.variants[0]
+    const primaryVariant = product.variants.find(v => v.attributeType === VariantAttributeType.UNSPECIFIED) || product.variants[0]
 
     showModal(EditProductDialog, {
       productId: product.id,
@@ -198,7 +195,7 @@ function RouteComponent(props: RouteComponentProps) {
 
         variants: product.variants.map(v => ({
           id: v.id,
-          variantType: v.variantType,
+          attributeType: v.attributeType,
           name: v.name,
           sku: v.sku,
           price: Number(v.price) / 100,
@@ -318,7 +315,7 @@ function RouteComponent(props: RouteComponentProps) {
                       v.inventory.map(inv => (
                         <TableRow key={inv.id}>
                           <TableCell className='pl-6 font-mono text-xs'>{inv.batchNumber || 'N/A'}</TableCell>
-                          <TableCell>{inv.location || 'Warehouse'}</TableCell>
+                          <TableCell>{inv.location.name}</TableCell>
                           <TableCell>{inv.expiryDate ? dayjs(inv.expiryDate).format('MMM DD, YYYY') : 'None'}</TableCell>
                           <TableCell className='text-right pr-6 font-bold'>
                             {inv.quantity} {inv.unit.abbreviation}

@@ -1,6 +1,7 @@
 import { toast } from 'sonner'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { userCollection } from '@/db/collections'
+import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { CreateAccount, type CreateAccountFormData } from '../create/-create-account'
 
 export function EditEmployeeDialog({
@@ -15,15 +16,20 @@ export function EditEmployeeDialog({
   onClose: () => void
 }) {
   const handleSubmit = async ({ value }: { value: CreateAccountFormData }) => {
-    const result = await userCollection.update(employeeId, draft => {
-      Object.assign(draft, value)
-      draft.image = value.image || null
-    })
+    const localDBTransaction = new LocalDBTransaction()
+    try {
+      await localDBTransaction.step(
+        userCollection.update(employeeId, draft => {
+          Object.assign(draft, value)
+          draft.image = value.image || null
+        }),
+      )
 
-    if (result.error) toast.error(result.error.message)
-    else {
       toast.success('Employee successfully updated')
       onClose()
+    } catch (error) {
+      console.error('Transaction failed:', error)
+      toast.error('Failed to update Employee. Please try again.')
     }
   }
 

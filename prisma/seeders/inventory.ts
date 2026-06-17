@@ -1,91 +1,110 @@
 import { MovementType, type PrismaClient, ResourceType } from 'prisma/generated/prisma/client'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { UnitEngine } from '@/lib/conversion/unit-engine'
+import { getAccounts } from './accounts'
+export const order = 100
 
-export async function initialInventory(prisma: PrismaClient) {
-  console.log('📦 Normalizing Costs & Seeding Variant Inventory...')
+export async function Inventory(prisma: PrismaClient, options: { folder: string }) {
+  console.info('📦 Normalizing Costs & Seeding Variant Inventory...')
+  const targetFolder = options.folder || 'examples'
+  const accounts = getAccounts(targetFolder)
 
-  // 1. Get a real user first to avoid Foreign Key errors
   const adminUser = await prisma.user.findFirst({
-    where: { role: 'ADMIN' },
+    where: { role: 'ADMIN', memberships: { some: { business: { id: accounts.business.id }, branch: { id: accounts.branch.id } } } },
   })
 
   if (!adminUser) {
     throw new Error('❌ Seed Error: No Admin user found. Please seed users before inventory.')
   }
 
-  // Fetch variants that belong to RAW_MATERIAL products
-  // These are the "Materials" used in your ProductComponent table
   const rawMaterialVariants = await prisma.productVariant.findMany({
     where: {
-      product: {
-        type: ResourceType.RAW_MATERIAL,
-      },
+      product: { type: { in: [ResourceType.RAW_MATERIAL, ResourceType.PHYSICAL_GOOD] } },
     },
-    include: {
-      product: {
-        include: {
-          baseUnit: true,
-        },
-      },
-    },
+    include: { product: { include: { baseUnit: true } } },
   })
 
   const kgUnit = await prisma.unit.findFirst({ where: { abbreviation: 'kg' } })
   const literUnit = await prisma.unit.findFirst({ where: { abbreviation: 'L' } })
 
+  const seededSummary: Array<{ name: string; sku: string; qty: number; unit: string; cost: number }> = []
+
+  // 🚀 Wrap the ENTIRE loop block in a single transaction (or remove it entirely)
+  // Give it a generous timeout cushion to prevent expiration errors
+
   for (const variant of rawMaterialVariants) {
-    await prisma.$transaction(async tx => {
-      const baseUnit = variant.product.baseUnit
-      let purchaseUnit = baseUnit
+    const baseUnit = variant.product.baseUnit
+    let purchaseUnit = baseUnit
 
-      // Standardize to bulk units for cost calculation
-      if (baseUnit.abbreviation === 'g' && kgUnit) purchaseUnit = kgUnit
-      if (baseUnit.abbreviation === 'ml' && literUnit) purchaseUnit = literUnit
+    if (baseUnit.abbreviation === 'g' && kgUnit) purchaseUnit = kgUnit
+    if (baseUnit.abbreviation === 'ml' && literUnit) purchaseUnit = literUnit
 
-      // Calculation logic: Assume a flat starting cost for seeding
-      const bulkPriceCents = PriceEngine.toCents(150.0) // ₱150.00 base
-      const normalizedCostPriceCents = Math.round(PriceEngine.costPerBase(bulkPriceCents, purchaseUnit))
+    const bulkPriceCents = PriceEngine.toCents(150.0)
+    const normalizedCostPriceCents = Math.round(PriceEngine.costPerBase ? PriceEngine.costPerBase(bulkPriceCents, purchaseUnit) : bulkPriceCents)
 
-      const purchaseQty = 1 // Start with 10 bulk units (10kg or 10L)
-      let totalInBaseUnits = UnitEngine.toBase(purchaseQty, purchaseUnit)
-      if (purchaseUnit.abbreviation === 'pcs') totalInBaseUnits = totalInBaseUnits * 500
+    const purchaseQty = 100
+    let totalInBaseUnits = UnitEngine.toBase(purchaseQty, purchaseUnit)
 
-      // 2. Update Variant (Costs live here)
-      // This is crucial because ProductComponent references this costPrice for profit margins
-      await tx.productVariant.update({
-        where: { id: variant.id },
-        data: { costPrice: normalizedCostPriceCents },
-      })
+    if (purchaseUnit.abbreviation === 'pcs') totalInBaseUnits = purchaseQty
 
-      // 3. Create Inventory (Linked to Variant)
-      const inventory = await tx.inventory.create({
-        data: {
-          organizationId: 'org-1',
-          branchId: 'branch-1',
-          variantId: variant.id,
-          unitId: baseUnit.id,
-          quantity: totalInBaseUnits,
-          costPrice: normalizedCostPriceCents,
-          batchNumber: `INIT-${variant.sku}`,
-        },
-      })
+    // 1. Update Variant (using the consolidated `tx` context)
+    await prisma.productVariant.update({
+      where: { id: variant.id },
+      data: { costPrice: normalizedCostPriceCents },
+    })
 
-      // 4. Log Movement (Linked to Variant)
-      await tx.inventoryMovement.create({
-        data: {
-          organizationId: 'org-1',
-          branchId: 'branch-1',
-          inventoryId: inventory.id,
-          userId: adminUser.id,
-          variantId: variant.id,
-          unitId: baseUnit.id,
-          quantity: totalInBaseUnits,
-          type: MovementType.IN,
-          reason: 'Initial Seed Restock',
-        },
-      })
+    // 2. Create Inventory
+    const batchNumber = `INIT-${variant.sku || Math.random().toString(36).substring(2, 7).toUpperCase()}`
+    const inventory = await prisma.inventory.create({
+      data: {
+        businessId: accounts.business.id,
+        branchId: accounts.branch.id,
+        variantId: variant.id,
+        unitId: baseUnit.id,
+        quantity: totalInBaseUnits,
+        costPrice: normalizedCostPriceCents,
+        batchNumber,
+      },
+    })
+
+    // 3. Log Movement
+    await prisma.inventoryMovement.create({
+      data: {
+        businessId: accounts.business.id,
+        branchId: accounts.branch.id,
+        inventoryId: inventory.id,
+        userId: adminUser.id,
+        variantId: variant.id,
+        unitId: baseUnit.id,
+        quantity: totalInBaseUnits,
+        type: MovementType.IN,
+        reason: 'Initial Seed Restock',
+      },
+    })
+
+    seededSummary.push({
+      name: variant.name || variant.product.name,
+      sku: variant.sku || 'N/A',
+      qty: totalInBaseUnits,
+      unit: baseUnit.abbreviation,
+      cost: normalizedCostPriceCents,
     })
   }
-  console.log('✅ Variant Inventory Seeded successfully.')
+
+  // --- OUTPUT STOCK REPORTS ---
+  if (seededSummary.length > 0) {
+    console.info('\n📊 SEEDED INGREDIENT BREAKDOWN:')
+    console.table(
+      seededSummary.map(item => ({
+        'Ingredient Name': item.name,
+        SKU: item.sku,
+        'Stock Added': `${item.qty.toLocaleString()} ${item.unit}`,
+        'Base Cost': `₱${(item.cost / 100).toFixed(2)}`,
+      })),
+    )
+  } else {
+    console.warn('⚠️ No raw material ingredients found to seed.')
+  }
+
+  console.info('✅ Variant Inventory Seeded successfully.')
 }
