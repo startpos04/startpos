@@ -14,6 +14,7 @@ test('test', async ({ page }) => {
     .nth(1)
     .click()
   await page.getByRole('button', { name: 'Add to Order' }).click()
+
   page.once('dialog', dialog => {
     console.info(`Dialog message: ${dialog.message()}`)
     dialog.dismiss().catch(() => {})

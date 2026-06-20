@@ -12,7 +12,7 @@ export class LocalDBTransaction {
     try {
       const tx = await txInput
       this.txStack.push(tx)
-      await tx.isPersisted.promise
+      // await tx.isPersisted.promise
 
       return tx
     } catch (error) {

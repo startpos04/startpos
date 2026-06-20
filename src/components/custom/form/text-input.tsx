@@ -5,14 +5,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 interface TextInputProps extends React.DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> {
-  label: string | ReactNode
+  label?: string | ReactNode
   field: AnyFieldApi
 }
 
 export function TextInput({ label, field, placeholder, type = 'text' }: TextInputProps) {
   return (
     <Field>
-      <Label>{label}</Label>
+      <Label className='empty:hidden'>{label}</Label>
       <Input
         type={type}
         name={field.name}

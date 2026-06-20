@@ -20,28 +20,15 @@ export const PAYMENT_PLATFORMS = {
 
 export type PaymentPlatformId = (typeof PAYMENT_PLATFORMS)[keyof typeof PAYMENT_PLATFORMS]['id']
 
-const paymentLineSchema = z
-  .object({
-    id: z.string(),
-    method: z.nativeEnum(PaymentMethod),
-    platform: z.string(),
-    tendered: z.number().min(0, 'Tendered must be positive'),
-    referenceNo: z.string().optional(),
-    discount: z.number().optional(),
-    scPwdDiscount: z.number().optional(),
-  })
-  .refine(
-    data => {
-      if (data.platform !== 'cash') {
-        return !!data.referenceNo && data.referenceNo.trim().length > 0
-      }
-      return true
-    },
-    {
-      message: 'Reference number is required for digital payments',
-      path: ['referenceNo'],
-    },
-  )
+const paymentLineSchema = z.object({
+  id: z.string(),
+  method: z.enum(PaymentMethod),
+  platform: z.string(),
+  tendered: z.number().min(0, 'Tendered must be positive'),
+  referenceNo: z.string().optional(),
+  discount: z.number().optional(),
+  scPwdDiscount: z.number().optional(),
+})
 
 export type PaymentLine = z.infer<typeof paymentLineSchema>
 
@@ -108,7 +95,11 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className='sm:max-w-140 p-6 md:p-8 bg-background max-h-[92vh] overflow-y-auto rounded-3xl'>
+      <DialogContent
+        className='sm:max-w-140 p-6 md:p-8 bg-background max-h-[92vh] overflow-y-auto rounded-3xl'
+        onEscapeKeyDown={e => e.preventDefault()}
+        onInteractOutside={e => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className='text-2xl font-black text-center'>Checkout Summary</DialogTitle>
         </DialogHeader>
@@ -154,12 +145,13 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
                               if (targetPlatform) {
                                 form.setFieldValue(`payments[${index}].platform`, val)
                                 form.setFieldValue(`payments[${index}].method`, targetPlatform.type)
-                                form.setFieldValue(
-                                  `payments[${index}].referenceNo`,
-                                  val === 'cash' ? '' : form.getFieldValue(`payments[${index}].referenceNo`) || '',
-                                )
+
+                                // Explicitly nullify or write an empty string to reset validation state
+                                form.setFieldValue(`payments[${index}].referenceNo`, '')
+
+                                // Re-run form validations asynchronously
+                                setTimeout(() => form.validate('change'), 0)
                               }
-                              setTimeout(() => form.validate('change'), 0)
                             }}
                           >
                             <SelectTrigger className='h-11 font-semibold bg-background rounded-xl border-border'>
@@ -205,19 +197,46 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
                       </div>
 
                       {payment.platform !== 'cash' && (
-                        <div className='relative animate-in slide-in-from-top-1 fade-in duration-200'>
-                          <CreditCard className='absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4' />
-                          <Input
-                            type='text'
-                            className='h-9 pl-10 text-xs font-medium rounded-lg bg-background border border-border/80'
-                            placeholder={`Enter reference token key for this ${payment.method}`}
-                            value={payment.referenceNo || ''}
-                            onChange={e => {
-                              form.setFieldValue(`payments[${index}].referenceNo`, e.target.value)
-                              form.validate('change')
-                            }}
-                          />
-                        </div>
+                        <form.Field
+                          name={`payments[${index}].referenceNo`}
+                          validators={{
+                            onChange: ({ value }) => {
+                              if (!value || value.trim().length === 0) {
+                                return 'Reference number is required for digital payments'
+                              }
+                              return undefined
+                            },
+                          }}
+                        >
+                          {field => {
+                            const hasError = field.state.meta.errors.length > 0
+
+                            return (
+                              <div className='space-y-1.5 animate-in slide-in-from-top-1 fade-in duration-200'>
+                                <div className='relative'>
+                                  <CreditCard
+                                    className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
+                                      hasError ? 'text-destructive' : 'text-muted-foreground'
+                                    }`}
+                                  />
+                                  <Input
+                                    type='text'
+                                    className={`h-9 pl-10 text-xs font-medium rounded-lg bg-background transition-colors ${
+                                      hasError ? 'border-destructive focus-visible:ring-destructive' : 'border-border/80'
+                                    }`}
+                                    placeholder={`Enter reference token key for this ${payment.method}`}
+                                    value={field.state.value || ''}
+                                    onChange={e => field.handleChange(e.target.value)}
+                                    onBlur={field.handleBlur}
+                                  />
+                                </div>
+
+                                {/** biome-ignore lint/suspicious/noExplicitAny: fix later */}
+                                {hasError && <p className='text-xs text-red-500'>{field.state.meta.errors.map((err: any) => err.message ?? err).join(', ')}</p>}
+                              </div>
+                            )
+                          }}
+                        </form.Field>
                       )}
                     </div>
                   ))}
