@@ -4,7 +4,6 @@ import { TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { operationalTaskCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { authStore } from '@/store/auth-store'
 // Import the updated Task Form component and its types
 import { CreateTask, type CreateTaskFormData } from './-create-task'
@@ -27,37 +26,34 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
   const user = useStore(authStore, state => state.user)
 
   const handleSubmit = async ({ value }: { value: CreateTaskFormData }) => {
-    const localDBTransaction = new LocalDBTransaction()
     const { type, clerkId, approverId, notes, ...subTaskMetadata } = value
 
     try {
-      await localDBTransaction.step(
-        operationalTaskCollection.insert({
-          id: crypto.randomUUID(),
-          status: TaskStatus.PENDING,
-          businessId: user.business.id,
-          branchId: user.branch.id,
-          creatorId: user.id,
-          dueDate: null,
-          type,
-          notes,
-          clerkId,
-          approverId,
-          approvedAt: null,
-          inProgressAt: null,
-          fulfilledAt: null,
-          suggestedQty: null,
-          approvedQty: null,
-          fulfilledQty: null,
-          reviewerId: null,
-          reviewedAt: null,
-          metadata: subTaskMetadata,
-          cancelerId: null,
-          canceledAt: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }),
-      )
+      operationalTaskCollection.insert({
+        id: crypto.randomUUID(),
+        status: TaskStatus.PENDING,
+        businessId: user.business.id,
+        branchId: user.branch.id,
+        creatorId: user.id,
+        dueDate: null,
+        type,
+        notes,
+        clerkId,
+        approverId,
+        approvedAt: null,
+        inProgressAt: null,
+        fulfilledAt: null,
+        suggestedQty: null,
+        approvedQty: null,
+        fulfilledQty: null,
+        reviewerId: null,
+        reviewedAt: null,
+        metadata: subTaskMetadata,
+        cancelerId: null,
+        canceledAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
 
       toast.success('Operational task successfully created')
       onClose?.()

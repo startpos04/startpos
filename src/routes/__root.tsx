@@ -23,6 +23,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   beforeLoad: async () => {
     try {
       const user = await getAuthUser()
+
       setUser(user!)
       return { user }
     } catch {
@@ -57,7 +58,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 function RootDocument({ children }: { children: React.ReactNode }) {
   const { user } = Route.useRouteContext()
   useSw()
-
+  console.log('aaaaaaaaaaaa', user)
   useMemo(() => {
     if (user) {
       setUser(user)

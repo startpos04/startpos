@@ -275,7 +275,7 @@ export const CartAside = withForm({
                   className='w-full py-6 md:py-7 rounded-2xl text-lg font-black shadow-lg shadow-primary/10 transition-transform active:scale-[0.99] flex items-center justify-center gap-2'
                   onClick={() => handleConfirm(summary.totalAmount)}
                 >
-                  <CreditCard className='h-5 w-5 stroke-[2.5]' />
+                  <CreditCard className='h-5! w-5! stroke-[2.5]' />
                   CHECKOUT
                 </Button>
               </div>

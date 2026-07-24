@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev --port 3000 --host 0.0.0.0",
+    "dev:docker": "pnpm run generate && pnpm run db:push && vite dev --port 3000 --host 0.0.0.0 --strictPort",
     "build": "pnpm run generate && vite build",
     "preview": "vite preview",
     "start": "cross-env NODE_ENV=production pnpm run build && pnpm run preview",
@@ -15,11 +16,15 @@
     "check": "biome check --write .",
     "scan": "npx fallow",
     "generate": "pnpm prisma generate && npx tsx scripts/sync-meta.ts",
-    "seed": "tsx --env-file=.env ./prisma/seeders/index.ts",
-    "reset": "tsx --env-file=.env ./scripts/reset-db.ts"
+    "db:push": "dotenv -e .env -e .env.local -- prisma db push",
+    "seed": "tsx --env-file=.env --env-file=.env.local ./prisma/seeders/index.ts",
+    "reset": "tsx --env-file=.env --env-file=.env.local ./scripts/reset-db.ts",
+    "docker:dev": "docker compose up --build --watch",
+    "docker:down": "docker compose down",
+    "docker:exec": "docker compose exec -it app"
   },
   "prisma": {
-    "seed": "tsx --import ./scripts/register-canvas.ts --env-file=.env ./prisma/seeders/index.ts"
+    "seed": "tsx --env-file=.env --env-file=.env.local ./prisma/seeders/index.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
@@ -95,6 +100,7 @@
     "cross-env": "^10.1.0",
     "cspell": "^10.0.0",
     "dotenv": "^17.3.1",
+    "dotenv-cli": "^11.0.0",
     "fallow": "^2.88.0",
     "jimp": "^1.6.1",
     "jsdom": "^27.0.0",

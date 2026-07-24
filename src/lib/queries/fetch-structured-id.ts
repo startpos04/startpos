@@ -1,10 +1,9 @@
 import { SequenceType } from 'prisma/generated/prisma/enums'
 import { sequenceCounterCollection } from '@/db/collections'
-import type { LocalDBTransaction } from '@/db/local-db-transaction'
 import dayjs from '@/lib/dayjs'
 import { authStore } from '@/store/auth-store'
 
-export async function fetchStructuredId(localDBTransaction: LocalDBTransaction, type: SequenceType) {
+export function fetchStructuredId(type: SequenceType) {
   const { user } = authStore.state
   const now = dayjs.utc()
   const year = now.year()
@@ -22,29 +21,25 @@ export async function fetchStructuredId(localDBTransaction: LocalDBTransaction, 
 
   if (existing) {
     // 3. Update existing
-    await localDBTransaction.step(
-      sequenceCounterCollection.update(counterId, draft => {
-        draft.lastNumber += 1
-      }),
-    )
+    sequenceCounterCollection.update(counterId, draft => {
+      draft.lastNumber += 1
+    })
     // Get the updated value after the mutation
     lastNumber = sequenceCounterCollection.get(counterId)!.lastNumber
   } else {
     // 4. Insert new
-    await localDBTransaction.step(
-      sequenceCounterCollection.insert({
-        id: counterId,
-        type,
-        year,
-        month,
-        day,
-        lastNumber: 1,
-        businessId: user.business.id,
-        branchId: user.branch.id,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-      }),
-    )
+    sequenceCounterCollection.insert({
+      id: counterId,
+      type,
+      year,
+      month,
+      day,
+      lastNumber: 1,
+      businessId: user.business.id,
+      branchId: user.branch.id,
+      updatedAt: new Date(),
+      createdAt: new Date(),
+    })
     lastNumber = 1
   }
 

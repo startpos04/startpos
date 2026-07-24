@@ -10,7 +10,7 @@ export function FeatureDisabledPage() {
 
   useEffect(() => {
     navigate({ to: '/unauthorized', replace: true })
-  }, [])
+  }, [navigate])
 
   return (
     <div className='flex h-[80vh] flex-col items-center justify-center text-center px-4'>

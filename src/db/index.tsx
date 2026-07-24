@@ -8,10 +8,10 @@ import {
 } from '@tanstack/browser-db-sqlite-persistence'
 import { BasicIndex, type Collection, createCollection, parseLoadSubsetOptions, type SyncMode } from '@tanstack/db'
 import { queryCollectionOptions } from '@tanstack/query-db-collection'
-import type { QueryClient } from '@tanstack/react-query'
 import utc from 'dayjs/plugin/utc'
 import dayjs from '@/lib/dayjs'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
+import { getQueryClient } from '@/lib/query-client'
 
 dayjs.extend(utc)
 
@@ -22,7 +22,7 @@ export let persistence = null as unknown as PersistedCollectionPersistence
 
 if (typeof window !== 'undefined') {
   localDB = await openBrowserWASQLiteOPFSDatabase({
-    databaseName: `pos_offline_storage.sqlite`,
+    databaseName: 'pos_offline_storage_v2.sqlite',
   })
 
   persistence = createBrowserWASQLitePersistence({
@@ -31,17 +31,57 @@ if (typeof window !== 'undefined') {
 }
 
 const bc = typeof window !== 'undefined' ? new BroadcastChannel('db_sync') : null
+const dbSyncTabId = typeof window !== 'undefined' ? crypto.randomUUID() : ''
+
+type DbSyncBroadcastMessage = {
+  apiKey: string
+  fromTab: string
+}
+
+function parseDbSyncBroadcastMessage(data: unknown): DbSyncBroadcastMessage | null {
+  if (typeof data === 'string') {
+    return { apiKey: data, fromTab: '' }
+  }
+
+  if (typeof data !== 'object' || data === null) return null
+
+  const message = data as Partial<DbSyncBroadcastMessage>
+  if (typeof message.apiKey !== 'string') return null
+
+  return {
+    apiKey: message.apiKey,
+    fromTab: typeof message.fromTab === 'string' ? message.fromTab : '',
+  }
+}
 
 interface SyncableRecord {
   id: string
 }
 
 interface CreateSyncableCollectionConfigs {
-  id: string
   syncMode: SyncMode
   schemaVersion: number
   apiKey: keyof typeof crudAPI
-  queryClient: QueryClient
+}
+
+/**
+ * Generic retry utility with exponential backoff handling network/DB stalls
+ */
+async function retryWithBackoff<T>(fn: () => Promise<{ isErr: () => boolean; error: any; value: T }>, retries = 3, delay = 200): Promise<T> {
+  let lastError: any = null
+  for (let i = 0; i < retries; i++) {
+    try {
+      const result = await fn()
+      if (!result.isErr()) return result.value
+      lastError = new Error(result.error)
+    } catch (err) {
+      lastError = err
+    }
+    if (i < retries - 1) {
+      await new Promise(resolve => setTimeout(resolve, delay * (i + 1)))
+    }
+  }
+  throw lastError
 }
 
 /**
@@ -49,17 +89,18 @@ interface CreateSyncableCollectionConfigs {
  */
 export function createSyncableCollection<TRecord extends SyncableRecord>(config: CreateSyncableCollectionConfigs): Collection<TRecord> {
   if (typeof window === 'undefined') return {} as Collection<TRecord>
+  const queryClient = getQueryClient()
 
   const collection = createCollection(
     persistedCollectionOptions({
-      id: config.id,
+      id: config.apiKey,
       persistence,
       schemaVersion: config.schemaVersion,
       autoIndex: 'eager',
       defaultIndexType: BasicIndex,
       ...queryCollectionOptions({
-        queryClient: config.queryClient,
-        queryKey: [config.id],
+        queryClient,
+        queryKey: [config.apiKey],
         syncMode: config.syncMode,
         getKey: (item: TRecord) => item.id,
 
@@ -95,7 +136,6 @@ export function createSyncableCollection<TRecord extends SyncableRecord>(config:
             where,
             orderBy,
             take: options.limit,
-            // skip: ctx.meta?.skip ?? 0, // If you eventually pass skip through ctx.meta
           })
 
           if (result.isErr()) throw new Error(result.error)
@@ -113,12 +153,10 @@ export function createSyncableCollection<TRecord extends SyncableRecord>(config:
               continue
             }
 
-            const result = await api[config.apiKey]('create', {
-              data: input,
-            })
+            // Executes safely with backoff retries and casts types cleanly
+            const value = await retryWithBackoff(() => api[config.apiKey]('create', { data: input }))
 
-            if (result.isErr()) throw new Error(result.error)
-            results.push(result.value)
+            results.push(value as TRecord)
           }
           return results
         },
@@ -134,13 +172,14 @@ export function createSyncableCollection<TRecord extends SyncableRecord>(config:
               continue
             }
 
-            const result = await api[config.apiKey]('update', {
-              where: { id: mutation.original.id },
-              data: updatedChanges,
-            })
+            const value = await retryWithBackoff(() =>
+              api[config.apiKey]('update', {
+                where: { id: mutation.original.id },
+                data: updatedChanges,
+              }),
+            )
 
-            if (result.isErr()) throw new Error(result.error)
-            results.push(result.value)
+            results.push(value as TRecord)
           }
           return results
         },
@@ -163,14 +202,17 @@ export function createSyncableCollection<TRecord extends SyncableRecord>(config:
 
   if (bc) {
     bc.addEventListener('message', async event => {
-      if (event.data === config.id) {
-        await collection._sync.startSync()
-        config.queryClient.invalidateQueries({ queryKey: [config.id] })
-      }
+      const message = parseDbSyncBroadcastMessage(event.data)
+      if (!message || message.apiKey !== config.apiKey) return
+      // Ignore same-tab broadcasts to avoid stale refetches racing manual transactions.
+      if (message.fromTab === dbSyncTabId) return
+
+      await collection._sync.startSync()
+      queryClient.invalidateQueries({ queryKey: [config.apiKey] })
     })
 
     collection.subscribeChanges(() => {
-      bc.postMessage(config.id)
+      bc.postMessage({ apiKey: config.apiKey, fromTab: dbSyncTabId })
     })
   }
 

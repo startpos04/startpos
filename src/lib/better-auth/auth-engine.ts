@@ -3,9 +3,10 @@
 import type { Role } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
 import { localAuthCollection } from '@/db/local-auth'
-import { authStore } from '@/store/auth-store'
+import { clearModals } from '@/lib/overlay'
+import { authStore, resetAuth } from '@/store/auth-store'
 import { authClient } from './auth-client'
-import { type ServerUser, verifyAuth } from './auth-server'
+import { getAuthUser, type ServerUser, verifyAuth } from './auth-server'
 
 export const AuthEngine = {
   /**
@@ -38,18 +39,33 @@ export const AuthEngine = {
     await authClient.signIn.email(
       { email, password },
       {
-        onSuccess: async ({ data }) => {
+        onSuccess: async () => {
+          const fullUser = await getAuthUser()
+          if (!fullUser) {
+            toast.error('Login succeeded but user profile could not be loaded.')
+            return
+          }
+
+          const hashedPassword = await AuthEngine.hashCredentials(password)
           const localUser = [...localAuthCollection.values()].find(u => u.email === email)
-          if (!localUser) {
+
+          if (localUser) {
+            await localAuthCollection.update(localUser.id, draft => {
+              draft.profile = fullUser
+              draft.hashedPassword = hashedPassword
+              draft.expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000
+            })
+          } else {
             await localAuthCollection.insert({
-              id: data.user.id,
-              email: data.user.email,
-              hashedPassword: await AuthEngine.hashCredentials(password),
-              profile: data.user,
+              id: fullUser.id,
+              email: fullUser.email,
+              hashedPassword,
+              profile: fullUser,
               expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
             })
           }
-          onSuccess(data.user)
+
+          onSuccess(fullUser)
         },
         onError: ctx => {
           toast.error(ctx.error.message || 'Authentication failed')
@@ -90,14 +106,14 @@ export const AuthEngine = {
    * Clears the server session (if online) and wipes the local shadow.
    */
   async logout(params: { onSuccess: () => void }): Promise<void> {
-    authStore.setState(s => ({
-      ...s,
-      user: {} as unknown as ServerUser,
-      isAuthenticated: false,
-    }))
+    authStore.setState(state => ({ ...state, isLoggingOut: true }))
+    clearModals()
+    resetAuth()
 
     try {
-      await authClient.signOut({}, params)
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        await authClient.signOut({}, params)
+      }
     } catch (error) {
       console.error('AuthEngine: Server signOut failed', error)
     }

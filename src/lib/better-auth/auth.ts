@@ -9,7 +9,7 @@ export const auth = betterAuth({
     provider: 'postgresql',
   }),
   baseURL: {
-    allowedHosts: [process.env['BETTER_AUTH_URL']!, '*.vercel.app'],
+    allowedHosts: [process.env['BETTER_AUTH_URL']!, process.env['BETTER_AUTH_INTERNAL_URL']!, '*.vercel.app'].filter(Boolean),
     protocol: process.env['NODE_ENV'] === 'development' ? 'http' : 'https',
   },
   secret: process.env['BETTER_AUTH_SECRET'],

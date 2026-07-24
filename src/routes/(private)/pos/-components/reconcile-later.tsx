@@ -11,7 +11,7 @@ import { MoneyInput } from '@/components/custom/form/money-input'
 import { TextAreaInput } from '@/components/custom/form/text-area-input'
 import { Button } from '@/components/ui/button'
 import { membershipCollection, operationalTaskCollection, transactionCollection, vendorSessionCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
+import { dbTransaction } from '@/db/local-db-transaction'
 import { useAppForm } from '@/hooks/form'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
@@ -69,38 +69,32 @@ export function ReconcileLater({ onClose }: OverlayProps) {
       notes: '',
     },
     onSubmit: async ({ value }) => {
-      const localDBTransaction = new LocalDBTransaction()
       const session = sessions.data[0]
       const admins = members.data
       if (!session?.id) return
       if (admins.length === 0) return
 
-      try {
+      const result = await dbTransaction(() => {
         // Create the Reconciliation Task
-        await localDBTransaction.step(
-          operationalTaskCollection.update(session.operationalTaskId, draft => {
-            draft.status = TaskStatus.IN_PROGRESS
-            draft.notes = value.notes || `Reconciliation for session ${session.id}`
-            draft.dueDate = dayjs().endOf('day').toDate()
-            draft.metadata = { vendorSessionId: session.id, expectedCash, approvedCash: value.closingCash }
-            draft.inProgressAt = new Date()
-          }),
-        )
+        operationalTaskCollection.update(session.operationalTaskId, draft => {
+          draft.status = TaskStatus.IN_PROGRESS
+          draft.notes = value.notes || `Reconciliation for session ${session.id}`
+          draft.dueDate = dayjs().endOf('day').toDate()
+          draft.metadata = { vendorSessionId: session.id, expectedCash, approvedCash: value.closingCash }
+          draft.inProgressAt = new Date()
+        })
 
         // Update the Session
-        await localDBTransaction.step(
-          vendorSessionCollection.update(session.id, draft => {
-            draft.status = SessionStatus.CLOSED
-            draft.endTime = new Date()
-            draft.closingCash = Number(value.closingCash)
-            draft.expectedCash = expectedCash
-          }),
-        )
+        vendorSessionCollection.update(session.id, draft => {
+          draft.status = SessionStatus.CLOSED
+          draft.endTime = new Date()
+          draft.closingCash = Number(value.closingCash)
+          draft.expectedCash = expectedCash
+        })
 
-        await NotificationEngine.send(
+        NotificationEngine.send(
           admins.map(admin => admin.userId),
           {
-            localDBTransaction,
             type: NotificationType.COMPLIANCE_REMINDER,
             title: 'Shift Closed & Awaiting Review',
             message: `${user.name || 'A cashier'} has ended their shift for session ${session.id}. Expected: ${PriceEngine.format(expectedCash)}, Actual: ${PriceEngine.format(Number(value.closingCash))}.`,
@@ -108,21 +102,24 @@ export function ReconcileLater({ onClose }: OverlayProps) {
             link: `/tasks/${session.operationalTaskId}`,
           },
         )
+      })
 
-        // Update global state and reload to reset POS gate
-        authStore.setState(state => {
-          state.user.vendorSession = vendorSessionCollection.get(session.id) as VendorSession
-          return state
-        })
-        toast.success('Shift ended successfully')
-
-        onClose()
-        if (user.role === Role.CASHIER) AuthEngine.logout({ onSuccess: () => navigate({ to: '/login' }) })
-        else navigate({ to: user.landingPage })
-      } catch (error) {
-        console.error('Closing failed:', error)
+      if (result.isErr()) {
+        console.error('Transaction failed:', result.error.message)
         toast.error('Failed to close session.')
+        return
       }
+
+      // Update global state and reload to reset POS gate
+      authStore.setState(state => {
+        state.user.vendorSession = vendorSessionCollection.get(session.id) as VendorSession
+        return state
+      })
+      toast.success('Shift ended successfully')
+
+      onClose()
+      if (user.role === Role.CASHIER) AuthEngine.logout({ onSuccess: () => navigate({ to: '/login' }) })
+      else navigate({ to: user.landingPage })
     },
   })
 

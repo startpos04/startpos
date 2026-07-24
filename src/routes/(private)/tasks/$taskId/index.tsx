@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { operationalTaskCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { useAppForm } from '@/hooks/form'
 import type { OverlayProps } from '@/lib/overlay'
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
@@ -52,40 +51,37 @@ function RouteComponent(props: RouteComponentProps) {
   } = fetchTasks(taskId)
 
   const handleStatusChange = async ({ nextStatus }: { nextStatus: TaskStatus }) => {
-    const localDBTransaction = new LocalDBTransaction()
     const timestamp = new Date()
 
-    return await localDBTransaction.step(
-      operationalTaskCollection.update(taskId, draft => {
-        draft.status = nextStatus
-        draft.updatedAt = timestamp
+    operationalTaskCollection.update(taskId, draft => {
+      draft.status = nextStatus
+      draft.updatedAt = timestamp
 
-        if (nextStatus === 'PENDING') {
-          draft.creatorId = user?.id
-        }
-        if (nextStatus === 'APPROVED') {
-          draft.approverId = user?.id
-          draft.approvedAt = timestamp
-        }
-        if (nextStatus === 'IN_PROGRESS') {
-          // If no clerk is explicitly assigned to the task yet, the user starting it becomes the clerk
-          if (!draft.clerkId) draft.clerkId = user?.id
-          draft.inProgressAt = timestamp
-        }
-        if (nextStatus === 'FULFILLED') {
-          if (!draft.clerkId) draft.clerkId = user?.id
-          draft.fulfilledAt = timestamp
-        }
-        if (nextStatus === 'REVIEWED') {
-          draft.reviewerId = user?.id
-          draft.reviewedAt = timestamp
-        }
-        if (nextStatus === 'CANCELLED') {
-          draft.cancelerId = user?.id
-          draft.canceledAt = timestamp
-        }
-      }),
-    )
+      if (nextStatus === 'PENDING') {
+        draft.creatorId = user?.id
+      }
+      if (nextStatus === 'APPROVED') {
+        draft.approverId = user?.id
+        draft.approvedAt = timestamp
+      }
+      if (nextStatus === 'IN_PROGRESS') {
+        // If no clerk is explicitly assigned to the task yet, the user starting it becomes the clerk
+        if (!draft.clerkId) draft.clerkId = user?.id
+        draft.inProgressAt = timestamp
+      }
+      if (nextStatus === 'FULFILLED') {
+        if (!draft.clerkId) draft.clerkId = user?.id
+        draft.fulfilledAt = timestamp
+      }
+      if (nextStatus === 'REVIEWED') {
+        draft.reviewerId = user?.id
+        draft.reviewedAt = timestamp
+      }
+      if (nextStatus === 'CANCELLED') {
+        draft.cancelerId = user?.id
+        draft.canceledAt = timestamp
+      }
+    })
   }
 
   const form = useAppForm({

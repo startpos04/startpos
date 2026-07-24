@@ -3,7 +3,7 @@ import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums
 import { toast } from 'sonner'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { productCollection, productComponentCollection, productVariantCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
+import { dbTransaction } from '@/db/local-db-transaction'
 import type { OverlayProps } from '@/lib/overlay'
 import { authStore } from '@/store/auth-store'
 import { CreateProduct, type CreateProductFormData } from './-create-product'
@@ -25,47 +25,42 @@ export function CreateProductDialog({ open, onClose }: OverlayProps) {
 function RouteComponent({ onClose }: { onClose?: () => void }) {
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
     const { ingredients, allowedAddons, sku: productSku, price: productPrice, variants, ...productData } = value
-    const localDBTransaction = new LocalDBTransaction()
     const { user } = authStore.state
 
-    try {
+    const result = await dbTransaction(() => {
       // 1. Create the Main Product
       const productId = crypto.randomUUID()
-      await localDBTransaction.step(
-        productCollection.insert({
-          ...productData,
-          id: productId,
-          type: productData.type,
-          requiresDeposit: false,
-          depositAmount: null,
-          durationMinutes: null,
-          businessId: user.business.id,
-          updatedAt: new Date(),
-          createdAt: new Date(),
-          deletedAt: null,
-        }),
-      )
+      productCollection.insert({
+        ...productData,
+        id: productId,
+        type: productData.type,
+        requiresDeposit: false,
+        depositAmount: null,
+        durationMinutes: null,
+        businessId: user.business.id,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        deletedAt: null,
+      })
 
       // 2. Create the Default Variant
       const variantId = crypto.randomUUID()
-      await localDBTransaction.step(
-        productVariantCollection.insert({
-          id: variantId,
-          productId: productId,
-          name: 'Default',
-          sku: productSku,
-          price: productPrice,
-          image: null,
-          costPrice: productPrice,
-          attributeType: VariantAttributeType.UNSPECIFIED,
-          taxCategory: TaxCategory.STANDARD,
-          lowStockThreshold: Number(user.systemConfigs.LOW_STOCK_THRESHOLD),
-          businessId: user.business.id,
-          updatedAt: new Date(),
-          createdAt: new Date(),
-          deletedAt: null,
-        }),
-      )
+      productVariantCollection.insert({
+        id: variantId,
+        productId: productId,
+        name: 'Default',
+        sku: productSku,
+        price: productPrice,
+        image: null,
+        costPrice: productPrice,
+        attributeType: VariantAttributeType.UNSPECIFIED,
+        taxCategory: TaxCategory.STANDARD,
+        lowStockThreshold: Number(user.systemConfigs.LOW_STOCK_THRESHOLD),
+        businessId: user.business.id,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+        deletedAt: null,
+      })
 
       // 3. Prepare Components (Ingredients + Addons)
       const componentsToInsert = [
@@ -99,15 +94,18 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
 
       // 4. Batch Insert Components
       if (componentsToInsert.length > 0) {
-        await localDBTransaction.step(productComponentCollection.insert(componentsToInsert))
+        productComponentCollection.insert(componentsToInsert)
       }
+    })
 
-      toast.success('Product successfully created')
-      onClose?.()
-    } catch (error) {
-      console.error('Transaction failed:', error)
+    if (result.isErr()) {
+      console.error('Transaction failed:', result.error.message)
       toast.error('Failed to add Product. Please try again.')
+      return
     }
+
+    toast.success('Product successfully created')
+    onClose?.()
   }
 
   return (

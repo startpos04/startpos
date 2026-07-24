@@ -12,7 +12,6 @@ import { FeatureDisabledPage } from '@/components/pages/feature-disabled-page'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { operationalTaskCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { showModal } from '@/lib/overlay'
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
 import { cn } from '@/lib/utils'
@@ -221,9 +220,8 @@ function RouteComponent() {
                 title: 'Delete Task',
                 description: 'Are you sure you want to remove this task? This action cannot be undone.',
                 onConfirm: async () => {
-                  const localDBTransaction = new LocalDBTransaction()
                   try {
-                    await localDBTransaction.step(operationalTaskCollection.delete(row.original.id))
+                    operationalTaskCollection.delete(row.original.id)
                     toast.success('Task removed successfully')
                     return true
                   } catch {

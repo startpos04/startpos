@@ -16,7 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { productCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { usePOS } from '@/hooks/use-pos'
 import { productCols } from '@/lib/columns/product-columns'
 import { tableCols } from '@/lib/columns/table-columns'
@@ -125,14 +124,10 @@ function RouteComponent() {
       title: 'Delete Product',
       description: 'Are you sure you want to delete this product? This will affect products using this recipe.',
       onConfirm: async () => {
-        const localDBTransaction = new LocalDBTransaction()
-
         try {
-          await localDBTransaction.step(
-            productCollection.update(product.id, draft => {
-              draft.deletedAt = new Date()
-            }),
-          )
+          productCollection.update(product.id, draft => {
+            draft.deletedAt = new Date()
+          })
 
           toast.success('Product archived successfully')
           return true

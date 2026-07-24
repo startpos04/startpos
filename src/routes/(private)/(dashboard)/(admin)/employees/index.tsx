@@ -9,7 +9,6 @@ import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { userCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { showModal } from '@/lib/overlay'
 import { EmployeeDetailsDialog } from './$employeeId'
 import { CreateEmployeeDialog } from './create'
@@ -76,14 +75,10 @@ function RouteComponent() {
                 title: 'Delete Employee',
                 description: 'Are you sure you want to delete this employee? This will affect their access to the system.',
                 onConfirm: async () => {
-                  const localDBTransaction = new LocalDBTransaction()
-
                   try {
-                    await localDBTransaction.step(
-                      userCollection.update(row.original.id, draft => {
-                        draft.deletedAt = new Date()
-                      }),
-                    )
+                    userCollection.update(row.original.id, draft => {
+                      draft.deletedAt = new Date()
+                    })
 
                     toast.success('Employee archived successfully')
                     return true

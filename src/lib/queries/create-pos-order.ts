@@ -1,6 +1,6 @@
 import { OrderStatus, OrderType, SequenceType } from 'prisma/generated/prisma/enums'
 import { orderCollection, orderItemAddonCollection, orderItemCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
+import { dbTransaction } from '@/db/local-db-transaction'
 import { authStore } from '@/store/auth-store'
 import type { CreateSaleInput } from './create-pos-transaction'
 import type { posProduct } from './fetch-pos-products'
@@ -10,19 +10,16 @@ export const createPosOrder = async (data: CreateSaleInput, posOrders: posProduc
   const { user } = authStore.state
   const productIds = data.items.map(item => item.product.id)
   const dbProducts = posOrders.filter(p => productIds.includes(p.id)) as posProduct[]
-  const localDBTransaction = new LocalDBTransaction()
 
-  try {
-    const orderId = data.orderId || crypto.randomUUID()
-    const exists = orderCollection.has(orderId)
+  const orderId = data.orderId || crypto.randomUUID()
+  const exists = orderCollection.has(orderId)
 
+  const result = await dbTransaction(() => {
     if (exists) {
       // UPDATE EXISTING ORDER
-      await localDBTransaction.step(
-        orderCollection.update(orderId, draft => {
-          draft.customerReference = data.customer.customerReference || 'Walk-in Guest'
-        }),
-      )
+      orderCollection.update(orderId, draft => {
+        draft.customerReference = data.customer.customerReference || 'Walk-in Guest'
+      })
 
       // Get all Item IDs belonging to this order
       const itemsInOrder = [...orderItemCollection.values()].filter(i => i.orderId === orderId)
@@ -34,30 +31,28 @@ export const createPosOrder = async (data: CreateSaleInput, posOrders: posProduc
 
         // Delete Addons by IDs
         if (addonIdsToDelete.length > 0) {
-          localDBTransaction.step(orderItemAddonCollection.delete(addonIdsToDelete))
+          orderItemAddonCollection.delete(addonIdsToDelete)
         }
 
         // Delete Items by IDs
-        await localDBTransaction.step(orderItemCollection.delete(itemIds))
+        orderItemCollection.delete(itemIds)
       }
     } else {
       // --- 2. PREPARE DATA STRUCTURES ---
-      const orderNumber = await fetchStructuredId(localDBTransaction, SequenceType.ORDER)
+      const orderNumber = fetchStructuredId(SequenceType.ORDER)
 
       // INSERT NEW ORDER
-      await localDBTransaction.step(
-        orderCollection.insert({
-          id: orderId,
-          orderNumber,
-          status: OrderStatus.PENDING,
-          orderType: OrderType.DINE_IN,
-          customerReference: data.customer.customerReference || 'Walk-in Guest',
-          businessId: user.business.id,
-          branchId: user.branch.id,
-          updatedAt: new Date(),
-          createdAt: new Date(),
-        }),
-      )
+      orderCollection.insert({
+        id: orderId,
+        orderNumber,
+        status: OrderStatus.PENDING,
+        orderType: OrderType.DINE_IN,
+        customerReference: data.customer.customerReference || 'Walk-in Guest',
+        businessId: user.business.id,
+        branchId: user.branch.id,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      })
     }
 
     // CREATE ITEMS & ADDONS ---
@@ -66,21 +61,19 @@ export const createPosOrder = async (data: CreateSaleInput, posOrders: posProduc
       const variant = product.variants.find(v => v.id === item.variant.id)!
       const itemId = crypto.randomUUID()
 
-      await localDBTransaction.step(
-        orderItemCollection.insert({
-          id: itemId,
-          orderId: orderId,
-          variantId: item.variant.id,
-          quantity: item.quantity,
-          unitPrice: Number(variant.price),
-          unitCost: Number(variant.costPrice || 0),
-          unitId: product.baseUnitId,
-          businessId: user.business.id,
-          branchId: user.branch.id,
-          updatedAt: new Date(),
-          createdAt: new Date(),
-        }),
-      )
+      orderItemCollection.insert({
+        id: itemId,
+        orderId: orderId,
+        variantId: item.variant.id,
+        quantity: item.quantity,
+        unitPrice: Number(variant.price),
+        unitCost: Number(variant.costPrice || 0),
+        unitId: product.baseUnitId,
+        businessId: user.business.id,
+        branchId: user.branch.id,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      })
 
       if (item.addons.length > 0) {
         const addonsToInsert = item.addons.map(a => {
@@ -98,14 +91,14 @@ export const createPosOrder = async (data: CreateSaleInput, posOrders: posProduc
             createdAt: new Date(),
           }
         })
-        await localDBTransaction.step(orderItemAddonCollection.insert(addonsToInsert))
+        orderItemAddonCollection.insert(addonsToInsert)
       }
     }
+  })
 
-    return { data: true }
-  } catch (error) {
-    console.error('Transaction failed:', error)
-
-    return { data: false, error }
+  if (result.isErr()) {
+    console.error('Transaction failed:', result.error.message)
   }
+
+  return { data: true }
 }

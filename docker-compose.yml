@@ -1,50 +1,51 @@
 services:
   db:
     image: postgres:15-alpine
-    restart: always
+    restart: unless-stopped
     environment:
-      - POSTGRES_USER=root
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=start-pos
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - '5432:5432'
+      - '${POSTGRES_HOST_PORT:-5434}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  studio:
-    build:
-      context: .
-      target: prisma-gen
-    command: ['npx', 'prisma', 'studio', '--browser', 'none']
-    container_name: prisma_studio
-    depends_on:
-      - db
-    ports:
-      - '51212:51212'
+  db-init:
+    image: postgres:15-alpine
     env_file:
       - .env
+    volumes:
+      - ./docker/postgres/ensure-database.sh:/ensure-database.sh:ro
+    entrypoint: ['/bin/sh', '/ensure-database.sh']
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: 'no'
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
-      target: prisma-gen
-    command: ['npm', 'run', 'dev']
-    container_name: app
+      target: dev
     depends_on:
-      - db
+      db-init:
+        condition: service_completed_successfully
     ports:
-      - '3000:3000'
+      - '${PUBLIC_PORT:-3200}:${PORT:-3000}'
+      - '51212:51212'
     env_file:
       - .env
+    shm_size: '1gb'
     volumes:
-      - /app/prisma/generated
-      - /app/prisma/seeder
+      - app_output:/app/.output
+      - ./.env:/app/.env:ro
+    command: ['pnpm', 'run', 'dev:docker']
     develop:
       watch:
         - action: sync
@@ -53,8 +54,12 @@ services:
           ignore:
             - node_modules/
             - .output/
+            - .git/
         - action: rebuild
           path: package.json
+        - action: rebuild
+          path: pnpm-lock.yaml
 
 volumes:
   postgres_data:
+  app_output:

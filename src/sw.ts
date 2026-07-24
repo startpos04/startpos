@@ -1,6 +1,6 @@
 // fallow-ignore-file unused-file
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist'
-import { CacheFirst, NavigationRoute, NetworkFirst, NetworkOnly, Serwist, StaleWhileRevalidate } from 'serwist'
+import { CacheFirst, NavigationRoute, NetworkFirst, NetworkOnly, Serwist } from 'serwist'
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -10,7 +10,7 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope
 
-const isProd = typeof process !== 'undefined' ? process.env['NODE_ENV'] === 'production' : import.meta.env?.MODE === 'production' || true
+const isProd = typeof process !== 'undefined' ? process.env['NODE_ENV'] === 'production' : import.meta.env?.MODE === 'production'
 
 const serwist = new Serwist({
   disableDevLogs: false,
@@ -44,12 +44,6 @@ const serwist = new Serwist({
           matcher: ({ request }) => request.destination === 'style' || request.destination === 'image' || request.destination === 'font',
           handler: new CacheFirst({
             cacheName: 'static-assets',
-          }),
-        },
-        {
-          matcher: ({ request }) => request.destination === 'script' || request.destination === 'worker',
-          handler: new StaleWhileRevalidate({
-            cacheName: 'js-chunks',
           }),
         },
       ]

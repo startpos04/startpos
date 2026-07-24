@@ -7,11 +7,10 @@ import {
   productCollection,
   productVariantCollection,
 } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
+import { dbTransaction } from '@/db/local-db-transaction'
 import { authStore } from '@/store/auth-store'
 
 interface SendNotificationParams {
-  localDBTransaction: LocalDBTransaction
   type: NotificationType
   title: string
   message: string
@@ -26,7 +25,6 @@ export const NotificationEngine = {
   async checkLowStock(variantIds: string[]) {
     try {
       const { user } = authStore.state
-      const localDBTransaction = new LocalDBTransaction()
 
       // 1. Group by variantId and sum quantity where quantity > 0
       // Simulating Prisma's groupBy using Array.reduce on the local collection
@@ -61,7 +59,7 @@ export const NotificationEngine = {
           if (admins.length === 0) return
 
           const taskId = crypto.randomUUID()
-          await localDBTransaction.step(
+          await dbTransaction(() => {
             operationalTaskCollection.insert({
               id: crypto.randomUUID(),
               type: TaskType.SHELF_REFILL,
@@ -90,20 +88,19 @@ export const NotificationEngine = {
               reviewerId: null,
               canceledAt: null,
               cancelerId: null,
-            }),
-          )
+            })
 
-          await NotificationEngine.send(
-            admins.map(admin => admin.id),
-            {
-              localDBTransaction,
-              type: 'LOW_STOCK',
-              title: 'Low Stock Alert',
-              message: `${[variant.product?.name, variant.name ? `(${variant.name})` : ''].filter(Boolean).join(' ')} is low: ${currentTotal} remaining (Threshold: ${threshold}).`,
-              metadata: { variantId: variant.id, currentTotal },
-              link: `/tasks/${taskId}`,
-            },
-          )
+            NotificationEngine.send(
+              admins.map(admin => admin.id),
+              {
+                type: 'LOW_STOCK',
+                title: 'Low Stock Alert',
+                message: `${[variant.product?.name, variant.name ? `(${variant.name})` : ''].filter(Boolean).join(' ')} is low: ${currentTotal} remaining (Threshold: ${threshold}).`,
+                metadata: { variantId: variant.id, currentTotal },
+                link: `/tasks/${taskId}`,
+              },
+            )
+          })
         }
       }
     } catch (error) {
@@ -114,7 +111,7 @@ export const NotificationEngine = {
   /**
    * Internal helper to distribute notifications to all branch admins
    */
-  async send(receiverIds: string[], { localDBTransaction, type, title, message, metadata, link }: SendNotificationParams) {
+  async send(receiverIds: string[], { type, title, message, metadata, link }: SendNotificationParams) {
     const { user } = authStore.state
 
     const notificationsToInsert = receiverIds.map(receiverId => ({
@@ -133,6 +130,6 @@ export const NotificationEngine = {
     }))
 
     // Step the mutation via the transaction engine
-    await localDBTransaction.step(notificationCollection.insert(notificationsToInsert))
+    notificationCollection.insert(notificationsToInsert)
   },
 }

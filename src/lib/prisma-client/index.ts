@@ -1,12 +1,13 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 import { PrismaClient } from 'prisma/generated/prisma/client'
+import { buildPostgresUrl } from '../database-url'
 import { multiTenantExtension, type TenantAwareClient } from './multi-tenant-extension'
 import { softDeleteExtension } from './soft-delete-extension'
 
 // Establish the Database Connection
 const pool = new pg.Pool({
-  connectionString: process.env['DATABASE_URL'],
+  connectionString: buildPostgresUrl(),
 })
 const adapter = new PrismaPg(pool)
 

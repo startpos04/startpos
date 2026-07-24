@@ -1,42 +1,16 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: TODO: explain */
 import fs from 'node:fs'
 import path from 'node:path'
-import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
 import { prisma } from '@/lib/prisma-client'
+import { askQuestion, confirmYesNo, getDatabaseTarget, isProductionDatabaseTarget, resolveSeedFolder } from '../../scripts/db-script-utils'
 
 const __filename = fileURLToPath(import.meta.url)
 const CURRENT_FILE = path.basename(__filename)
 
-function askQuestion(query: string): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  })
-  return new Promise(resolve =>
-    rl.question(query, ans => {
-      rl.close()
-      resolve(ans)
-    }),
-  )
-}
-
 async function main() {
-  // =======================================================
-  // ENVIRONMENT SECURITY ENVIRONMENT GUARD LAYER
-  // =======================================================
-  const dbUrl = process.env['DATABASE_URL'] || ''
-  const nodeEnv = (process.env['NODE_ENV'] || 'development').toUpperCase()
-
-  let dbTarget = 'Unknown/Hidden Cluster'
-  try {
-    const parsedUrl = new URL(dbUrl.replace('postgresql://', 'http://'))
-    dbTarget = `${parsedUrl.hostname}${parsedUrl.pathname}`
-  } catch {
-    dbTarget = dbUrl || 'No Connection String Detected'
-  }
-
-  const isProductionDB = !dbTarget.includes('localhost') && !dbTarget.includes('127.0.0.1') && !dbTarget.includes('test')
+  const { dbUrl, dbTarget, nodeEnv } = getDatabaseTarget()
+  const isProductionDB = isProductionDatabaseTarget(dbUrl)
 
   console.info('\n======================================================')
   console.info('🛡️  SEEDING INFRASTRUCTURE SECURITY INSPECTOR')
@@ -56,22 +30,15 @@ async function main() {
       process.exit(1)
     }
   } else {
-    const answer = await askQuestion('Proceed with executing seed data injection loops? (y/N): ')
-    if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
+    const confirmed = await confirmYesNo('Proceed with executing seed data injection loops? (y/N): ', 'SEED_AUTO_CONFIRM')
+    if (!confirmed) {
       console.info('🛑 Seeding process canceled by operator.')
       process.exit(0)
     }
   }
 
-  // =======================================================
-  // 💡 INTERACTIVE DATA FOLDER INGESTION LAYER
-  // =======================================================
-  const folderInput = await askQuestion('📂 Enter target data folder (default: examples): ')
-  const targetFolder = folderInput.trim() || 'examples'
+  const targetFolder = await resolveSeedFolder()
 
-  // =======================================================
-  // SEEDER PIPELINE PARSING & EXECUTION LAYER
-  // =======================================================
   const rawArg = process.argv[2]
   const arg = rawArg ? path.parse(rawArg).name : null
   const seedersDir = path.dirname(__filename)

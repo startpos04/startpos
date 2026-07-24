@@ -11,7 +11,7 @@ import {
   transactionCollection,
   transactionTaxLineCollection,
 } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
+import { dbTransaction } from '@/db/local-db-transaction'
 import type { PaymentLine } from '@/routes/(private)/pos/-components/payment-dialog'
 import { authStore } from '@/store/auth-store'
 import { InventoryEngine, type posItem } from '../conversion/inventory-engine'
@@ -39,12 +39,11 @@ export interface CreateSaleInput {
 }
 
 export const createPosTransaction = async (data: CreateSaleInput, posOrders: posProduct[]) => {
-  try {
-    const { user } = authStore.state
-    const productIds = data.items.map(item => item.product.id)
-    const dbProducts = posOrders.filter(p => productIds.includes(p.id)) as posProduct[]
-    const localDBTransaction = new LocalDBTransaction()
+  const { user } = authStore.state
+  const productIds = data.items.map(item => item.product.id)
+  const dbProducts = posOrders.filter(p => productIds.includes(p.id)) as posProduct[]
 
+  const result = await dbTransaction(() => {
     // --- 1. VALIDATION & STOCK GUARD ---
     const cartForValidation = data.items.map(item => {
       const product = dbProducts.find(p => p.id === item.product.id)
@@ -95,24 +94,22 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
     let order: Order | null = null
     const orderId = data.orderId ?? crypto.randomUUID()
     if (orderCollection.has(orderId)) {
-      await localDBTransaction.step(
-        orderCollection.update(orderId, draft => {
-          draft.customerReference = data.customer.customerReference || 'Walk-in Guest'
-        }),
-      )
+      orderCollection.update(orderId, draft => {
+        draft.customerReference = data.customer.customerReference || 'Walk-in Guest'
+      })
       // Clean up existing items/addons for rewrite
       const itemsInOrder = [...orderItemCollection.values()].filter(i => i.orderId === orderId)
       const itemIds = itemsInOrder.map(i => i.id)
       if (itemIds.length > 0) {
         const addonIds = [...orderItemAddonCollection.values()].filter(a => itemIds.includes(a.orderItemId)).map(a => a.id)
-        if (addonIds.length > 0) await localDBTransaction.step(orderItemAddonCollection.delete(addonIds))
-        await localDBTransaction.step(orderItemCollection.delete(itemIds))
+        if (addonIds.length > 0) orderItemAddonCollection.delete(addonIds)
+        orderItemCollection.delete(itemIds)
       }
       order = orderCollection.get(orderId) as unknown as Order
     } else {
       order = {
         id: orderId,
-        orderNumber: await fetchStructuredId(localDBTransaction, SequenceType.ORDER),
+        orderNumber: fetchStructuredId(SequenceType.ORDER),
         status: OrderStatus.PENDING,
         orderType: OrderType.DINE_IN,
         customerReference: data.customer.customerReference || 'Walk-in Guest',
@@ -121,7 +118,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
         updatedAt: new Date(),
         createdAt: new Date(),
       }
-      await localDBTransaction.step(orderCollection.insert(order))
+      orderCollection.insert(order)
     }
 
     // --- 4. CREATE ITEMS & ADDONS ---
@@ -150,7 +147,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       const currentItem = items[i]
       if (!currentItem) continue
 
-      await localDBTransaction.step(orderItemCollection.insert(currentItem))
+      orderItemCollection.insert(currentItem)
 
       if (item.addons.length > 0) {
         currentItem.selectedAddons = item.addons.map(a => {
@@ -168,14 +165,14 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
             createdAt: new Date(),
           }
         })
-        await localDBTransaction.step(orderItemAddonCollection.insert(currentItem.selectedAddons))
+        orderItemAddonCollection.insert(currentItem.selectedAddons)
       }
     }
 
     // --- 5. CREATE TRANSACTION & PAYMENT MAP ---
     const transaction = {
       id: crypto.randomUUID(),
-      invoiceNo: await fetchStructuredId(localDBTransaction, SequenceType.INVOICE),
+      invoiceNo: fetchStructuredId(SequenceType.INVOICE),
       orderId,
       type: TransactionType.SALE,
       priceConfiguration: user.systemConfigs.PRICE_CONFIGURATION,
@@ -212,7 +209,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       createdAt: new Date(),
       updatedAt: new Date(),
     }
-    await localDBTransaction.step(transactionCollection.insert(transaction))
+    transactionCollection.insert(transaction)
 
     // --- DYNAMIC LEDGER POPULATION BY REVALUING CATEGORY BASES ---
     const activeCategories = [
@@ -233,7 +230,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
         taxableAmount: item.taxable,
         taxAmount: item.tax,
       }
-      await localDBTransaction.step(transactionTaxLineCollection.insert(taxLineEntry))
+      transactionTaxLineCollection.insert(taxLineEntry)
     }
 
     const payments = data.payments.map(payment => ({
@@ -249,7 +246,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       branchId: user.branch.id,
       createdAt: new Date(),
     }))
-    await localDBTransaction.step(paymentCollection.insert(payments))
+    paymentCollection.insert(payments)
 
     // --- 6. DECREMENT INVENTORY (FIFO) ---
     const reservedMap = InventoryEngine.getReservedMap(cartForValidation)
@@ -271,47 +268,46 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       const plan = CostingEngine.prepareConsumption('FIFO', { variantId: vId, quantity: totalQty, unit }, inventoryBatches)
 
       for (const usage of plan.consumed || []) {
-        await localDBTransaction.step(
-          inventoryCollection.update(usage.inventoryId, draft => {
-            draft.quantity -= usage.quantity
-          }),
-        )
+        inventoryCollection.update(usage.inventoryId, draft => {
+          draft.quantity -= usage.quantity
+        })
 
-        await localDBTransaction.step(
-          inventoryMovementCollection.insert({
-            id: crypto.randomUUID(),
-            variantId: vId,
-            transactionId: transaction.id,
-            inventoryId: usage.inventoryId,
-            userId: user?.id,
-            type: 'OUT',
-            quantity: usage.quantity,
-            reason: `Sale: ${transaction.invoiceNo}`,
-            unitId: unit.id,
-            purchaseId: null,
-            locationId: null,
-            targetBranchId: null,
-            businessId: user.business.id,
-            branchId: user.branch.id,
-            updatedAt: new Date(),
-            createdAt: new Date(),
-            operationalTaskId: null,
-          }),
-        )
+        inventoryMovementCollection.insert({
+          id: crypto.randomUUID(),
+          variantId: vId,
+          transactionId: transaction.id,
+          inventoryId: usage.inventoryId,
+          userId: user?.id,
+          type: 'OUT',
+          quantity: usage.quantity,
+          reason: `Sale: ${transaction.invoiceNo}`,
+          unitId: unit.id,
+          purchaseId: null,
+          locationId: null,
+          targetBranchId: null,
+          businessId: user.business.id,
+          branchId: user.branch.id,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+          operationalTaskId: null,
+        })
       }
     }
 
     return {
-      data: {
-        transaction,
-        payments,
-        order: { ...order, items },
-      },
+      transaction,
+      payments,
+      order: { ...order, items },
     }
-  } catch (error) {
-    console.error('Error in createPosTransaction:', error)
+  })
 
-    return { error }
+  if (result.isErr()) {
+    console.error('Transaction failed:', result.error.message)
+    return { error: result.error }
+  }
+
+  return {
+    data: result.value,
   }
 }
 

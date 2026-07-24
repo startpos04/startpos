@@ -1,64 +1,50 @@
 import { execSync } from 'node:child_process'
-import readline from 'node:readline'
-
-function askQuestion(query: string): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  })
-  return new Promise(resolve =>
-    rl.question(query, ans => {
-      rl.close()
-      resolve(ans)
-    }),
-  )
-}
+import { askQuestion, confirmYesNo, getDatabaseTarget, isProductionDatabaseTarget } from './db-script-utils'
 
 async function main() {
-  const dbUrl = process.env['DATABASE_URL'] || ''
-  const nodeEnv = (process.env['NODE_ENV'] || 'development').toUpperCase()
-
-  let dbTarget = 'Unknown/Hidden Cluster'
-  try {
-    const parsedUrl = new URL(dbUrl.replace('postgresql://', 'http://'))
-    dbTarget = `${parsedUrl.hostname}${parsedUrl.pathname}`
-  } catch {
-    dbTarget = dbUrl || 'No Connection String Detected'
-  }
-
-  // Production condition check
-  const isProductionDB = !dbTarget.includes('localhost') && !dbTarget.includes('127.0.0.1') && !dbTarget.includes('test')
+  const { dbUrl, dbTarget, nodeEnv } = getDatabaseTarget()
+  const isProductionDB = isProductionDatabaseTarget(dbUrl)
   const isProductionEnv = nodeEnv === 'PRODUCTION' || nodeEnv === 'PROD'
+  const isHighRisk = isProductionDB || isProductionEnv
 
   console.info('\n======================================================')
   console.info('🛡️  DATABASE RESET SECURITY LAYER')
   console.info('======================================================')
   console.info(`💻 SYSTEM ENVIRONMENT : \x1b[36m${nodeEnv}\x1b[0m`)
   console.info(`🗄️  DATABASE TARGET    : \x1b[33m${dbTarget}\x1b[0m`)
-  console.info(
-    `🚨 TARGET RISK SCALE  : ${isProductionDB || isProductionEnv ? '\x1b[41m🔴 HIGH RISK (PRODUCTION)\x1b[0m' : '\x1b[42m🟢 LOW RISK (LOCAL/TEST)\x1b[0m'}`,
-  )
+  console.info(`🚨 TARGET RISK SCALE  : ${isHighRisk ? '\x1b[41m🔴 HIGH RISK (PRODUCTION)\x1b[0m' : '\x1b[42m🟢 LOW RISK (LOCAL/TEST)\x1b[0m'}`)
   console.info('======================================================\n')
 
-  // Hard block: Instantly abort if production is detected in either env or DB URL
-  if (isProductionDB || isProductionEnv) {
-    console.error('❌ CRITICAL ERROR: DESTRICTIVE DESTRUCTION DETECTED IN PRODUCTION ENVIRONMENT!')
-    console.error('🛑 Hard block triggered. Reset execution aborted immediately to prevent catastrophic data loss.\n')
-    process.exit(1)
-  }
+  if (isHighRisk) {
+    const confirmed = await confirmYesNo(
+      '\x1b[31m⚠️  CRITICAL WARNING:\x1b[0m This will completely WIPE the schema and all data on a LIVE production target. Proceed? (y/N): ',
+    )
 
-  // Local/Dev environment validation checkpoint
-  const answer = await askQuestion('\x1b[31m⚠️  WARNING:\x1b[0m This will completely WIPE the schema and all data. Proceed? (y/N): ')
+    if (!confirmed) {
+      console.info('🛑 Database reset process canceled by operator.')
+      process.exit(0)
+    }
 
-  if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
-    console.info('🛑 Database reset process canceled by operator.')
-    process.exit(0)
+    console.warn('⚠️  CRITICAL WARNING: This script will execute destructive modifications directly on a LIVE production database cluster!')
+    const confirmString = `CONFIRM-PROD-RESET-${Date.now().toString().slice(-4)}`
+    const answer = await askQuestion(`To proceed, type exact signature string [ \x1b[31m${confirmString}\x1b[0m ]: `)
+
+    if (answer.trim() !== confirmString) {
+      console.error('❌ Signature mismatch. Database reset execution aborted immediately.')
+      process.exit(1)
+    }
+  } else {
+    const confirmed = await confirmYesNo('\x1b[31m⚠️  WARNING:\x1b[0m This will completely WIPE the schema and all data. Proceed? (y/N): ', 'RESET_AUTO_CONFIRM')
+
+    if (!confirmed) {
+      console.info('🛑 Database reset process canceled by operator.')
+      process.exit(0)
+    }
   }
 
   console.info('\n🔥 Executing hard database push and reset layout...')
   try {
-    // Executes the core prisma destructive reset command synchronously
-    execSync('npx prisma db push --force-reset', { stdio: 'inherit' })
+    execSync('pnpm exec prisma db push --force-reset', { stdio: 'inherit' })
     console.info('\n✨ Database schema has been successfully blown away and rebuilt!')
   } catch (err) {
     console.error('\n❌ Prisma hard reset task failed:', err)

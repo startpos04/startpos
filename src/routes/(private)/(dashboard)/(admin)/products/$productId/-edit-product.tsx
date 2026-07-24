@@ -2,7 +2,7 @@ import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums
 import { toast } from 'sonner'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { productCollection, productComponentCollection, productVariantCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
+import { dbTransaction } from '@/db/local-db-transaction'
 import type { OverlayProps } from '@/lib/overlay'
 import { authStore } from '@/store/auth-store'
 import { CreateProduct, type CreateProductFormData } from '../create/-create-product'
@@ -16,21 +16,18 @@ interface EditProductDialogProps extends OverlayProps {
 export function EditProductDialog({ productId, variantId, defaultValues, open, onClose }: EditProductDialogProps) {
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
     const { user } = authStore.state
-    const localDBTransaction = new LocalDBTransaction()
     const { sku, price, variants, ingredients, allowedAddons, ...productData } = value
 
-    try {
+    const result = await dbTransaction(() => {
       // 1. UPDATE PRODUCT
-      await localDBTransaction.step(
-        productCollection.update(productId, draft => {
-          Object.assign(draft, {
-            ...productData,
-            type: value.type,
-            image: value.image || null,
-            updatedAt: new Date(),
-          })
-        }),
-      )
+      productCollection.update(productId, draft => {
+        Object.assign(draft, {
+          ...productData,
+          type: value.type,
+          image: value.image || null,
+          updatedAt: new Date(),
+        })
+      })
 
       // Prepare the variant list
       const variantsToProcess = variants.length === 0 ? [{ isDefault: true, id: value.variants?.[0]?.id, price, sku: '' }] : variants
@@ -43,34 +40,30 @@ export function EditProductDialog({ productId, variantId, defaultValues, open, o
 
         // 2. UPSERT VARIANT
         if (productVariantCollection.has(variantId)) {
-          await localDBTransaction.step(
-            productVariantCollection.update(variantId, draft => {
-              draft.name = finalName
-              draft.sku = finalSku
-              draft.price = price
-              draft.attributeType = isDefault ? VariantAttributeType.UNSPECIFIED : v.attributeType
-              draft.updatedAt = new Date()
-            }),
-          )
+          productVariantCollection.update(variantId, draft => {
+            draft.name = finalName
+            draft.sku = finalSku
+            draft.price = price
+            draft.attributeType = isDefault ? VariantAttributeType.UNSPECIFIED : v.attributeType
+            draft.updatedAt = new Date()
+          })
         } else {
-          await localDBTransaction.step(
-            productVariantCollection.insert({
-              id: variantId,
-              productId,
-              name: finalName,
-              sku: finalSku,
-              price: price,
-              costPrice: 0,
-              image: null,
-              attributeType: isDefault ? VariantAttributeType.UNSPECIFIED : v.attributeType,
-              taxCategory: TaxCategory.STANDARD,
-              lowStockThreshold: user.systemConfigs.LOW_STOCK_THRESHOLD,
-              businessId: user.business.id,
-              updatedAt: new Date(),
-              createdAt: new Date(),
-              deletedAt: null,
-            }),
-          )
+          productVariantCollection.insert({
+            id: variantId,
+            productId,
+            name: finalName,
+            sku: finalSku,
+            price: price,
+            costPrice: 0,
+            image: null,
+            attributeType: isDefault ? VariantAttributeType.UNSPECIFIED : v.attributeType,
+            taxCategory: TaxCategory.STANDARD,
+            lowStockThreshold: user.systemConfigs.LOW_STOCK_THRESHOLD,
+            businessId: user.business.id,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+            deletedAt: null,
+          })
         }
 
         // 3. SYNC COMPONENTS (Upsert Logic)
@@ -105,7 +98,7 @@ export function EditProductDialog({ productId, variantId, defaultValues, open, o
         const idsToDelete = currentDbComponents.filter(dbComp => !incomingKeys.has(getCompositeKey(dbComp))).map(dbComp => dbComp.id)
 
         if (idsToDelete.length > 0) {
-          await localDBTransaction.step(productComponentCollection.delete(idsToDelete))
+          productComponentCollection.delete(idsToDelete)
         }
 
         // B. Identify components to UPDATE or INSERT matching composite criteria
@@ -117,42 +110,41 @@ export function EditProductDialog({ productId, variantId, defaultValues, open, o
 
           if (existingRecord) {
             // UPDATE: Sync properties if they changed
-            await localDBTransaction.step(
-              productComponentCollection.update(existingRecord.id, draft => {
-                draft.quantityUsed = incoming.quantityUsed
-                draft.unitId = incoming.unitId
-                draft.priceOverride = incoming.priceOverride
-                draft.isAddon = incoming.isAddon // Safeguarded by composite match logic
-                draft.updatedAt = new Date()
-              }),
-            )
+            productComponentCollection.update(existingRecord.id, draft => {
+              draft.quantityUsed = incoming.quantityUsed
+              draft.unitId = incoming.unitId
+              draft.priceOverride = incoming.priceOverride
+              draft.isAddon = incoming.isAddon // Safeguarded by composite match logic
+              draft.updatedAt = new Date()
+            })
           } else {
             // INSERT: Create new component record safely
-            await localDBTransaction.step(
-              productComponentCollection.insert({
-                id: crypto.randomUUID(),
-                hostId: variantId,
-                materialId: incoming.materialId,
-                quantityUsed: incoming.quantityUsed,
-                unitId: incoming.unitId,
-                priceOverride: incoming.priceOverride,
-                isAddon: incoming.isAddon,
-                businessId: user.business.id,
-                updatedAt: new Date(),
-                createdAt: new Date(),
-                deletedAt: null,
-              }),
-            )
+            productComponentCollection.insert({
+              id: crypto.randomUUID(),
+              hostId: variantId,
+              materialId: incoming.materialId,
+              quantityUsed: incoming.quantityUsed,
+              unitId: incoming.unitId,
+              priceOverride: incoming.priceOverride,
+              isAddon: incoming.isAddon,
+              businessId: user.business.id,
+              updatedAt: new Date(),
+              createdAt: new Date(),
+              deletedAt: null,
+            })
           }
         }
       }
+    })
 
-      toast.success('Product successfully updated')
-      onClose?.()
-    } catch (error) {
-      console.error('Transaction failed:', error)
+    if (result.isErr()) {
+      console.error('Transaction failed:', result.error.message)
       toast.error('Failed to update Product. Please try again.')
+      return
     }
+
+    toast.success('Product successfully updated')
+    onClose?.()
   }
 
   return (

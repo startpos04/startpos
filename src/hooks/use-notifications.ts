@@ -2,7 +2,6 @@ import { count, eq, useLiveInfiniteQuery, useLiveQuery } from '@tanstack/react-d
 import type { Notification } from 'prisma/generated/prisma/browser'
 import { toast } from 'sonner'
 import { notificationCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
 
 export function useNotifications(pageSize = 10) {
   const { data: unread } = useLiveQuery(q =>
@@ -36,17 +35,14 @@ export function useNotifications(pageSize = 10) {
 
   // Mutation: Mark Single as Read
   const markAsRead = async (data: Notification) => {
-    const localDBTransaction = new LocalDBTransaction()
     try {
-      await localDBTransaction.step(
-        notificationCollection.update(data.id, draft => {
-          draft.isRead = true
-        }),
-      )
+      notificationCollection.update(data.id, draft => {
+        draft.isRead = true
+      })
 
       return { value: data, link: data.link }
     } catch (error) {
-      console.error('Transaction failed:', error)
+      console.error('notification failed:', error)
       toast.error('Failed to mark notification as read. Please try again.')
 
       return null

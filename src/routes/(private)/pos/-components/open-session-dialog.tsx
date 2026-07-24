@@ -10,7 +10,7 @@ import { TextAreaInput } from '@/components/custom/form/text-area-input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { operationalTaskCollection, vendorSessionCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
+import { dbTransaction } from '@/db/local-db-transaction'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import type { OverlayProps } from '@/lib/overlay'
 import { authStore } from '@/store/auth-store'
@@ -46,37 +46,34 @@ export function OpenSessionDialog({ open, onClose }: OverlayProps) {
       onChange: createSessionSchema,
     },
     onSubmit: async ({ value }) => {
-      const localDBTransaction = new LocalDBTransaction()
-      try {
+      const result = await dbTransaction(() => {
         const taskId = crypto.randomUUID()
-        await localDBTransaction.step(
-          operationalTaskCollection.insert({
-            id: taskId,
-            type: TaskType.CASH_RECONCILIATION,
-            status: TaskStatus.DRAFT,
-            notes: null,
-            dueDate: new Date(),
-            creatorId: user.id,
-            approverId: user.id,
-            clerkId: user.id,
-            metadata: {
-              expectedCash: null,
-              approvedCash: null,
-              verifiedCash: null,
-            },
-            approvedAt: new Date(),
-            inProgressAt: new Date(),
-            fulfilledAt: null,
-            reviewedAt: null,
-            reviewerId: null,
-            canceledAt: null,
-            cancelerId: null,
-            businessId: user.business.id,
-            branchId: user.branch.id,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }),
-        )
+        operationalTaskCollection.insert({
+          id: taskId,
+          type: TaskType.CASH_RECONCILIATION,
+          status: TaskStatus.DRAFT,
+          notes: null,
+          dueDate: new Date(),
+          creatorId: user.id,
+          approverId: user.id,
+          clerkId: user.id,
+          metadata: {
+            expectedCash: null,
+            approvedCash: null,
+            verifiedCash: null,
+          },
+          approvedAt: new Date(),
+          inProgressAt: new Date(),
+          fulfilledAt: null,
+          reviewedAt: null,
+          reviewerId: null,
+          canceledAt: null,
+          cancelerId: null,
+          businessId: user.business.id,
+          branchId: user.branch.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
 
         const session = {
           id: crypto.randomUUID(),
@@ -94,7 +91,7 @@ export function OpenSessionDialog({ open, onClose }: OverlayProps) {
           branchId: user.branch.id,
         }
 
-        await localDBTransaction.step(vendorSessionCollection.insert(session))
+        vendorSessionCollection.insert(session)
 
         toast.success('Session started successfully')
         authStore.setState(state => {
@@ -102,11 +99,15 @@ export function OpenSessionDialog({ open, onClose }: OverlayProps) {
 
           return state
         })
-        onClose()
-      } catch (error) {
-        console.error('Failed to open session:', error)
-        toast.error('Could not start session. Please try again.')
+      })
+
+      if (result.isErr()) {
+        console.error('Transaction failed:', result.error.message)
+        toast.error('Failed to add Product. Please try again.')
+        return
       }
+
+      onClose()
     },
   })
 

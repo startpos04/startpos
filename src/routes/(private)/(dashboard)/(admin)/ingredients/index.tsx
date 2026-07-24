@@ -8,7 +8,6 @@ import { TableView } from '@/components/custom/data-view/table-view'
 import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
 import { Button } from '@/components/ui/button'
 import { productCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { productCols } from '@/lib/columns/product-columns'
 import { tableCols } from '@/lib/columns/table-columns'
 import { showModal } from '@/lib/overlay'
@@ -64,14 +63,10 @@ function RouteComponent() {
                     title: 'Delete Ingredient',
                     description: 'Are you sure you want to delete this ingredient? This will affect products using this recipe.',
                     onConfirm: async () => {
-                      const localDBTransaction = new LocalDBTransaction()
-
                       try {
-                        await localDBTransaction.step(
-                          productCollection.update(row.original.id, draft => {
-                            draft.deletedAt = new Date()
-                          }),
-                        )
+                        productCollection.update(row.original.id, draft => {
+                          draft.deletedAt = new Date()
+                        })
 
                         toast.success('Ingredient archived successfully')
                         return true

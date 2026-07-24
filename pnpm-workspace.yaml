@@ -1,0 +1,15 @@
+packages:
+  - '.'
+
+overrides:
+  '@types/pg': '8.11.11'
+  '@tanstack/db': '0.6.5'
+
+allowBuilds:
+  '@journeyapps/wa-sqlite': true
+  '@prisma/engines': true
+  canvas: true
+  esbuild: true
+  lefthook: true
+  msw: true
+  prisma: true

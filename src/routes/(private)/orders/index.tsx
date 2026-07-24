@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
 import { orderCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { type OverlayProps, showModal } from '@/lib/overlay'
 import { createPosRefund } from '@/lib/queries/create-pos-refund'
@@ -92,15 +91,10 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
 
           // BACK TO PENDING STATUS
           const handlePending = async () => {
-            const localDBTransaction = new LocalDBTransaction()
-
             try {
-              await localDBTransaction.step(
-                orderCollection.update(order.id, draft => {
-                  draft.status = OrderStatus.PENDING
-                }),
-              )
-
+              orderCollection.update(order.id, draft => {
+                draft.status = OrderStatus.PENDING
+              })
               toast.success('Order marked as pending')
             } catch (error) {
               console.error('Transaction failed:', error)
@@ -110,14 +104,10 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
 
           // PREPARE ORDER
           const handlePrepare = async () => {
-            const localDBTransaction = new LocalDBTransaction()
-
             try {
-              await localDBTransaction.step(
-                orderCollection.update(order.id, draft => {
-                  draft.status = OrderStatus.PREPARING
-                }),
-              )
+              orderCollection.update(order.id, draft => {
+                draft.status = OrderStatus.PREPARING
+              })
 
               toast.success('Order marked as preparing')
             } catch (error) {
@@ -132,14 +122,10 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
               title: 'Mark as Served',
               description: 'Are you sure you want to mark this order as served?',
               onConfirm: async () => {
-                const localDBTransaction = new LocalDBTransaction()
-
                 try {
-                  await localDBTransaction.step(
-                    orderCollection.update(order.id, draft => {
-                      draft.status = OrderStatus.SERVED
-                    }),
-                  )
+                  orderCollection.update(order.id, draft => {
+                    draft.status = OrderStatus.SERVED
+                  })
 
                   toast.success('Order marked as served')
                   return true
@@ -165,14 +151,10 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
               title: 'Cancel Order',
               description: 'Are you sure you want to cancel this order?',
               onConfirm: async () => {
-                const localDBTransaction = new LocalDBTransaction()
-
                 try {
-                  await localDBTransaction.step(
-                    orderCollection.update(order.id, draft => {
-                      draft.status = 'CANCELLED'
-                    }),
-                  )
+                  orderCollection.update(order.id, draft => {
+                    draft.status = 'CANCELLED'
+                  })
 
                   toast.success('Order cancelled successfully')
                   onCancel?.()

@@ -4,6 +4,7 @@ import type { Prettify } from '@/lib/types'
 
 const defaultValue = {
   isAuthenticated: false as const,
+  isLoggingOut: false as boolean,
   user: {} as unknown as ServerUser,
 }
 
@@ -17,6 +18,10 @@ export const setUser = (user: ServerUser) => {
 
     return user ? { ...state, isAuthenticated: true, user } : defaultValue
   })
+}
+
+export const resetAuth = () => {
+  authStore.setState(defaultValue)
 }
 
 if (typeof window !== 'undefined') {

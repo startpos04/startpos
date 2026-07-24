@@ -1,6 +1,6 @@
 import { PaymentMethod } from 'prisma/generated/prisma/enums'
 
-export const APP_NAME = 'POS & Inventory'
+export const APP_NAME = 'StartPOS'
 export const APP_SHORT_NAME = 'POS'
 
 export type PaymentMethodType = (typeof PaymentMethod)[keyof typeof PaymentMethod]

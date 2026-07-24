@@ -1,7 +1,6 @@
 import { toast } from 'sonner'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { operationalTaskCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
 import { CreateTask, type CreateTaskFormData } from '../create/-create-task'
 
 interface EditTaskDialogProps {
@@ -13,20 +12,17 @@ interface EditTaskDialogProps {
 
 export function EditTaskDialog({ taskId, defaultValues, open, onClose }: EditTaskDialogProps) {
   const handleSubmit = async ({ value }: { value: CreateTaskFormData }) => {
-    const localDBTransaction = new LocalDBTransaction()
     const { type, clerkId, approverId, notes, ...subTaskMetadata } = value
     try {
-      await localDBTransaction.step(
-        operationalTaskCollection.update(taskId, draft => {
-          draft.dueDate = null
-          draft.type = type
-          draft.notes = notes
-          draft.clerkId = clerkId
-          draft.approverId = approverId
-          draft.metadata = subTaskMetadata
-          draft.updatedAt = new Date()
-        }),
-      )
+      operationalTaskCollection.update(taskId, draft => {
+        draft.dueDate = null
+        draft.type = type
+        draft.notes = notes
+        draft.clerkId = clerkId
+        draft.approverId = approverId
+        draft.metadata = subTaskMetadata
+        draft.updatedAt = new Date()
+      })
 
       toast.success('Task successfully updated')
       onClose()

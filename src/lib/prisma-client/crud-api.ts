@@ -11,52 +11,51 @@ type DB = typeof prisma
 type ModelName = Uncapitalize<Prisma.ModelName>
 type DelegateMethods = 'findMany' | 'findFirst' | 'findUnique' | 'create' | 'update' | 'updateMany' | 'upsert' | 'delete' | 'deleteMany' | 'count' | 'groupBy'
 
-/**
- * DeepPrettify: Resolves intersections into clean objects for the IDE.
- */
 type DeepPrettify<T> = T extends Date ? T : T extends object ? { [K in keyof T]: DeepPrettify<T[K]> } & {} : T
 
-/**
- * DeepStrip: Recursively removes businessId and branchId from the input types.
- * This keeps your frontend code clean while the server handles the multi-tenancy.
- */
 type DeepStrip<T> = T extends object
   ? {
       [K in keyof T as K extends 'businessId' | 'branchId' ? never : K]: T[K] extends Array<infer U> ? Array<DeepStrip<U>> : DeepStrip<T[K]>
     }
   : T
-
-/**
- * We take the Prisma args, strip the tenant fields, and then
- * use that for the API input.
- */
 type CleanArgs<T extends ModelName, M extends DelegateMethods> = DeepStrip<Parameters<DB[T][M]>[0]>
-
-/**
- * We still use the original unstripped 'A' for Result inference
- * to ensure Prisma knows exactly what was included/selected.
- */
 type InferResult<T extends ModelName, M extends DelegateMethods, A> = Prisma.Result<DB[T], A, M>
 
 type CrudProxy = {
   [K in ModelName]: <M extends DelegateMethods, A extends CleanArgs<K, M>>(action: M, args?: A) => Promise<Result<DeepPrettify<InferResult<K, M, A>>, string>>
 }
 
+// Export the input payload type so the transaction api can share it
+export interface DBPayload {
+  table: string
+  action: string
+  args?: any
+}
+
+/**
+ * CORE REUSE ENGINER: Resolves the table/model and method dynamically.
+ * Accepts any db Client context (global prisma instance or inside a transactional tx client).
+ */
+export async function executeOperation(dbInstance: any, payload: DBPayload): Promise<any> {
+  const delegate = dbInstance[payload.table]
+
+  if (!delegate?.[payload.action]) {
+    throw new Error(`Invalid operation: ${payload.action} on ${payload.table}`)
+  }
+
+  return await delegate[payload.action](payload.args)
+}
+
 // --- SERVER FUNCTION ---
 
 const crudServerFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
-  .inputValidator((d: { table: string; action: string; args?: any }) => d)
+  .inputValidator((d: DBPayload) => d)
   .handler(async ({ context, data }): Promise<{ value: any } | { error: any }> => {
-    // The server ignores whatever IDs might have been sent and uses the Auth Context
     const tenantPrisma = getTenantPrisma(context.user.businessId, context.user.branchId!)
-    const delegate = (tenantPrisma as any)[data.table]
 
-    if (!delegate?.[data.action]) {
-      return { error: `Invalid operation: ${data.action} on ${data.table}` }
-    }
-
-    const result = await ResultAsync.fromPromise(delegate[data.action](data.args), (e: any) => e.message || 'Database operation failed')
+    // Reuses the core engine passing the global prisma client instance
+    const result = await ResultAsync.fromPromise(executeOperation(tenantPrisma, data), (e: any) => e.message || 'Database operation failed')
 
     return result.isOk() ? { value: result.value } : { error: result.error }
   })

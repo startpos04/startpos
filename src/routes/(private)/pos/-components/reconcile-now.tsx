@@ -12,7 +12,7 @@ import { AuthPrompt } from '@/components/custom/prompt/auth-prompt'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { membershipCollection, operationalTaskCollection, transactionCollection, vendorSessionCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
+import { dbTransaction } from '@/db/local-db-transaction'
 import { useAppForm } from '@/hooks/form'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
@@ -67,40 +67,38 @@ export function ReconcileNow({ onClose }: OverlayProps) {
       notes: '',
     },
     onSubmit: async ({ value }) => {
-      const localDBTransaction = new LocalDBTransaction()
       const session = sessions.data[0]
       const admins = members.data
       if (!session?.id) return
       if (admins.length === 0) return
 
-      try {
+      const result = await dbTransaction(() => {
         // Create the Reconciliation Task
-        await localDBTransaction.step(
-          operationalTaskCollection.update(session.operationalTaskId, draft => {
-            draft.status = TaskStatus.REVIEWED
-            draft.notes = value.notes || `Reconciliation for session ${session.id}`
-            draft.dueDate = dayjs().endOf('day').toDate()
-            draft.metadata = { vendorSessionId: session.id, expectedCash, approvedCash: value.closingCash }
-            draft.inProgressAt = new Date()
-          }),
-        )
+        operationalTaskCollection.update(session.operationalTaskId, draft => {
+          draft.status = TaskStatus.REVIEWED
+          draft.notes = value.notes || `Reconciliation for session ${session.id}`
+          draft.dueDate = dayjs().endOf('day').toDate()
+          draft.metadata = { vendorSessionId: session.id, expectedCash, approvedCash: value.closingCash }
+          draft.inProgressAt = new Date()
+        })
 
-        await localDBTransaction.step(
-          vendorSessionCollection.update(session.id, draft => {
-            draft.status = SessionStatus.CLOSED
-            draft.endTime = new Date()
-            draft.closingCash = Number(value.closingCash)
-            draft.expectedCash = expectedCash
-            draft.verifiedCash = expectedCash
-          }),
-        )
+        vendorSessionCollection.update(session.id, draft => {
+          draft.status = SessionStatus.CLOSED
+          draft.endTime = new Date()
+          draft.closingCash = Number(value.closingCash)
+          draft.expectedCash = expectedCash
+          draft.verifiedCash = expectedCash
+        })
+      })
 
-        toast.success('Shift ended successfully')
-        AuthEngine.logout({ onSuccess: () => navigate({ to: '/login' }) })
-      } catch (error) {
-        console.error('Closing failed:', error)
+      if (result.isErr()) {
+        console.error('Transaction failed:', result.error.message)
         toast.error('Failed to close session.')
+        return
       }
+
+      toast.success('Shift ended successfully')
+      AuthEngine.logout({ onSuccess: () => navigate({ to: '/login' }) })
 
       onClose()
     },

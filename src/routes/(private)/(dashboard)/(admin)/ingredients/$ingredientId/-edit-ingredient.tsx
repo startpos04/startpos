@@ -1,7 +1,7 @@
 import { toast } from 'sonner'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { productCollection, productVariantCollection } from '@/db/collections'
-import { LocalDBTransaction } from '@/db/local-db-transaction'
+import { dbTransaction } from '@/db/local-db-transaction'
 import type { OverlayProps } from '@/lib/overlay'
 import { CreateIngredient, type CreateIngredientFormData } from '../create/-create-ingredients'
 
@@ -12,7 +12,6 @@ interface EditIngredientDialogProps extends OverlayProps {
 
 export function EditIngredientDialog({ ingredientId, defaultValues, open, onClose }: EditIngredientDialogProps) {
   const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
-    const localDBTransaction = new LocalDBTransaction()
     const { sku, price, ...productData } = value
 
     // 1. Check if product exists
@@ -22,17 +21,15 @@ export function EditIngredientDialog({ ingredientId, defaultValues, open, onClos
       throw new Error(`Product with ID ${ingredientId} not found`)
     }
 
-    try {
+    const result = await dbTransaction(() => {
       // 2. Update the main Product record
-      await localDBTransaction.step(
-        productCollection.update(ingredientId, draft => {
-          // Spread existing data and apply updates
-          Object.assign(draft, {
-            ...productData,
-            image: productData.image || null,
-          })
-        }),
-      )
+      productCollection.update(ingredientId, draft => {
+        // Spread existing data and apply updates
+        Object.assign(draft, {
+          ...productData,
+          image: productData.image || null,
+        })
+      })
 
       // 3. Handle the "updateMany" for Variants
       // In TanStack DB, we find the IDs first
@@ -43,24 +40,24 @@ export function EditIngredientDialog({ ingredientId, defaultValues, open, onClos
         // Note: If your version of TanStack DB doesn't support a batch update callback,
         // you would loop through variantIdsToUpdate and call .update() on each.
         for (const vId of variantIdsToUpdate) {
-          await localDBTransaction.step(
-            productVariantCollection.update(vId, draft => {
-              draft.sku = sku
-              draft.price = price
-              draft.costPrice = price
-            }),
-          )
+          productVariantCollection.update(vId, draft => {
+            draft.sku = sku
+            draft.price = price
+            draft.costPrice = price
+          })
         }
       }
+    })
 
-      toast.success('Ingredient successfully updated')
-      onClose?.()
-    } catch (error) {
-      console.error('Transaction failed:', error)
+    if (result.isErr()) {
+      console.error('Transaction failed:', result.error.message)
       toast.error('Failed to archive ingredient. Please try again.')
+      return
     }
-  }
 
+    toast.success('Ingredient successfully updated')
+    onClose?.()
+  }
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className='sm:max-w-3xl max-h-[90vh] overflow-y-auto'>
