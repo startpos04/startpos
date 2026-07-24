@@ -8,13 +8,23 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    setupFiles: ['./src/test-setup.ts'],
+    include: ['src/__tests__/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/tests/**', '**/e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/**/*.ts', 'src/**/*.tsx'],
-      exclude: ['node_modules/**', 'src/components/ui/**', 'src/routeTree.gen.ts', 'src/main.tsx', '**/*.d.ts', '**/*.test.*', 'vite-plugin.ts'],
+      exclude: [
+        'node_modules/**',
+        'src/components/ui/**',
+        'src/routeTree.gen.ts',
+        'src/main.tsx',
+        '**/*.d.ts',
+        '**/*.test.*',
+        'vite-plugin.ts',
+        'src/test-setup.ts',
+      ],
       thresholds: {
         lines: 0,
         functions: 0,

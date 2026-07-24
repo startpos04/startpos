@@ -1,10 +1,21 @@
 import { SequenceType } from 'prisma/generated/prisma/enums'
-import type { z } from 'zod'
+import { z } from 'zod'
 import { inventoryCollection, inventoryMovementCollection, productVariantCollection, purchaseCollection, purchaseItemCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { authStore } from '@/store/auth-store'
-import type { restockSchema } from '../server-fn/restock-ingredient'
 import { fetchStructuredId } from './fetch-structured-id'
+
+export const restockSchema = z.object({
+  variantId: z.string(),
+  quantity: z.number().gt(0),
+  unitCost: z.number().gte(0),
+  unitId: z.string(),
+  reason: z.string().nullable(),
+  batchNumber: z.string().optional().default('DEFAULT'),
+  expiryDate: z.string().optional().nullable(),
+  supplierId: z.string(),
+  locationId: z.string(),
+})
 
 export const restockIngredient = async (data: z.infer<typeof restockSchema>) => {
   const { user } = authStore.state

@@ -12,7 +12,10 @@
       "!!coverage",
       "!!test-results",
       "!!cspell.json",
-      "!!src/routeTree.gen.ts"
+      "!!src/routeTree.gen.ts",
+      "!!**/*.test.*",
+      "!!**/*.spec.*",
+      "!!**/__tests__"
     ]
   },
   "javascript": {
