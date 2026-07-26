@@ -1302,8 +1302,10 @@ src/
 - ✅ **Phase 4 Complete**: Coverage reviewed, gaps documented, business-critical logic at 85-100%
 - ✅ **Phase 5 Complete**: Route integration tests done (Tasks 14 ✅, 15 ✅, 16 ✅) — Tasks, Ingredients, Orders, Products, POS pages all covered
 - ✅ **Phase 6 Complete**: 51 test files, 898 tests — coverage at **46.12%** (1770/3837 stmts). All business-critical logic (tax, inventory, POS, notifications, overlay) at 85-100%. Remaining 1108-stmt gap split into Tier 1 (~495 stmts, testable with RTL) + Tier 2 (~613 stmts, deep form wiring or E2E).
-- ✅ **Phase 7 Complete**: 54 test files, 946 tests — coverage at **49.02%** (1881/3837 stmts). Added reconcile panels, product dialog, date-range + image inputs (+111 stmts). Remaining 997-stmt gap: ~255 report pages (deferred) + ~490 deep form dialogs + ~140 stubs.
-- 🔄 **Next target**: ~55-58% — add route/guard stubs (~110 stmts) + optionally report pages (~255 stmts)
+- ✅ **Phase 8 Complete**: 58 test files, 1012 tests — coverage at **51.6%** (1980/3837 stmts). Added create/edit dialogs for products, employees, ingredients, and tasks (+99 stmts, +2.58%). Total progress from baseline: +38 percentage points.
+- ⚠️ **Phase 9 Deferred**: Route guards, stubs, and report pages (~390 stmts) — user satisfied with current coverage. Remaining gap to 75% is ~898 stmts concentrated in: report pages (~255), deep form sub-components (~300), PDF/canvas renderer (~140, jsdom-excluded), and route guard stubs (~110).
+
+**Final state: 51.6% coverage — all business-critical logic (tax, inventory, POS, notifications, overlay) at 85-100%.**
 
 ### Quality Gates
 - Zero high-severity bugs in production
@@ -1383,4 +1385,12 @@ pnpm test -t "payment dialog"
    - Task 26 ✅: `form/date-rage-input` + `form/image-input` — 16 tests (included in +111)
    - Task 27 ✅: Coverage verified — **49.02%** (1881/3837 stmts), 54 test files, 946 tests
    - **Remaining gap**: 997 stmts — reports (~255), deep forms (~490), stubs (~140), PDF/canvas (~140, excluded)
-10. 🔄 Continue Phase 7 / Phase 8: Route guards + stubs (~110 stmts easy) + optionally report pages (~255 stmts) to reach ~55-58%
+10. ✅ Execute Phase 8 (Tasks 28-32): Deep create/edit form dialog tests — **COMPLETE**
+   - Task 28 ✅: `create-product.test.tsx` — CreateProductDialog + EditProductDialog (19 tests)
+   - Task 29 ✅: `create-employee.test.tsx` — CreateEmployeeDialog + EmployeeDetailsDialog (18 tests)
+   - Task 30 ✅: `create-ingredient.test.tsx` — CreateIngredientDialog + EditIngredientDialog (14 tests)
+   - Task 31 ✅: `create-task.test.tsx` — CreateTaskDialog (11 tests)
+   - Task 32 ✅: Coverage verified — **51.6%** (1980/3837 stmts), 58 test files, 1012 tests
+   - **Phase 8 added**: +99 statements (+2.58%)
+   - **Total progress**: 13.59% → **51.6%** (+38 percentage points from baseline)
+11. ⚠️ Phase 9 (route guards + report pages) — **DEFERRED** (user satisfied with current coverage level)
