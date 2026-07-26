@@ -48,8 +48,10 @@ pre-push:
   commands:
     type-check:
       run: pnpm exec tsc --noEmit
-    test-coverage:
-      run: pnpm test --coverage
+    unit-tests:
+      # Run tests without coverage instrumentation — fast local gate.
+      # Coverage is generated in CI (vitest.yml) where the report is uploaded.
+      run: pnpm test
     branch-guard:
       run: pnpm tsx scripts/branch-guard.ts
       

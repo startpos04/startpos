@@ -323,3 +323,138 @@ describe('Products page — loading state', () => {
     })
   })
 })
+
+// ---------------------------------------------------------------------------
+// Task 17: Grid card — profitability panel and margin color tiers
+// ---------------------------------------------------------------------------
+
+describe('Products page — grid card profitability panel', () => {
+  it('renders "Net Profit Margin" label in grid view', async () => {
+    const product = makeProduct()
+    setupUsePOS([product])
+    renderProductsPage({ view: 'grid' })
+    await waitFor(() => {
+      expect(screen.getByText('Net Profit Margin')).toBeInTheDocument()
+    })
+  })
+
+  it('shows "Healthy" label when margin is above target', async () => {
+    // price=11200, cost=0 (PriceEngine.calculateLineTotal mocked to 0), costPrice=1000
+    // margin = (11200-1000)/11200 ≈ 91% → well above BUFFER_RATE=30%
+    const product = makeProduct()
+    setupUsePOS([product])
+    renderProductsPage({ view: 'grid' })
+    await waitFor(() => {
+      expect(screen.getByText(/Healthy/)).toBeInTheDocument()
+    })
+  })
+
+  it('shows "Low Margin" label when margin is between 10% and target', async () => {
+    // Force low margin: costPrice close to price
+    // price=11200 (112.00), costPrice=9000 → margin=(11200-9000)/11200 ≈ 19.6%
+    // BUFFER_RATE=30 → targetMargin=0.30 → isLowMargin=true, isCritical=false
+    const variant = { price: 11200, costPrice: 9000, components: [], inventory: [], sku: 'SKU-LOW', id: makeId(), productId: makeId(), name: 'Regular' }
+    const product = makeProduct()
+    product.variants[0] = { ...product.variants[0], price: 11200, costPrice: 9000 } as any
+    seedMockUser({ systemConfigs: { BUFFER_RATE: 30, ENABLE_ORDER: true } } as any)
+    setupUsePOS([product])
+    renderProductsPage({ view: 'grid' })
+    await waitFor(() => {
+      expect(screen.getByText(/Low Margin/)).toBeInTheDocument()
+    })
+  })
+
+  it('shows "Critical" label when margin is below 10%', async () => {
+    // price=11200, costPrice=10500 → margin=(11200-10500)/11200 ≈ 6.25% < 10%
+    const product = makeProduct()
+    product.variants[0] = { ...product.variants[0], price: 11200, costPrice: 10500 } as any
+    setupUsePOS([product])
+    renderProductsPage({ view: 'grid' })
+    await waitFor(() => {
+      expect(screen.getByText(/Critical/)).toBeInTheDocument()
+    })
+  })
+
+  it('shows "Out of Stock" badge when calculateRemainingYield returns 0', async () => {
+    const { InventoryEngine } = await import('@/lib/conversion/inventory-engine')
+    vi.mocked(InventoryEngine.calculateRemainingYield).mockReturnValue(0)
+    const product = makeProduct()
+    setupUsePOS([product])
+    renderProductsPage({ view: 'grid' })
+    await waitFor(() => {
+      expect(screen.getByText('Out of Stock')).toBeInTheDocument()
+    })
+    // restore
+    vi.mocked(InventoryEngine.calculateRemainingYield).mockReturnValue(10)
+  })
+
+  it('renders "DETAILS" and "EDIT" buttons in grid card', async () => {
+    const product = makeProduct()
+    setupUsePOS([product])
+    renderProductsPage({ view: 'grid' })
+    await waitFor(() => {
+      expect(screen.getByText('DETAILS')).toBeInTheDocument()
+      expect(screen.getByText('EDIT')).toBeInTheDocument()
+    })
+  })
+
+  it('renders "Delete" button in grid card', async () => {
+    const product = makeProduct()
+    setupUsePOS([product])
+    renderProductsPage({ view: 'grid' })
+    await waitFor(() => {
+      expect(screen.getByText('Delete')).toBeInTheDocument()
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Task 17: Delete handler
+// ---------------------------------------------------------------------------
+
+describe('Products page — delete flow', () => {
+  it('clicking Delete in grid card calls showModal(WarningPrompt)', async () => {
+    const { WarningPrompt } = await import('@/components/custom/prompt/warning-prompt')
+    const product = makeProduct({ name: 'Deletable Brew' })
+    setupUsePOS([product])
+    renderProductsPage({ view: 'grid' })
+    await waitFor(() => screen.getByText('Delete'))
+    fireEvent.click(screen.getByText('Delete'))
+    await waitFor(() => {
+      expect(vi.mocked(showModal)).toHaveBeenCalledWith(WarningPrompt, expect.objectContaining({ title: 'Delete Product' }))
+    })
+  })
+
+  it('clicking delete trash icon in table view calls showModal(WarningPrompt)', async () => {
+    const { WarningPrompt } = await import('@/components/custom/prompt/warning-prompt')
+    const product = makeProduct({ name: 'Table Brew' })
+    setupUsePOS([product])
+    renderProductsPage()
+    // Find the Trash2 button — it's the 3rd action icon in each row
+    await waitFor(() => screen.getByText('Table Brew'))
+    // All action buttons share the same aria role; target by finding Trash2 by its SVG
+    const trashButtons = document.querySelectorAll('button.text-destructive')
+    expect(trashButtons.length).toBeGreaterThan(0)
+    fireEvent.click(trashButtons[0])
+    await waitFor(() => {
+      expect(vi.mocked(showModal)).toHaveBeenCalledWith(WarningPrompt, expect.objectContaining({ title: 'Delete Product' }))
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Task 17: RESTAURANT businessType — servings column
+// ---------------------------------------------------------------------------
+
+describe('Products page — RESTAURANT businessType', () => {
+  it('renders without crash for RESTAURANT businessType (servings column path)', async () => {
+    const { BusinessType } = await import('prisma/generated/prisma/enums')
+    seedMockUser({ business: { id: 'biz-001', name: 'Test Resto', businessType: BusinessType.RESTAURANT } } as any)
+    const product = makeProduct()
+    setupUsePOS([product])
+    renderProductsPage()
+    await waitFor(() => {
+      expect(screen.getByText('Products')).toBeInTheDocument()
+    })
+  })
+})
