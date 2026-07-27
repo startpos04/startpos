@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useInView } from '@/hooks/use-in-view'
 import { useNotifications } from '@/hooks/use-notifications'
 import dayjs from '@/lib/dayjs'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/(private)/(dashboard)/notifications')({
   component: RouteComponent,
@@ -70,7 +71,7 @@ function RouteComponent() {
                   }
                 }}
               >
-                <Card className={!n.isRead ? 'border-l-4 border-l-primary' : 'opacity-80'}>
+                <Card className={cn(!n.isRead ? 'border-l-4 border-l-primary' : 'opacity-80')}>
                   <CardContent className='p-4 flex items-start gap-4'>
                     <div className='flex-1 space-y-1'>
                       <div className='flex items-center gap-2'>

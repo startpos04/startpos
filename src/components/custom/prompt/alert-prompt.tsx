@@ -2,7 +2,7 @@ import { AlertTriangle } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
 import type { Prettify } from '@/lib/types'
 
 const alertPromptSchema = {
@@ -12,7 +12,7 @@ const alertPromptSchema = {
 }
 
 export type AlertPromptProps = Prettify<
-  OverlayProps &
+  MountProps &
     Partial<typeof alertPromptSchema> & {
       onClick?: () => void
     }

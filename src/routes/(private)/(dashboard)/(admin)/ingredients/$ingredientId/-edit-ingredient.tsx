@@ -1,44 +1,38 @@
+import { ArrowLeft, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { productCollection, productVariantCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
+import { closeIngredientSidebar } from '../-components/ingredient-sidebar'
 import { CreateIngredient, type CreateIngredientFormData } from '../create/-create-ingredients'
 
-interface EditIngredientDialogProps extends OverlayProps {
+interface EditIngredientSidebarProps extends MountProps {
   ingredientId: string
   defaultValues: CreateIngredientFormData
+  onBack?: () => void
 }
 
-export function EditIngredientDialog({ ingredientId, defaultValues, open, onClose }: EditIngredientDialogProps) {
+export function EditIngredientSidebar({ ingredientId, defaultValues, open: _open, onClose, onBack }: EditIngredientSidebarProps) {
   const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
     const { sku, price, ...productData } = value
 
-    // 1. Check if product exists
     const exists = productCollection.has(ingredientId)
-
     if (!exists) {
       throw new Error(`Product with ID ${ingredientId} not found`)
     }
 
     const result = await dbTransaction(() => {
-      // 2. Update the main Product record
       productCollection.update(ingredientId, draft => {
-        // Spread existing data and apply updates
         Object.assign(draft, {
           ...productData,
           image: productData.image || null,
         })
       })
 
-      // 3. Handle the "updateMany" for Variants
-      // In TanStack DB, we find the IDs first
       const variantIdsToUpdate = [...productVariantCollection.values()].filter(v => v.productId === ingredientId).map(v => v.id)
 
       if (variantIdsToUpdate.length > 0) {
-        // Update all matching variants
-        // Note: If your version of TanStack DB doesn't support a batch update callback,
-        // you would loop through variantIdsToUpdate and call .update() on each.
         for (const vId of variantIdsToUpdate) {
           productVariantCollection.update(vId, draft => {
             draft.sku = sku
@@ -51,28 +45,43 @@ export function EditIngredientDialog({ ingredientId, defaultValues, open, onClos
 
     if (result.isErr()) {
       console.error('Transaction failed:', result.error.message)
-      toast.error('Failed to archive ingredient. Please try again.')
+      toast.error('Failed to update ingredient. Please try again.')
       return
     }
 
     toast.success('Ingredient successfully updated')
-    onClose?.()
+    if (onBack) onBack()
+    else if (onClose) onClose()
+    else closeIngredientSidebar()
   }
+
+  const handleClose = () => {
+    if (onClose) onClose()
+    else closeIngredientSidebar()
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-3xl max-h-[90vh] overflow-y-auto'>
-        <CreateIngredient
-          defaultValues={defaultValues}
-          onSubmit={handleSubmit}
-          textBtn={{ default: 'Update Ingredient', isSubmitting: 'Updating Ingredient...' }}
-          children={
-            <div>
-              <h1 className='text-3xl font-bold tracking-tight'>Update Ingredient</h1>
-              <p className='text-muted-foreground text-sm'>Modify the properties, SKU, and unit costs for this raw material.</p>
-            </div>
-          }
-        />
-      </DialogContent>
-    </Dialog>
+    <div className='flex flex-col h-full'>
+      {/* Header band with back button */}
+      <div className='flex items-center justify-between p-4 border-b shrink-0'>
+        <div className='flex items-center gap-2'>
+          {onBack && (
+            <Button variant='ghost' size='icon' onClick={onBack} className='h-7 w-7'>
+              <ArrowLeft className='h-4 w-4' />
+            </Button>
+          )}
+          <div>
+            <h2 className='text-base font-semibold leading-none'>Update Ingredient</h2>
+            <p className='text-xs text-muted-foreground mt-1'>Modify properties, SKU, and unit costs.</p>
+          </div>
+        </div>
+        <Button variant='ghost' size='icon' onClick={handleClose} className='h-7 w-7'>
+          <X className='h-4 w-4' />
+        </Button>
+      </div>
+
+      {/* Form content (CreateIngredient already has flex-col h-full with scrollable body + footer) */}
+      <CreateIngredient defaultValues={defaultValues} onSubmit={handleSubmit} textBtn={{ default: 'Update Ingredient', isSubmitting: 'Updating...' }} />
+    </div>
   )
 }

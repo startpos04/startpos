@@ -13,7 +13,8 @@ type TableViewConfig<T> = {
   type: 'table' // biome-ignore lint/suspicious/noExplicitAny: V (Value) must be any to allow columns to have different return types
   columns: ColumnDef<T, any>[]
   selectableRow?: {
-    onClick: (product: T) => void
+    onClick: (row: T) => void
+    isSelected?: (row: T) => boolean
   }
 }
 type GridViewConfig<T> = { type: 'grid'; renderCard: (row: Row<T>) => React.ReactNode }
@@ -53,7 +54,7 @@ export function MultiView<T>({ views, creatable, searchable, label, description,
 
   return (
     <>
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4'>
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
         <div>
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>{label}</h1>
           <p className='text-muted-foreground text-sm'>{description}</p>

@@ -1,12 +1,12 @@
 import { useStore } from '@tanstack/react-store'
 import Tab from '@/components/custom/tab'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
 import { authStore } from '@/store/auth-store'
 import { ReconcileLater } from './reconcile-later'
 import { ReconcileNow } from './reconcile-now'
 
-export function CloseSessionDialog({ open, onClose }: OverlayProps) {
+export function CloseSessionDialog({ open, onClose }: MountProps) {
   const user = useStore(authStore, state => state.user)
 
   return (

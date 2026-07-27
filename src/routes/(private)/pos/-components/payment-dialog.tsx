@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { delModal, showModal } from '@/lib/overlay'
+import MountManager from '@/lib/mount-manager'
+import { cn } from '@/lib/utils'
 
 export const PAYMENT_PLATFORMS = {
   CASH: { id: 'cash', name: 'Cash', type: PaymentMethod.CASH },
@@ -61,7 +62,7 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
       }),
     },
     onSubmit: async ({ value }) => {
-      const modalId = await showModal(LoadingPrompt, {
+      const modalId = await MountManager.show(LoadingPrompt, {
         icon: <Banknote className='h-10! w-10! text-emerald-500 animate-pulse' />,
         title: 'Processing Payment Ledger',
         description: 'Finalizing dynamic split allocations and updating system registries. Please wait...',
@@ -69,7 +70,7 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
 
       await onConfirm(value.payments)
 
-      delModal(modalId)
+      MountManager.close(modalId)
       onClose()
       form.reset()
     },
@@ -215,15 +216,17 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
                               <div className='space-y-1.5 animate-in slide-in-from-top-1 fade-in duration-200'>
                                 <div className='relative'>
                                   <CreditCard
-                                    className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
-                                      hasError ? 'text-destructive' : 'text-muted-foreground'
-                                    }`}
+                                    className={cn(
+                                      'absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors',
+                                      hasError ? 'text-destructive' : 'text-muted-foreground',
+                                    )}
                                   />
                                   <Input
                                     type='text'
-                                    className={`h-9 pl-10 text-xs font-medium rounded-lg bg-background transition-colors ${
-                                      hasError ? 'border-destructive focus-visible:ring-destructive' : 'border-border/80'
-                                    }`}
+                                    className={cn(
+                                      'h-9 pl-10 text-xs font-medium rounded-lg bg-background transition-colors',
+                                      hasError ? 'border-destructive focus-visible:ring-destructive' : 'border-border/80',
+                                    )}
                                     placeholder={`Enter reference token key for this ${payment.method}`}
                                     value={field.state.value || ''}
                                     onChange={e => field.handleChange(e.target.value)}

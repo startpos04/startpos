@@ -2,7 +2,7 @@ import { useSearch } from '@tanstack/react-router'
 import { ReceiptText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { showModal } from '@/lib/overlay'
+import MountManager from '@/lib/mount-manager'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
 import { getQueryClient } from '@/lib/query-client'
 import { ActiveOrdersDialog } from '../../orders'
@@ -14,7 +14,7 @@ export const ActiveOrdersButton = () => {
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
-    showModal(ActiveOrdersDialog, {
+    MountManager.show(ActiveOrdersDialog, {
       onCancel: async () => {
         await queryClient.invalidateQueries({ queryKey: ['pos-products', searchQuery] })
       },

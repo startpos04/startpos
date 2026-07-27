@@ -1,7 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
 import type { Prettify } from '@/lib/types'
 
 const loadingPromptSchema = {
@@ -10,7 +10,7 @@ const loadingPromptSchema = {
   icon: undefined as ReactNode | undefined,
 }
 
-export type LoadingPromptProps = Prettify<OverlayProps & typeof loadingPromptSchema>
+export type LoadingPromptProps = Prettify<MountProps & typeof loadingPromptSchema>
 
 export function LoadingPrompt(props: LoadingPromptProps) {
   const { open, title, description, icon } = {

@@ -6,7 +6,7 @@ import { Form } from '@/components/custom/form'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
 import { TextInput } from '../form/text-input'
 
 const authPromptSchema = z.object({
@@ -16,7 +16,7 @@ const authPromptSchema = z.object({
 
 export type AuthPromptFormData = z.infer<typeof authPromptSchema>
 
-export interface AuthPromptProps extends OverlayProps {
+export interface AuthPromptProps extends MountProps {
   onConfirm: (auth: { id: string; role: Role; name: string }) => Promise<boolean>
 }
 

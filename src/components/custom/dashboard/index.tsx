@@ -10,7 +10,7 @@ export function Dashboard({ children }: { children?: React.ReactNode }) {
         <AppSidebar />
         <SidebarInset className='flex flex-col h-screen overflow-hidden justify-start'>
           <AppNav />
-          <div className='pb-4 pt-0 grow h-1 flex flex-col gap-4'>{children}</div>
+          <div className='pt-0 grow h-1 flex flex-col gap-4'>{children}</div>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

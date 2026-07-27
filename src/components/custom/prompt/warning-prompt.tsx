@@ -2,7 +2,7 @@ import { AlertTriangle } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
 import type { Prettify } from '@/lib/types'
 
 const warningPromptSchema = {
@@ -12,7 +12,7 @@ const warningPromptSchema = {
   onConfirm: (() => Promise.resolve(true)) as () => Promise<boolean>,
 }
 
-export type WarningPromptProps = Prettify<OverlayProps & Partial<typeof warningPromptSchema> & OverlayProps>
+export type WarningPromptProps = Prettify<MountProps & Partial<typeof warningPromptSchema> & MountProps>
 
 export function WarningPrompt(props: WarningPromptProps) {
   const { open, onClose, onConfirm, title, description, btnText } = { ...warningPromptSchema, ...props }

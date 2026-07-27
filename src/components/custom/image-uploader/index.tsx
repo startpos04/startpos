@@ -2,7 +2,8 @@ import { Camera, Image as ImageIcon, Upload, X } from 'lucide-react'
 import { type MouseEvent, useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Button } from '@/components/ui/button'
-import { showModal } from '@/lib/overlay'
+import MountManager from '@/lib/mount-manager'
+import { cn } from '@/lib/utils'
 import { CameraCapture } from './camera-capture'
 import { CropImage } from './crop-image'
 
@@ -17,7 +18,7 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
 
   const handleCameraCapture = useCallback(
     (tempImage: string) => {
-      showModal(CropImage, { tempImage, onCrop: onChange })
+      MountManager.show(CropImage, { tempImage, onCrop: onChange })
       setIsCameraOpen(false)
     },
     [onChange],
@@ -58,8 +59,10 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
       {!value ? (
         <div
           {...getRootProps()}
-          className={`relative group border-2 border-dashed rounded-md p-8 flex flex-col items-center justify-center transition-all
-            ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/20 hover:border-primary/40'}`}
+          className={cn(
+            'relative group border-2 border-dashed rounded-md p-8 flex flex-col items-center justify-center transition-all',
+            isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/20 hover:border-primary/40',
+          )}
         >
           <input {...getInputProps()} capture='environment' />
           <div className='bg-primary/10 p-4 rounded-full mb-3 group-hover:scale-110 transition-transform'>

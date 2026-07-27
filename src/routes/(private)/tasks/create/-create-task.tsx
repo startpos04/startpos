@@ -180,7 +180,7 @@ const TASK_FIELD = {
 interface CreateTaskProps {
   defaultValues: CreateTaskFormData
   onSubmit: ({ value }: { value: CreateTaskFormData }) => Promise<void>
-  children: ReactNode
+  children?: ReactNode
   textBtn: {
     default: string
     isSubmitting: string
@@ -212,13 +212,14 @@ export function CreateTask({ onSubmit, defaultValues, children, textBtn }: Creat
   }))
 
   return (
-    <div className='p-4 w-full'>
-      <div className='flex flex-col gap-6 max-w-4xl mx-auto'>
-        {children}
+    <div className='flex flex-col h-full'>
+      {/* Scrollable form body */}
+      <div className='flex-1 overflow-y-auto p-4 space-y-4'>
+        {children && <div className='pb-2'>{children}</div>}
 
         <form.Field name='type' children={field => <SelectInput field={field} label='Operation Type' options={taskTypeOptions} />} />
 
-        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+        <div className='grid grid-cols-1 gap-4'>
           <form.Field
             name='clerkId'
             children={field => <SelectInput field={field} label='Assigned Clerk' placeholder='Who will perform this?' options={userOptions} />}
@@ -236,22 +237,23 @@ export function CreateTask({ onSubmit, defaultValues, children, textBtn }: Creat
           name='notes'
           children={field => <TextAreaInput field={field} label='Instructions / Reason' placeholder='Add specific details or instructions here...' />}
         />
+      </div>
 
-        <div className='pt-4'>
-          <form.Subscribe
-            selector={state => [state.canSubmit, state.isSubmitting]}
-            children={([canSubmit, isSubmitting]) => (
-              <Button
-                onClick={() => form.handleSubmit()}
-                disabled={!canSubmit || isSubmitting}
-                className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl active:scale-95 flex gap-2 shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'
-              >
-                <Save className='w-5! h-5!' />
-                {isSubmitting ? textBtn.isSubmitting : textBtn.default}
-              </Button>
-            )}
-          />
-        </div>
+      {/* Sticky footer */}
+      <div className='p-4 border-t shrink-0'>
+        <form.Subscribe
+          selector={state => [state.canSubmit, state.isSubmitting]}
+          children={([canSubmit, isSubmitting]) => (
+            <Button
+              onClick={() => form.handleSubmit()}
+              disabled={!canSubmit || isSubmitting}
+              className='w-full h-11 rounded-xl font-semibold shadow-lg flex gap-2 shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'
+            >
+              <Save className='w-4! h-4!' />
+              {isSubmitting ? textBtn.isSubmitting : textBtn.default}
+            </Button>
+          )}
+        />
       </div>
     </div>
   )

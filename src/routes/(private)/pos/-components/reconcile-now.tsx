@@ -17,7 +17,7 @@ import { useAppForm } from '@/hooks/form'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
-import { type OverlayProps, showModal } from '@/lib/overlay'
+import MountManager, { type MountProps } from '@/lib/mount-manager'
 import { authStore } from '@/store/auth-store'
 
 export const closeSessionFormOpts = formOptions({
@@ -27,7 +27,7 @@ export const closeSessionFormOpts = formOptions({
   },
 })
 
-export function ReconcileNow({ onClose }: OverlayProps) {
+export function ReconcileNow({ onClose }: MountProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const user = useStore(authStore, state => state.user)
   const navigate = useNavigate()
@@ -106,7 +106,7 @@ export function ReconcileNow({ onClose }: OverlayProps) {
 
   const handleAuthenticate = async () => {
     const result = await new Promise<boolean>(resolve => {
-      showModal(AuthPrompt, {
+      MountManager.show(AuthPrompt, {
         onConfirm: async auth => {
           if (auth.role !== Role.ADMIN) {
             toast.error('You are not authorized to reconcile this shift')

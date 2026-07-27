@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { operationalTaskCollection, vendorSessionCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
 import { authStore } from '@/store/auth-store'
 
 export const createSessionSchema = z
@@ -33,7 +33,7 @@ export const createSessionSchema = z
 
 export type CreateSessionFormData = z.infer<typeof createSessionSchema>
 
-export function OpenSessionDialog({ open, onClose }: OverlayProps) {
+export function OpenSessionDialog({ open, onClose }: MountProps) {
   const user = useStore(authStore, state => state.user)
   const navigate = useNavigate()
 

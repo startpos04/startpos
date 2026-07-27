@@ -1,34 +1,22 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { productCollection, productComponentCollection, productVariantCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
-import type { OverlayProps } from '@/lib/overlay'
 import { authStore } from '@/store/auth-store'
+import { closeProductSidebar } from '../-components/product-sidebar'
 import { CreateProduct, type CreateProductFormData } from './-create-product'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/products/create/')({
-  component: () => <RouteComponent />,
+  component: () => <CreateProductSidebar />,
 })
 
-export function CreateProductDialog({ open, onClose }: OverlayProps) {
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-5xl h-[95vh] p-0 overflow-hidden border-none shadow-2xl'>
-        <RouteComponent onClose={onClose} />
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function RouteComponent({ onClose }: { onClose?: () => void }) {
+export function CreateProductSidebar() {
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
     const { ingredients, allowedAddons, sku: productSku, price: productPrice, variants, ...productData } = value
     const { user } = authStore.state
 
     const result = await dbTransaction(() => {
-      // 1. Create the Main Product
       const productId = crypto.randomUUID()
       productCollection.insert({
         ...productData,
@@ -43,7 +31,6 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
         deletedAt: null,
       })
 
-      // 2. Create the Default Variant
       const variantId = crypto.randomUUID()
       productVariantCollection.insert({
         id: variantId,
@@ -62,7 +49,6 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
         deletedAt: null,
       })
 
-      // 3. Prepare Components (Ingredients + Addons)
       const componentsToInsert = [
         ...ingredients.map(ing => ({
           id: crypto.randomUUID(),
@@ -92,7 +78,6 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
         })),
       ]
 
-      // 4. Batch Insert Components
       if (componentsToInsert.length > 0) {
         productComponentCollection.insert(componentsToInsert)
       }
@@ -105,7 +90,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
     }
 
     toast.success('Product successfully created')
-    onClose?.()
+    closeProductSidebar()
   }
 
   return (
@@ -126,12 +111,11 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
       }}
       onSubmit={handleSubmit}
       textBtn={{ default: 'Add Product', isSubmitting: 'Adding Product...' }}
-      children={
-        <div>
-          <h1 className='text-3xl font-bold'>New Product</h1>
-          <p className='text-muted-foreground'> Define your product, variants, and recipe ingredients.</p>
-        </div>
-      }
-    />
+    >
+      <div>
+        <h2 className='text-xl font-semibold'>New Product</h2>
+        <p className='text-muted-foreground text-sm'>Define your product, variants, and recipe ingredients.</p>
+      </div>
+    </CreateProduct>
   )
 }

@@ -8,6 +8,7 @@ import { withForm } from '@/hooks/form'
 import dayjs from '@/lib/dayjs'
 import type { feTask } from '@/lib/queries/fetch-tasks'
 import { fetchUserOptions } from '@/lib/queries/fetch-user-options'
+import { cn } from '@/lib/utils'
 import { taskFormOpts } from '../../create/-create-task'
 import { getTaskWorkflowRules } from './task-workflow'
 
@@ -137,7 +138,7 @@ function CashReconciliationDetails({ task }: TaskDetailsTabProps) {
       </div>
       <div>
         <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Variance</p>
-        <p className={`font-bold ${task.metadata.variance! < 0 ? 'text-destructive' : 'text-emerald-600'}`}>
+        <p className={cn('font-bold', task.metadata.variance! < 0 ? 'text-destructive' : 'text-emerald-600')}>
           {task.metadata?.variance ? `₱${(task.metadata.variance / 100).toFixed(2)}` : '₱0.00'}
         </p>
       </div>

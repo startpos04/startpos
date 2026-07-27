@@ -12,7 +12,7 @@ import { usePOS } from '@/hooks/use-pos'
 import { InventoryEngine } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { TaxEngine, type TaxEngineConfig } from '@/lib/conversion/tax-engine'
-import { showModal } from '@/lib/overlay'
+import MountManager from '@/lib/mount-manager'
 import { authStore } from '@/store/auth-store'
 import { posFormOpts } from '..'
 import { PaymentDialog } from './payment-dialog'
@@ -34,7 +34,7 @@ export const CartAside = withForm({
     }
 
     const handleConfirm = (total: number) => {
-      showModal(PaymentDialog, {
+      MountManager.show(PaymentDialog, {
         total,
         onConfirm: async payments => {
           form.setFieldValue('payments', payments)
@@ -53,7 +53,7 @@ export const CartAside = withForm({
     }
 
     const handleAddItem = () => {
-      showModal(ProductItemsModal, { form })
+      MountManager.show(ProductItemsModal, { form })
     }
 
     return (

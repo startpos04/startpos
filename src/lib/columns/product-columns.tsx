@@ -78,7 +78,9 @@ export const productCols = {
         const isLowStock = maxServings < 10
 
         return (
-          <div className={`text-xs text-center font-bold font-mono ${maxServings === 0 ? 'text-destructive' : isLowStock ? 'text-amber-500' : 'text-primary'}`}>
+          <div
+            className={cn('text-xs text-center font-bold font-mono', maxServings === 0 ? 'text-destructive' : isLowStock ? 'text-amber-500' : 'text-primary')}
+          >
             {maxServings === 0 ? '0' : numeral(maxServings).format('0,0')}
           </div>
         )
@@ -111,7 +113,7 @@ export const productCols = {
         const primaryVariant = info.row.original.variants?.[0]
         const count = primaryVariant?.components?.filter((c: ProductComponent) => c.isAddon).length || 0
         return (
-          <div className={`text-xs text-center font-mono ${count > 0 ? 'text-blue-600 font-bold dark:text-blue-400' : 'text-muted-foreground/50'}`}>
+          <div className={cn('text-xs text-center font-mono', count > 0 ? 'text-blue-600 font-bold dark:text-blue-400' : 'text-muted-foreground/50')}>
             {count}
           </div>
         )
@@ -215,9 +217,10 @@ export const productCols = {
           <div className='flex justify-center'>
             <Badge
               variant='outline'
-              className={`text-[10px] uppercase font-bold h-5 py-0 whitespace-nowrap ${
-                isVisible ? 'text-emerald-600 border-emerald-600/30' : 'text-muted-foreground border-muted-foreground/30'
-              }`}
+              className={cn(
+                'text-[10px] uppercase font-bold h-5 py-0 whitespace-nowrap',
+                isVisible ? 'text-emerald-600 border-emerald-600/30' : 'text-muted-foreground border-muted-foreground/30',
+              )}
             >
               {isVisible ? 'Visible' : 'Hidden'}
             </Badge>
@@ -322,13 +325,13 @@ export const productCols = {
         return (
           <div className='flex flex-col gap-0.5'>
             <div className='flex items-center gap-1.5'>
-              <span className={`text-sm font-bold ${isOut ? 'text-destructive' : isLow ? 'text-orange-500' : 'text-foreground'}`}>
+              <span className={cn('text-sm font-bold', isOut ? 'text-destructive' : isLow ? 'text-orange-500' : 'text-foreground')}>
                 {totalStock.toLocaleString()}
               </span>
               <span className='text-[10px] font-medium text-muted-foreground uppercase'>{item.baseUnit?.abbreviation ?? 'PCS'}</span>
             </div>
             {item.hasExpiry && (hasExpiredBatch || hasExpiringBatch) && (
-              <span className={`text-[9px] font-medium flex items-center gap-0.5 ${hasExpiredBatch ? 'text-destructive' : 'text-orange-500'}`}>
+              <span className={cn('text-[9px] font-medium flex items-center gap-0.5', hasExpiredBatch ? 'text-destructive' : 'text-orange-500')}>
                 <AlertTriangle className='h-2.5 w-2.5' />
                 {hasExpiredBatch ? 'Expired batch present' : 'Expiring soon'}
               </span>

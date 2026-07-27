@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePOS } from '@/hooks/use-pos'
 import { InventoryEngine, type posItem } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { showModal } from '@/lib/overlay'
+import MountManager from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { cn } from '@/lib/utils'
 import { ProductDialog } from './product-dialog'
@@ -32,7 +32,7 @@ export function ProductCard({ cartItems, product, onAdd }: ProductCardProps) {
   const handleOpenConfig = () => {
     if (maxAvailable <= 0) return
 
-    showModal(ProductDialog, {
+    MountManager.show(ProductDialog, {
       product,
       cartItems,
       onConfirm: onAdd,

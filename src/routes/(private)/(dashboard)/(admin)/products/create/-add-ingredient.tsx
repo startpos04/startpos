@@ -13,11 +13,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { showModal } from '@/lib/overlay'
 import { type feIngredient, fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { cn } from '@/lib/utils'
-import { CreateIngredientDialog } from '../../ingredients/create'
+import { showIngredientSidebar } from '../../ingredients/-components/ingredient-sidebar'
+import { CreateIngredientSidebar } from '../../ingredients/create'
 
 interface AddIngredientModalProps {
   open: boolean
@@ -86,7 +86,7 @@ export function AddIngredientModal({ open, onClose, onAdd }: AddIngredientModalP
               <Search className='absolute left-2 h-4 w-4 text-muted-foreground' />
               <Input placeholder='Search materials...' value={search} onChange={e => setSearch(e.target.value)} className='pl-7 rounded-xl' />
             </div>
-            <Button type='button' variant='outline' className='rounded-xl' onClick={() => showModal(CreateIngredientDialog)}>
+            <Button type='button' variant='outline' className='rounded-xl' onClick={() => showIngredientSidebar(<CreateIngredientSidebar />)}>
               Create
             </Button>
           </div>

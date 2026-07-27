@@ -2,7 +2,7 @@ import { CheckCircle2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
 import type { Prettify } from '@/lib/types'
 
 const successPromptSchema = {
@@ -11,7 +11,7 @@ const successPromptSchema = {
   btnText: 'OK' as string,
 }
 
-export type SuccessPromptProps = Prettify<OverlayProps & Partial<typeof successPromptSchema>>
+export type SuccessPromptProps = Prettify<MountProps & Partial<typeof successPromptSchema>>
 
 export function SuccessPrompt(props: SuccessPromptProps) {
   const { open, onClose, title, description, btnText } = { ...successPromptSchema, ...props }

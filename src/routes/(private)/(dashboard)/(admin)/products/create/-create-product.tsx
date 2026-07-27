@@ -11,11 +11,10 @@ import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { productVariantCollection } from '@/db/collections'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { showModal } from '@/lib/overlay'
+import MountManager from '@/lib/mount-manager'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { AddAddonModal } from './-add-addon'
@@ -25,7 +24,7 @@ interface CreateProductProps {
   variantId?: string | undefined
   defaultValues: CreateProductFormData
   onSubmit: ({ value }: { value: CreateProductFormData }) => Promise<void>
-  children: ReactNode
+  children?: ReactNode
   textBtn: {
     default: string
     isSubmitting: string
@@ -148,7 +147,7 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
   })
 
   const handleAddIngredient = () => {
-    showModal(AddIngredientModal, {
+    MountManager.show(AddIngredientModal, {
       onAdd: ingredient => {
         form.pushFieldValue('ingredients', {
           id: '',
@@ -162,7 +161,7 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
   }
 
   const handleAddAddons = () => {
-    showModal(AddAddonModal, {
+    MountManager.show(AddAddonModal, {
       onAdd: addon => {
         form.pushFieldValue('allowedAddons', {
           id: '',
@@ -182,148 +181,146 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
   }
 
   return (
-    <Form className='flex flex-col gap-4 grow' onSubmit={form.handleSubmit}>
-      {children}
+    <Form onSubmit={form.handleSubmit}>
+      <div className='flex flex-col h-full'>
+        {/* Scrollable form body */}
+        <div className='flex-1 overflow-y-auto p-4 space-y-4'>
+          {children && <div className='pb-2'>{children}</div>}
 
-      <ScrollArea className='h-1 grow w-full'>
-        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 p-2 w-full'>
-          {/* Left Column */}
-          <div className='lg:col-span-2 space-y-6'>
-            {/* General Info Card */}
-            <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
-              <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
-                  <Package className='w-5 h-5 text-primary' /> General Information
+          {/* General Info Card */}
+          <Card>
+            <CardHeader className='pb-2'>
+              <CardTitle className='text-base flex items-center gap-2'>
+                <Package className='w-4 h-4 text-primary' /> General Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className='space-y-4'>
+              <form.Field name='name' children={field => <TextInput field={field} label='Name' placeholder='e.g. Latte' />} />
+              <div className='grid grid-cols-2 gap-3'>
+                <form.Field name='sku' children={field => <TextInput field={field} label='SKU Base' placeholder='LAT-00' />} />
+                <form.Field name='price' children={field => <MoneyInput field={field} label='Base Price' />} />
+              </div>
+              <div className='grid grid-cols-2 gap-3'>
+                <form.Field name='categoryId' children={field => <SelectInput field={field} label='Category' options={categoryOptions} />} />
+                <form.Field name='baseUnitId' children={field => <SelectInput field={field} label='Base Unit' options={unitOptions} />} />
+              </div>
+              <form.Field name='image' children={field => <ImageInput label='Product Image' field={field} />} />
+            </CardContent>
+          </Card>
+
+          {/* Inventory Logic Card */}
+          <Card>
+            <CardHeader className='pb-2'>
+              <CardTitle className='text-base flex items-center gap-2'>
+                <Warehouse className='w-4 h-4 text-emerald-500' /> Inventory
+              </CardTitle>
+            </CardHeader>
+            <CardContent className='space-y-3'>
+              <form.Field
+                name='isAvailable'
+                children={field => (
+                  <div className='flex items-center justify-between'>
+                    <Label>POS Visible</Label>
+                    <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
+                  </div>
+                )}
+              />
+              <form.Field
+                name='hasExpiry'
+                children={field => (
+                  <div className='flex items-center justify-between'>
+                    <Label>Track Expiry</Label>
+                    <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
+                  </div>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Recipe Builder Card */}
+          <Card>
+            <CardHeader className='flex flex-row items-center justify-between gap-2 pb-2'>
+              <div>
+                <CardTitle className='text-base flex items-center gap-2'>
+                  <Utensils className='w-4 h-4 text-emerald-500' /> Master Recipe
                 </CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                <form.Field name='name' children={field => <TextInput field={field} label='Name' placeholder='e.g. Latte' />} />
-                <div className='grid grid-cols-2 gap-4'>
-                  <form.Field name='sku' children={field => <TextInput field={field} label='SKU Base' placeholder='LAT-00' />} />
-                  <form.Field name='price' children={field => <MoneyInput field={field} label='Base Price' />} />
-                </div>
-                <div className='grid grid-cols-2 gap-4'>
-                  <form.Field name='categoryId' children={field => <SelectInput field={field} label='Category' options={categoryOptions} />} />
-                  <form.Field name='baseUnitId' children={field => <SelectInput field={field} label='Base Unit' options={unitOptions} />} />
-                </div>
-                <form.Field name='image' children={field => <ImageInput label='Product Image' field={field} />} />
-              </CardContent>
-            </Card>
-
-            {/* Recipe Builder Card */}
-            <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
-              <CardHeader className='flex flex-row items-center justify-between'>
-                <div>
-                  <CardTitle className='flex items-center gap-2'>
-                    <Utensils className='w-5 h-5 text-emerald-500' /> Master Recipe
-                  </CardTitle>
-                  <CardDescription>These ingredients will apply to all variants.</CardDescription>
-                </div>
-                <Button variant='outline' size='sm' className='rounded-full' onClick={handleAddIngredient}>
-                  <Plus className='w-4 h-4 mr-1' /> Add Ingredient
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <form.Subscribe
-                  selector={state => state.values.ingredients}
-                  children={ingredients => (
-                    <div className='space-y-2'>
-                      {ingredients.map((ing, idx) => (
-                        <div key={ing.id} className='flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/50'>
-                          <div className='flex flex-col'>
-                            <span className='font-medium text-sm'>
-                              {[ing.material.name, ing.variant?.name ? `(${ing.variant.name})` : ''].filter(Boolean).join(' ')}
-                            </span>
-                            <span className='text-[10px] text-muted-foreground uppercase font-bold'>
-                              {ing.quantityUsed} {ing.unit.abbreviation}
-                            </span>
-                          </div>
-                          <Button variant='ghost' size='icon' className='h-8 w-8 text-muted-foreground' onClick={() => removeItem('ingredients', idx)}>
-                            <X className='w-4 h-4' />
-                          </Button>
+                <CardDescription className='text-xs'>Applies to all variants.</CardDescription>
+              </div>
+              <Button variant='outline' size='sm' className='rounded-full shrink-0' onClick={handleAddIngredient}>
+                <Plus className='w-4 h-4 mr-1' /> Add
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form.Subscribe
+                selector={state => state.values.ingredients}
+                children={ingredients => (
+                  <div className='space-y-2'>
+                    {ingredients.map((ing, idx) => (
+                      <div key={ing.id} className='flex items-center justify-between p-2.5 bg-muted/30 rounded-xl border border-border/50'>
+                        <div className='flex flex-col min-w-0'>
+                          <span className='font-medium text-sm truncate'>
+                            {[ing.material.name, ing.variant?.name ? `(${ing.variant.name})` : ''].filter(Boolean).join(' ')}
+                          </span>
+                          <span className='text-[10px] text-muted-foreground uppercase font-bold'>
+                            {ing.quantityUsed} {ing.unit.abbreviation}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          </div>
+                        <Button variant='ghost' size='icon' className='h-8 w-8 text-muted-foreground shrink-0' onClick={() => removeItem('ingredients', idx)}>
+                          <X className='w-4 h-4' />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              />
+            </CardContent>
+          </Card>
 
-          {/* Right Column */}
-          <div className='space-y-6'>
-            {/* Inventory Logic Card */}
-            <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
-              <CardHeader>
-                <CardTitle className='text-lg flex items-center gap-2'>
-                  <Warehouse className='w-5 h-5 text-emerald-500' /> Inventory
-                </CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                <form.Field
-                  name='isAvailable'
-                  children={field => (
-                    <div className='flex items-center justify-between'>
-                      <Label>POS Visible</Label>
-                      <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
-                    </div>
-                  )}
-                />
-                <form.Field
-                  name='hasExpiry'
-                  children={field => (
-                    <div className='flex items-center justify-between'>
-                      <Label>Track Expiry</Label>
-                      <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
-                    </div>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Add-ons Card */}
-            <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
-              <CardHeader>
-                <CardTitle className='text-lg flex items-center gap-2'>
-                  <PlusCircle className='w-5 h-5 text-blue-500' /> Add-ons
-                </CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                <form.Subscribe
-                  selector={state => state.values.allowedAddons}
-                  children={addons => (
-                    <div className='space-y-2'>
-                      {addons.map((a, idx) => (
-                        <div key={a.id} className='flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-border/50'>
-                          <div className='flex flex-col'>
-                            <span className='font-medium text-xs'>{a.addon.name}</span>
-                            <span className='text-[10px] text-muted-foreground'>{PriceEngine.format(a.priceOverride)}</span>
-                          </div>
-                          <Button variant='ghost' size='icon' className='h-7 w-7' onClick={() => removeItem('allowedAddons', idx)}>
-                            <X className='w-3.5 h-3.5' />
-                          </Button>
+          {/* Add-ons Card */}
+          <Card>
+            <CardHeader className='pb-2'>
+              <CardTitle className='text-base flex items-center gap-2'>
+                <PlusCircle className='w-4 h-4 text-blue-500' /> Add-ons
+              </CardTitle>
+            </CardHeader>
+            <CardContent className='space-y-3'>
+              <form.Subscribe
+                selector={state => state.values.allowedAddons}
+                children={addons => (
+                  <div className='space-y-2'>
+                    {addons.map((a, idx) => (
+                      <div key={a.id} className='flex items-center justify-between p-2.5 bg-muted/30 rounded-xl border border-border/50'>
+                        <div className='flex flex-col min-w-0'>
+                          <span className='font-medium text-xs truncate'>{a.addon.name}</span>
+                          <span className='text-[10px] text-muted-foreground'>{PriceEngine.format(a.priceOverride)}</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                />
-                <Button variant='outline' className='w-full rounded-xl border-dashed' onClick={handleAddAddons}>
-                  + Add Extras
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+                        <Button variant='ghost' size='icon' className='h-7 w-7 shrink-0' onClick={() => removeItem('allowedAddons', idx)}>
+                          <X className='w-3.5 h-3.5' />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              />
+              <Button variant='outline' className='w-full rounded-xl border-dashed' onClick={handleAddAddons}>
+                + Add Extras
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-      </ScrollArea>
 
-      <div className='pt-4'>
+        {/* Form errors and submit button */}
+      </div>
+
+      {/* Sticky footer */}
+      <div className='p-4 border-t shrink-0 space-y-2'>
         <form.Subscribe
           selector={state => [state.errors]}
           children={([errors]) =>
             errors.length > 0 && (
               <div className='p-3 text-xs font-mono text-red-600 rounded-xl border border-red-200'>
                 <strong>Form Errors:</strong>
-                <pre>{JSON.stringify(errors, null, 2)}</pre>
+                <pre className='whitespace-pre-wrap break-words'>{JSON.stringify(errors, null, 2)}</pre>
               </div>
             )
           }
@@ -331,12 +328,8 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
         <form.Subscribe
           selector={state => [state.canSubmit, state.isSubmitting]}
           children={([canSubmit, isSubmitting]) => (
-            <Button
-              type='submit'
-              disabled={!canSubmit || isSubmitting}
-              className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl flex gap-2 transition-all hover:scale-[1.01]'
-            >
-              <Save className='w-5! h-5!' /> {isSubmitting ? textBtn.isSubmitting : textBtn.default}
+            <Button type='submit' disabled={!canSubmit || isSubmitting} className='w-full h-11 rounded-xl font-semibold flex gap-2 shadow-lg shadow-primary/20'>
+              <Save className='w-4! h-4!' /> {isSubmitting ? textBtn.isSubmitting : textBtn.default}
             </Button>
           )}
         />

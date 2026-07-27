@@ -1,22 +1,23 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
-import { AlertCircle, CheckCircle2, ClipboardList, FileCheck, Play, ShieldAlert } from 'lucide-react'
+import { AlertCircle, CheckCircle2, ClipboardList, FileCheck, Play, ShieldAlert, X } from 'lucide-react'
 import type { TaskStatus } from 'prisma/generated/prisma/enums'
 import Tab from '@/components/custom/tab'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { operationalTaskCollection } from '@/db/collections'
 import { useAppForm } from '@/hooks/form'
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
+import { cn } from '@/lib/utils'
 import { authStore } from '@/store/auth-store'
+import { closeTaskSidebar } from '../-components/task-sidebar'
 import { taskFormOpts } from '../create/-create-task'
 import { TaskDetailsTab } from './-components/task-details-tab'
 import { TaskTimelineTab } from './-components/task-timeline-tab'
 import { getAllowedTransitionsForUser, getStatusUIMetadata } from './-components/task-workflow'
 
-interface TaskDetailsDialogProps extends OverlayProps {
+interface TaskDetailsSidebarProps extends MountProps {
   taskId: string
 }
 
@@ -30,19 +31,13 @@ export const Route = createFileRoute('/(private)/tasks/$taskId/')({
   component: () => <RouteComponent />,
 })
 
-export function TaskDetailsDialog({ open, onClose, taskId }: TaskDetailsDialogProps) {
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-4xl h-[60vh] overflow-hidden flex flex-col p-0'>
-        <RouteComponent onClose={onClose} taskId={taskId} />
-      </DialogContent>
-    </Dialog>
-  )
+export function TaskDetailsSidebar({ open: _open, onClose, taskId }: TaskDetailsSidebarProps) {
+  return <RouteComponent taskId={taskId} onClose={onClose} />
 }
 
-function RouteComponent(props: RouteComponentProps) {
-  // biome-ignore lint/correctness/useHookAtTopLevel: Context assignment guaranteed
-  const taskId = props.taskId ?? Route.useLoaderData().taskId
+function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
+  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
+  const taskId = propId ?? Route.useLoaderData().taskId
   const user = useStore(authStore, state => state.user)
 
   const {
@@ -57,15 +52,12 @@ function RouteComponent(props: RouteComponentProps) {
       draft.status = nextStatus
       draft.updatedAt = timestamp
 
-      if (nextStatus === 'PENDING') {
-        draft.creatorId = user?.id
-      }
+      if (nextStatus === 'PENDING') draft.creatorId = user?.id
       if (nextStatus === 'APPROVED') {
         draft.approverId = user?.id
         draft.approvedAt = timestamp
       }
       if (nextStatus === 'IN_PROGRESS') {
-        // If no clerk is explicitly assigned to the task yet, the user starting it becomes the clerk
         if (!draft.clerkId) draft.clerkId = user?.id
         draft.inProgressAt = timestamp
       }
@@ -90,80 +82,98 @@ function RouteComponent(props: RouteComponentProps) {
     onSubmit: async () => {},
   })
 
+  const handleClose = () => {
+    if (onClose) onClose()
+    else closeTaskSidebar()
+  }
+
   if (isLoading)
     return (
-      <div className='p-8 space-y-4 animate-pulse'>
-        <div className='h-8 w-64 bg-muted rounded' />
-        <div className='h-80 bg-muted rounded-xl' />
+      <div className='p-6 space-y-3 animate-pulse'>
+        <div className='flex items-center gap-3'>
+          <div className='h-10 w-10 rounded-2xl bg-muted' />
+          <div className='space-y-1.5'>
+            <div className='h-4 w-36 bg-muted rounded' />
+            <div className='h-3 w-20 bg-muted rounded' />
+          </div>
+        </div>
+        <div className='h-64 bg-muted rounded-xl' />
       </div>
     )
 
-  if (!task) return <div className='p-6 text-destructive'>Task record not found.</div>
+  if (!task) return <div className='p-6 text-destructive text-sm'>Task record not found.</div>
 
   const getActionIcon = (status: TaskStatus) => {
     switch (status) {
       case 'APPROVED':
-        return <Play className='h-4 w-4' />
+        return <Play className='h-3.5 w-3.5' />
       case 'FULFILLED':
-        return <FileCheck className='h-4 w-4' />
+        return <FileCheck className='h-3.5 w-3.5' />
       case 'REVIEWED':
-        return <CheckCircle2 className='h-4 w-4' />
+        return <CheckCircle2 className='h-3.5 w-3.5' />
       case 'CANCELLED':
-        return <ShieldAlert className='h-4 w-4' />
+        return <ShieldAlert className='h-3.5 w-3.5' />
       default:
-        return <AlertCircle className='h-4 w-4' />
+        return <AlertCircle className='h-3.5 w-3.5' />
     }
   }
 
-  // Get filtered operational action mappings for active user context
   const viableActions = getAllowedTransitionsForUser(task, user)
   const currentStatusMetadata = getStatusUIMetadata(task.status)
 
   return (
-    <div className='flex flex-col grow'>
-      {/* Hero Header */}
-      <div className='p-6 '>
-        <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
-          <div className='flex items-center gap-4'>
-            <div className='h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary'>
-              <ClipboardList className='h-8 w-8' />
-            </div>
-            <div>
-              <div className='flex items-center gap-3'>
-                <h1 className='text-xl font-bold tracking-tight'>{task.type.replace('_', ' ')}</h1>
-                <Badge variant='outline' className={currentStatusMetadata.colorClass}>
-                  {currentStatusMetadata.label}
-                </Badge>
-              </div>
-              <p className='text-sm text-muted-foreground mt-1'>ID: {task.id.slice(0, 8)}...</p>
-            </div>
+    <div className='flex flex-col h-full'>
+      {/* Header band */}
+      <div className='flex items-center justify-between p-4 border-b shrink-0'>
+        <div className='flex items-center gap-3'>
+          <div className='h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0'>
+            <ClipboardList className='h-5 w-5' />
           </div>
-
-          <div className='flex items-center gap-2 flex-wrap'>
-            {viableActions.map(action => (
-              <Button
-                key={action.value}
-                variant={action.variant}
-                className='gap-2 rounded-xl text-sm font-medium transition-all shadow-sm'
-                onClick={() => handleStatusChange({ nextStatus: action.value })}
-              >
-                {getActionIcon(action.value)}
-                {action.buttonLabel}
-              </Button>
-            ))}
+          <div>
+            <div className='flex items-center gap-2'>
+              <h2 className='text-sm font-semibold leading-tight capitalize'>{task.type.replace(/_/g, ' ').toLowerCase()}</h2>
+              <Badge variant='outline' className={cn('text-[10px] py-0 h-4', currentStatusMetadata.colorClass)}>
+                {currentStatusMetadata.label}
+              </Badge>
+            </div>
+            <p className='text-[10px] text-muted-foreground mt-0.5 font-mono'>#{task.id.slice(0, 8)}</p>
           </div>
         </div>
+        <Button variant='ghost' size='icon' onClick={handleClose} className='h-7 w-7 shrink-0'>
+          <X className='h-4 w-4' />
+        </Button>
       </div>
 
-      <Tab
-        defaultValue='Task Details'
-        className='grow h-1'
-        tabClass='px-6'
-        tabs={[
-          { label: 'Task Details', Component: TaskDetailsTab, task, form },
-          { label: 'Timeline & Logs', Component: TaskTimelineTab, task },
-        ]}
-      />
+      {/* Tab content — fills remaining height */}
+      <div className='flex-1 overflow-hidden flex flex-col'>
+        <Tab
+          defaultValue='Task Details'
+          className='grow h-1'
+          tabClass='px-4'
+          tabs={[
+            { label: 'Task Details', Component: TaskDetailsTab, task, form },
+            { label: 'Timeline', Component: TaskTimelineTab, task },
+          ]}
+        />
+      </div>
+
+      {/* Sticky footer — action buttons */}
+      {viableActions.length > 0 && (
+        <div className='p-4 border-t shrink-0 flex flex-wrap gap-2'>
+          {viableActions.map(action => (
+            <Button
+              key={action.value}
+              variant={action.variant}
+              size='sm'
+              className='flex-1 gap-1.5 rounded-xl text-xs font-medium transition-all shadow-sm'
+              onClick={() => handleStatusChange({ nextStatus: action.value })}
+            >
+              {getActionIcon(action.value)}
+              {action.buttonLabel}
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

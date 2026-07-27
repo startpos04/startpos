@@ -71,5 +71,8 @@
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma",
     "editor.formatOnSave": true
+  },
+  "search.exclude": {
+    "**/src/__tests__/**": true
   }
 }

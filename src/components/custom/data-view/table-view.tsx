@@ -10,7 +10,8 @@ export interface TableViewProps<T> extends DataViewProps<T> {
   // biome-ignore lint/suspicious/noExplicitAny: V (Value) must be any to allow columns to have different return types
   columns: ColumnDef<T, any>[]
   selectableRow?: {
-    onClick: (product: T) => void
+    onClick: (row: T) => void
+    isSelected?: (row: T) => boolean
   }
 }
 
@@ -54,7 +55,12 @@ export function TableView<T>(props: TableViewProps<T>) {
               table.getRowModel().rows.map(row => (
                 <TableRow
                   key={row.id}
-                  className={cn('group border-0 transition-colors even:bg-muted/20 hover:bg-muted/50', selectableRow ? 'cursor-pointer' : '')}
+                  data-selected={selectableRow?.isSelected?.(row.original) ?? false}
+                  className={cn(
+                    'group border-0 transition-colors even:bg-muted/20 hover:bg-muted/50',
+                    selectableRow ? 'cursor-pointer' : '',
+                    selectableRow?.isSelected?.(row.original) && 'bg-primary/5 even:bg-primary/5 hover:bg-primary/10 border-l-2 border-l-primary',
+                  )}
                   onClick={() => selectableRow?.onClick(row.original)}
                 >
                   {row.getVisibleCells().map(cell => (

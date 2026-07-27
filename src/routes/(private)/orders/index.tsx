@@ -21,7 +21,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { orderCollection } from '@/db/collections'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { type OverlayProps, showModal } from '@/lib/overlay'
+import MountManager, { type MountProps } from '@/lib/mount-manager'
 import { createPosRefund } from '@/lib/queries/create-pos-refund'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
 import { cn } from '@/lib/utils'
@@ -54,7 +54,7 @@ export const Route = createFileRoute('/(private)/orders/')({
   },
 })
 
-export function ActiveOrdersDialog({ open, onClose, onCancel }: OverlayProps & { onCancel?: () => void }) {
+export function ActiveOrdersDialog({ open, onClose, onCancel }: MountProps & { onCancel?: () => void }) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className='sm:max-w-7xl p-0 overflow-hidden border-none shadow-2xl'>
@@ -118,7 +118,7 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
 
           // MARK AS SERVED
           const handleServe = async () => {
-            showModal(WarningPrompt, {
+            MountManager.show(WarningPrompt, {
               title: 'Mark as Served',
               description: 'Are you sure you want to mark this order as served?',
               onConfirm: async () => {
@@ -147,7 +147,7 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
 
           // Cancel Order
           const handleCancel = async () => {
-            showModal(WarningPrompt, {
+            MountManager.show(WarningPrompt, {
               title: 'Cancel Order',
               description: 'Are you sure you want to cancel this order?',
               onConfirm: async () => {
@@ -170,7 +170,7 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
 
           // Cancel Order
           const handleRefund = () => {
-            showModal(WarningPrompt, {
+            MountManager.show(WarningPrompt, {
               title: 'Refund Order',
               description: 'Are you sure you want to refund this order?',
               onConfirm: async () => {

@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/components/custom/theme/theme-provider'
 import { useSw } from '@/hooks/use-sw'
 import { getAuthUser } from '@/lib/better-auth/auth-server' // Import your server function
 import { APP_NAME } from '@/lib/constants'
-import Overlay from '@/lib/overlay'
+import MountManager from '@/lib/mount-manager'
 import type { MyRouterContext } from '@/router'
 import { setUser } from '@/store/auth-store'
 import appCss from '../styles.css?url'
@@ -72,7 +72,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
-          <Overlay />
+          <MountManager />
           {children}
           <Toaster theme='system' richColors closeButton position='top-right' />
           <Scripts />

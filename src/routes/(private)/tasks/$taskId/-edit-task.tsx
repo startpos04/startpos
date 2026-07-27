@@ -1,16 +1,18 @@
+import { ArrowLeft, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { operationalTaskCollection } from '@/db/collections'
-import { CreateTask, type CreateTaskFormData } from '../create/-create-task'
+import type { MountProps } from '@/lib/mount-manager'
+import { closeTaskSidebar } from '../../-components/task-sidebar'
+import { CreateTask, type CreateTaskFormData } from '../../create/-create-task'
 
-interface EditTaskDialogProps {
+interface EditTaskSidebarProps extends MountProps {
   taskId: string
   defaultValues: CreateTaskFormData
-  open: boolean
-  onClose: () => void
+  onBack?: () => void
 }
 
-export function EditTaskDialog({ taskId, defaultValues, open, onClose }: EditTaskDialogProps) {
+export function EditTaskSidebar({ taskId, defaultValues, open: _open, onClose, onBack }: EditTaskSidebarProps) {
   const handleSubmit = async ({ value }: { value: CreateTaskFormData }) => {
     const { type, clerkId, approverId, notes, ...subTaskMetadata } = value
     try {
@@ -25,30 +27,49 @@ export function EditTaskDialog({ taskId, defaultValues, open, onClose }: EditTas
       })
 
       toast.success('Task successfully updated')
-      onClose()
+      if (onBack) onBack()
+      else if (onClose) onClose()
+      else closeTaskSidebar()
     } catch (error) {
       console.error('Transaction failed:', error)
       toast.error('Failed to update Task. Please try again.')
     }
   }
 
+  const handleClose = () => {
+    if (onClose) onClose()
+    else closeTaskSidebar()
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-4xl max-h-[90vh] overflow-y-auto border-none'>
-        <CreateTask
-          defaultValues={defaultValues}
-          onSubmit={handleSubmit}
-          textBtn={{
-            default: 'Save Changes',
-            isSubmitting: 'Saving Changes...',
-          }}
-        >
-          <div className='mb-2'>
-            <h1 className='text-3xl font-bold tracking-tight'>Edit Task</h1>
-            <p className='text-muted-foreground text-sm'>Modify the requirements, assignment, or instructions for this operation.</p>
+    <div className='flex flex-col h-full'>
+      {/* Header band */}
+      <div className='flex items-center justify-between p-4 border-b shrink-0'>
+        <div className='flex items-center gap-2'>
+          {onBack && (
+            <Button variant='ghost' size='icon' onClick={onBack} className='h-7 w-7'>
+              <ArrowLeft className='h-4 w-4' />
+            </Button>
+          )}
+          <div>
+            <h2 className='text-base font-semibold leading-none'>Edit Task</h2>
+            <p className='text-xs text-muted-foreground mt-1'>Modify requirements, assignment, or instructions.</p>
           </div>
-        </CreateTask>
-      </DialogContent>
-    </Dialog>
+        </div>
+        <Button variant='ghost' size='icon' onClick={handleClose} className='h-7 w-7'>
+          <X className='h-4 w-4' />
+        </Button>
+      </div>
+
+      {/* Form — CreateTask already has flex-col h-full with scrollable body + sticky footer */}
+      <CreateTask
+        defaultValues={defaultValues}
+        onSubmit={handleSubmit}
+        textBtn={{
+          default: 'Save Changes',
+          isSubmitting: 'Saving...',
+        }}
+      />
+    </div>
   )
 }

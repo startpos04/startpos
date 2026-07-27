@@ -14,7 +14,7 @@ import { useAppForm } from '@/hooks/form'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import type { posItem } from '@/lib/conversion/inventory-engine'
-import { showModal } from '@/lib/overlay'
+import MountManager from '@/lib/mount-manager'
 import { createPosOrder } from '@/lib/queries/create-pos-order'
 import { createPosTransaction } from '@/lib/queries/create-pos-transaction'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
@@ -98,7 +98,7 @@ function POSPage() {
         })
       }
 
-      showModal(SuccessPrompt, {
+      MountManager.show(SuccessPrompt, {
         title: 'Transaction Completed',
         description: 'Payment processed and order logged.',
         btnText: 'Next Customer',
@@ -177,7 +177,7 @@ function POSPage() {
 
   useEffect(() => {
     if (user.vendorSession?.status === SessionStatus.CLOSED && user.vendorSession.verifiedCash === null) {
-      showModal(AlertPrompt, {
+      MountManager.show(AlertPrompt, {
         title: 'Unverified Shift',
         description: 'The previous shift was ended without a verified cash count. Please reconcile the drawer before proceeding with a new shift.',
         btnText: user.role === Role.CASHIER ? 'Logout' : 'Go to Dashboard',
@@ -187,7 +187,7 @@ function POSPage() {
         },
       })
     } else if (user.vendorSession?.status !== SessionStatus.OPEN) {
-      showModal(OpenSessionDialog)
+      MountManager.show(OpenSessionDialog)
     }
   }, [user, navigate])
 

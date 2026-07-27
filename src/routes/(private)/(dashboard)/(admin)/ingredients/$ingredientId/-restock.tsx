@@ -1,5 +1,5 @@
 import { useForm, useStore } from '@tanstack/react-form'
-import { CalendarDays, Hash, ReceiptIndianRupee, Save } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Hash, Package, ReceiptIndianRupee, Save, X } from 'lucide-react'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -7,16 +7,16 @@ import { MoneyInput } from '@/components/custom/form/money-input'
 import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import dayjs from '@/lib/dayjs'
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
 import type { feIngredient } from '@/lib/queries/fetch-ingredients'
 import { fetchLocationOptions } from '@/lib/queries/fetch-location-options'
 import { fetchSupplierOptions } from '@/lib/queries/fetch-supplier-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { restockIngredient } from '@/lib/queries/restock-ingredient'
 import { authStore } from '@/store/auth-store'
+import { closeIngredientSidebar } from '../-components/ingredient-sidebar'
 
 const restockSchema = z.object({
   variantId: z.string().min(1, 'Variant ID is required'),
@@ -30,12 +30,13 @@ const restockSchema = z.object({
   reason: z.string().min(1, 'Reason/Note is required'),
 })
 
-interface RestockIngredientDialogProps extends OverlayProps {
+interface RestockIngredientSidebarProps extends MountProps {
   ingredient: feIngredient
   variant: feIngredient['variants'][number]
+  onBack?: () => void
 }
 
-export function RestockIngredientDialog({ open, onClose, variant }: RestockIngredientDialogProps) {
+export function RestockIngredientSidebar({ open: _open, onClose, variant, ingredient, onBack }: RestockIngredientSidebarProps) {
   const user = useStore(authStore, state => state.user)
   const { data: unitOptions = [] } = fetchUnitOptions()
   const { data: locationOptions = [] } = fetchLocationOptions()
@@ -48,9 +49,7 @@ export function RestockIngredientDialog({ open, onClose, variant }: RestockIngre
   }, [])
 
   const form = useForm({
-    validators: {
-      onChange: restockSchema,
-    },
+    validators: { onChange: restockSchema },
     defaultValues: {
       variantId: variant.id,
       quantity: 0,
@@ -66,116 +65,126 @@ export function RestockIngredientDialog({ open, onClose, variant }: RestockIngre
       try {
         await restockIngredient(value)
         toast.success(`Inventory updated for ${variant.name || variant.product?.name}`)
-        onClose?.()
+        if (onBack) onBack()
+        else if (onClose) onClose()
+        else closeIngredientSidebar()
       } catch {
         toast.error('Restock failed. Check your connection or permissions.')
       }
     },
   })
 
+  const handleClose = () => {
+    if (onClose) onClose()
+    else closeIngredientSidebar()
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent
-        className='sm:max-w-lg p-4 space-y-6 overflow-hidden border-none shadow-2xl bg-background gap-0'
-        onEscapeKeyDown={e => e.preventDefault()}
-        onInteractOutside={e => e.preventDefault()}
-      >
-        <DialogHeader>
-          <DialogTitle className='text-3xl font-bold tracking-tight'>Restock Inventory</DialogTitle>
-          <DialogDescription className='text-emerald-100 text-base'>
-            Recording new stock for{' '}
-            <span className='font-bold text-white'>{[variant.product.name, variant?.name ? `(${variant.name})` : ''].filter(Boolean).join(' ')}</span>
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className='space-y-6'>
-          {/* Section 1: Quantity & Cost */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            <div className='space-y-4'>
-              <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
-                <Hash className='w-3 h-3' /> Quantity Info
-              </h4>
-              <div className='grid grid-cols-2 gap-3'>
-                <form.Field
-                  name='quantity'
-                  children={field => (
-                    <TextInput field={field} label='Qty' type='number' className='rounded-xl' onChange={e => field.handleChange(Number(e.target.value))} />
-                  )}
-                />
-                <form.Field name='unitId' children={field => <SelectInput field={field} label='Unit' options={unitOptions} />} />
-              </div>
+    <div className='flex flex-col h-full'>
+      {/* Header band */}
+      <div className='flex items-center justify-between p-4 border-b shrink-0'>
+        <div className='flex items-center gap-2'>
+          {onBack && (
+            <Button variant='ghost' size='icon' onClick={onBack} className='h-7 w-7'>
+              <ArrowLeft className='h-4 w-4' />
+            </Button>
+          )}
+          <div>
+            <div className='flex items-center gap-2'>
+              <Package className='h-4 w-4 text-emerald-500' />
+              <h2 className='text-base font-semibold leading-none'>Restock Inventory</h2>
             </div>
-
-            <div className='space-y-4'>
-              <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
-                <ReceiptIndianRupee className='w-3 h-3' /> Financials
-              </h4>
-              <form.Field
-                name='unitCost'
-                children={field => (
-                  <MoneyInput
-                    field={field}
-                    label={`Unit Cost (${user.systemConfigs.CURRENCY})`}
-                    type='number'
-                    placeholder='0.00'
-                    className='rounded-xl font-mono'
-                    onChange={e => field.handleChange(Number(e.target.value))}
-                  />
-                )}
-              />
-            </div>
+            <p className='text-xs text-muted-foreground mt-1'>{[ingredient.name, variant?.name ? `(${variant.name})` : ''].filter(Boolean).join(' ')}</p>
           </div>
+        </div>
+        <Button variant='ghost' size='icon' onClick={handleClose} className='h-7 w-7'>
+          <X className='h-4 w-4' />
+        </Button>
+      </div>
 
-          <Separator className='bg-border/50' />
-
-          {/* Section 2: Batch & Expiry */}
-          <div className='space-y-4'>
-            <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
-              <CalendarDays className='w-3 h-3' /> Tracking Details
-            </h4>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <form.Field
-                name='batchNumber'
-                children={field => <TextInput field={field} label='Batch/Lot Number' placeholder='Optional' className='rounded-xl' />}
-              />
-              <form.Field name='expiryDate' children={field => <TextInput field={field} label='Expiry Date' type='date' className='rounded-xl' />} />
-            </div>
-          </div>
-
-          {/* Section 3: Storage & Source */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+      {/* Scrollable form body */}
+      <div className='flex-1 overflow-y-auto p-4 space-y-5'>
+        {/* Section 1: Quantity & Cost */}
+        <div className='space-y-3'>
+          <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+            <Hash className='w-3 h-3' /> Quantity & Cost
+          </h4>
+          <div className='grid grid-cols-2 gap-3'>
             <form.Field
-              name='locationId'
-              children={field => <SelectInput field={field} label='Location' options={locationOptions} placeholder='Select location' />}
+              name='quantity'
+              children={field => (
+                <TextInput field={field} label='Qty' type='number' className='rounded-xl' onChange={e => field.handleChange(Number(e.target.value))} />
+              )}
             />
-            <form.Field
-              name='supplierId'
-              children={field => <SelectInput field={field} label='Supplier' options={supplierOptions} placeholder='Select supplier' />}
-            />
+            <form.Field name='unitId' children={field => <SelectInput field={field} label='Unit' options={unitOptions} />} />
           </div>
+          <form.Field
+            name='unitCost'
+            children={field => (
+              <MoneyInput
+                field={field}
+                label={`Unit Cost (${user.systemConfigs.CURRENCY})`}
+                type='number'
+                placeholder='0.00'
+                className='rounded-xl font-mono'
+                onChange={e => field.handleChange(Number(e.target.value))}
+              />
+            )}
+          />
+        </div>
 
+        <Separator />
+
+        {/* Section 2: Tracking */}
+        <div className='space-y-3'>
+          <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+            <CalendarDays className='w-3 h-3' /> Tracking Details
+          </h4>
+          <form.Field
+            name='batchNumber'
+            children={field => <TextInput field={field} label='Batch / Lot Number' placeholder='Auto-generated' className='rounded-xl' />}
+          />
+          <form.Field name='expiryDate' children={field => <TextInput field={field} label='Expiry Date' type='date' className='rounded-xl' />} />
+        </div>
+
+        <Separator />
+
+        {/* Section 3: Storage & Source */}
+        <div className='space-y-3'>
+          <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+            <ReceiptIndianRupee className='w-3 h-3' /> Storage & Source
+          </h4>
+          <form.Field
+            name='locationId'
+            children={field => <SelectInput field={field} label='Location' options={locationOptions} placeholder='Select location' />}
+          />
+          <form.Field
+            name='supplierId'
+            children={field => <SelectInput field={field} label='Supplier' options={supplierOptions} placeholder='Select supplier' />}
+          />
           <form.Field
             name='reason'
             children={field => <TextInput field={field} label='Reference / Note' placeholder='e.g. Supplier Invoice #123' className='rounded-xl' />}
           />
-
-          <div className='pt-4'>
-            <form.Subscribe
-              selector={state => [state.canSubmit, state.isSubmitting]}
-              children={([canSubmit, isSubmitting]) => (
-                <Button
-                  onClick={() => form.handleSubmit()}
-                  disabled={!canSubmit || isSubmitting}
-                  className='w-full h-14 rounded-2xl text-lg font-bold shadow-xl active:scale-95 flex gap-2 shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'
-                >
-                  <Save className='w-5! h-5!' />
-                  {isSubmitting ? 'Updating Inventory...' : 'Complete Restock'}
-                </Button>
-              )}
-            />
-          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+
+      {/* Sticky footer */}
+      <div className='p-4 border-t shrink-0'>
+        <form.Subscribe
+          selector={state => [state.canSubmit, state.isSubmitting]}
+          children={([canSubmit, isSubmitting]) => (
+            <Button
+              onClick={() => form.handleSubmit()}
+              disabled={!canSubmit || isSubmitting}
+              className='w-full h-11 rounded-xl font-semibold shadow-lg flex gap-2 shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'
+            >
+              <Save className='w-4! h-4!' />
+              {isSubmitting ? 'Updating Inventory...' : 'Complete Restock'}
+            </Button>
+          )}
+        />
+      </div>
+    </div>
   )
 }

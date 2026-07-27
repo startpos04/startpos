@@ -3,10 +3,10 @@ import Cropper, { type Area } from 'react-easy-crop'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Slider } from '@/components/ui/slider' // Shadcn Slider
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
 import { getCroppedImg } from '@/lib/utils/crop-image'
 
-interface CropImageProps extends OverlayProps {
+interface CropImageProps extends MountProps {
   tempImage: string
   onCrop: (croppedBase64: string) => void
 }

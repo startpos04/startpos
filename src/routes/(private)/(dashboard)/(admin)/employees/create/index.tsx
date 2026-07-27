@@ -1,24 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { userCollection } from '@/db/collections'
+import { closeEmployeeSidebar } from '../-components/employee-sidebar'
 import { CreateAccount, type CreateAccountFormData } from './-create-account'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/create/')({
-  component: () => <RouteComponent />,
+  component: () => <CreateEmployeeSidebar />,
 })
 
-export function CreateEmployeeDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-4xl max-h-[90vh] overflow-y-auto'>
-        <RouteComponent onClose={onClose} />
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function RouteComponent({ onClose }: { onClose?: () => void }) {
+export function CreateEmployeeSidebar() {
   const handleSubmit = async ({ value }: { value: CreateAccountFormData }) => {
     try {
       userCollection.insert({
@@ -31,8 +21,8 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
         deletedAt: null,
       })
 
-      onClose?.()
       toast.success('Employee successfully added')
+      closeEmployeeSidebar()
     } catch (error) {
       console.error('Transaction failed:', error)
       toast.error('Failed to add Employee. Please try again.')
@@ -44,12 +34,11 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
       defaultValues={{ name: '', email: '', image: '', role: 'CASHIER' }}
       onSubmit={handleSubmit}
       textBtn={{ default: 'Add Employee', isSubmitting: 'Adding Employee...' }}
-      children={
-        <div>
-          <h1 className='text-3xl font-bold tracking-tight'>Add Employee</h1>
-          <p className='text-muted-foreground text-sm'>Create a new staff account and assign permissions.</p>
-        </div>
-      }
-    />
+    >
+      <div>
+        <h2 className='text-xl font-semibold'>New Employee</h2>
+        <p className='text-muted-foreground text-sm'>Create a new staff account and assign permissions.</p>
+      </div>
+    </CreateAccount>
   )
 }

@@ -12,11 +12,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { usePOS } from '@/hooks/use-pos'
 import { InventoryEngine, type posItem } from '@/lib/conversion/inventory-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { cn } from '@/lib/utils'
 
-interface ProductDialogProps extends OverlayProps {
+interface ProductDialogProps extends MountProps {
   product: posProduct
   cartItems: posItem[]
   onConfirm: (item: posItem) => void

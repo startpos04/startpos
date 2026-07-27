@@ -11,7 +11,7 @@ import { usePOS } from '@/hooks/use-pos'
 import { productCols } from '@/lib/columns/product-columns'
 import { tableCols } from '@/lib/columns/table-columns'
 import { InventoryEngine, type posItem } from '@/lib/conversion/inventory-engine'
-import { type OverlayProps, showModal } from '@/lib/overlay'
+import MountManager, { type MountProps } from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { SearchInput } from '../../orders/-components/search-input'
 import { posFormOpts } from '..'
@@ -21,7 +21,7 @@ import { ProductDialog } from './product-dialog'
 
 export const ProductItemsModal = withForm({
   ...posFormOpts,
-  props: {} as OverlayProps,
+  props: {} as MountProps,
   render: ({ open, onClose, form }) => {
     return (
       <Dialog open={open} onOpenChange={onClose}>
@@ -52,7 +52,7 @@ export const ProductItems = withForm({
 
 export const Products = withForm({
   ...posFormOpts,
-  props: {} as Partial<OverlayProps>,
+  props: {} as Partial<MountProps>,
   render: ({ form, onClose }) => {
     const { view = 'table', search = '', page = 1, pageSize = 20 } = useSearch({ from: '/(private)/pos/' })
     const cartItems = useStore(form.store, s => s.values.items)
@@ -104,7 +104,7 @@ export const Products = withForm({
       const variant = product.variants[0]!
       if (InventoryEngine.calculateRemainingYield(product, variant, [], cartItems, orderItems) < 1) return
 
-      showModal(ProductDialog, {
+      MountManager.show(ProductDialog, {
         product,
         cartItems,
         onConfirm: handleAddToCart,

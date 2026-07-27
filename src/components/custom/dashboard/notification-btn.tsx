@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useNotifications } from '@/hooks/use-notifications'
 import dayjs from '@/lib/dayjs'
+import { cn } from '@/lib/utils'
 
 export function NotificationButton() {
   const navigate = useNavigate()
@@ -70,7 +71,7 @@ export function NotificationButton() {
                   onClick={() => (!n.isRead ? markAsRead(n) : navigate({ to: n.link! }))}
                 >
                   <div className='flex justify-between w-full gap-2'>
-                    <span className={`text-sm ${!n.isRead ? 'font-bold' : 'font-semibold'}`}>{n.title}</span>
+                    <span className={cn('text-sm', !n.isRead ? 'font-bold' : 'font-semibold')}>{n.title}</span>
                     {!n.isRead && <div className='h-2 w-2 rounded-full bg-blue-500 shrink-0 mt-1' />}
                   </div>
                   <p className='text-xs text-muted-foreground line-clamp-2'>{n.message}</p>

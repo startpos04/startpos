@@ -1,27 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { productCollection, productVariantCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { authStore } from '@/store/auth-store'
+import { closeIngredientSidebar } from '../-components/ingredient-sidebar'
 import { CreateIngredient, type CreateIngredientFormData } from './-create-ingredients'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients/create/')({
-  component: () => <RouteComponent />,
+  component: () => <CreateIngredientSidebar />,
 })
 
-export function CreateIngredientDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-3xl'>
-        <RouteComponent onClose={onClose} />
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function RouteComponent({ onClose }: { onClose?: () => void }) {
+export function CreateIngredientSidebar() {
   const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
     const { sku, price, ...productData } = value
     const { user } = authStore.state
@@ -66,7 +56,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
     }
 
     toast.success('Ingredient successfully added')
-    onClose?.()
+    closeIngredientSidebar()
   }
 
   return (
@@ -84,12 +74,11 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
       }}
       onSubmit={handleSubmit}
       textBtn={{ default: 'Add Ingredient', isSubmitting: 'Adding Ingredient...' }}
-      children={
-        <div>
-          <h1 className='text-3xl font-bold'>New Ingredient</h1>
-          <p className='text-muted-foreground'>Register a new raw material and define its tracking units.</p>
-        </div>
-      }
-    />
+    >
+      <div>
+        <h2 className='text-xl font-semibold'>New Ingredient</h2>
+        <p className='text-muted-foreground text-sm'>Register a new raw material and define its tracking units.</p>
+      </div>
+    </CreateIngredient>
   )
 }

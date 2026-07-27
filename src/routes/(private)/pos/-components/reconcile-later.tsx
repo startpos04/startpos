@@ -16,8 +16,8 @@ import { useAppForm } from '@/hooks/form'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
+import type { MountProps } from '@/lib/mount-manager'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
-import type { OverlayProps } from '@/lib/overlay'
 import { authStore } from '@/store/auth-store'
 
 export const closeSessionFormOpts = formOptions({
@@ -29,7 +29,7 @@ export const closeSessionFormOpts = formOptions({
 
 type SubmissionType = 'CREATE_TASK' | 'INSTANT_RECONCILE'
 
-export function ReconcileLater({ onClose }: OverlayProps) {
+export function ReconcileLater({ onClose }: MountProps) {
   const [submissionType, setSubmissionType] = useState<SubmissionType>('CREATE_TASK')
   const user = useStore(authStore, state => state.user)
   const navigate = useNavigate()

@@ -1,19 +1,22 @@
+import { ArrowLeft, X } from 'lucide-react'
 import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { productCollection, productComponentCollection, productVariantCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
-import type { OverlayProps } from '@/lib/overlay'
+import type { MountProps } from '@/lib/mount-manager'
 import { authStore } from '@/store/auth-store'
+import { closeProductSidebar } from '../-components/product-sidebar'
 import { CreateProduct, type CreateProductFormData } from '../create/-create-product'
 
-interface EditProductDialogProps extends OverlayProps {
+interface EditProductSidebarProps extends MountProps {
   productId: string
   variantId?: string | undefined
   defaultValues: CreateProductFormData
+  onBack?: () => void
 }
 
-export function EditProductDialog({ productId, variantId, defaultValues, open, onClose }: EditProductDialogProps) {
+export function EditProductSidebar({ productId, variantId, defaultValues, open: _open, onClose, onBack }: EditProductSidebarProps) {
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
     const { user } = authStore.state
     const { sku, price, variants, ingredients, allowedAddons, ...productData } = value
@@ -29,18 +32,16 @@ export function EditProductDialog({ productId, variantId, defaultValues, open, o
         })
       })
 
-      // Prepare the variant list
       const variantsToProcess = variants.length === 0 ? [{ isDefault: true, id: value.variants?.[0]?.id, price, sku: '' }] : variants
 
       for (const v of variantsToProcess) {
         const isDefault = 'isDefault' in v
         const finalSku = isDefault ? sku : v.sku?.includes(sku) ? v.sku : `${sku}-${v.sku}`
         const finalName = isDefault ? productData.name : v.name || productData.name
-        const variantId = v.id && v.id !== 'new-variant' ? v.id : crypto.randomUUID()
+        const resolvedVariantId = v.id && v.id !== 'new-variant' ? v.id : crypto.randomUUID()
 
-        // 2. UPSERT VARIANT
-        if (productVariantCollection.has(variantId)) {
-          productVariantCollection.update(variantId, draft => {
+        if (productVariantCollection.has(resolvedVariantId)) {
+          productVariantCollection.update(resolvedVariantId, draft => {
             draft.name = finalName
             draft.sku = finalSku
             draft.price = price
@@ -49,7 +50,7 @@ export function EditProductDialog({ productId, variantId, defaultValues, open, o
           })
         } else {
           productVariantCollection.insert({
-            id: variantId,
+            id: resolvedVariantId,
             productId,
             name: finalName,
             sku: finalSku,
@@ -66,12 +67,8 @@ export function EditProductDialog({ productId, variantId, defaultValues, open, o
           })
         }
 
-        // 3. SYNC COMPONENTS (Upsert Logic)
+        const currentDbComponents = [...productComponentCollection.values()].filter(c => c.hostId === resolvedVariantId)
 
-        // Get all existing components currently in DB for this variant
-        const currentDbComponents = [...productComponentCollection.values()].filter(c => c.hostId === variantId)
-
-        // Map the form data (ingredients + addons) into a unified structure
         const incomingComponents = [
           ...ingredients.map(ing => ({
             materialId: ing.variant.id,
@@ -89,39 +86,26 @@ export function EditProductDialog({ productId, variantId, defaultValues, open, o
           })),
         ]
 
-        // 🛠️ CREATE A COMPOSITE HASH KEY: "materialId-isAddon"
         const getCompositeKey = (c: { materialId: string; isAddon: boolean }) => `${c.materialId}-${c.isAddon}`
-
         const incomingKeys = new Set(incomingComponents.map(getCompositeKey))
-
-        // A. Identify components to DELETE using the safe composite key
         const idsToDelete = currentDbComponents.filter(dbComp => !incomingKeys.has(getCompositeKey(dbComp))).map(dbComp => dbComp.id)
 
-        if (idsToDelete.length > 0) {
-          productComponentCollection.delete(idsToDelete)
-        }
+        if (idsToDelete.length > 0) productComponentCollection.delete(idsToDelete)
 
-        // B. Identify components to UPDATE or INSERT matching composite criteria
         for (const incoming of incomingComponents) {
-          const incomingKey = getCompositeKey(incoming)
-
-          // Look up explicitly using both conditions
-          const existingRecord = currentDbComponents.find(dbComp => getCompositeKey(dbComp) === incomingKey)
-
+          const existingRecord = currentDbComponents.find(dbComp => getCompositeKey(dbComp) === getCompositeKey(incoming))
           if (existingRecord) {
-            // UPDATE: Sync properties if they changed
             productComponentCollection.update(existingRecord.id, draft => {
               draft.quantityUsed = incoming.quantityUsed
               draft.unitId = incoming.unitId
               draft.priceOverride = incoming.priceOverride
-              draft.isAddon = incoming.isAddon // Safeguarded by composite match logic
+              draft.isAddon = incoming.isAddon
               draft.updatedAt = new Date()
             })
           } else {
-            // INSERT: Create new component record safely
             productComponentCollection.insert({
               id: crypto.randomUUID(),
-              hostId: variantId,
+              hostId: resolvedVariantId,
               materialId: incoming.materialId,
               quantityUsed: incoming.quantityUsed,
               unitId: incoming.unitId,
@@ -144,24 +128,43 @@ export function EditProductDialog({ productId, variantId, defaultValues, open, o
     }
 
     toast.success('Product successfully updated')
-    onClose?.()
+    if (onBack) onBack()
+    else if (onClose) onClose()
+    else closeProductSidebar()
+  }
+
+  const handleClose = () => {
+    if (onClose) onClose()
+    else closeProductSidebar()
   }
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-5xl h-[95vh]'>
-        <CreateProduct
-          variantId={variantId}
-          defaultValues={defaultValues}
-          onSubmit={handleSubmit}
-          textBtn={{ default: 'Update Product', isSubmitting: 'Updating Product...' }}
-        >
+    <div className='flex flex-col h-full'>
+      {/* Header band */}
+      <div className='flex items-center justify-between p-4 border-b shrink-0'>
+        <div className='flex items-center gap-2'>
+          {onBack && (
+            <Button variant='ghost' size='icon' onClick={onBack} className='h-7 w-7'>
+              <ArrowLeft className='h-4 w-4' />
+            </Button>
+          )}
           <div>
-            <h1 className='text-3xl font-bold tracking-tight'>Update Product</h1>
-            <p className='text-muted-foreground text-sm'>Update product details, variants, and ingredients.</p>
+            <h2 className='text-base font-semibold leading-none'>Update Product</h2>
+            <p className='text-xs text-muted-foreground mt-1'>Update details, variants, and ingredients.</p>
           </div>
-        </CreateProduct>
-      </DialogContent>
-    </Dialog>
+        </div>
+        <Button variant='ghost' size='icon' onClick={handleClose} className='h-7 w-7'>
+          <X className='h-4 w-4' />
+        </Button>
+      </div>
+
+      {/* Form — CreateProduct already has flex-col h-full with scrollable body + footer */}
+      <CreateProduct
+        variantId={variantId}
+        defaultValues={defaultValues}
+        onSubmit={handleSubmit}
+        textBtn={{ default: 'Update Product', isSubmitting: 'Updating...' }}
+      />
+    </div>
   )
 }

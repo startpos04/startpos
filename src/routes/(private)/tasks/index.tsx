@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
-import { Calendar, ClipboardList, Edit, Plus, Trash2 } from 'lucide-react'
+import { Calendar, ClipboardList, Plus, Trash2 } from 'lucide-react'
 import { Role, TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Dashboard } from '@/components/custom/dashboard'
 import { getColumns } from '@/components/custom/data-view'
@@ -12,16 +12,17 @@ import { FeatureDisabledPage } from '@/components/pages/feature-disabled-page'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { operationalTaskCollection } from '@/db/collections'
-import { showModal } from '@/lib/overlay'
+import MountManager from '@/lib/mount-manager'
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
 import { cn } from '@/lib/utils'
 import { authStore } from '@/store/auth-store'
-import { TaskDetailsDialog } from './$taskId'
-import { CreateTaskDialog } from './create'
+import { showTaskSidebar, TASK_ASIDE_ID } from './-components/task-sidebar'
+import { TaskDetailsSidebar } from './$taskId'
+import { CreateTaskSidebar } from './create'
 
 const TYPE_CONFIG: Record<string, string> = {
   [TaskType.SHELF_REFILL]: 'bg-blue-50 text-blue-600',
-  [TaskType.PURCHASE_REQUEST]: 'bg-green-50 text-green-600', // Fixed typo from 'gree-50'
+  [TaskType.PURCHASE_REQUEST]: 'bg-green-50 text-green-600',
   [TaskType.BRANCH_TRANSFER]: 'bg-indigo-50 text-indigo-600',
   [TaskType.STOCK_COUNT]: 'bg-gray-50 text-gray-600',
   [TaskType.WASTE_DISPOSAL]: 'bg-orange-50 text-orange-600',
@@ -45,15 +46,26 @@ export const Route = createFileRoute('/(private)/tasks/')({
 
 function RouteComponent() {
   const { data, isLoading } = fetchTasks()
+  const [selectedId, setSelectedId] = useState<string>('')
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
-    showModal(CreateTaskDialog)
+    setSelectedId('')
+    showTaskSidebar(<CreateTaskSidebar />)
   }
 
-  const handleEdit = useCallback((e: React.MouseEvent<HTMLAnchorElement>, taskId: string) => {
-    e.preventDefault()
-    showModal(TaskDetailsDialog, { taskId })
+  const handleSelectRow = useCallback((task: NonNullable<typeof data>[number]) => {
+    setSelectedId(task.id)
+    showTaskSidebar(
+      <TaskDetailsSidebar
+        open
+        taskId={task.id}
+        onClose={() => {
+          setSelectedId('')
+          MountManager.clear(TASK_ASIDE_ID)
+        }}
+      />,
+    )
   }, [])
 
   const columns = useMemo(
@@ -117,7 +129,6 @@ function RouteComponent() {
 
             if (!meta) return <span className='text-xs text-muted-foreground'>-</span>
 
-            // Render subtle variants based on Task Types
             if (type === TaskType.CASH_RECONCILIATION && meta.variance !== undefined) {
               const isDiscrepancy = meta.variance !== 0
               return (
@@ -216,7 +227,7 @@ function RouteComponent() {
           header: () => <div className='text-right pr-4'>Actions</div>,
           cell: ({ row }) => {
             const handleDelete = async () => {
-              showModal(WarningPrompt, {
+              MountManager.show(WarningPrompt, {
                 title: 'Delete Task',
                 description: 'Are you sure you want to remove this task? This action cannot be undone.',
                 onConfirm: async () => {
@@ -233,13 +244,16 @@ function RouteComponent() {
             }
 
             return (
-              <div className='flex justify-end gap-2 pr-2'>
-                <Link to='/tasks/$taskId' params={{ taskId: row.original.id }} onClick={e => handleEdit(e, row.original.id)} className='contents'>
-                  <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full'>
-                    <Edit className='h-4 w-4' />
-                  </Button>
-                </Link>
-                <Button variant='ghost' size='icon' className='h-8 w-8 rounded-full text-destructive hover:text-destructive' onClick={handleDelete}>
+              <div className='flex justify-end pr-2'>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='h-8 w-8 rounded-full text-destructive hover:text-destructive'
+                  onClick={e => {
+                    e.stopPropagation()
+                    handleDelete()
+                  }}
+                >
                   <Trash2 className='h-4 w-4' />
                 </Button>
               </div>
@@ -247,24 +261,36 @@ function RouteComponent() {
           },
         }),
       ]),
-    [handleEdit],
+    [],
   )
 
   return (
-    <div className='flex flex-col grow gap-4 px-4 h-screen'>
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
-        <div>
-          <h1 className='text-3xl font-bold tracking-tight text-foreground'>Operational Tasks</h1>
-          <p className='text-muted-foreground text-sm'>Monitor and approve store refills, audits, and daily reconciliations.</p>
+    <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
+      <div className='flex-1 min-w-0 h-full p-4 pt-0 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
+        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4'>
+          <div>
+            <h1 className='text-3xl font-bold tracking-tight text-foreground'>Operational Tasks</h1>
+            <p className='text-muted-foreground text-sm'>Monitor and approve store refills, audits, and daily reconciliations.</p>
+          </div>
+          <a href='/tasks/create' onClick={handleAdd} className='contents'>
+            <Button className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
+              <Plus className='h-4 w-4' /> Add Task
+            </Button>
+          </a>
         </div>
-        <a href='/tasks/create' onClick={handleAdd} className='contents'>
-          <Button className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
-            <Plus className='h-4 w-4' /> Add Task
-          </Button>
-        </a>
+
+        <TableView
+          data={data}
+          isFetching={isLoading}
+          columns={columns}
+          selectableRow={{
+            onClick: handleSelectRow,
+            isSelected: row => row.id === selectedId,
+          }}
+        />
       </div>
 
-      <TableView data={data} isFetching={isLoading} columns={columns} />
+      <MountManager id={TASK_ASIDE_ID} />
     </div>
   )
 }

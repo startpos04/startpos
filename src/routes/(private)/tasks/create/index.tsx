@@ -2,27 +2,16 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { operationalTaskCollection } from '@/db/collections'
 import { authStore } from '@/store/auth-store'
-// Import the updated Task Form component and its types
+import { closeTaskSidebar } from '../-components/task-sidebar'
 import { CreateTask, type CreateTaskFormData } from './-create-task'
 
 export const Route = createFileRoute('/(private)/tasks/create/')({
-  component: () => <RouteComponent />,
+  component: () => <CreateTaskSidebar />,
 })
 
-export function CreateTaskDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-4xl max-h-[90vh] overflow-y-auto border-none'>
-        <RouteComponent onClose={onClose} />
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function RouteComponent({ onClose }: { onClose?: () => void }) {
+export function CreateTaskSidebar() {
   const user = useStore(authStore, state => state.user)
 
   const handleSubmit = async ({ value }: { value: CreateTaskFormData }) => {
@@ -56,7 +45,7 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
       })
 
       toast.success('Operational task successfully created')
-      onClose?.()
+      closeTaskSidebar()
     } catch (error) {
       console.error('Transaction failed:', error)
       toast.error('Failed to add Task. Please try again.')
@@ -74,8 +63,8 @@ function RouteComponent({ onClose }: { onClose?: () => void }) {
       onSubmit={handleSubmit}
       textBtn={{ default: 'Create Task', isSubmitting: 'Creating...' }}
     >
-      <div className='mb-2'>
-        <h1 className='text-3xl font-bold tracking-tight'>Create Task</h1>
+      <div>
+        <h2 className='text-xl font-semibold'>New Task</h2>
         <p className='text-muted-foreground text-sm'>Initiate a new store movement or audit task for your staff.</p>
       </div>
     </CreateTask>

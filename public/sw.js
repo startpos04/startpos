@@ -2385,61 +2385,6 @@ class CacheFirst extends Strategy {
     return response;
   }
 }
-class StaleWhileRevalidate extends Strategy {
-  constructor(options = {}) {
-    super(options);
-    if (!this.plugins.some((p) => "cacheWillUpdate" in p)) {
-      this.plugins.unshift(cacheOkAndOpaquePlugin);
-    }
-  }
-  async _handle(request, handler) {
-    const logs = [];
-    {
-      finalAssertExports.isInstance(request, Request, {
-        moduleName: "serwist",
-        className: this.constructor.name,
-        funcName: "handle",
-        paramName: "request"
-      });
-    }
-    const fetchAndCachePromise = handler.fetchAndCachePut(request).catch(() => {
-    });
-    void handler.waitUntil(fetchAndCachePromise);
-    let response = await handler.cacheMatch(request);
-    let error;
-    if (response) {
-      {
-        logs.push(`Found a cached response in the '${this.cacheName}' cache. Will update with the network response in the background.`);
-      }
-    } else {
-      {
-        logs.push(`No response found in the '${this.cacheName}' cache. Will wait for the network response.`);
-      }
-      try {
-        response = await fetchAndCachePromise;
-      } catch (err) {
-        if (err instanceof Error) {
-          error = err;
-        }
-      }
-    }
-    {
-      logger.groupCollapsed(messages.strategyStart(this.constructor.name, request));
-      for (const log of logs) {
-        logger.log(log);
-      }
-      messages.printFinalResponse(response);
-      logger.groupEnd();
-    }
-    if (!response) {
-      throw new SerwistError("no-response", {
-        url: request.url,
-        error
-      });
-    }
-    return response;
-  }
-}
 class PrecacheRoute extends Route {
   constructor(serwist2, options) {
     const match = ({ request }) => {
@@ -3031,12 +2976,6 @@ const serwist = new Serwist({
       matcher: ({ request }) => request.destination === "style" || request.destination === "image" || request.destination === "font",
       handler: new CacheFirst({
         cacheName: "static-assets"
-      })
-    },
-    {
-      matcher: ({ request }) => request.destination === "script" || request.destination === "worker",
-      handler: new StaleWhileRevalidate({
-        cacheName: "js-chunks"
       })
     }
   ] : [

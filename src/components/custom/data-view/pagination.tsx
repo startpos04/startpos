@@ -74,7 +74,7 @@ export function DataViewPagination<T>({ table, totalItems }: DataViewPaginationP
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious
-                className={!table.getCanPreviousPage() ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
+                className={cn(!table.getCanPreviousPage() ? 'pointer-events-none opacity-40' : 'cursor-pointer')}
                 onClick={() => table.previousPage()}
               />
             </PaginationItem>
@@ -106,7 +106,7 @@ export function DataViewPagination<T>({ table, totalItems }: DataViewPaginationP
             )}
 
             <PaginationItem>
-              <PaginationNext className={!table.getCanNextPage() ? 'pointer-events-none opacity-40' : 'cursor-pointer'} onClick={() => table.nextPage()} />
+              <PaginationNext className={cn(!table.getCanNextPage() ? 'pointer-events-none opacity-40' : 'cursor-pointer')} onClick={() => table.nextPage()} />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
