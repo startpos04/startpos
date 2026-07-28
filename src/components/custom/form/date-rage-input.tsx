@@ -109,7 +109,7 @@ export function DateRangeInput({ className, value: controlledValue, defaultValue
 
               <div className='mt-auto pt-4'>
                 <Button size='sm' className='w-full text-xs h-8' onClick={handleConfirm} disabled={!tempDate?.from || !tempDate?.to}>
-                  <Check className='h-3 w-3 mr-2' />
+                  <Check className='size-3 mr-2' />
                   Confirm
                 </Button>
               </div>

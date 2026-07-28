@@ -145,7 +145,7 @@ export function EditProductSidebar({ productId, variantId, defaultValues, open: 
         <div className='flex items-center gap-2'>
           {onBack && (
             <Button variant='ghost' size='icon' onClick={onBack} className='h-7 w-7'>
-              <ArrowLeft className='h-4 w-4' />
+              <ArrowLeft className='size-4' />
             </Button>
           )}
           <div>
@@ -154,7 +154,7 @@ export function EditProductSidebar({ productId, variantId, defaultValues, open: 
           </div>
         </div>
         <Button variant='ghost' size='icon' onClick={handleClose} className='h-7 w-7'>
-          <X className='h-4 w-4' />
+          <X className='size-4' />
         </Button>
       </div>
 

@@ -145,7 +145,7 @@ function Select<T>({ options: initialOptions, value, onChange, onCreate, placeho
                         }}
                         onClick={() => handleUnselect(val)}
                       >
-                        <X className='h-3 w-3 text-muted-foreground hover:text-foreground' />
+                        <X className='size-3 text-muted-foreground hover:text-foreground' />
                       </button>
                     </Badge>
                   )
@@ -157,7 +157,7 @@ function Select<T>({ options: initialOptions, value, onChange, onCreate, placeho
               <span className='text-muted-foreground text-xs font-normal'>{placeholder}</span>
             )}
           </div>
-          <ChevronsUpDown className='h-4 w-4 shrink-0 opacity-50 ml-2 self-center' />
+          <ChevronsUpDown className='size-4 shrink-0 opacity-50 ml-2 self-center' />
         </Button>
       </PopoverTrigger>
       <PopoverContent className='w-full min-w-(--radix-popover-trigger-width) p-0' align='start'>

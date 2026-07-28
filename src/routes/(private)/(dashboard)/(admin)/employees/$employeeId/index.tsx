@@ -2,11 +2,11 @@ import { count, eq, toArray, useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute } from '@tanstack/react-router'
 import { Calendar, Edit, Mail, Package, Receipt, ShieldAlert, Smartphone, User as UserIcon, X } from 'lucide-react'
 import { toast } from 'sonner'
+import Tab from '@/components/custom/tab'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   branchCollection,
   businessCollection,
@@ -38,6 +38,143 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/$
 
 export function EmployeeDetailsSidebar({ open: _open, onClose, employeeId }: EmployeeDetailsSidebarProps) {
   return <RouteComponent employeeId={employeeId} onClose={onClose} />
+}
+
+// Overview Tab Component
+function OverviewTab({ employee, isOnline, handleRevokeSession }: { employee: any; isOnline: boolean; handleRevokeSession: () => void }) {
+  return (
+    <div className='space-y-3'>
+      {/* Contact */}
+      <Card>
+        <CardHeader className='pb-2 pt-4'>
+          <CardTitle className='text-xs font-semibold uppercase tracking-wider text-muted-foreground'>Contact</CardTitle>
+        </CardHeader>
+        <CardContent className='space-y-2.5 pb-4'>
+          <div className='flex items-center gap-2.5 text-sm'>
+            <Mail className='h-3.5 w-3.5 text-muted-foreground shrink-0' />
+            <span className='truncate'>{employee.email}</span>
+          </div>
+          <div className='flex items-center gap-2.5 text-sm'>
+            <Calendar className='h-3.5 w-3.5 text-muted-foreground shrink-0' />
+            <span>Joined {dayjs(employee.createdAt).format('MMM DD, YYYY')}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick stats */}
+      <div className='grid grid-cols-2 gap-2'>
+        <Card>
+          <CardContent className='p-3'>
+            <p className='text-2xl font-bold'>{employee.processedSales[0]?.count || 0}</p>
+            <p className='text-[10px] text-muted-foreground uppercase font-bold mt-0.5'>Sales</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className='p-3'>
+            <p className='text-2xl font-bold'>{employee.performedServices[0]?.count || 0}</p>
+            <p className='text-[10px] text-muted-foreground uppercase font-bold mt-0.5'>Services</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Session status */}
+      <Card>
+        <CardContent className='p-3 flex items-center justify-between'>
+          <div>
+            <p className='text-xs font-semibold'>{isOnline ? 'Currently active' : 'Offline'}</p>
+            {employee.sessions[0] && (
+              <p className='text-[10px] text-muted-foreground mt-0.5'>
+                {employee.sessions[0].ipAddress} · {dayjs().to(dayjs(employee.sessions[0].expiresAt))}
+              </p>
+            )}
+          </div>
+          <div className={cn('h-2 w-2 rounded-full', isOnline ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30')} />
+        </CardContent>
+      </Card>
+
+      {/* Danger zone */}
+      <Card className='border-destructive/20'>
+        <CardHeader className='pb-2 pt-4'>
+          <CardTitle className='text-xs text-destructive flex items-center gap-1.5 font-semibold uppercase tracking-wider'>
+            <ShieldAlert className='h-3.5 w-3.5' /> Danger Zone
+          </CardTitle>
+        </CardHeader>
+        <CardContent className='pb-4'>
+          <div className='flex items-center justify-between p-3 border border-destructive/10 rounded-xl bg-destructive/5'>
+            <div>
+              <p className='text-xs font-bold'>Revoke All Sessions</p>
+              <p className='text-[10px] text-muted-foreground mt-0.5'>Forces sign-out on all devices.</p>
+            </div>
+            <Button variant='destructive' size='sm' className='h-7 text-xs' onClick={handleRevokeSession}>
+              Sign Out
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// Performance Tab Component
+function PerformanceTab({ employee, totalRevenue, targetReached }: { employee: any; totalRevenue: number; targetReached: number }) {
+  return (
+    <div className='space-y-3'>
+      <Card>
+        <CardHeader className='pb-2 pt-4'>
+          <CardTitle className='text-sm flex items-center gap-2'>
+            <Receipt className='h-4 w-4' /> Transaction Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent className='space-y-3 pb-4'>
+          {/* Revenue card — full width */}
+          <Card className='bg-primary/5 border-primary/20'>
+            <CardContent className='p-3'>
+              <div className='flex items-center justify-between'>
+                <p className='text-xs font-medium'>Total Revenue</p>
+                <Receipt className='h-3.5 w-3.5 text-primary' />
+              </div>
+              <p className='text-xl font-bold mt-1'>₱{totalRevenue.toLocaleString()}</p>
+              <div className='mt-2 space-y-1'>
+                <div className='flex justify-between text-[10px]'>
+                  <span>Target Achievement</span>
+                  <span>{targetReached}%</span>
+                </div>
+                <Progress value={targetReached} className='h-1' />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Stats grid */}
+          <div className='grid grid-cols-2 gap-2'>
+            <Card>
+              <CardContent className='p-3'>
+                <div className='flex items-center justify-between text-muted-foreground mb-1'>
+                  <p className='text-[10px] font-medium uppercase'>Services</p>
+                  <Smartphone className='h-3 w-3' />
+                </div>
+                <p className='text-xl font-bold'>{employee.performedServices[0]?.count || 0}</p>
+                <p className='text-[10px] text-muted-foreground'>Lifetime</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className='p-3'>
+                <div className='flex items-center justify-between text-muted-foreground mb-1'>
+                  <p className='text-[10px] font-medium uppercase'>Inventory</p>
+                  <Package className='h-3 w-3' />
+                </div>
+                <p className='text-xl font-bold'>{employee.inventoryMovements[0]?.count || 0}</p>
+                <p className='text-[10px] text-muted-foreground'>Adjustments</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className='h-32 flex items-center justify-center border-2 border-dashed rounded-xl'>
+            <p className='text-xs text-muted-foreground text-center px-4'>Activity chart coming soon.</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
 }
 
 function RouteComponent({ employeeId: propId, onClose }: RouteComponentProps) {
@@ -188,153 +325,37 @@ function RouteComponent({ employeeId: propId, onClose }: RouteComponentProps) {
           </div>
         </div>
         <Button variant='ghost' size='icon' onClick={handleClose} className='h-7 w-7 shrink-0'>
-          <X className='h-4 w-4' />
+          <X className='size-4' />
         </Button>
       </div>
 
       {/* Scrollable content */}
       <div className='flex-1 overflow-y-auto p-4 space-y-4'>
-        <Tabs defaultValue='overview' className='w-full'>
-          <TabsList className='w-full grid grid-cols-2 mb-4'>
-            <TabsTrigger value='overview'>Overview</TabsTrigger>
-            <TabsTrigger value='activity'>Performance</TabsTrigger>
-          </TabsList>
-
-          {/* OVERVIEW TAB */}
-          <TabsContent value='overview' className='space-y-3'>
-            {/* Contact */}
-            <Card>
-              <CardHeader className='pb-2 pt-4'>
-                <CardTitle className='text-xs font-semibold uppercase tracking-wider text-muted-foreground'>Contact</CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-2.5 pb-4'>
-                <div className='flex items-center gap-2.5 text-sm'>
-                  <Mail className='h-3.5 w-3.5 text-muted-foreground shrink-0' />
-                  <span className='truncate'>{employee.email}</span>
-                </div>
-                <div className='flex items-center gap-2.5 text-sm'>
-                  <Calendar className='h-3.5 w-3.5 text-muted-foreground shrink-0' />
-                  <span>Joined {dayjs(employee.createdAt).format('MMM DD, YYYY')}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick stats */}
-            <div className='grid grid-cols-2 gap-2'>
-              <Card>
-                <CardContent className='p-3'>
-                  <p className='text-2xl font-bold'>{employee.processedSales[0]?.count || 0}</p>
-                  <p className='text-[10px] text-muted-foreground uppercase font-bold mt-0.5'>Sales</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className='p-3'>
-                  <p className='text-2xl font-bold'>{employee.performedServices[0]?.count || 0}</p>
-                  <p className='text-[10px] text-muted-foreground uppercase font-bold mt-0.5'>Services</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Session status */}
-            <Card>
-              <CardContent className='p-3 flex items-center justify-between'>
-                <div>
-                  <p className='text-xs font-semibold'>{isOnline ? 'Currently active' : 'Offline'}</p>
-                  {employee.sessions[0] && (
-                    <p className='text-[10px] text-muted-foreground mt-0.5'>
-                      {employee.sessions[0].ipAddress} · {dayjs().to(dayjs(employee.sessions[0].expiresAt))}
-                    </p>
-                  )}
-                </div>
-                <div className={cn('h-2 w-2 rounded-full', isOnline ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30')} />
-              </CardContent>
-            </Card>
-
-            {/* Danger zone */}
-            <Card className='border-destructive/20'>
-              <CardHeader className='pb-2 pt-4'>
-                <CardTitle className='text-xs text-destructive flex items-center gap-1.5 font-semibold uppercase tracking-wider'>
-                  <ShieldAlert className='h-3.5 w-3.5' /> Danger Zone
-                </CardTitle>
-              </CardHeader>
-              <CardContent className='pb-4'>
-                <div className='flex items-center justify-between p-3 border border-destructive/10 rounded-xl bg-destructive/5'>
-                  <div>
-                    <p className='text-xs font-bold'>Revoke All Sessions</p>
-                    <p className='text-[10px] text-muted-foreground mt-0.5'>Forces sign-out on all devices.</p>
-                  </div>
-                  <Button variant='destructive' size='sm' className='h-7 text-xs' onClick={handleRevokeSession}>
-                    Sign Out
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* PERFORMANCE TAB */}
-          <TabsContent value='activity' className='space-y-3'>
-            <Card>
-              <CardHeader className='pb-2 pt-4'>
-                <CardTitle className='text-sm flex items-center gap-2'>
-                  <Receipt className='h-4 w-4' /> Transaction Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-3 pb-4'>
-                {/* Revenue card — full width */}
-                <Card className='bg-primary/5 border-primary/20'>
-                  <CardContent className='p-3'>
-                    <div className='flex items-center justify-between'>
-                      <p className='text-xs font-medium'>Total Revenue</p>
-                      <Receipt className='h-3.5 w-3.5 text-primary' />
-                    </div>
-                    <p className='text-xl font-bold mt-1'>₱{totalRevenue.toLocaleString()}</p>
-                    <div className='mt-2 space-y-1'>
-                      <div className='flex justify-between text-[10px]'>
-                        <span>Target Achievement</span>
-                        <span>{targetReached}%</span>
-                      </div>
-                      <Progress value={targetReached} className='h-1' />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Stats grid */}
-                <div className='grid grid-cols-2 gap-2'>
-                  <Card>
-                    <CardContent className='p-3'>
-                      <div className='flex items-center justify-between text-muted-foreground mb-1'>
-                        <p className='text-[10px] font-medium uppercase'>Services</p>
-                        <Smartphone className='h-3 w-3' />
-                      </div>
-                      <p className='text-xl font-bold'>{employee.performedServices[0]?.count || 0}</p>
-                      <p className='text-[10px] text-muted-foreground'>Lifetime</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className='p-3'>
-                      <div className='flex items-center justify-between text-muted-foreground mb-1'>
-                        <p className='text-[10px] font-medium uppercase'>Inventory</p>
-                        <Package className='h-3 w-3' />
-                      </div>
-                      <p className='text-xl font-bold'>{employee.inventoryMovements[0]?.count || 0}</p>
-                      <p className='text-[10px] text-muted-foreground'>Adjustments</p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className='h-32 flex items-center justify-center border-2 border-dashed rounded-xl'>
-                  <p className='text-xs text-muted-foreground text-center px-4'>Activity chart coming soon.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        <Tab
+          defaultValue='Overview'
+          tabs={[
+            {
+              label: 'Overview',
+              Component: OverviewTab,
+              employee,
+              isOnline,
+              handleRevokeSession,
+            },
+            {
+              label: 'Performance',
+              Component: PerformanceTab,
+              employee,
+              totalRevenue,
+              targetReached,
+            },
+          ]}
+        />
       </div>
 
       {/* Sticky footer */}
       <div className='p-4 border-t shrink-0'>
         <Button variant='outline' className='w-full h-9 gap-2 rounded-xl' onClick={handleEdit}>
-          <Edit className='h-3.5 w-3.5' /> Edit Profile
+          <Edit className='size-3.5' /> Edit Profile
         </Button>
       </div>
     </div>

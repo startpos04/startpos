@@ -71,10 +71,10 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
           <p className='text-sm font-medium'>{label}</p>
           <div className='flex gap-2 mt-4'>
             <Button type='button' variant='outline' size='sm' onClick={open} className='rounded-full'>
-              <ImageIcon className='w-4 h-4 mr-2' /> Browse
+              <ImageIcon className='size-4 mr-2' /> Browse
             </Button>
             <Button type='button' variant='secondary' size='sm' onClick={handleCameraOpen} className='rounded-full'>
-              <Camera className='w-4 h-4 mr-2' /> Camera
+              <Camera className='size-4 mr-2' /> Camera
             </Button>
           </div>
         </div>
@@ -83,7 +83,7 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
           <img src={value} alt='Product' className='w-full h-full object-cover' />
           <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center'>
             <Button variant='destructive' size='icon' className='rounded-full' onClick={() => onChange('')}>
-              <X className='w-4 h-4' />
+              <X className='size-4' />
             </Button>
           </div>
         </div>

@@ -127,7 +127,7 @@ export function ReconcileNow({ onClose }: MountProps) {
     return (
       <div className='h-32 flex items-center justify-center'>
         <Button type='submit' onClick={handleAuthenticate} className='h-12 rounded-xl text-md font-bold gap-2 shadow-lg shadow-primary/20'>
-          <ShieldCheck className='h-5! w-5! ' /> Authenticate
+          <ShieldCheck className='size-5' /> Authenticate
         </Button>
       </div>
     )
@@ -205,7 +205,7 @@ export function ReconcileNow({ onClose }: MountProps) {
                 'Authenticating & Closing...'
               ) : (
                 <>
-                  <ShieldCheck className='h-5! w-5! ' /> Reconcile Now (Supervisor)
+                  <ShieldCheck className='size-5' /> Reconcile Now (Supervisor)
                 </>
               )}
             </Button>

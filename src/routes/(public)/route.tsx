@@ -25,7 +25,8 @@ function RouteComponent() {
     if (!localAuths.isReady) return
     const localUser = isOnline ? user : authStore.state.user
     if (localUser?.id) {
-      navigate({ to: '/', replace: true })
+      const destination = 'landingPage' in localUser ? localUser.landingPage : '/'
+      navigate({ to: destination, replace: true })
     }
   }, [localAuths.isReady, navigate])
 

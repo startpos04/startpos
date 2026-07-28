@@ -106,15 +106,15 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
   const getActionIcon = (status: TaskStatus) => {
     switch (status) {
       case 'APPROVED':
-        return <Play className='h-3.5 w-3.5' />
+        return <Play className='size-3.5' />
       case 'FULFILLED':
-        return <FileCheck className='h-3.5 w-3.5' />
+        return <FileCheck className='size-3.5' />
       case 'REVIEWED':
-        return <CheckCircle2 className='h-3.5 w-3.5' />
+        return <CheckCircle2 className='size-3.5' />
       case 'CANCELLED':
-        return <ShieldAlert className='h-3.5 w-3.5' />
+        return <ShieldAlert className='size-3.5' />
       default:
-        return <AlertCircle className='h-3.5 w-3.5' />
+        return <AlertCircle className='size-3.5' />
     }
   }
 
@@ -140,7 +140,7 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
           </div>
         </div>
         <Button variant='ghost' size='icon' onClick={handleClose} className='h-7 w-7 shrink-0'>
-          <X className='h-4 w-4' />
+          <X className='size-4' />
         </Button>
       </div>
 

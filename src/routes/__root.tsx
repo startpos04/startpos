@@ -81,23 +81,3 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     </html>
   )
 }
-
-// --- FRONTEND & UX ENGINE ---
-// TODO: Auto-focus search input for physical barcode scanner keypress capture
-// TODO: Setup standard Tailwind @media print stylesheet for 58mm/80mm thermal receipts
-
-// --- CORE POS & ORDER LIFECYCLE ---
-// // TODO: Create product with variants (Form layout + basic variant array state)
-// // TODO: Edit product with variants (Hydrate form state with variant details)
-// // TODO: Add category and unit management (Basic CRUD modals to populate select options)
-// // TODO: Save active product snapshot data to transaction details array upon checkout
-// // TODO: Lock cart state instantly when payment processing is triggered
-
-// --- COMPLIANCE, TAX, & HARDWARE ---
-// // TODO: Finalize 12% PH VAT / SKU calculations breakdown on browser print preview
-// TODO: Connect barcode scanner via HID (standard text input listener + Enter key event)
-
-// --- INFRASTRUCTURE & LOCAL-FIRST SECURITY ---
-// TODO: Validate TanStack DB local persistence engine holds records during simulated offline disconnect
-// TODO: Fix transactional rollback error during productComponent seeder run (P2003)
-// // TODO: Implement composite database index: @@index([businessId, branchId, createdAt]) on Transactions

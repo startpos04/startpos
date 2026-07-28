@@ -73,6 +73,6 @@
     "editor.formatOnSave": true
   },
   "search.exclude": {
-    "**/src/__tests__/**": true
+    "**/__tests__/**": true
   }
 }

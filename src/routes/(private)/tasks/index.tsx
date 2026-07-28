@@ -194,7 +194,7 @@ function RouteComponent() {
 
             return (
               <div className={cn('flex items-center gap-1.5 text-xs', isOverdue && 'text-destructive font-medium')}>
-                <Calendar className='h-4! w-4! shrink-0' />
+                <Calendar className='size-4 shrink-0' />
                 <div className='flex flex-col'>
                   <span>{date.toLocaleDateString()}</span>
                   <span className={cn('text-[10px] text-muted-foreground', isOverdue && 'text-destructive/80')}>
@@ -254,7 +254,7 @@ function RouteComponent() {
                     handleDelete()
                   }}
                 >
-                  <Trash2 className='h-4 w-4' />
+                  <Trash2 className='size-4' />
                 </Button>
               </div>
             )
@@ -274,7 +274,7 @@ function RouteComponent() {
           </div>
           <a href='/tasks/create' onClick={handleAdd} className='contents'>
             <Button className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
-              <Plus className='h-4 w-4' /> Add Task
+              <Plus className='size-4' /> Add Task
             </Button>
           </a>
         </div>

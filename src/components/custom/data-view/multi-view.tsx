@@ -70,7 +70,7 @@ export function MultiView<T>({ views, creatable, searchable, label, description,
             {creatable ? (
               <a href={creatable.href} onClick={creatable.onAdd} className='contents'>
                 <Button className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]' size='sm'>
-                  <Plus className='h-4! w-4!' /> {creatable.label}
+                  <Plus className='size-4' /> {creatable.label}
                 </Button>
               </a>
             ) : null}

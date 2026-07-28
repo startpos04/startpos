@@ -110,7 +110,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
             onClick={onClose}
             className='absolute top-4 right-4 z-10 rounded-full w-9 h-9 bg-background/80 hover:bg-background text-foreground shadow-md backdrop-blur-sm border border-muted/20 transition-transform active:scale-95'
           >
-            <X className='w-4 h-4 stroke-[2.5]' />
+            <X className='size-4 stroke-[2.5]' />
           </Button>
         </div>
 
@@ -228,7 +228,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                       className='rounded-xl w-9 h-9 hover:bg-background text-foreground'
                       onClick={() => field.handleChange(Math.max(1, field.state.value - 1))}
                     >
-                      <Minus className='w-4 h-4' />
+                      <Minus className='size-4' />
                     </Button>
                     <span className='font-mono font-black w-8 text-center text-base text-foreground'>{field.state.value}</span>
                     <Button
@@ -239,7 +239,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                       disabled={field.state.value >= remainingYield}
                       onClick={() => field.handleChange(field.state.value + 1)}
                     >
-                      <Plus className='w-4 h-4' />
+                      <Plus className='size-4' />
                     </Button>
                   </div>
                 )}

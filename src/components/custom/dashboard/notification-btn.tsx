@@ -43,7 +43,7 @@ export function NotificationButton() {
                 markAllRead()
               }}
             >
-              <CheckCheck className='mr-1 h-3 w-3' />
+              <CheckCheck className='mr-1 size-3' />
               Mark all as read
             </Button>
           )}

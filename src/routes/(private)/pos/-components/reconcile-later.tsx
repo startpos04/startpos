@@ -154,7 +154,7 @@ export function ReconcileLater({ onClose }: MountProps) {
                 'Authenticating & Closing...'
               ) : (
                 <>
-                  <ShieldCheck className='h-5! w-5! ' /> Reconcile Now (Supervisor)
+                  <ShieldCheck className='size-5' /> Reconcile Now (Supervisor)
                 </>
               )}
             </Button>
@@ -172,7 +172,7 @@ export function ReconcileLater({ onClose }: MountProps) {
                   'Opening Drawer...'
                 ) : (
                   <>
-                    <CheckCircle2 className='h-5! w-5!' /> End Shift & Create Task
+                    <CheckCircle2 className='size-5' /> End Shift & Create Task
                   </>
                 )}
               </Button>

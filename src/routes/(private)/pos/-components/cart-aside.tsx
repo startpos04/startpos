@@ -170,7 +170,7 @@ export const CartAside = withForm({
                                   else form.removeFieldValue('items', index)
                                 }}
                               >
-                                <Minus className='w-3' />
+                                <Minus className='size-3' />
                               </Button>
 
                               {/* The dynamic key attribute forces an execution repaint, executing our bump class */}
@@ -190,7 +190,7 @@ export const CartAside = withForm({
                                   }
                                 }}
                               >
-                                <Plus className='w-3' />
+                                <Plus className='size-3' />
                               </Button>
                             </div>
 
@@ -206,7 +206,7 @@ export const CartAside = withForm({
             </form.Field>
             <div className='md:hidden flex justify-center mt-6'>
               <Button type='button' onClick={handleAddItem}>
-                <Plus className='h-4 w-4' />
+                <Plus className='size-4' />
                 Add Item
               </Button>
             </div>
@@ -275,7 +275,7 @@ export const CartAside = withForm({
                   className='w-full py-6 md:py-7 rounded-2xl text-lg font-black shadow-lg shadow-primary/10 transition-transform active:scale-[0.99] flex items-center justify-center gap-2'
                   onClick={() => handleConfirm(summary.totalAmount)}
                 >
-                  <CreditCard className='h-5! w-5! stroke-[2.5]' />
+                  <CreditCard className='size-5 stroke-[2.5]' />
                   CHECKOUT
                 </Button>
               </div>

@@ -46,10 +46,10 @@ export function CameraCapture({ onCapture, onCancel }: { onCapture: (img: string
       <video ref={videoRef} autoPlay playsInline muted className='w-full h-full object-cover' />
       <div className='absolute bottom-4 left-0 right-0 flex justify-center gap-4'>
         <Button variant='outline' size='icon' onClick={onCancel} className='rounded-full bg-white/20 border-white/40 text-white hover:bg-white/40'>
-          <X className='w-4 h-4' />
+          <X className='size-4' />
         </Button>
         <Button onClick={takePhoto} size='lg' className='rounded-full px-6 shadow-xl'>
-          <Camera className='w-4 h-4 mr-2' /> Capture
+          <Camera className='size-4 mr-2' /> Capture
         </Button>
       </div>
     </div>

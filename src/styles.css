@@ -158,3 +158,23 @@
     @apply font-sans;
   }
 }
+
+/*
+ * Fix: stacked Radix Dialog overlays darkening the screen when multiple dialogs are open.
+ *
+ * Each Radix portal is rendered as a direct child of <body> (a div[data-radix-portal]).
+ * When a second dialog opens, its portal (and overlay) is appended AFTER the first,
+ * so the second portal is the general sibling of the first.
+ *
+ * We hide the overlay inside any portal that is preceded by another portal which
+ * also contains an overlay — leaving only the FIRST (bottom-most) overlay visible.
+ *
+ * Because all overlays are position:fixed and cover the full viewport, only one
+ * needs to be visible at a time; the topmost dialog content still renders correctly
+ * above it regardless of which portal it belongs to.
+ */
+body > [data-radix-portal]:has([data-slot="dialog-overlay"])
+  ~ [data-radix-portal]
+  [data-slot="dialog-overlay"] {
+  display: none;
+}

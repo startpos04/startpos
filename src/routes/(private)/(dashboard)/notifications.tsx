@@ -38,7 +38,7 @@ function RouteComponent() {
         {/* Only show "Mark all as read" if there are actually unread notifications */}
         {unreadCount > 0 && (
           <Button variant='outline' size='sm' onClick={markAllRead}>
-            <CheckCheck className='mr-2 h-4 w-4' />
+            <CheckCheck className='mr-2 size-4' />
             Mark all as read
           </Button>
         )}

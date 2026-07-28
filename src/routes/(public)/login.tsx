@@ -59,7 +59,7 @@ function RouteComponent() {
               selector={state => [state.canSubmit, state.isSubmitting]}
               children={([canSubmit, isSubmitting]) => (
                 <Button type='submit' className='w-full' disabled={!canSubmit}>
-                  {isSubmitting ? <Loader2 className='w-4 h-4 mr-2 animate-spin' /> : 'Sign in'}
+                  {isSubmitting ? <Loader2 className='size-4 mr-2 animate-spin' /> : 'Sign in'}
                 </Button>
               )}
             />

@@ -247,7 +247,7 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
                 <CardDescription className='text-xs'>Applies to all variants.</CardDescription>
               </div>
               <Button variant='outline' size='sm' className='rounded-full shrink-0' onClick={handleAddIngredient}>
-                <Plus className='w-4 h-4 mr-1' /> Add
+                <Plus className='size-4 mr-1' /> Add
               </Button>
             </CardHeader>
             <CardContent>
@@ -266,7 +266,7 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
                           </span>
                         </div>
                         <Button variant='ghost' size='icon' className='h-8 w-8 text-muted-foreground shrink-0' onClick={() => removeItem('ingredients', idx)}>
-                          <X className='w-4 h-4' />
+                          <X className='size-4' />
                         </Button>
                       </div>
                     ))}
@@ -295,7 +295,7 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
                           <span className='text-[10px] text-muted-foreground'>{PriceEngine.format(a.priceOverride)}</span>
                         </div>
                         <Button variant='ghost' size='icon' className='h-7 w-7 shrink-0' onClick={() => removeItem('allowedAddons', idx)}>
-                          <X className='w-3.5 h-3.5' />
+                          <X className='size-3.5' />
                         </Button>
                       </div>
                     ))}
@@ -329,7 +329,7 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
           selector={state => [state.canSubmit, state.isSubmitting]}
           children={([canSubmit, isSubmitting]) => (
             <Button type='submit' disabled={!canSubmit || isSubmitting} className='w-full h-11 rounded-xl font-semibold flex gap-2 shadow-lg shadow-primary/20'>
-              <Save className='w-4! h-4!' /> {isSubmitting ? textBtn.isSubmitting : textBtn.default}
+              <Save className='size-4' /> {isSubmitting ? textBtn.isSubmitting : textBtn.default}
             </Button>
           )}
         />

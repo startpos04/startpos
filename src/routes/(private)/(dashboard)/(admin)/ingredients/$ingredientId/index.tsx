@@ -1,11 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { Box, Edit, Layers, MapPin, Plus, Scale, TrendingDown, X } from 'lucide-react'
+import Tab from '@/components/custom/tab'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import type { MountProps } from '@/lib/mount-manager'
@@ -35,6 +35,86 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients
 
 export function IngredientDetailsSidebar({ open: _open, onClose, ingredientId }: IngredientDetailsSidebarProps) {
   return <RouteComponent ingredientId={ingredientId} onClose={onClose} />
+}
+
+// Recipes Tab Component
+function RecipesTab({ primaryVariant, currentCost, usageCount }: { primaryVariant: any; currentCost: number; usageCount: number }) {
+  return (
+    <Table>
+      <TableHeader className='bg-muted/30'>
+        <TableRow>
+          <TableHead className='font-bold text-xs'>Host Product</TableHead>
+          <TableHead className='font-bold text-right text-xs'>Qty</TableHead>
+          <TableHead className='font-bold text-right text-xs'>Cost</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {primaryVariant?.usedIn?.map((usage: any) => (
+          <TableRow key={usage.id}>
+            <TableCell className='text-sm font-medium py-2'>
+              {usage.host.product.name}
+              {usage.host.name && (
+                <Badge variant='outline' className='ml-1.5 text-[10px] py-0'>
+                  {usage.host.name}
+                </Badge>
+              )}
+            </TableCell>
+            <TableCell className='text-right font-mono text-xs py-2'>
+              {usage.quantityUsed} {usage.unit.abbreviation}
+            </TableCell>
+            <TableCell className='text-right font-bold font-mono text-xs py-2'>{PriceEngine.format(usage.quantityUsed * currentCost)}</TableCell>
+          </TableRow>
+        ))}
+        {usageCount === 0 && (
+          <TableRow>
+            <TableCell colSpan={3} className='text-center py-8 text-sm text-muted-foreground'>
+              Not used in any recipes yet.
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  )
+}
+
+// Batches Tab Component
+function BatchesTab({ primaryVariant }: { primaryVariant: any }) {
+  return (
+    <div className='space-y-2'>
+      {primaryVariant?.inventory?.map((batch: any) => (
+        <Card key={batch.id} className='border-border/50 hover:border-primary/30 transition-colors'>
+          <CardContent className='p-3'>
+            <div className='grid grid-cols-2 gap-x-4 gap-y-2.5'>
+              <div>
+                <p className='text-[9px] text-muted-foreground uppercase font-black tracking-widest'>Batch #</p>
+                <p className='font-mono text-xs font-bold'>{batch.batchNumber || '---'}</p>
+              </div>
+              <div>
+                <p className='text-[9px] text-muted-foreground uppercase font-black tracking-widest'>Stock</p>
+                <p className='text-xs font-black text-emerald-600'>
+                  {batch.quantity} {batch.unit.abbreviation}
+                </p>
+              </div>
+              <div>
+                <p className='text-[9px] text-muted-foreground uppercase font-black tracking-widest'>Location</p>
+                <div className='flex items-center gap-1 text-xs'>
+                  <MapPin className='w-2.5 h-2.5 text-muted-foreground' />
+                  {batch.location?.name}
+                </div>
+              </div>
+              <div>
+                <p className='text-[9px] text-muted-foreground uppercase font-black tracking-widest'>Expiry</p>
+                <p className={cn('text-xs font-bold', dayjs(batch.expiryDate).isBefore(dayjs()) ? 'text-destructive' : '')}>
+                  {batch.expiryDate ? dayjs(batch.expiryDate).format('MMM DD, YYYY') : 'None'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+      {!primaryVariant?.inventory?.length && <p className='text-center py-8 text-sm text-muted-foreground'>No inventory batches recorded.</p>}
+    </div>
+  )
 }
 
 function RouteComponent({ ingredientId: propId, onClose }: RouteComponentProps & { onClose?: () => void }) {
@@ -113,7 +193,7 @@ function RouteComponent({ ingredientId: propId, onClose }: RouteComponentProps &
           </div>
         </div>
         <Button variant='ghost' size='icon' onClick={handleClose} className='h-7 w-7 shrink-0'>
-          <X className='h-4 w-4' />
+          <X className='size-4' />
         </Button>
       </div>
 
@@ -125,7 +205,7 @@ function RouteComponent({ ingredientId: propId, onClose }: RouteComponentProps &
             <CardContent className='p-3'>
               <div className='flex items-center justify-between mb-1'>
                 <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Stock</p>
-                <Scale className={cn('h-3 w-3', isLowStock ? 'text-orange-500' : 'text-emerald-500')} />
+                <Scale className={cn('size-3', isLowStock ? 'text-orange-500' : 'text-emerald-500')} />
               </div>
               <div className='flex items-baseline gap-1'>
                 <span className='text-lg font-black'>{totalStock}</span>
@@ -170,103 +250,32 @@ function RouteComponent({ ingredientId: propId, onClose }: RouteComponentProps &
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue='usage' className='w-full'>
-          <TabsList className='w-full justify-start border-b rounded-none bg-transparent h-auto p-0 gap-4'>
-            <TabsTrigger
-              value='usage'
-              className='data-[state=active]:border-primary border-b-2 border-transparent rounded-none bg-transparent px-1 pb-2 text-sm font-semibold'
-            >
-              Recipes
-            </TabsTrigger>
-            <TabsTrigger
-              value='batches'
-              className='data-[state=active]:border-primary border-b-2 border-transparent rounded-none bg-transparent px-1 pb-2 text-sm font-semibold'
-            >
-              Batches
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value='usage' className='pt-3'>
-            <Table>
-              <TableHeader className='bg-muted/30'>
-                <TableRow>
-                  <TableHead className='font-bold text-xs'>Host Product</TableHead>
-                  <TableHead className='font-bold text-right text-xs'>Qty</TableHead>
-                  <TableHead className='font-bold text-right text-xs'>Cost</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {primaryVariant?.usedIn?.map(usage => (
-                  <TableRow key={usage.id}>
-                    <TableCell className='text-sm font-medium py-2'>
-                      {usage.host.product.name}
-                      {usage.host.name && (
-                        <Badge variant='outline' className='ml-1.5 text-[10px] py-0'>
-                          {usage.host.name}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className='text-right font-mono text-xs py-2'>
-                      {usage.quantityUsed} {usage.unit.abbreviation}
-                    </TableCell>
-                    <TableCell className='text-right font-bold font-mono text-xs py-2'>{PriceEngine.format(usage.quantityUsed * currentCost)}</TableCell>
-                  </TableRow>
-                ))}
-                {usageCount === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={3} className='text-center py-8 text-sm text-muted-foreground'>
-                      Not used in any recipes yet.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TabsContent>
-
-          <TabsContent value='batches' className='pt-3 space-y-2'>
-            {primaryVariant?.inventory?.map(batch => (
-              <Card key={batch.id} className='border-border/50 hover:border-primary/30 transition-colors'>
-                <CardContent className='p-3'>
-                  <div className='grid grid-cols-2 gap-x-4 gap-y-2.5'>
-                    <div>
-                      <p className='text-[9px] text-muted-foreground uppercase font-black tracking-widest'>Batch #</p>
-                      <p className='font-mono text-xs font-bold'>{batch.batchNumber || '---'}</p>
-                    </div>
-                    <div>
-                      <p className='text-[9px] text-muted-foreground uppercase font-black tracking-widest'>Stock</p>
-                      <p className='text-xs font-black text-emerald-600'>
-                        {batch.quantity} {batch.unit.abbreviation}
-                      </p>
-                    </div>
-                    <div>
-                      <p className='text-[9px] text-muted-foreground uppercase font-black tracking-widest'>Location</p>
-                      <div className='flex items-center gap-1 text-xs'>
-                        <MapPin className='w-2.5 h-2.5 text-muted-foreground' />
-                        {batch.location?.name}
-                      </div>
-                    </div>
-                    <div>
-                      <p className='text-[9px] text-muted-foreground uppercase font-black tracking-widest'>Expiry</p>
-                      <p className={cn('text-xs font-bold', dayjs(batch.expiryDate).isBefore(dayjs()) ? 'text-destructive' : '')}>
-                        {batch.expiryDate ? dayjs(batch.expiryDate).format('MMM DD, YYYY') : 'None'}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {!primaryVariant?.inventory?.length && <p className='text-center py-8 text-sm text-muted-foreground'>No inventory batches recorded.</p>}
-          </TabsContent>
-        </Tabs>
+        <Tab
+          defaultValue='Recipes'
+          tabs={[
+            {
+              label: 'Recipes',
+              Component: RecipesTab,
+              primaryVariant,
+              currentCost,
+              usageCount,
+            },
+            {
+              label: 'Batches',
+              Component: BatchesTab,
+              primaryVariant,
+            },
+          ]}
+        />
       </div>
 
       {/* Sticky footer — action buttons */}
       <div className='p-4 border-t shrink-0 flex gap-2'>
         <Button size='sm' className='flex-1 shadow-sm shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]' onClick={handleRestock}>
-          <Plus className='h-3.5! w-3.5!' /> Restock
+          <Plus className='size-3.5' /> Restock
         </Button>
         <Button variant='outline' size='sm' className='flex-1 gap-1.5' onClick={handleEdit}>
-          <Edit className='h-3.5! w-3.5!' /> Edit
+          <Edit className='size-3.5' /> Edit
         </Button>
       </div>
     </div>
