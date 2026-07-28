@@ -1,12 +1,13 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: fix any */
 import { count, eq, toArray, useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute } from '@tanstack/react-router'
-import { Calendar, Edit, Mail, Package, Receipt, ShieldAlert, Smartphone, User as UserIcon, X } from 'lucide-react'
+import { Ban, Calendar, Edit, Mail, Package, Receipt, ShieldAlert, Smartphone, User as UserIcon, X } from 'lucide-react'
 import { toast } from 'sonner'
 import Tab from '@/components/custom/tab'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
 import {
   branchCollection,
   businessCollection,
@@ -41,66 +42,80 @@ export function EmployeeDetailsSidebar({ open: _open, onClose, employeeId }: Emp
 }
 
 // Overview Tab Component
-function OverviewTab({ employee, isOnline, handleRevokeSession }: { employee: any; isOnline: boolean; handleRevokeSession: () => void }) {
+function OverviewTab({
+  employee,
+  isOnline,
+  handleRevokeSession,
+  handleDisable,
+}: {
+  employee: any
+  isOnline: boolean
+  handleRevokeSession: () => void
+  handleDisable: () => void
+}) {
   return (
-    <div className='space-y-3'>
+    <div className='space-y-5'>
       {/* Contact */}
-      <Card>
-        <CardHeader className='pb-2 pt-4'>
-          <CardTitle className='text-xs font-semibold uppercase tracking-wider text-muted-foreground'>Contact</CardTitle>
-        </CardHeader>
-        <CardContent className='space-y-2.5 pb-4'>
+      <div className='space-y-3'>
+        <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+          <Mail className='w-3 h-3' /> Contact
+        </h4>
+        <div className='space-y-2.5'>
           <div className='flex items-center gap-2.5 text-sm'>
             <Mail className='h-3.5 w-3.5 text-muted-foreground shrink-0' />
-            <span className='truncate'>{employee.email}</span>
+            <span className='truncate text-sm'>{employee.email}</span>
           </div>
           <div className='flex items-center gap-2.5 text-sm'>
             <Calendar className='h-3.5 w-3.5 text-muted-foreground shrink-0' />
-            <span>Joined {dayjs(employee.createdAt).format('MMM DD, YYYY')}</span>
+            <span className='text-sm'>Joined {dayjs(employee.createdAt).format('MMM DD, YYYY')}</span>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick stats */}
-      <div className='grid grid-cols-2 gap-2'>
-        <Card>
-          <CardContent className='p-3'>
-            <p className='text-2xl font-bold'>{employee.processedSales[0]?.count || 0}</p>
-            <p className='text-[10px] text-muted-foreground uppercase font-bold mt-0.5'>Sales</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className='p-3'>
-            <p className='text-2xl font-bold'>{employee.performedServices[0]?.count || 0}</p>
-            <p className='text-[10px] text-muted-foreground uppercase font-bold mt-0.5'>Services</p>
-          </CardContent>
-        </Card>
+        </div>
       </div>
 
+      <Separator />
+
+      {/* Quick stats */}
+      <div className='space-y-3'>
+        <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground'>Activity</h4>
+        <div className='grid grid-cols-2 gap-2'>
+          <div className='rounded-xl border bg-card p-3'>
+            <p className='text-2xl font-bold'>{employee.processedSales[0]?.count || 0}</p>
+            <p className='text-[10px] text-muted-foreground uppercase font-bold mt-0.5'>Sales</p>
+          </div>
+          <div className='rounded-xl border bg-card p-3'>
+            <p className='text-2xl font-bold'>{employee.performedServices[0]?.count || 0}</p>
+            <p className='text-[10px] text-muted-foreground uppercase font-bold mt-0.5'>Services</p>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
       {/* Session status */}
-      <Card>
-        <CardContent className='p-3 flex items-center justify-between'>
+      <div className='space-y-3'>
+        <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground'>Session</h4>
+        <div className='flex items-center justify-between'>
           <div>
-            <p className='text-xs font-semibold'>{isOnline ? 'Currently active' : 'Offline'}</p>
+            <p className='text-sm font-semibold'>{isOnline ? 'Currently active' : 'Offline'}</p>
             {employee.sessions[0] && (
               <p className='text-[10px] text-muted-foreground mt-0.5'>
                 {employee.sessions[0].ipAddress} · {dayjs().to(dayjs(employee.sessions[0].expiresAt))}
               </p>
             )}
           </div>
-          <div className={cn('h-2 w-2 rounded-full', isOnline ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30')} />
-        </CardContent>
-      </Card>
+          <div className={cn('h-2 w-2 rounded-full shrink-0', isOnline ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30')} />
+        </div>
+      </div>
+
+      <Separator />
 
       {/* Danger zone */}
-      <Card className='border-destructive/20'>
-        <CardHeader className='pb-2 pt-4'>
-          <CardTitle className='text-xs text-destructive flex items-center gap-1.5 font-semibold uppercase tracking-wider'>
-            <ShieldAlert className='h-3.5 w-3.5' /> Danger Zone
-          </CardTitle>
-        </CardHeader>
-        <CardContent className='pb-4'>
-          <div className='flex items-center justify-between p-3 border border-destructive/10 rounded-xl bg-destructive/5'>
+      <div className='space-y-3'>
+        <h4 className='text-[10px] font-bold uppercase tracking-widest text-destructive flex items-center gap-1.5'>
+          <ShieldAlert className='h-3 w-3' /> Danger Zone
+        </h4>
+        <div className='space-y-2'>
+          <div className='flex items-center justify-between'>
             <div>
               <p className='text-xs font-bold'>Revoke All Sessions</p>
               <p className='text-[10px] text-muted-foreground mt-0.5'>Forces sign-out on all devices.</p>
@@ -109,8 +124,17 @@ function OverviewTab({ employee, isOnline, handleRevokeSession }: { employee: an
               Sign Out
             </Button>
           </div>
-        </CardContent>
-      </Card>
+          <div className='flex items-center justify-between'>
+            <div>
+              <p className='text-xs font-bold'>Disable Account</p>
+              <p className='text-[10px] text-muted-foreground mt-0.5'>Prevents login without deleting data.</p>
+            </div>
+            <Button variant='outline' size='sm' className='h-7 text-xs border-destructive/40 text-destructive hover:bg-destructive/10' onClick={handleDisable}>
+              <Ban className='size-3 mr-1' /> Disable
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -118,61 +142,58 @@ function OverviewTab({ employee, isOnline, handleRevokeSession }: { employee: an
 // Performance Tab Component
 function PerformanceTab({ employee, totalRevenue, targetReached }: { employee: any; totalRevenue: number; targetReached: number }) {
   return (
-    <div className='space-y-3'>
-      <Card>
-        <CardHeader className='pb-2 pt-4'>
-          <CardTitle className='text-sm flex items-center gap-2'>
-            <Receipt className='h-4 w-4' /> Transaction Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent className='space-y-3 pb-4'>
-          {/* Revenue card — full width */}
-          <Card className='bg-primary/5 border-primary/20'>
-            <CardContent className='p-3'>
-              <div className='flex items-center justify-between'>
-                <p className='text-xs font-medium'>Total Revenue</p>
-                <Receipt className='h-3.5 w-3.5 text-primary' />
-              </div>
-              <p className='text-xl font-bold mt-1'>₱{totalRevenue.toLocaleString()}</p>
-              <div className='mt-2 space-y-1'>
-                <div className='flex justify-between text-[10px]'>
-                  <span>Target Achievement</span>
-                  <span>{targetReached}%</span>
-                </div>
-                <Progress value={targetReached} className='h-1' />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Stats grid */}
-          <div className='grid grid-cols-2 gap-2'>
-            <Card>
-              <CardContent className='p-3'>
-                <div className='flex items-center justify-between text-muted-foreground mb-1'>
-                  <p className='text-[10px] font-medium uppercase'>Services</p>
-                  <Smartphone className='h-3 w-3' />
-                </div>
-                <p className='text-xl font-bold'>{employee.performedServices[0]?.count || 0}</p>
-                <p className='text-[10px] text-muted-foreground'>Lifetime</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className='p-3'>
-                <div className='flex items-center justify-between text-muted-foreground mb-1'>
-                  <p className='text-[10px] font-medium uppercase'>Inventory</p>
-                  <Package className='h-3 w-3' />
-                </div>
-                <p className='text-xl font-bold'>{employee.inventoryMovements[0]?.count || 0}</p>
-                <p className='text-[10px] text-muted-foreground'>Adjustments</p>
-              </CardContent>
-            </Card>
+    <div className='space-y-5'>
+      {/* Revenue */}
+      <div className='space-y-3'>
+        <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+          <Receipt className='w-3 h-3' /> Transaction Summary
+        </h4>
+        <div className='rounded-xl border bg-primary/5 border-primary/20 p-3'>
+          <div className='flex items-center justify-between'>
+            <p className='text-xs font-medium text-muted-foreground'>Total Revenue</p>
+            <Receipt className='h-3.5 w-3.5 text-primary' />
           </div>
-
-          <div className='h-32 flex items-center justify-center border-2 border-dashed rounded-xl'>
-            <p className='text-xs text-muted-foreground text-center px-4'>Activity chart coming soon.</p>
+          <p className='text-xl font-bold mt-1'>₱{totalRevenue.toLocaleString()}</p>
+          <div className='mt-2 space-y-1'>
+            <div className='flex justify-between text-[10px] text-muted-foreground'>
+              <span>Target Achievement</span>
+              <span>{targetReached}%</span>
+            </div>
+            <Progress value={targetReached} className='h-1' />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Stats */}
+      <div className='space-y-3'>
+        <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground'>Lifetime Stats</h4>
+        <div className='grid grid-cols-2 gap-2'>
+          <div className='rounded-xl border bg-card p-3'>
+            <div className='flex items-center justify-between text-muted-foreground mb-1'>
+              <p className='text-[10px] font-medium uppercase'>Services</p>
+              <Smartphone className='h-3 w-3' />
+            </div>
+            <p className='text-xl font-bold'>{employee.performedServices[0]?.count || 0}</p>
+            <p className='text-[10px] text-muted-foreground'>Lifetime</p>
+          </div>
+          <div className='rounded-xl border bg-card p-3'>
+            <div className='flex items-center justify-between text-muted-foreground mb-1'>
+              <p className='text-[10px] font-medium uppercase'>Inventory</p>
+              <Package className='h-3 w-3' />
+            </div>
+            <p className='text-xl font-bold'>{employee.inventoryMovements[0]?.count || 0}</p>
+            <p className='text-[10px] text-muted-foreground'>Adjustments</p>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className='h-32 flex items-center justify-center border-2 border-dashed rounded-xl'>
+        <p className='text-xs text-muted-foreground text-center px-4'>Activity chart coming soon.</p>
+      </div>
     </div>
   )
 }
@@ -251,6 +272,17 @@ function RouteComponent({ employeeId: propId, onClose }: RouteComponentProps) {
     toast.success('All sessions revoked. User will be logged out.')
   }
 
+  const handleDisable = async () => {
+    const result = await userCollection.update(employeeId, draft => {
+      draft.deletedAt = new Date()
+    })
+    if (result.error) {
+      toast.error(`Failed to disable account: ${result.error.message}`)
+      return
+    }
+    toast.success('Account disabled. The employee can no longer log in.')
+  }
+
   const handleClose = () => {
     if (onClose) onClose()
     else closeEmployeeSidebar()
@@ -300,12 +332,19 @@ function RouteComponent({ employeeId: propId, onClose }: RouteComponentProps) {
       {/* Header band */}
       <div className='flex items-center justify-between p-4 border-b shrink-0'>
         <div className='flex items-center gap-3'>
-          <div className='h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border-2 border-background shadow-sm overflow-hidden shrink-0'>
+          <div className='h-10 w-10 rounded-full bg-muted flex items-center justify-center border overflow-hidden shrink-0'>
             {employee.image ? (
-              <img src={employee.image} alt={employee.name} className='h-full w-full object-cover' />
-            ) : (
-              <UserIcon className='h-5 w-5 text-primary' />
-            )}
+              <img
+                src={employee.image}
+                alt={employee.name}
+                className='h-full w-full object-cover'
+                onError={e => {
+                  e.currentTarget.style.display = 'none'
+                  e.currentTarget.nextElementSibling?.removeAttribute('style')
+                }}
+              />
+            ) : null}
+            <UserIcon className='h-5 w-5 text-muted-foreground' style={employee.image ? { display: 'none' } : undefined} />
           </div>
           <div>
             <div className='flex items-center gap-2'>
@@ -319,6 +358,11 @@ function RouteComponent({ employeeId: propId, onClose }: RouteComponentProps) {
               {employee.emailVerified && (
                 <Badge variant='outline' className='text-[10px] py-0 h-4 text-green-600 border-green-200 bg-green-50'>
                   Verified
+                </Badge>
+              )}
+              {employee.deletedAt && (
+                <Badge variant='destructive' className='text-[10px] py-0 h-4'>
+                  Disabled
                 </Badge>
               )}
             </div>
@@ -340,6 +384,7 @@ function RouteComponent({ employeeId: propId, onClose }: RouteComponentProps) {
               employee,
               isOnline,
               handleRevokeSession,
+              handleDisable,
             },
             {
               label: 'Performance',
@@ -353,8 +398,8 @@ function RouteComponent({ employeeId: propId, onClose }: RouteComponentProps) {
       </div>
 
       {/* Sticky footer */}
-      <div className='p-4 border-t shrink-0'>
-        <Button variant='outline' className='w-full h-9 gap-2 rounded-xl' onClick={handleEdit}>
+      <div className='p-4 border-t shrink-0 flex gap-2'>
+        <Button size='sm' className='flex-1 shadow-sm shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]' onClick={handleEdit}>
           <Edit className='size-3.5' /> Edit Profile
         </Button>
       </div>

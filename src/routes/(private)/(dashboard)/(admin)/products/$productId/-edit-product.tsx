@@ -158,13 +158,15 @@ export function EditProductSidebar({ productId, variantId, defaultValues, open: 
         </Button>
       </div>
 
-      {/* Form — CreateProduct already has flex-col h-full with scrollable body + footer */}
-      <CreateProduct
-        variantId={variantId}
-        defaultValues={defaultValues}
-        onSubmit={handleSubmit}
-        textBtn={{ default: 'Update Product', isSubmitting: 'Updating...' }}
-      />
+      {/* Form — flex-1 min-h-0 lets it fill remaining height inside flex-col */}
+      <div className='flex-1 min-h-0'>
+        <CreateProduct
+          variantId={variantId}
+          defaultValues={defaultValues}
+          onSubmit={handleSubmit}
+          textBtn={{ default: 'Update Product', isSubmitting: 'Updating...' }}
+        />
+      </div>
     </div>
   )
 }

@@ -123,6 +123,7 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
               <Text style={styles.columnQty}>{item.quantity}</Text>
               <Text style={styles.columnPrice}>{PriceEngine.toDollars(Number(item.variant?.price) * item.quantity).toFixed(2)}</Text>
             </View>
+            {item.variant?.sku && <Text style={{ fontSize: 7, color: '#888', paddingLeft: 2, marginTop: 1 }}>SKU: {item.variant.sku}</Text>}
 
             {item.addons?.map(addon => (
               <View key={addon.id} style={styles.addonRow}>

@@ -123,14 +123,11 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
 
     // --- 4. CREATE ITEMS & ADDONS ---
     const items: (OrderItem & { selectedAddons: OrderItemAddon[] })[] = []
-    for (let i = 0; i < items.length; i++) {
-      const item = data.items[i]
-      if (!item) continue
-
+    for (const item of data.items) {
       const product = dbProducts.find(p => p.id === item.product.id)!
       const variant = product.variants.find(v => v.id === item.variant.id)!
       const itemId = crypto.randomUUID()
-      items[i] = {
+      const newItem: OrderItem & { selectedAddons: OrderItemAddon[] } = {
         id: itemId,
         orderId,
         variantId: item.variant.id,
@@ -144,13 +141,11 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
         createdAt: new Date(),
         selectedAddons: [],
       }
-      const currentItem = items[i]
-      if (!currentItem) continue
 
-      orderItemCollection.insert(currentItem)
+      orderItemCollection.insert(newItem)
 
       if (item.addons.length > 0) {
-        currentItem.selectedAddons = item.addons.map(a => {
+        newItem.selectedAddons = item.addons.map(a => {
           const comp = variant.components.find(c => c.id === a.id)!
           return {
             id: crypto.randomUUID(),
@@ -165,8 +160,10 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
             createdAt: new Date(),
           }
         })
-        orderItemAddonCollection.insert(currentItem.selectedAddons)
+        orderItemAddonCollection.insert(newItem.selectedAddons)
       }
+
+      items.push(newItem)
     }
 
     // --- 5. CREATE TRANSACTION & PAYMENT MAP ---

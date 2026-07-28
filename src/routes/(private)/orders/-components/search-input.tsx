@@ -21,6 +21,7 @@ export const SearchInput = () => {
       <Input
         defaultValue={searchQuery}
         onChange={handleSearchChange}
+        autoFocus
         className='pl-11 h-12 rounded-2xl bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all'
         placeholder='Search by name or SKU...'
       />

@@ -2,6 +2,7 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { CreditCard, Minus, Plus, UserPlus } from 'lucide-react'
 import { PriceConfiguration } from 'prisma/generated/prisma/enums'
+import { useRef } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,6 +27,7 @@ export const CartAside = withForm({
     const { orderItems } = usePOS({ orderId: order?.id, searchQuery: search, page, pageSize })
     const user = useStore(authStore, s => s.user)
     const navigate = useNavigate()
+    const isProcessing = useRef(false)
 
     const vatConfig: TaxEngineConfig = {
       vatRate: user.systemConfigs.VAT_RATE / 100,
@@ -34,15 +36,26 @@ export const CartAside = withForm({
     }
 
     const handleConfirm = (total: number) => {
+      if (isProcessing.current) return
       MountManager.show(PaymentDialog, {
         total,
         onConfirm: async payments => {
-          form.setFieldValue('payments', payments)
-          await form.handleSubmit()
+          isProcessing.current = true
+          try {
+            form.setFieldValue('payments', payments)
+            await form.handleSubmit()
+          } finally {
+            isProcessing.current = false
+          }
         },
         onSave: async () => {
-          form.setFieldValue('payments', [])
-          await form.handleSubmit()
+          isProcessing.current = true
+          try {
+            form.setFieldValue('payments', [])
+            await form.handleSubmit()
+          } finally {
+            isProcessing.current = false
+          }
         },
       })
     }
@@ -271,7 +284,7 @@ export const CartAside = withForm({
 
                 <Button
                   type='button'
-                  disabled={items.length === 0}
+                  disabled={items.length === 0 || isProcessing.current}
                   className='w-full py-6 md:py-7 rounded-2xl text-lg font-black shadow-lg shadow-primary/10 transition-transform active:scale-[0.99] flex items-center justify-center gap-2'
                   onClick={() => handleConfirm(summary.totalAmount)}
                 >

@@ -1,6 +1,7 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: fix any */
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
-import { Box, Edit, Layers, MapPin, Plus, Scale, TrendingDown, X } from 'lucide-react'
+import { Box, Edit, MapPin, Plus, X } from 'lucide-react'
 import Tab from '@/components/custom/tab'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -143,6 +144,8 @@ function RouteComponent({ ingredientId: propId, onClose }: RouteComponentProps &
     if (!primaryVariant) return
     showIngredientSidebar(
       <RestockIngredientSidebar
+        open
+        onClose={handleClose}
         ingredient={ingredient}
         variant={primaryVariant}
         onBack={() => showIngredientSidebar(<IngredientDetailsSidebar open ingredientId={ingredientId} onClose={handleClose} />)}
@@ -153,6 +156,8 @@ function RouteComponent({ ingredientId: propId, onClose }: RouteComponentProps &
   const handleEdit = () => {
     showIngredientSidebar(
       <EditIngredientSidebar
+        open
+        onClose={handleClose}
         ingredientId={ingredientId}
         defaultValues={{
           name: ingredient.name,
@@ -197,58 +202,39 @@ function RouteComponent({ ingredientId: propId, onClose }: RouteComponentProps &
         </Button>
       </div>
 
-      {/* Scrollable content */}
-      <div className='flex-1 overflow-y-auto p-4 space-y-4'>
-        {/* Stat cards — vertical stack */}
-        <div className='grid grid-cols-3 gap-2'>
-          <Card className={cn(isLowStock ? 'border-orange-200 bg-orange-50/30' : 'border-border/50')}>
-            <CardContent className='p-3'>
-              <div className='flex items-center justify-between mb-1'>
-                <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Stock</p>
-                <Scale className={cn('size-3', isLowStock ? 'text-orange-500' : 'text-emerald-500')} />
-              </div>
-              <div className='flex items-baseline gap-1'>
-                <span className='text-lg font-black'>{totalStock}</span>
-                <span className='text-[10px] text-muted-foreground'>{ingredient.baseUnit?.abbreviation}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className='border-border/50'>
-            <CardContent className='p-3'>
-              <div className='flex items-center justify-between mb-1'>
-                <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Usage</p>
-                <Layers className='h-3 w-3 text-blue-500' />
-              </div>
-              <p className='text-lg font-black'>{usageCount}</p>
-              <p className='text-[9px] font-bold text-muted-foreground uppercase'>Recipes</p>
-            </CardContent>
-          </Card>
-
-          <Card className='border-border/50'>
-            <CardContent className='p-3'>
-              <div className='flex items-center justify-between mb-1'>
-                <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Cost</p>
-                <TrendingDown className='h-3 w-3 text-purple-500' />
-              </div>
-              <p className='text-sm font-black font-mono'>{PriceEngine.format(currentCost)}</p>
-              <p className='text-[9px] font-bold text-muted-foreground uppercase'>per {ingredient.baseUnit?.name}</p>
-            </CardContent>
-          </Card>
+      {/* Compact info row — same style as product detail */}
+      <div className='flex items-center gap-4 px-4 py-2.5 border-b bg-muted/20 shrink-0'>
+        <div>
+          <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Stock</p>
+          <p className={cn('text-sm font-black', isLowStock ? 'text-orange-500' : '')}>
+            {totalStock} <span className='text-[10px] font-normal text-muted-foreground'>{ingredient.baseUnit?.abbreviation}</span>
+          </p>
         </div>
-
-        {/* Category badge row */}
-        <div className='flex items-center gap-2'>
-          <Badge variant='secondary' className='font-medium text-xs'>
+        <div className='w-px h-6 bg-border' />
+        <div>
+          <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Cost</p>
+          <p className='text-sm font-black font-mono'>{PriceEngine.format(currentCost)}</p>
+        </div>
+        <div className='w-px h-6 bg-border' />
+        <div>
+          <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Recipes</p>
+          <p className='text-sm font-black'>{usageCount}</p>
+        </div>
+        <div className='w-px h-6 bg-border' />
+        <div className='flex items-center gap-1.5'>
+          <Badge variant='secondary' className='font-medium text-[10px]'>
             {ingredient.category?.name || 'Uncategorised'}
           </Badge>
           {isLowStock && (
-            <Badge variant='outline' className='text-orange-600 border-orange-200 bg-orange-50 text-[10px]'>
-              Low Stock
+            <Badge variant='outline' className='text-orange-600 border-orange-200 bg-orange-50 text-[10px] shrink-0'>
+              Low
             </Badge>
           )}
         </div>
+      </div>
 
+      {/* Scrollable content */}
+      <div className='flex-1 overflow-y-auto p-4 space-y-4'>
         {/* Tabs */}
         <Tab
           defaultValue='Recipes'

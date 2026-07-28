@@ -7,7 +7,7 @@ import { ImageInput } from '@/components/custom/form/image-input'
 import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import { userCollection } from '@/db/collections'
 
 interface CreateAccountProps {
@@ -47,55 +47,47 @@ export function CreateAccount({ onSubmit, defaultValues, children, textBtn }: Cr
   return (
     <div className='flex flex-col h-full'>
       {/* Scrollable form body */}
-      <div className='flex-1 overflow-y-auto p-4 space-y-4'>
+      <div className='flex-1 overflow-y-auto p-4 space-y-5'>
         {children && <div className='pb-2'>{children}</div>}
 
         {/* Personal Details */}
-        <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
-          <CardHeader className='pb-2'>
-            <CardTitle className='text-base flex items-center gap-2'>
-              <UserCircle className='w-4 h-4 text-blue-500' /> Personal Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className='space-y-4'>
-            <form.Field name='name' children={field => <TextInput field={field} label='Full Name' placeholder='John Doe' />} />
-            <form.Field name='email' children={field => <TextInput field={field} label='Email Address' type='email' placeholder='john@business.com' />} />
-            <form.Field name='image' children={field => <ImageInput label='Employee Avatar' field={field} />} />
-          </CardContent>
-        </Card>
+        <div className='space-y-3'>
+          <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+            <UserCircle className='w-3 h-3' /> Personal Details
+          </h4>
+          <form.Field name='name' children={field => <TextInput field={field} label='Full Name' placeholder='John Doe' />} />
+          <form.Field name='email' children={field => <TextInput field={field} label='Email Address' type='email' placeholder='john@business.com' />} />
+          <form.Field name='image' children={field => <ImageInput label='Employee Avatar' field={field} />} />
+        </div>
+
+        <Separator />
 
         {/* Access Control */}
-        <Card className='rounded-[2rem] border-none shadow-sm bg-card/50 backdrop-blur-md'>
-          <CardHeader className='pb-2'>
-            <CardTitle className='text-base flex items-center gap-2'>
-              <BadgeCheck className='w-4 h-4 text-emerald-500' /> Access Control
-            </CardTitle>
-          </CardHeader>
-          <CardContent className='space-y-4'>
-            <form.Field
-              name='role'
-              children={field => (
-                <SelectInput
-                  field={field}
-                  label='Job Role'
-                  options={[
-                    { value: 'ADMIN', label: 'Admin (Full Access)' },
-                    { value: 'SUPERVISOR', label: 'Supervisor' },
-                    { value: 'CASHIER', label: 'Cashier' },
-                  ]}
-                />
-              )}
-            />
-            <div className='pt-2 border-t border-dashed'>
-              <div className='bg-muted/50 p-3 rounded-2xl'>
-                <h4 className='text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1'>Role Info</h4>
-                <p className='text-[0.7rem] text-muted-foreground leading-relaxed'>
-                  Roles define what sections of the POS and Dashboard this user can access. You can update these later in settings.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className='space-y-3'>
+          <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+            <BadgeCheck className='w-3 h-3' /> Access Control
+          </h4>
+          <form.Field
+            name='role'
+            children={field => (
+              <SelectInput
+                field={field}
+                label='Job Role'
+                options={[
+                  { value: 'ADMIN', label: 'Admin (Full Access)' },
+                  { value: 'SUPERVISOR', label: 'Supervisor' },
+                  { value: 'CASHIER', label: 'Cashier' },
+                ]}
+              />
+            )}
+          />
+          <div className='bg-muted/50 p-3 rounded-xl'>
+            <h4 className='text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1'>Role Info</h4>
+            <p className='text-[0.7rem] text-muted-foreground leading-relaxed'>
+              Roles define what sections of the POS and Dashboard this user can access. You can update these later in settings.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Sticky footer */}

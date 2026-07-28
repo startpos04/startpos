@@ -1,5 +1,5 @@
 import { useForm } from '@tanstack/react-form'
-import { Package, Plus, PlusCircle, Save, Utensils, Warehouse, X } from 'lucide-react'
+import { Layers, Package, Plus, PlusCircle, Save, Utensils, Warehouse, X } from 'lucide-react'
 import { ResourceType, type Unit, VariantAttributeType } from 'prisma/generated/prisma/browser'
 import type { ReactNode } from 'react'
 import { z } from 'zod'
@@ -9,8 +9,8 @@ import { MoneyInput } from '@/components/custom/form/money-input'
 import { SelectInput } from '@/components/custom/form/select-input'
 import { TextInput } from '@/components/custom/form/text-input'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { productVariantCollection } from '@/db/collections'
 import { PriceEngine } from '@/lib/conversion/price-engine'
@@ -77,7 +77,6 @@ const createProductSchema = (variantId?: string) =>
           name: z.string().nullable(),
           sku: z.string().nullable(),
           price: z.number().nonnegative(),
-          // Optional: You could allow per-variant ingredients here in the future
         }),
       )
       .superRefine((variants, ctx) => {
@@ -88,26 +87,23 @@ const createProductSchema = (variantId?: string) =>
 
           const currentSku = variant.sku.trim()
 
-          // Check A: Is it a duplicate within the form itself?
           if (formSkus.has(currentSku)) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
               message: 'Duplicate SKU inside this product builder',
-              path: [index, 'sku'], // Correctly highlights variants[index].sku
+              path: [index, 'sku'],
             })
             return
           }
           formSkus.add(currentSku)
 
-          // Check B: Does it conflict with an already saved database variant?
           const dbConflict = [...productVariantCollection.values()].find(u => u.sku === currentSku)
 
-          // If it exists in the database, make sure it isn't the variant we are currently updating
           if (dbConflict && dbConflict.id !== variant.id && dbConflict.id !== variantId) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
               message: 'This SKU is already in use by another product',
-              path: [index, 'sku'], // Correctly highlights variants[index].sku
+              path: [index, 'sku'],
             })
           }
         })
@@ -117,14 +113,14 @@ const createProductSchema = (variantId?: string) =>
       z.object({
         id: z.string(),
         addon: z.object({
-          id: z.string().nullable(), // This is the Product ID
+          id: z.string().nullable(),
           name: z.string().nullable(),
         }),
         variant: z.object({
-          id: z.string(), // This is the Variant ID of the raw material
+          id: z.string(),
           name: z.string().nullable(),
         }),
-        unit: z.custom<Unit>(), // Added unit for the addon relation
+        unit: z.custom<Unit>(),
         defaultQuantity: z.number().nonnegative(),
         priceOverride: z.number().nonnegative(),
       }),
@@ -167,7 +163,7 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
           id: '',
           addon: addon.product,
           variant: addon.variant,
-          unit: addon.unit, // Pass the unit used for this addon
+          unit: addon.unit,
           defaultQuantity: addon.defaultQuantity,
           priceOverride: addon.priceOverride,
         })
@@ -181,144 +177,192 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
   }
 
   return (
-    <Form onSubmit={form.handleSubmit}>
-      <div className='flex flex-col h-full'>
-        {/* Scrollable form body */}
-        <div className='flex-1 overflow-y-auto p-4 space-y-4'>
-          {children && <div className='pb-2'>{children}</div>}
+    <Form onSubmit={form.handleSubmit} className='flex flex-col h-full'>
+      {/* Scrollable form body */}
+      <div className='flex-1 overflow-y-auto p-4 space-y-5'>
+        {children && <div className='pb-2'>{children}</div>}
 
-          {/* General Info Card */}
-          <Card>
-            <CardHeader className='pb-2'>
-              <CardTitle className='text-base flex items-center gap-2'>
-                <Package className='w-4 h-4 text-primary' /> General Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className='space-y-4'>
-              <form.Field name='name' children={field => <TextInput field={field} label='Name' placeholder='e.g. Latte' />} />
-              <div className='grid grid-cols-2 gap-3'>
-                <form.Field name='sku' children={field => <TextInput field={field} label='SKU Base' placeholder='LAT-00' />} />
-                <form.Field name='price' children={field => <MoneyInput field={field} label='Base Price' />} />
-              </div>
-              <div className='grid grid-cols-2 gap-3'>
-                <form.Field name='categoryId' children={field => <SelectInput field={field} label='Category' options={categoryOptions} />} />
-                <form.Field name='baseUnitId' children={field => <SelectInput field={field} label='Base Unit' options={unitOptions} />} />
-              </div>
-              <form.Field name='image' children={field => <ImageInput label='Product Image' field={field} />} />
-            </CardContent>
-          </Card>
-
-          {/* Inventory Logic Card */}
-          <Card>
-            <CardHeader className='pb-2'>
-              <CardTitle className='text-base flex items-center gap-2'>
-                <Warehouse className='w-4 h-4 text-emerald-500' /> Inventory
-              </CardTitle>
-            </CardHeader>
-            <CardContent className='space-y-3'>
-              <form.Field
-                name='isAvailable'
-                children={field => (
-                  <div className='flex items-center justify-between'>
-                    <Label>POS Visible</Label>
-                    <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
-                  </div>
-                )}
-              />
-              <form.Field
-                name='hasExpiry'
-                children={field => (
-                  <div className='flex items-center justify-between'>
-                    <Label>Track Expiry</Label>
-                    <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
-                  </div>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Recipe Builder Card */}
-          <Card>
-            <CardHeader className='flex flex-row items-center justify-between gap-2 pb-2'>
-              <div>
-                <CardTitle className='text-base flex items-center gap-2'>
-                  <Utensils className='w-4 h-4 text-emerald-500' /> Master Recipe
-                </CardTitle>
-                <CardDescription className='text-xs'>Applies to all variants.</CardDescription>
-              </div>
-              <Button variant='outline' size='sm' className='rounded-full shrink-0' onClick={handleAddIngredient}>
-                <Plus className='size-4 mr-1' /> Add
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <form.Subscribe
-                selector={state => state.values.ingredients}
-                children={ingredients => (
-                  <div className='space-y-2'>
-                    {ingredients.map((ing, idx) => (
-                      <div key={ing.id} className='flex items-center justify-between p-2.5 bg-muted/30 rounded-xl border border-border/50'>
-                        <div className='flex flex-col min-w-0'>
-                          <span className='font-medium text-sm truncate'>
-                            {[ing.material.name, ing.variant?.name ? `(${ing.variant.name})` : ''].filter(Boolean).join(' ')}
-                          </span>
-                          <span className='text-[10px] text-muted-foreground uppercase font-bold'>
-                            {ing.quantityUsed} {ing.unit.abbreviation}
-                          </span>
-                        </div>
-                        <Button variant='ghost' size='icon' className='h-8 w-8 text-muted-foreground shrink-0' onClick={() => removeItem('ingredients', idx)}>
-                          <X className='size-4' />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Add-ons Card */}
-          <Card>
-            <CardHeader className='pb-2'>
-              <CardTitle className='text-base flex items-center gap-2'>
-                <PlusCircle className='w-4 h-4 text-blue-500' /> Add-ons
-              </CardTitle>
-            </CardHeader>
-            <CardContent className='space-y-3'>
-              <form.Subscribe
-                selector={state => state.values.allowedAddons}
-                children={addons => (
-                  <div className='space-y-2'>
-                    {addons.map((a, idx) => (
-                      <div key={a.id} className='flex items-center justify-between p-2.5 bg-muted/30 rounded-xl border border-border/50'>
-                        <div className='flex flex-col min-w-0'>
-                          <span className='font-medium text-xs truncate'>{a.addon.name}</span>
-                          <span className='text-[10px] text-muted-foreground'>{PriceEngine.format(a.priceOverride)}</span>
-                        </div>
-                        <Button variant='ghost' size='icon' className='h-7 w-7 shrink-0' onClick={() => removeItem('allowedAddons', idx)}>
-                          <X className='size-3.5' />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              />
-              <Button variant='outline' className='w-full rounded-xl border-dashed' onClick={handleAddAddons}>
-                + Add Extras
-              </Button>
-            </CardContent>
-          </Card>
+        {/* General Info */}
+        <div className='space-y-3'>
+          <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+            <Package className='w-3 h-3' /> General Information
+          </h4>
+          <form.Field name='name' children={field => <TextInput field={field} label='Name' placeholder='e.g. Latte' />} />
+          <div className='grid grid-cols-2 gap-3'>
+            <form.Field name='sku' children={field => <TextInput field={field} label='SKU Base' placeholder='LAT-00' />} />
+            <form.Field name='price' children={field => <MoneyInput field={field} label='Base Price' />} />
+          </div>
+          <div className='grid grid-cols-2 gap-3'>
+            <form.Field name='categoryId' children={field => <SelectInput field={field} label='Category' options={categoryOptions} />} />
+            <form.Field name='baseUnitId' children={field => <SelectInput field={field} label='Base Unit' options={unitOptions} />} />
+          </div>
+          <form.Field name='image' children={field => <ImageInput label='Product Image' field={field} />} />
         </div>
 
-        {/* Form errors and submit button */}
+        <Separator />
+
+        {/* Inventory */}
+        <div className='space-y-3'>
+          <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+            <Warehouse className='w-3 h-3 text-emerald-500' /> Inventory
+          </h4>
+          <form.Field
+            name='isAvailable'
+            children={field => (
+              <div className='flex items-center justify-between'>
+                <Label>POS Visible</Label>
+                <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
+              </div>
+            )}
+          />
+          <form.Field
+            name='hasExpiry'
+            children={field => (
+              <div className='flex items-center justify-between'>
+                <Label>Track Expiry</Label>
+                <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
+              </div>
+            )}
+          />
+        </div>
+
+        <Separator />
+
+        {/* Variants */}
+        <div className='space-y-3'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+                <Layers className='w-3 h-3 text-blue-500' /> Variants
+              </h4>
+              <p className='text-[10px] text-muted-foreground mt-0.5'>Leave empty for a single default variant.</p>
+            </div>
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              className='rounded-full shrink-0'
+              onClick={() =>
+                form.pushFieldValue('variants', {
+                  id: crypto.randomUUID(),
+                  attributeType: VariantAttributeType.SIZE,
+                  name: '',
+                  sku: '',
+                  price: 0,
+                })
+              }
+            >
+              <Plus className='size-4 mr-1' /> Add
+            </Button>
+          </div>
+          <form.Subscribe
+            selector={state => state.values.variants}
+            children={variants => (
+              <div className='space-y-2'>
+                {variants.length === 0 && <p className='text-[11px] text-muted-foreground py-2 text-center'>Single default variant will be created.</p>}
+                {variants.map((v, idx) => (
+                  <div key={v.id} className='p-2.5 bg-muted/30 rounded-xl border border-border/50 space-y-2'>
+                    <div className='flex items-center justify-between gap-2'>
+                      <span className='text-[10px] font-bold uppercase tracking-wider text-muted-foreground'>Variant {idx + 1}</span>
+                      <Button type='button' variant='ghost' size='icon' className='h-6 w-6 text-muted-foreground' onClick={() => removeItem('variants', idx)}>
+                        <X className='size-3.5' />
+                      </Button>
+                    </div>
+                    <div className='grid grid-cols-2 gap-2'>
+                      <form.Field name={`variants[${idx}].name`} children={field => <TextInput field={field} label='Name' placeholder='e.g. Large' />} />
+                      <form.Field name={`variants[${idx}].sku`} children={field => <TextInput field={field} label='SKU Suffix' placeholder='e.g. LG' />} />
+                    </div>
+                    <form.Field name={`variants[${idx}].price`} children={field => <MoneyInput field={field} label='Price' />} />
+                  </div>
+                ))}
+              </div>
+            )}
+          />
+        </div>
+
+        <Separator />
+        <div className='space-y-3'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+                <Utensils className='w-3 h-3 text-emerald-500' /> Master Recipe
+              </h4>
+              <p className='text-[10px] text-muted-foreground mt-0.5'>Applies to all variants.</p>
+            </div>
+            <Button type='button' variant='outline' size='sm' className='rounded-full shrink-0' onClick={handleAddIngredient}>
+              <Plus className='size-4 mr-1' /> Add
+            </Button>
+          </div>
+          <form.Subscribe
+            selector={state => state.values.ingredients}
+            children={ingredients => (
+              <div className='space-y-2'>
+                {ingredients.length === 0 && <p className='text-[11px] text-muted-foreground py-2 text-center'>No ingredients added yet.</p>}
+                {ingredients.map((ing, idx) => (
+                  <div key={ing.id || idx} className='flex items-center justify-between p-2.5 bg-muted/30 rounded-xl border border-border/50'>
+                    <div className='flex flex-col min-w-0'>
+                      <span className='font-medium text-sm truncate'>
+                        {[ing.material.name, ing.variant?.name ? `(${ing.variant.name})` : ''].filter(Boolean).join(' ')}
+                      </span>
+                      <span className='text-[10px] text-muted-foreground uppercase font-bold'>
+                        {ing.quantityUsed} {ing.unit.abbreviation}
+                      </span>
+                    </div>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='icon'
+                      className='h-8 w-8 text-muted-foreground shrink-0'
+                      onClick={() => removeItem('ingredients', idx)}
+                    >
+                      <X className='size-4' />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          />
+        </div>
+
+        <Separator />
+
+        {/* Add-ons */}
+        <div className='space-y-3'>
+          <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+            <PlusCircle className='w-3 h-3 text-blue-500' /> Add-ons
+          </h4>
+          <form.Subscribe
+            selector={state => state.values.allowedAddons}
+            children={addons => (
+              <div className='space-y-2'>
+                {addons.map((a, idx) => (
+                  <div key={a.id || idx} className='flex items-center justify-between p-2.5 bg-muted/30 rounded-xl border border-border/50'>
+                    <div className='flex flex-col min-w-0'>
+                      <span className='font-medium text-xs truncate'>{a.addon.name}</span>
+                      <span className='text-[10px] text-muted-foreground'>{PriceEngine.format(a.priceOverride)}</span>
+                    </div>
+                    <Button type='button' variant='ghost' size='icon' className='h-7 w-7 shrink-0' onClick={() => removeItem('allowedAddons', idx)}>
+                      <X className='size-3.5' />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          />
+          <Button type='button' variant='outline' className='w-full rounded-xl border-dashed' onClick={handleAddAddons}>
+            + Add Extras
+          </Button>
+        </div>
       </div>
 
       {/* Sticky footer */}
       <div className='p-4 border-t shrink-0 space-y-2'>
         <form.Subscribe
-          selector={state => [state.errors]}
-          children={([errors]) =>
+          selector={state => ({ errors: state.errors, isSubmitted: state.isSubmitted })}
+          children={({ errors, isSubmitted }) =>
+            isSubmitted &&
             errors.length > 0 && (
-              <div className='p-3 text-xs font-mono text-red-600 rounded-xl border border-red-200'>
+              <div className='p-3 text-xs font-mono text-red-600 rounded-xl border border-red-200 max-h-32 overflow-y-auto'>
                 <strong>Form Errors:</strong>
                 <pre className='whitespace-pre-wrap break-words'>{JSON.stringify(errors, null, 2)}</pre>
               </div>
@@ -328,7 +372,11 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
         <form.Subscribe
           selector={state => [state.canSubmit, state.isSubmitting]}
           children={([canSubmit, isSubmitting]) => (
-            <Button type='submit' disabled={!canSubmit || isSubmitting} className='w-full h-11 rounded-xl font-semibold flex gap-2 shadow-lg shadow-primary/20'>
+            <Button
+              type='submit'
+              disabled={!canSubmit || isSubmitting}
+              className='w-full h-11 rounded-xl font-semibold flex gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'
+            >
               <Save className='size-4' /> {isSubmitting ? textBtn.isSubmitting : textBtn.default}
             </Button>
           )}

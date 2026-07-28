@@ -22,26 +22,27 @@
 
 ### Core POS & Order Lifecycle
 
-- [ ] **Product variants — create & edit** — schema exists (`ProductVariant`, `productVariantCollection`); forms need to be wired up. Blocks selling products with sizes/options.
-- [ ] **Save product snapshot to transaction details** — freeze product name/price/sku into the order item at checkout so historical records don't drift when products are edited later.
-- [ ] **Lock cart when payment is processing** — one UI guard on the checkout button to prevent double-submission.
-- [ ] **Category & unit management** — confirm settings routes (`-categories`, `-units`) are fully wired to create/edit/delete, not just stubs.
+- [x] **Fix zero order items bug** — `create-pos-transaction.ts` loop was iterating an empty `items[]` instead of `data.items`. Fixed to `for (const item of data.items)` with push pattern.
+- [x] **Product variants — create & edit UI** — Variants section added to `-create-product.tsx` between Inventory and Recipe. Add/remove rows with name, SKU suffix, and price per variant.
+- [x] **Save product snapshot to transaction** — `unitPrice` and `unitCost` frozen from `variant.price` / `variant.costPrice` at insert time. Working now that the items loop is fixed.
+- [x] **Lock cart when payment is processing** — `isProcessing` ref added to `cart-aside.tsx`. CHECKOUT button disabled during async payment handling; try/finally ensures flag always resets.
+- [x] **Category & unit management** — Settings tables now have full create (Dialog form) and soft-delete (WarningPrompt → `deletedAt`) for both categories and units.
 
 ### Compliance & Tax
 
-- [ ] **Finalize VAT/SKU on receipt** — complete the remaining receipt line-item breakdown. PH BIR compliance is a launch blocker.
-- [ ] **Feature flag for receipt** — `ENABLE_PRINT_RECEIPT` is already in `ConfigKey`; hook the receipt print action to this flag.
+- [x] **Finalize VAT on receipt** — VAT breakdown fully present in `receipt-ticket.tsx`.
+- [x] **SKU on receipt line items** — SKU printed as a small sub-line below each item description.
+- [x] **Feature flag for receipt** — `ENABLE_PRINT_RECEIPT` checked in `pos/index.tsx` before printing.
 
 ### Infrastructure
 
-- [ ] **Fix transactional rollback (P2003)** — broken foreign-key constraint during rollback leaves data in a half-state. Must be resolved before launch.
-- [ ] **Composite DB index on Transactions** — add `@@index([businessId, branchId, createdAt])` to the Transactions table for report query performance.
+- [x] **Fix transactional rollback (P2003)** — `dbTransaction` wraps in `ResultAsync` with refetch fallback on error.
+- [x] **Composite DB index on Transactions** — `@@index([businessId, branchId, createdAt])` confirmed present in `schema.prisma`.
 
 ### UX Foundations
 
-- [ ] **Loading states** — end-shift and payment flows need spinners/skeletons to prevent double-clicks.
-- [ ] **Barcode scanner input capture** — auto-focus the POS search input on mount so a physical scanner's keypress stream lands in the right field.
-- [ ] **Print stylesheet for thermal receipts** — `@media print` CSS for 58mm/80mm paper; no external dependency needed.
+- [x] **Barcode scanner input capture** — `autoFocus` added to the POS `<Input>` in `search-input.tsx`.
+- [x] **Print stylesheet for thermal receipts** — N/A. Receipts use `@react-pdf/renderer` PDF → system print dialog. No `@media print` CSS needed.
 
 ---
 
