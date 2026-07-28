@@ -10,7 +10,7 @@ export const PosHeader = () => {
   const user = useStore(authStore, state => state.user)
 
   return (
-    <header className='flex justify-between items-center bg-card/80 backdrop-blur-md p-4 rounded-[2.5rem] border border-border'>
+    <header className='flex justify-between items-center bg-card/80 backdrop-blur-md p-4 rounded-4xl border border-border'>
       <Title />
       <SearchInput />
       <div className='flex items-center gap-1'>

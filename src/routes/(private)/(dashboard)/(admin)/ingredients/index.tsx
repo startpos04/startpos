@@ -12,7 +12,7 @@ import { productCols } from '@/lib/columns/product-columns'
 import { tableCols } from '@/lib/columns/table-columns'
 import MountManager from '@/lib/mount-manager'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
-import { INGREDIENT_ASIDE_ID, showIngredientSidebar } from './-components/ingredient-sidebar'
+import { closeIngredientSidebar, INGREDIENT_ASIDE_ID, showIngredientSidebar } from './-components/ingredient-sidebar'
 import { IngredientDetailsSidebar } from './$ingredientId'
 import { RestockIngredientSidebar } from './$ingredientId/-restock'
 import { CreateIngredientSidebar } from './create'
@@ -39,7 +39,7 @@ function RouteComponent() {
         ingredientId={ingredient.id}
         onClose={() => {
           setSelectedId('')
-          MountManager.clear(INGREDIENT_ASIDE_ID)
+          closeIngredientSidebar()
         }}
       />,
     )
@@ -55,7 +55,7 @@ function RouteComponent() {
         variant={primaryVariant}
         onClose={() => {
           setSelectedId('')
-          MountManager.clear(INGREDIENT_ASIDE_ID)
+          closeIngredientSidebar()
         }}
         onBack={() =>
           showIngredientSidebar(
@@ -117,24 +117,24 @@ function RouteComponent() {
                     <Button
                       variant='ghost'
                       size='icon'
-                      className='h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary'
+                      className='rounded-full hover:bg-primary/10 hover:text-primary'
                       onClick={e => {
                         e.stopPropagation()
                         handleRestock(row.original)
                       }}
                     >
-                      <Database className='h-4 w-4' />
+                      <Database />
                     </Button>
                     <Button
                       variant='ghost'
                       size='icon'
-                      className='h-8 w-8 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive'
+                      className='rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive'
                       onClick={e => {
                         e.stopPropagation()
                         handleDelete()
                       }}
                     >
-                      <Trash2 className='h-4 w-4' />
+                      <Trash2 />
                     </Button>
                   </div>
                 )
@@ -149,14 +149,14 @@ function RouteComponent() {
   return (
     <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
       <div className='flex-1 min-w-0 h-full p-4 pt-0 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
-        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4'>
+        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
           <div>
             <h1 className='text-3xl font-bold tracking-tight text-foreground'>Ingredients</h1>
             <p className='text-muted-foreground text-sm'>Manage raw materials and track stock levels for your POS.</p>
           </div>
           <a href='/ingredients/create' onClick={handleAdd} className='contents'>
-            <Button className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer'>
-              <Plus className='h-4 w-4 mr-2' /> Add Ingredient
+            <Button size='sm' className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer'>
+              <Plus /> Add Ingredient
             </Button>
           </a>
         </div>

@@ -20,7 +20,7 @@ export function TextAreaInput({ label, field, placeholder }: TextAreaInputProps)
         onChange={e => field.handleChange(e.target.value)}
         placeholder={placeholder}
       />
-      {field.state.meta.errors.length > 0 && <p className='text-xs text-red-500'>{field.state.meta.errors.map(err => err.message ?? err).join(', ')}</p>}
+      {field.state.meta.errors.length > 0 && <p className='text-xs text-destructive'>{field.state.meta.errors.map(err => err.message ?? err).join(', ')}</p>}
     </Field>
   )
 }

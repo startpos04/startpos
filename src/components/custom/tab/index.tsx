@@ -36,8 +36,8 @@ function Tab({ defaultValue, tabs, className, tabClass, containerClass }: TabPro
             value={value}
             className={cn(
               'cursor-pointer flex-initial tracking-tight font-medium bg-transparent rounded-t-md rounded-b-none border border-transparent -mb-px transition-none shadow-none outline-none',
-              'data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-gray-600 dark:data-[state=inactive]:text-zinc-500 dark:data-[state=inactive]:hover:text-zinc-300',
-              'data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:border-gray-200/80 data-[state=active]:border-b-white data-[state=active]:shadow-none data-[state=active]:font-semibold',
+              'data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground',
+              'data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:border-border data-[state=active]:border-b-background data-[state=active]:shadow-none data-[state=active]:font-semibold',
               'dark:data-[state=active]:bg-zinc-950 dark:data-[state=active]:text-zinc-50 dark:data-[state=active]:border-zinc-800 dark:data-[state=active]:border-b-zinc-950',
             )}
           >

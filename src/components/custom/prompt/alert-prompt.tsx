@@ -38,15 +38,15 @@ export function AlertPrompt(props: AlertPromptProps) {
       >
         <DialogHeader className='flex flex-col items-center justify-center gap-4'>
           <div className='rounded-full bg-amber-100 p-3 dark:bg-amber-900/20'>
-            <AlertTriangle className='h-24 w-24 text-amber-600 dark:text-amber-400' />
+            <AlertTriangle className='h-16 w-16 text-amber-600 dark:text-amber-400' />
           </div>
 
-          <DialogTitle className='text-2xl font-bold uppercase tracking-tight'>{title}</DialogTitle>
+          <DialogTitle className='text-xl font-semibold'>{title}</DialogTitle>
           <DialogDescription className='text-center text-base'>{description}</DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className='sm:justify-center mt-2'>
-          <Button type='button' onClick={handleClose} className='w-full sm:w-32 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-full'>
+        <DialogFooter className='sm:justify-center gap-2'>
+          <Button type='button' onClick={handleClose} className='w-full sm:w-32 bg-amber-600 hover:bg-amber-700 text-white'>
             {btnText}
           </Button>
         </DialogFooter>

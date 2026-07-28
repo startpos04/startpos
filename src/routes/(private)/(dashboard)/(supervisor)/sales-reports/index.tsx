@@ -61,13 +61,13 @@ function RouteComponent() {
   }
 
   return (
-    <div className='flex flex-col gap-3 overflow-auto '>
+    <div className='flex flex-col gap-2 overflow-auto'>
       {/* HEADER */}
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4 '>
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4'>
         <div>
           <h1 className='text-3xl font-bold tracking-tight text-foreground'>Sales Reports</h1>
           <p className='text-muted-foreground text-sm flex items-center gap-2'>
-            <PackageCheck className='h-4 w-4 text-emerald-500' />
+            <PackageCheck className='h-4 w-4 text-primary' />
             Performance tracking for{' '}
             <span className='font-medium text-foreground'>
               {from && to ? `${dayjs(from).format('MMM D, YYYY')} - ${dayjs(to).format('MMM D, YYYY')}` : dayjs().format('MMMM D, YYYY')}
@@ -85,8 +85,8 @@ function RouteComponent() {
           </Button>
         </div>
       </div>
-      <ScrollArea className='flex-1 min-h-0 w-full px-3'>
-        <div className='space-y-4 p-1'>
+      <ScrollArea className='flex-1 min-h-0 w-full px-4'>
+        <div className='space-y-4 pb-1'>
           {/* STAT CARDS */}
           <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
             <TotalRevenue stats={stats} />

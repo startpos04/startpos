@@ -26,15 +26,16 @@ export function CategoriesPage() {
   )
 
   return (
-    <MultiView<NonNullable<typeof data>[number]>
-      label='Product Categories'
-      description='Organize your menu offerings, inventory items, and modifiers for streamlined POS navigation.'
-      data={data}
-      isFetching={isLoading}
-      className='px-4'
-      views={{
-        list: [{ type: 'table', columns }],
-      }}
-    />
+    <div className='px-4 grow flex flex-col gap-2'>
+      <MultiView<NonNullable<typeof data>[number]>
+        label='Product Categories'
+        description='Organize your menu offerings, inventory items, and modifiers for streamlined POS navigation.'
+        data={data}
+        isFetching={isLoading}
+        views={{
+          list: [{ type: 'table', columns }],
+        }}
+      />
+    </div>
   )
 }

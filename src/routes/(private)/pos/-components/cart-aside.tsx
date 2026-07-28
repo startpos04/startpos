@@ -57,7 +57,7 @@ export const CartAside = withForm({
     }
 
     return (
-      <aside className='md:w-96 grow md:grow-0 md:bg-card rounded-[2.5rem] md:border border-border flex flex-col shadow-xl space-y-2'>
+      <aside className='md:w-96 grow md:grow-0 md:bg-card rounded-4xl md:border border-border flex flex-col shadow-xl space-y-2'>
         <div className='md:pt-6 pt-0 px-0 md:px-6 space-y-2 select-none'>
           <div className='flex justify-between items-center'>
             <h2 className='text-xl font-black'>{order ? `Order ${order.orderNumber}` : 'New Order'}</h2>

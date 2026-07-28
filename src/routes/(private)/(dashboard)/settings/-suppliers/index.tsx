@@ -40,15 +40,17 @@ export function SuppliersPage() {
   )
 
   return (
-    <MultiView<NonNullable<typeof data>[number]>
-      label='Suppliers'
-      description='Manage procurement vendors, supply channels, and external distribution partners.'
-      data={data}
-      isFetching={isLoading}
-      className='px-4'
-      views={{
-        list: [{ type: 'table', columns }],
-      }}
-    />
+    <div className='px-4 grow flex flex-col gap-2'>
+      <MultiView<NonNullable<typeof data>[number]>
+        label='Suppliers'
+        description='Manage procurement vendors, supply channels, and external distribution partners.'
+        data={data}
+        isFetching={isLoading}
+        className='px-4'
+        views={{
+          list: [{ type: 'table', columns }],
+        }}
+      />
+    </div>
   )
 }

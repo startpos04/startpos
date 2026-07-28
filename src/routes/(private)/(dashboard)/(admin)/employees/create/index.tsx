@@ -1,5 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { X } from 'lucide-react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { userCollection } from '@/db/collections'
 import { closeEmployeeSidebar } from '../-components/employee-sidebar'
 import { CreateAccount, type CreateAccountFormData } from './-create-account'
@@ -8,7 +10,13 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/c
   component: () => <CreateEmployeeSidebar />,
 })
 
-export function CreateEmployeeSidebar() {
+interface CreateEmployeeSidebarProps {
+  onClose?: () => void
+}
+
+export function CreateEmployeeSidebar({ onClose }: CreateEmployeeSidebarProps) {
+  const handleClose = onClose ?? closeEmployeeSidebar
+
   const handleSubmit = async ({ value }: { value: CreateAccountFormData }) => {
     try {
       userCollection.insert({
@@ -22,7 +30,7 @@ export function CreateEmployeeSidebar() {
       })
 
       toast.success('Employee successfully added')
-      closeEmployeeSidebar()
+      handleClose()
     } catch (error) {
       console.error('Transaction failed:', error)
       toast.error('Failed to add Employee. Please try again.')
@@ -35,9 +43,14 @@ export function CreateEmployeeSidebar() {
       onSubmit={handleSubmit}
       textBtn={{ default: 'Add Employee', isSubmitting: 'Adding Employee...' }}
     >
-      <div>
-        <h2 className='text-xl font-semibold'>New Employee</h2>
-        <p className='text-muted-foreground text-sm'>Create a new staff account and assign permissions.</p>
+      <div className='flex items-start justify-between gap-2'>
+        <div>
+          <h2 className='text-xl font-semibold'>New Employee</h2>
+          <p className='text-muted-foreground text-sm'>Create a new staff account and assign permissions.</p>
+        </div>
+        <Button type='button' variant='ghost' size='icon' onClick={handleClose} className='shrink-0 mt-0.5'>
+          <X />
+        </Button>
       </div>
     </CreateAccount>
   )

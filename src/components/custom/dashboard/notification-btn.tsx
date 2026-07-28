@@ -21,8 +21,8 @@ export function NotificationButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant='ghost' size='icon' className='relative'>
-          <Bell className='h-5! w-5!' />
+        <Button variant='ghost' size='icon-lg' className='relative'>
+          <Bell />
           {unreadCount > 0 && (
             <span className='absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground'>
               {unreadCount > 99 ? '99+' : unreadCount}

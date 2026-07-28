@@ -36,15 +36,16 @@ export function CustomersPage() {
   )
 
   return (
-    <MultiView<NonNullable<typeof data>[number]>
-      label='Customers'
-      description='Manage customer profiles, contact directories, and loyalty segment tracking.'
-      data={data}
-      isFetching={isLoading}
-      className='px-4'
-      views={{
-        list: [{ type: 'table', columns }],
-      }}
-    />
+    <div className='px-4 grow flex flex-col gap-2'>
+      <MultiView<NonNullable<typeof data>[number]>
+        label='Customers'
+        description='Manage customer profiles, contact directories, and loyalty segment tracking.'
+        data={data}
+        isFetching={isLoading}
+        views={{
+          list: [{ type: 'table', columns }],
+        }}
+      />
+    </div>
   )
 }

@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { X } from 'lucide-react'
 import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { productCollection, productVariantCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { authStore } from '@/store/auth-store'
@@ -11,7 +13,13 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/ingredients
   component: () => <CreateIngredientSidebar />,
 })
 
-export function CreateIngredientSidebar() {
+interface CreateIngredientSidebarProps {
+  onClose?: () => void
+}
+
+export function CreateIngredientSidebar({ onClose }: CreateIngredientSidebarProps) {
+  const handleClose = onClose ?? closeIngredientSidebar
+
   const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
     const { sku, price, ...productData } = value
     const { user } = authStore.state
@@ -56,7 +64,7 @@ export function CreateIngredientSidebar() {
     }
 
     toast.success('Ingredient successfully added')
-    closeIngredientSidebar()
+    handleClose()
   }
 
   return (
@@ -75,9 +83,14 @@ export function CreateIngredientSidebar() {
       onSubmit={handleSubmit}
       textBtn={{ default: 'Add Ingredient', isSubmitting: 'Adding Ingredient...' }}
     >
-      <div>
-        <h2 className='text-xl font-semibold'>New Ingredient</h2>
-        <p className='text-muted-foreground text-sm'>Register a new raw material and define its tracking units.</p>
+      <div className='flex items-start justify-between gap-2'>
+        <div>
+          <h2 className='text-xl font-semibold'>New Ingredient</h2>
+          <p className='text-muted-foreground text-sm'>Register a new raw material and define its tracking units.</p>
+        </div>
+        <Button type='button' variant='ghost' size='icon' onClick={handleClose} className='shrink-0 mt-0.5'>
+          <X />
+        </Button>
       </div>
     </CreateIngredient>
   )

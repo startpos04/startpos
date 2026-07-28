@@ -41,15 +41,16 @@ export function LocationsPage() {
   )
 
   return (
-    <MultiView<NonNullable<typeof data>[number]>
-      label='Store Locations'
-      description='Manage physical warehouses, retail fronts, and fulfillment centers across your distribution network.'
-      data={data}
-      isFetching={isLoading}
-      className='px-4'
-      views={{
-        list: [{ type: 'table', columns }],
-      }}
-    />
+    <div className='px-4 grow flex flex-col gap-2'>
+      <MultiView<NonNullable<typeof data>[number]>
+        label='Store Locations'
+        description='Manage physical warehouses, retail fronts, and fulfillment centers across your distribution network.'
+        data={data}
+        isFetching={isLoading}
+        views={{
+          list: [{ type: 'table', columns }],
+        }}
+      />
+    </div>
   )
 }

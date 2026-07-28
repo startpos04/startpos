@@ -29,12 +29,11 @@ export function WarningPrompt(props: WarningPromptProps) {
         onInteractOutside={e => e.preventDefault()}
       >
         <DialogHeader className='flex flex-col items-center justify-center gap-4'>
-          {/* Warning Icon Container */}
           <div className='rounded-full bg-amber-100 p-3 dark:bg-amber-900/20'>
-            <AlertTriangle className='h-24 w-24 text-amber-600 dark:text-amber-400' />
+            <AlertTriangle className='h-16 w-16 text-amber-600 dark:text-amber-400' />
           </div>
 
-          <DialogTitle className='text-2xl font-bold'>{title}</DialogTitle>
+          <DialogTitle className='text-xl font-semibold'>{title}</DialogTitle>
           <DialogDescription className='text-center'>{description}</DialogDescription>
         </DialogHeader>
 

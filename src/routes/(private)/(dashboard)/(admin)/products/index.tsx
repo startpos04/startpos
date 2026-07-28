@@ -25,7 +25,7 @@ import MountManager from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { cn } from '@/lib/utils'
 import { authStore } from '@/store/auth-store'
-import { PRODUCT_ASIDE_ID, showProductSidebar } from './-components/product-sidebar'
+import { closeProductSidebar, PRODUCT_ASIDE_ID, showProductSidebar } from './-components/product-sidebar'
 import { ProductDetailsSidebar } from './$productId'
 import { CreateProductSidebar } from './create'
 
@@ -62,7 +62,7 @@ function RouteComponent() {
         productId={product.id}
         onClose={() => {
           setSelectedId('')
-          MountManager.clear(PRODUCT_ASIDE_ID)
+          closeProductSidebar()
         }}
       />,
     )
@@ -126,24 +126,24 @@ function RouteComponent() {
                   <Button
                     variant='ghost'
                     size='icon'
-                    className='h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary'
+                    className='rounded-full hover:bg-primary/10 hover:text-primary'
                     onClick={e => {
                       e.stopPropagation()
                       handleRestock(row.original)
                     }}
                   >
-                    <Database className='h-4 w-4' />
+                    <Database />
                   </Button>
                   <Button
                     variant='ghost'
                     size='icon'
-                    className='h-8 w-8 rounded-full text-destructive hover:text-destructive'
+                    className='rounded-full text-destructive hover:text-destructive hover:bg-destructive/10'
                     onClick={e => {
                       e.stopPropagation()
                       handleDelete(row.original)
                     }}
                   >
-                    <Trash2 className='h-4 w-4' />
+                    <Trash2 />
                   </Button>
                 </div>
               ),
@@ -229,7 +229,7 @@ function RouteComponent() {
                   const isLowStock = maxServings < primaryVariant.lowStockThreshold! || user.systemConfigs.LOW_STOCK_THRESHOLD
 
                   return (
-                    <Card className='border-border shadow-sm rounded-[2.5rem] overflow-hidden bg-card/50 backdrop-blur-md h-full flex flex-col transition-all hover:shadow-md group pt-0'>
+                    <Card className='border-border shadow-sm rounded-4xl overflow-hidden bg-card/50 backdrop-blur-md h-full flex flex-col transition-all hover:shadow-md group pt-0'>
                       <div className='relative aspect-video w-full overflow-hidden border-b border-border bg-muted'>
                         <Avatar className='w-full h-full [&>img]:rounded-none [&>span]:rounded-none [&:after]:border-none'>
                           <AvatarImage
@@ -254,9 +254,9 @@ function RouteComponent() {
 
                       <CardHeader className='pb-2'>
                         <div className='flex justify-between items-start'>
-                          <CardTitle className='text-xl font-bold line-clamp-1 text-foreground'>{product.name}</CardTitle>
+                          <CardTitle className='text-lg font-bold line-clamp-1 text-foreground'>{product.name}</CardTitle>
                           <div className='text-right'>
-                            <div className='font-bold text-primary text-lg'>{PriceEngine.format(priceCents)}</div>
+                            <div className='font-bold text-primary'>{PriceEngine.format(priceCents)}</div>
                           </div>
                         </div>
                         <div className='flex items-center gap-2'>
@@ -383,19 +383,17 @@ function RouteComponent() {
                           <Button
                             variant='outline'
                             size='sm'
-                            className='flex-1 rounded-xl text-[10px] font-bold h-9 bg-transparent hover:bg-accent'
+                            className='flex-1 rounded-xl font-bold bg-transparent hover:bg-accent'
                             onClick={() => handleSelectRow(product)}
                           >
-                            VIEW DETAILS
+                            View Details
                           </Button>
-                        </div>
-
-                        <div>
                           <Button
                             type='button'
                             variant='ghost'
+                            size='sm'
                             onClick={() => handleDelete(product)}
-                            className='w-full h-8 text-muted-foreground font-bold hover:text-foreground hover:bg-muted rounded-xl flex items-center justify-center gap-2'
+                            className='rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10'
                           >
                             Delete
                           </Button>

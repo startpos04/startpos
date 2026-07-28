@@ -189,19 +189,19 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
           return (
             <Card key={order.id} className='overflow-hidden border-l-4 border-l-primary gap-1'>
               <CardHeader className='flex flex-row items-center justify-between space-y-0'>
-                <CardTitle className='text-lg font-bold'>Order {order.orderNumber}</CardTitle>
+                <CardTitle className='font-bold'>Order {order.orderNumber}</CardTitle>
                 <Badge variant={statusVariants[order.status]}>{order.status}</Badge>
               </CardHeader>
 
               <CardContent className='space-y-2'>
-                <div className='flex items-center text-sm gap-2'>
-                  <User className='h-4 w-4 text-muted-foreground' />
-                  <span className='font-medium'>{order.customerReference}</span>
+                <div className='flex items-center gap-2'>
+                  <User className='text-muted-foreground' />
+                  <span className='text-xs font-medium'>{order.customerReference}</span>
                 </div>
 
-                <div className='flex items-center text-sm gap-2'>
-                  <Clock className='h-4 w-4 text-muted-foreground' />
-                  <span>
+                <div className='flex items-center gap-2'>
+                  <Clock className='text-muted-foreground' />
+                  <span className='text-xs'>
                     {new Date(order.createdAt).toLocaleTimeString([], {
                       hour: '2-digit',
                       minute: '2-digit',
@@ -209,9 +209,9 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
                   </span>
                 </div>
 
-                <div className='flex items-center text-sm gap-2'>
-                  <DollarSign className='h-4 w-4 text-muted-foreground' />
-                  <span className={cn('font-bold text-xs', order.transaction ? 'text-green-600' : 'text-amber-600')}>
+                <div className='flex items-center gap-2'>
+                  <DollarSign className='text-muted-foreground' />
+                  <span className={cn('font-bold text-xs', order.transaction ? 'text-primary' : 'text-amber-600')}>
                     {order.transaction ? 'PAID' : 'UNPAID'}
                   </span>
                 </div>
@@ -221,17 +221,17 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
                 <div className='space-y-2'>
                   {order.items.map(item => (
                     <div key={item.id} className='space-y-1'>
-                      <div className='flex justify-between text-sm'>
+                      <div className='flex justify-between text-xs'>
                         <span className='flex gap-2'>
                           <span className='font-bold text-primary'>{item.quantity}x</span>
                           {[item.variant.product?.name, item.variant.name ? `(${item.variant.name})` : ''].filter(Boolean).join(' ')}
                         </span>
-                        <span className='text-muted-foreground text-xs'>{PriceEngine.format(item.unitPrice)}</span>
+                        <span className='text-muted-foreground'>{PriceEngine.format(item.unitPrice)}</span>
                       </div>
                       {item.selectedAddons && item.selectedAddons.length > 0 && (
                         <div className='ml-7 space-y-0.5 border-l-2 border-muted pl-2'>
                           {item.selectedAddons.map(addon => (
-                            <div key={addon.id} className='flex justify-between text-[11px] text-muted-foreground italic'>
+                            <div key={addon.id} className='flex justify-between text-[10px] text-muted-foreground italic'>
                               <span>
                                 + {addon.quantity} {addon.addon.product.name} {addon.addon.name ? `(${addon.addon.name})` : ''}
                               </span>

@@ -43,7 +43,7 @@ export function ProductCard({ cartItems, product, onAdd }: ProductCardProps) {
     <Card
       onClick={handleOpenConfig}
       className={cn(
-        'border-border shadow-sm rounded-[2rem] h-full overflow-hidden bg-card/50 backdrop-blur-md flex flex-col transition-all hover:shadow-md group pt-0',
+        'border-border shadow-sm rounded-4xl h-full overflow-hidden bg-card/50 backdrop-blur-md flex flex-col transition-all hover:shadow-md group pt-0',
         maxAvailable > 0 ? 'cursor-pointer active:scale-[0.98]' : 'opacity-80 grayscale-[0.5]',
       )}
     >

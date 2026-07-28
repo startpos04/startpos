@@ -19,7 +19,7 @@ export function SelectInput<T>({ label, field, options, ...props }: SelectInputP
     <Field>
       <Label className='empty:hidden'>{label}</Label>
       <Select<T> options={options} value={field.state.value} onChange={field.handleChange} {...props} />
-      {field.state.meta.errors.length > 0 && <p className='text-xs text-red-500'>{field.state.meta.errors.map(err => err.message ?? err).join(', ')}</p>}
+      {field.state.meta.errors.length > 0 && <p className='text-xs text-destructive'>{field.state.meta.errors.map(err => err.message ?? err).join(', ')}</p>}
     </Field>
   )
 }

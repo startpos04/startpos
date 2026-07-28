@@ -3,7 +3,7 @@
 import type { Role } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
 import { localAuthCollection } from '@/db/local-auth'
-import { clearModals } from '@/lib/overlay'
+import MountManager from '@/lib/mount-manager'
 import { authStore, resetAuth } from '@/store/auth-store'
 import { authClient } from './auth-client'
 import { getAuthUser, type ServerUser, verifyAuth } from './auth-server'
@@ -107,7 +107,7 @@ export const AuthEngine = {
    */
   async logout(params: { onSuccess: () => void }): Promise<void> {
     authStore.setState(state => ({ ...state, isLoggingOut: true }))
-    clearModals()
+    MountManager.clear()
     resetAuth()
 
     try {

@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { X } from 'lucide-react'
 import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { productCollection, productComponentCollection, productVariantCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { authStore } from '@/store/auth-store'
@@ -11,7 +13,13 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/products/cr
   component: () => <CreateProductSidebar />,
 })
 
-export function CreateProductSidebar() {
+interface CreateProductSidebarProps {
+  onClose?: () => void
+}
+
+export function CreateProductSidebar({ onClose }: CreateProductSidebarProps) {
+  const handleClose = onClose ?? closeProductSidebar
+
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
     const { ingredients, allowedAddons, sku: productSku, price: productPrice, variants, ...productData } = value
     const { user } = authStore.state
@@ -90,7 +98,7 @@ export function CreateProductSidebar() {
     }
 
     toast.success('Product successfully created')
-    closeProductSidebar()
+    handleClose()
   }
 
   return (
@@ -112,9 +120,14 @@ export function CreateProductSidebar() {
       onSubmit={handleSubmit}
       textBtn={{ default: 'Add Product', isSubmitting: 'Adding Product...' }}
     >
-      <div>
-        <h2 className='text-xl font-semibold'>New Product</h2>
-        <p className='text-muted-foreground text-sm'>Define your product, variants, and recipe ingredients.</p>
+      <div className='flex items-start justify-between gap-2'>
+        <div>
+          <h2 className='text-xl font-semibold'>New Product</h2>
+          <p className='text-muted-foreground text-sm'>Define your product, variants, and recipe ingredients.</p>
+        </div>
+        <Button type='button' variant='ghost' size='icon' onClick={handleClose} className='shrink-0 mt-0.5'>
+          <X />
+        </Button>
       </div>
     </CreateProduct>
   )

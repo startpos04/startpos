@@ -6,6 +6,7 @@ import Loading from '@/components/custom/loading'
 import { localAuthCollection } from '@/db/local-auth'
 import { useIsOnline } from '@/hooks/use-is-online'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
+import MountManager from '@/lib/mount-manager'
 import { authStore } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)')({
@@ -37,6 +38,8 @@ function RouteComponent() {
     if (exists && isOnline && user) {
       AuthEngine.syncServerToLocal(user)
     }
+
+    MountManager.clear()
   }, [localAuths.isReady, navigate, user])
 
   if (!user) return <Loading className='w-screen h-screen' />

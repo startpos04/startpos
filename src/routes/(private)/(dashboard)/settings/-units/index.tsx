@@ -43,9 +43,7 @@ export function UnitsPage() {
           header: 'Role',
           cell: info =>
             info.getValue() ? (
-              <Badge className='text-[9px] uppercase font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/10'>
-                Base Unit
-              </Badge>
+              <Badge className='text-[9px] uppercase font-bold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/10'>Base Unit</Badge>
             ) : (
               <Badge variant='secondary' className='text-[9px] uppercase font-medium text-muted-foreground'>
                 Derived
@@ -66,15 +64,16 @@ export function UnitsPage() {
   )
 
   return (
-    <MultiView<NonNullable<typeof data>[number]>
-      label='Units of Measure'
-      description='Configure base scales and conversion matrices for accurate kitchen/retail yield calculations.'
-      data={data}
-      isFetching={isLoading}
-      className='px-4'
-      views={{
-        list: [{ type: 'table', columns }],
-      }}
-    />
+    <div className='px-4 grow flex flex-col gap-2'>
+      <MultiView<NonNullable<typeof data>[number]>
+        label='Units of Measure'
+        description='Configure base scales and conversion matrices for accurate kitchen/retail yield calculations.'
+        data={data}
+        isFetching={isLoading}
+        views={{
+          list: [{ type: 'table', columns }],
+        }}
+      />
+    </div>
   )
 }

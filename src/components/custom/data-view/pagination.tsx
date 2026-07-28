@@ -13,6 +13,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
 interface DataViewPaginationProps<T> {
   table: Table<T>
@@ -125,9 +126,9 @@ export function DataViewPagination<T>({ table, totalItems }: DataViewPaginationP
               value={goToPage}
               onChange={e => setGoToPage(e.target.value)}
               placeholder={(pageIndex + 1).toString()}
-              className='w-14 h-8 text-center text-xs'
+              className='w-14 text-center'
             />
-            <Button type='submit' size='sm' variant='outline' className='h-8 text-xs' aria-label='Go'>
+            <Button type='submit' size='default' variant='outline' aria-label='Go'>
               GO
             </Button>
           </ButtonGroup>

@@ -25,13 +25,13 @@ export const ProfileDropdown = ({ children }: { children?: ReactNode }) => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <div className='relative'>
-          <Button variant='ghost' className='h-10 w-10 '>
-            <UserCircle className='w-6! h-6!' />
+          <Button variant='ghost' size='icon-lg'>
+            <UserCircle />
           </Button>
 
           <Badge
             className={cn(
-              'absolute bottom-1 right-1 h-3 w-3 p-0 rounded-full border-2 border-card  pointer-events-none',
+              'absolute bottom-1 right-1 h-3 w-3 p-0 rounded-full border-2 border-card pointer-events-none',
               isOnline ? 'bg-primary' : 'bg-red-400',
             )}
           />
@@ -43,7 +43,7 @@ export const ProfileDropdown = ({ children }: { children?: ReactNode }) => {
           <div className='flex flex-col'>
             <div className='flex gap-1'>
               <span className='text-sm grow font-bold truncate leading-tight'>{user.name || 'Anonymous User'}</span>
-              <Badge className={cn('rounded-full border-2 border-card  pointer-events-none', isOnline ? 'bg-primary' : 'bg-destructive')}>
+              <Badge className={cn('rounded-full border-2 border-card pointer-events-none', isOnline ? 'bg-primary' : 'bg-destructive')}>
                 {isOnline ? 'online' : 'offline'}
               </Badge>
             </div>
@@ -60,7 +60,7 @@ export const ProfileDropdown = ({ children }: { children?: ReactNode }) => {
           className='flex items-center gap-3 rounded-xl cursor-pointer py-3 px-3 text-destructive transition-all focus:bg-destructive/10 hover:bg-destructive/10'
           onClick={handleLogout}
         >
-          <LogOut className='w-4! h-4!' />
+          <LogOut />
           <span className='font-bold'>Logout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

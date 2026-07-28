@@ -1,15 +1,29 @@
 /// <reference types="vitest" />
+
+import path from 'node:path'
 import react from '@vitejs/plugin-react'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  plugins: [tsconfigPaths(), react()],
+  plugins: [
+    // Use the test tsconfig so test-specific types (vitest/globals, @testing-library/jest-dom)
+    // are available without polluting the main tsconfig.
+    tsconfigPaths({ projects: ['./tsconfig.test.json'] }),
+    react(),
+  ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      prisma: path.resolve(__dirname, './prisma'),
+      '#tests': path.resolve(__dirname, './__tests__'),
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
-    include: ['src/__tests__/**/*.{test,spec}.{ts,tsx}'],
+    include: ['__tests__/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/tests/**', '**/e2e/**'],
     coverage: {
       provider: 'v8',

@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { userCollection } from '@/db/collections'
 import MountManager from '@/lib/mount-manager'
-import { EMPLOYEE_ASIDE_ID, showEmployeeSidebar } from './-components/employee-sidebar'
+import { closeEmployeeSidebar, EMPLOYEE_ASIDE_ID, showEmployeeSidebar } from './-components/employee-sidebar'
 import { EmployeeDetailsSidebar } from './$employeeId'
 import { CreateEmployeeSidebar } from './create'
 
@@ -36,7 +36,7 @@ function RouteComponent() {
         employeeId={employee.id}
         onClose={() => {
           setSelectedId('')
-          MountManager.clear(EMPLOYEE_ASIDE_ID)
+          closeEmployeeSidebar()
         }}
       />,
     )
@@ -101,13 +101,13 @@ function RouteComponent() {
                 <Button
                   variant='ghost'
                   size='icon'
-                  className='h-8 w-8 rounded-full text-destructive hover:text-destructive'
+                  className='rounded-full text-destructive hover:text-destructive hover:bg-destructive/10'
                   onClick={e => {
                     e.stopPropagation()
                     handleDelete()
                   }}
                 >
-                  <Trash2 className='h-4 w-4' />
+                  <Trash2 />
                 </Button>
               </div>
             )
@@ -120,14 +120,14 @@ function RouteComponent() {
   return (
     <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
       <div className='flex-1 min-w-0 h-full p-4 pt-0 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
-        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4'>
+        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
           <div>
             <h1 className='text-3xl font-bold tracking-tight text-foreground'>Employees</h1>
             <p className='text-muted-foreground text-sm'>Manage your team and their workspace roles.</p>
           </div>
           <a href='/employees/create' onClick={handleAdd} className='contents'>
-            <Button className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
-              <Plus className='h-4 w-4' /> Add Employee
+            <Button size='sm' className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
+              <Plus /> Add Employee
             </Button>
           </a>
         </div>
