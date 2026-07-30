@@ -1,0 +1,6 @@
+name,taxId,contactNo,email
+E2E Primary Supplier,111-222-333-00000,+639170000001,supply@e2etest.com
+E2E Secondary Supplier,444-555-666-00000,+639170000002,supply2@e2etest.com
+E2E Beverage Distributor,777-888-999-00000,+639170000003,beverages@e2etest.com
+E2E Produce Wholesaler,321-654-987-00000,+639170000004,produce@e2etest.com
+E2E Packaging Supplier,,+639170000005,packaging@e2etest.com

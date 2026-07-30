@@ -34,6 +34,7 @@ export const posFormOpts = formOptions({
     items: [] as posItem[],
     customerReference: null as string | null,
     payments: [] as PaymentLine[],
+    compliance: {} as { scPwdName?: string; scPwdIdNumber?: number; scPwdDiscount?: number },
   },
 })
 
@@ -57,7 +58,10 @@ function POSPage() {
   const { data: posProducts = [], isLoading: isPosProductsLoading } = fetchPosProducts({ searchQuery: search, page, pageSize })
   useLiveQuery(q => q.from({ sequence: sequenceCounterCollection }))
 
-  const handleConfirm = async (value: typeof posFormOpts.defaultValues) => {
+  const handleConfirm = async (
+    value: typeof posFormOpts.defaultValues,
+    compliance?: { scPwdName?: string; scPwdIdNumber?: number; scPwdDiscount?: number },
+  ) => {
     const result = await createPosTransaction(
       {
         orderId: orderId!,
@@ -66,7 +70,11 @@ function POSPage() {
           customerId: '',
           customerReference: value.customerReference,
         },
-        compliance: {},
+        compliance: {
+          ...(compliance?.scPwdName ? { scPwdName: compliance.scPwdName } : {}),
+          ...(compliance?.scPwdIdNumber ? { scPwdIdNumber: compliance.scPwdIdNumber } : {}),
+          ...(compliance?.scPwdDiscount ? { scPwdDiscount: compliance.scPwdDiscount } : {}),
+        },
         payments: value.payments,
       },
       posProducts,
@@ -105,7 +113,7 @@ function POSPage() {
       })
 
       form.reset()
-      navigate({ to: '.', search: prev => ({ ...prev, orderId: undefined }), replace: true })
+      navigate({ to: '.', search: (prev: Record<string, unknown>) => ({ ...prev, orderId: undefined }), replace: true })
     } catch (error) {
       console.error('Sale failed', error)
     }
@@ -162,6 +170,7 @@ function POSPage() {
         })
         .filter(Boolean) as posItem[],
       payments: [],
+      compliance: {},
     }
   }, [orderId, activeOrders, posProducts])
 
@@ -170,7 +179,7 @@ function POSPage() {
     defaultValues,
     onSubmit: async ({ value }) => {
       if (user.vendorSession?.status !== SessionStatus.OPEN) return
-      if (value.payments.length > 0) await handleConfirm(value)
+      if (value.payments.length > 0) await handleConfirm(value, value.compliance)
       else await handlePayLater(value)
     },
   })

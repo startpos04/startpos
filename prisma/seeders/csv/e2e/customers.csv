@@ -1,0 +1,9 @@
+name,email,phone,taxId,address
+Walk-In Guest,,,WALK-IN,
+E2E Regular Customer,e2e.customer@test.com,+639190000001,,456 E2E Street Test City
+E2E SC Customer,e2e.sc@test.com,+639190000002,,789 Senior Ave Test City
+E2E Corporate Client,e2e.corporate@test.com,+639190000003,999-888-777-00000,1 Corporate Drive Test City
+E2E PWD Customer,e2e.pwd@test.com,+639190000004,,22 Accessibility Rd Test City
+E2E Loyalty Member,e2e.loyalty@test.com,+639190000005,,333 Barangay Lane Test City
+E2E Government Account,e2e.gov@test.com,+639190000006,000-111-222-00000,Office of the Mayor Test City
+E2E Catering Client,e2e.catering@test.com,+639190000007,555-444-333-00000,Catering Hall Blvd Test City

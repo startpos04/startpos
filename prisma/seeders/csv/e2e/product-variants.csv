@@ -1,0 +1,56 @@
+productId,productName,productType,categoryName,baseUnitAbbreviation,variantId,variantName,image,sku,price,costPrice,attributeType,taxCategory,lowStockThreshold
+e2e-prod-coffee,E2E Brewed Coffee,PHYSICAL_GOOD,E2E Beverages,ml,e2e-var-coffee-sm,Small (8oz),,E2E-COF-SM,8000,2500,SIZE,STANDARD,10
+e2e-prod-coffee,E2E Brewed Coffee,PHYSICAL_GOOD,E2E Beverages,ml,e2e-var-coffee-lg,Large (16oz),,E2E-COF-LG,12000,3500,SIZE,STANDARD,10
+e2e-prod-milktea,E2E Milk Tea,PHYSICAL_GOOD,E2E Beverages,ml,e2e-var-milktea,Standard (16oz),,E2E-MT-STD,13000,4000,SIZE,STANDARD,10
+e2e-prod-milktea,E2E Milk Tea,PHYSICAL_GOOD,E2E Beverages,ml,e2e-var-milktea-lg,Large (22oz),,E2E-MT-LG,16000,5500,SIZE,STANDARD,10
+e2e-prod-lemonade,E2E Fresh Lemonade,PHYSICAL_GOOD,E2E Beverages,ml,e2e-var-lemonade-reg,Regular (12oz),,E2E-LEM-REG,7000,1800,SIZE,STANDARD,10
+e2e-prod-lemonade,E2E Fresh Lemonade,PHYSICAL_GOOD,E2E Beverages,ml,e2e-var-lemonade-lg,Large (22oz),,E2E-LEM-LG,10000,2500,SIZE,STANDARD,10
+e2e-prod-soda,E2E House Soda,PHYSICAL_GOOD,E2E Beverages,ml,e2e-var-soda-orig,Original Flavor,,E2E-SODA-ORIG,5000,1200,FLAVOR,STANDARD,20
+e2e-prod-soda,E2E House Soda,PHYSICAL_GOOD,E2E Beverages,ml,e2e-var-soda-citrus,Citrus Burst,,E2E-SODA-CITS,5000,1200,FLAVOR,STANDARD,20
+e2e-prod-sisig,E2E Sisig Bowl,PHYSICAL_GOOD,E2E Main Dishes,pcs,e2e-var-sisig,Standard Sisig Bowl,,E2E-BOWL-SISIG,18500,7000,UNSPECIFIED,STANDARD,5
+e2e-prod-chicken,E2E Fried Chicken Meal,PHYSICAL_GOOD,E2E Main Dishes,pcs,e2e-var-chicken,1pc Chicken with Rice,,E2E-MEAL-CHKN,14500,5500,UNSPECIFIED,STANDARD,5
+e2e-prod-pork-ribs,E2E Pork Ribs Platter,PHYSICAL_GOOD,E2E Main Dishes,pcs,e2e-var-pork-ribs-half,Half Rack,,E2E-RIBS-HALF,32000,14000,PORTION,STANDARD,3
+e2e-prod-pork-ribs,E2E Pork Ribs Platter,PHYSICAL_GOOD,E2E Main Dishes,pcs,e2e-var-pork-ribs-full,Full Rack,,E2E-RIBS-FULL,58000,25000,PORTION,STANDARD,3
+e2e-prod-pasta,E2E Aglio Olio Pasta,PHYSICAL_GOOD,E2E Main Dishes,pcs,e2e-var-pasta-reg,Regular (200g),,E2E-PASTA-REG,16000,5500,PORTION,STANDARD,5
+e2e-prod-pasta,E2E Aglio Olio Pasta,PHYSICAL_GOOD,E2E Main Dishes,pcs,e2e-var-pasta-lg,Large (350g),,E2E-PASTA-LG,23000,8500,PORTION,STANDARD,5
+e2e-prod-burger,E2E Smash Burger,PHYSICAL_GOOD,E2E Main Dishes,pcs,e2e-var-burger-single,Single Patty,,E2E-BURG-SGL,17500,6500,PORTION,STANDARD,5
+e2e-prod-burger,E2E Smash Burger,PHYSICAL_GOOD,E2E Main Dishes,pcs,e2e-var-burger-double,Double Patty,,E2E-BURG-DBL,24000,10000,PORTION,STANDARD,5
+e2e-prod-halohalo,E2E Halo-Halo,PHYSICAL_GOOD,E2E Desserts,pcs,e2e-var-halohalo,Regular Halo-Halo,,E2E-DSCRT-HALO,9500,3500,UNSPECIFIED,STANDARD,5
+e2e-prod-leche-flan,E2E Leche Flan,PHYSICAL_GOOD,E2E Desserts,pcs,e2e-var-leche-flan-single,Single Serve,,E2E-FLAN-SGL,8500,3000,PORTION,STANDARD,5
+e2e-prod-leche-flan,E2E Leche Flan,PHYSICAL_GOOD,E2E Desserts,pcs,e2e-var-leche-flan-bilao,Bilao (12 pcs),,E2E-FLAN-BIL,95000,36000,PORTION,STANDARD,2
+e2e-prod-ice-cream,E2E Ube Ice Cream,PHYSICAL_GOOD,E2E Desserts,pcs,e2e-var-ice-cream-single,Single Scoop,,E2E-IC-SGL,6000,1800,FLAVOR,STANDARD,10
+e2e-prod-ice-cream,E2E Ube Ice Cream,PHYSICAL_GOOD,E2E Desserts,pcs,e2e-var-ice-cream-double,Double Scoop,,E2E-IC-DBL,10000,3200,FLAVOR,STANDARD,10
+e2e-prod-fries,E2E French Fries,PHYSICAL_GOOD,E2E Snacks,g,e2e-var-fries-bbq,BBQ Flavor,,E2E-FRY-BBQ,7500,2200,FLAVOR,STANDARD,10
+e2e-prod-fries,E2E French Fries,PHYSICAL_GOOD,E2E Snacks,g,e2e-var-fries-chz,Cheese Flavor,,E2E-FRY-CHZ,7500,2200,FLAVOR,STANDARD,10
+e2e-prod-fries,E2E French Fries,PHYSICAL_GOOD,E2E Snacks,g,e2e-var-fries-sour,Sour Cream Flavor,,E2E-FRY-SRC,8000,2500,FLAVOR,STANDARD,10
+e2e-prod-spring-roll,E2E Lumpiang Shanghai,PHYSICAL_GOOD,E2E Snacks,pcs,e2e-var-lumpia-6pcs,6 pcs,,E2E-LMP-6,9000,3200,PORTION,STANDARD,10
+e2e-prod-spring-roll,E2E Lumpiang Shanghai,PHYSICAL_GOOD,E2E Snacks,pcs,e2e-var-lumpia-12pcs,12 pcs,,E2E-LMP-12,16500,5800,PORTION,STANDARD,10
+e2e-prod-nachos,E2E Loaded Nachos,PHYSICAL_GOOD,E2E Snacks,pcs,e2e-var-nachos-reg,Regular,,E2E-NACH-REG,12000,4500,UNSPECIFIED,STANDARD,5
+e2e-prod-nachos,E2E Loaded Nachos,PHYSICAL_GOOD,E2E Snacks,pcs,e2e-var-nachos-sharing,Sharing Size,,E2E-NACH-SHR,22000,8000,UNSPECIFIED,STANDARD,5
+e2e-prod-zero-price,E2E Zero Price Product,PHYSICAL_GOOD,E2E Beverages,pcs,e2e-var-zero-price,Free Sample,,E2E-FREE-SMPL,0,0,UNSPECIFIED,STANDARD,0
+e2e-prod-unavailable,E2E Unavailable Product,PHYSICAL_GOOD,E2E Beverages,pcs,e2e-var-unavailable,Unavailable Item,,E2E-UNAVAIL,10000,3000,UNSPECIFIED,STANDARD,5
+e2e-prod-low-stock,E2E Low Stock Product,PHYSICAL_GOOD,E2E Snacks,pcs,e2e-var-low-stock,Low Stock Item,,E2E-LOW-STK,5000,1500,UNSPECIFIED,STANDARD,20
+e2e-prod-no-stock,E2E No Stock Product,PHYSICAL_GOOD,E2E Zero Stock,pcs,e2e-var-no-stock,Zero Stock Item,,E2E-NO-STK,8000,2000,UNSPECIFIED,STANDARD,5
+e2e-prod-with-recipe,E2E Product With Recipe,PHYSICAL_GOOD,E2E Main Dishes,pcs,e2e-var-with-recipe,Recipe Product,,E2E-RECIPE-MAIN,22000,8500,UNSPECIFIED,STANDARD,5
+e2e-prod-with-addon,E2E Product With Addons,PHYSICAL_GOOD,E2E Main Dishes,pcs,e2e-var-with-addon,Addon-Enabled Product,,E2E-ADDON-MAIN,16500,6000,UNSPECIFIED,STANDARD,5
+e2e-prod-exempt,E2E Tax Exempt Product,PHYSICAL_GOOD,E2E Snacks,pcs,e2e-var-exempt,Exempt Item,,E2E-EXEMPT,4000,1000,UNSPECIFIED,EXEMPT,5
+e2e-prod-zero-rated,E2E Zero Rated Product,PHYSICAL_GOOD,E2E Snacks,pcs,e2e-var-zero-rated,Zero Rated Export,,E2E-ZERO-RTD,6000,2000,UNSPECIFIED,ZERO_RATED,5
+e2e-prod-catering-pkg,E2E Catering Package A,BUNDLE,E2E Bundles,pcs,e2e-var-catering-pkg-50,50-Pax Package,,E2E-CAT-50PAX,750000,320000,PORTION,STANDARD,1
+e2e-prod-catering-pkg,E2E Catering Package A,BUNDLE,E2E Bundles,pcs,e2e-var-catering-pkg-100,100-Pax Package,,E2E-CAT-100PAX,1400000,600000,PORTION,STANDARD,1
+e2e-prod-setup-svc,E2E Event Setup Service,SERVICE,E2E Services,hr,e2e-var-setup-svc-half,Half-Day Setup (4hrs),,E2E-SVC-SETUP-4H,200000,0,PORTION,STANDARD,0
+e2e-prod-setup-svc,E2E Event Setup Service,SERVICE,E2E Services,hr,e2e-var-setup-svc-full,Full-Day Setup (8hrs),,E2E-SVC-SETUP-8H,350000,0,PORTION,STANDARD,0
+e2e-ing-rice,E2E Jasmine Rice,RAW_MATERIAL,E2E Raw Materials,g,e2e-var-rice,Jasmine Rice,,E2E-RAW-RICE,0,800,UNSPECIFIED,EXEMPT,100
+e2e-ing-chicken,E2E Raw Chicken,RAW_MATERIAL,E2E Raw Materials,kg,e2e-var-raw-chicken,Raw Chicken Portion,,E2E-RAW-CHKN,0,32000,UNSPECIFIED,EXEMPT,5
+e2e-ing-pork,E2E Raw Pork,RAW_MATERIAL,E2E Raw Materials,kg,e2e-var-raw-pork,Raw Pork Ribs,,E2E-RAW-PORK,0,38000,UNSPECIFIED,EXEMPT,5
+e2e-ing-sauce,E2E House Sauce,RAW_MATERIAL,E2E Raw Materials,ml,e2e-var-sauce,House Sauce,,E2E-RAW-SAUCE,0,1500,UNSPECIFIED,EXEMPT,50
+e2e-ing-pearls,E2E Tapioca Pearls,RAW_MATERIAL,E2E Raw Materials,g,e2e-var-pearls,Tapioca Pearls,,E2E-RAW-PEARLS,0,500,UNSPECIFIED,EXEMPT,100
+e2e-ing-pasta-dry,E2E Dry Pasta,RAW_MATERIAL,E2E Raw Materials,g,e2e-var-pasta-dry,Dry Spaghetti,,E2E-RAW-PASTA,0,1200,UNSPECIFIED,EXEMPT,200
+e2e-ing-ground-beef,E2E Ground Beef,RAW_MATERIAL,E2E Raw Materials,kg,e2e-var-ground-beef,Ground Beef (80/20),,E2E-RAW-BEEF,0,45000,UNSPECIFIED,EXEMPT,3
+e2e-ing-flour,E2E All-Purpose Flour,RAW_MATERIAL,E2E Raw Materials,kg,e2e-var-flour,All-Purpose Flour,,E2E-RAW-FLOUR,0,5500,UNSPECIFIED,EXEMPT,10
+e2e-ing-oil,E2E Cooking Oil,RAW_MATERIAL,E2E Raw Materials,ml,e2e-var-oil,Cooking Oil,,E2E-RAW-OIL,0,900,UNSPECIFIED,EXEMPT,200
+e2e-ing-lemon,E2E Fresh Lemons,RAW_MATERIAL,E2E Raw Materials,pcs,e2e-var-lemon,Fresh Lemon,,E2E-RAW-LEM,0,1500,UNSPECIFIED,EXEMPT,20
+e2e-ing-syrup,E2E Simple Syrup,RAW_MATERIAL,E2E Raw Materials,ml,e2e-var-syrup,Simple Syrup,,E2E-RAW-SYRUP,0,600,UNSPECIFIED,EXEMPT,100
+e2e-addon-extra-rice,E2E Extra Rice Addon,RAW_MATERIAL,E2E Add-ons,g,e2e-var-addon-rice,Extra Rice Scoop,,E2E-ADDON-RICE,0,800,UNSPECIFIED,STANDARD,50
+e2e-addon-egg,E2E Extra Egg Addon,PHYSICAL_GOOD,E2E Add-ons,pcs,e2e-var-addon-egg,Sunny Side Up Egg,,E2E-ADDON-EGG,0,700,UNSPECIFIED,STANDARD,20
+e2e-addon-cheese,E2E Extra Cheese Addon,PHYSICAL_GOOD,E2E Add-ons,pcs,e2e-var-addon-cheese,Cheese Slice,,E2E-ADDON-CHZ,0,1200,UNSPECIFIED,STANDARD,20
+e2e-addon-bacon,E2E Bacon Strip Addon,PHYSICAL_GOOD,E2E Add-ons,pcs,e2e-var-addon-bacon,Crispy Bacon Strip,,E2E-ADDON-BCN,0,2500,UNSPECIFIED,STANDARD,15

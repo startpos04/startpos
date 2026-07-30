@@ -1,11 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { AlertCircle, CheckCircle2, ClipboardList, FileCheck, Play, ShieldAlert, X } from 'lucide-react'
-import type { TaskStatus } from 'prisma/generated/prisma/enums'
+import { TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
 import Tab from '@/components/custom/tab'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { operationalTaskCollection } from '@/db/collections'
+import { inventoryCollection, inventoryMovementCollection, operationalTaskCollection } from '@/db/collections'
+import { dbTransaction } from '@/db/local-db-transaction'
 import { useAppForm } from '@/hooks/form'
 import type { MountProps } from '@/lib/mount-manager'
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
@@ -48,30 +49,160 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
   const handleStatusChange = async ({ nextStatus }: { nextStatus: TaskStatus }) => {
     const timestamp = new Date()
 
-    operationalTaskCollection.update(taskId, draft => {
-      draft.status = nextStatus
-      draft.updatedAt = timestamp
+    await dbTransaction(() => {
+      operationalTaskCollection.update(taskId, draft => {
+        draft.status = nextStatus
+        draft.updatedAt = timestamp
 
-      if (nextStatus === 'PENDING') draft.creatorId = user?.id
-      if (nextStatus === 'APPROVED') {
-        draft.approverId = user?.id
-        draft.approvedAt = timestamp
-      }
-      if (nextStatus === 'IN_PROGRESS') {
-        if (!draft.clerkId) draft.clerkId = user?.id
-        draft.inProgressAt = timestamp
-      }
-      if (nextStatus === 'FULFILLED') {
-        if (!draft.clerkId) draft.clerkId = user?.id
-        draft.fulfilledAt = timestamp
-      }
-      if (nextStatus === 'REVIEWED') {
-        draft.reviewerId = user?.id
-        draft.reviewedAt = timestamp
-      }
-      if (nextStatus === 'CANCELLED') {
-        draft.cancelerId = user?.id
-        draft.canceledAt = timestamp
+        if (nextStatus === 'PENDING') draft.creatorId = user?.id
+        if (nextStatus === 'APPROVED') {
+          draft.approverId = user?.id
+          draft.approvedAt = timestamp
+        }
+        if (nextStatus === 'IN_PROGRESS') {
+          if (!draft.clerkId) draft.clerkId = user?.id
+          draft.inProgressAt = timestamp
+        }
+        if (nextStatus === 'FULFILLED') {
+          if (!draft.clerkId) draft.clerkId = user?.id
+          draft.fulfilledAt = timestamp
+        }
+        if (nextStatus === 'REVIEWED') {
+          draft.reviewerId = user?.id
+          draft.reviewedAt = timestamp
+        }
+        if (nextStatus === 'CANCELLED') {
+          draft.cancelerId = user?.id
+          draft.canceledAt = timestamp
+        }
+      })
+
+      // --- INVENTORY SIDE EFFECTS ON FULFILLED ---
+      if (nextStatus === TaskStatus.FULFILLED && task) {
+        const meta = task.metadata
+        const variantId = meta?.variantId
+        const qty = meta?.suggestedQty ?? 0
+
+        if (variantId && qty > 0) {
+          const movementBase = {
+            id: crypto.randomUUID(),
+            variantId,
+            userId: user?.id,
+            transactionId: null,
+            purchaseId: null,
+            operationalTaskId: taskId,
+            businessId: user.business.id,
+            branchId: user.branch.id,
+            updatedAt: timestamp,
+            createdAt: timestamp,
+          }
+
+          if (task.type === TaskType.SHELF_REFILL) {
+            // Deduct from source location, add to target location
+            const sourceId = meta?.sourceLocationId
+            const targetId = meta?.targetLocationId
+
+            // Find existing source batch
+            const sourceBatch = [...inventoryCollection.values()].find(i => i.variantId === variantId && i.locationId === sourceId && i.quantity > 0)
+            if (sourceBatch) {
+              inventoryCollection.update(sourceBatch.id, draft => {
+                draft.quantity -= Math.min(qty, sourceBatch.quantity)
+              })
+            }
+
+            // Upsert target batch
+            const targetBatch = [...inventoryCollection.values()].find(i => i.variantId === variantId && i.locationId === targetId)
+            if (targetBatch) {
+              inventoryCollection.update(targetBatch.id, draft => {
+                draft.quantity += qty
+              })
+            } else {
+              inventoryCollection.insert({
+                id: crypto.randomUUID(),
+                variantId,
+                quantity: qty,
+                unitId: sourceBatch?.unitId ?? '',
+                batchNumber: 'SHELF-REFILL',
+                costPrice: sourceBatch?.costPrice ?? 0,
+                locationId: targetId ?? null,
+                expiryDate: null,
+                lastRestocked: timestamp,
+                businessId: user.business.id,
+                branchId: user.branch.id,
+                updatedAt: timestamp,
+                createdAt: timestamp,
+              })
+            }
+
+            inventoryMovementCollection.insert({
+              ...movementBase,
+              type: 'ADJUST',
+              quantity: qty,
+              unitId: sourceBatch?.unitId ?? '',
+              reason: `Shelf Refill: Task #${taskId.slice(0, 8)}`,
+              locationId: targetId ?? null,
+              targetBranchId: null,
+              inventoryId: targetBatch?.id ?? movementBase.id,
+            })
+          } else if (task.type === TaskType.BRANCH_TRANSFER) {
+            // Deduct from current branch inventory
+            const sourceBatch = [...inventoryCollection.values()].find(i => i.variantId === variantId && i.quantity > 0)
+            if (sourceBatch) {
+              inventoryCollection.update(sourceBatch.id, draft => {
+                draft.quantity -= Math.min(qty, sourceBatch.quantity)
+              })
+            }
+
+            inventoryMovementCollection.insert({
+              ...movementBase,
+              type: 'ADJUST',
+              quantity: qty,
+              unitId: sourceBatch?.unitId ?? '',
+              reason: `Branch Transfer: Task #${taskId.slice(0, 8)}`,
+              locationId: sourceBatch?.locationId ?? null,
+              targetBranchId: meta?.targetBranchId ?? null,
+              inventoryId: sourceBatch?.id ?? movementBase.id,
+            })
+          } else if (task.type === TaskType.STOCK_COUNT) {
+            // Reconcile: set inventory to the physically counted qty
+            const existingBatch = [...inventoryCollection.values()].find(i => i.variantId === variantId && i.locationId === (meta?.locationId ?? null))
+            if (existingBatch) {
+              const diff = qty - existingBatch.quantity
+              inventoryCollection.update(existingBatch.id, draft => {
+                draft.quantity = qty
+              })
+              inventoryMovementCollection.insert({
+                ...movementBase,
+                type: 'ADJUST',
+                quantity: Math.abs(diff),
+                unitId: existingBatch.unitId,
+                reason: `Stock Count Reconciliation: Task #${taskId.slice(0, 8)} (${diff >= 0 ? '+' : ''}${diff})`,
+                locationId: meta?.locationId ?? null,
+                targetBranchId: null,
+                inventoryId: existingBatch.id,
+              })
+            }
+          } else if (task.type === TaskType.WASTE_DISPOSAL) {
+            // Deduct the wasted quantity
+            const wasteLocationId = meta?.locationId ?? null
+            const batch = [...inventoryCollection.values()].find(i => i.variantId === variantId && i.locationId === wasteLocationId && i.quantity > 0)
+            if (batch) {
+              inventoryCollection.update(batch.id, draft => {
+                draft.quantity -= Math.min(qty, batch.quantity)
+              })
+              inventoryMovementCollection.insert({
+                ...movementBase,
+                type: 'OUT',
+                quantity: qty,
+                unitId: batch.unitId,
+                reason: `Waste Disposal: Task #${taskId.slice(0, 8)}`,
+                locationId: wasteLocationId,
+                targetBranchId: null,
+                inventoryId: batch.id,
+              })
+            }
+          }
+        }
       }
     })
   }

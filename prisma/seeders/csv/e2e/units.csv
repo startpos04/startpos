@@ -1,0 +1,15 @@
+name,abbreviation,type,conversionFactor,isBaseUnit
+Kilogram,kg,WEIGHT,1,true
+Gram,g,WEIGHT,0.001,false
+Pound,lb,WEIGHT,0.453592,false
+Piece,pcs,COUNT,1,true
+Box,box,COUNT,1,false
+Dozen,doz,COUNT,12,false
+Pack,pack,COUNT,1,false
+Liter,L,VOLUME,1,true
+Milliliter,ml,VOLUME,0.001,false
+Cup,cup,VOLUME_DRY,1,true
+Tablespoon,tbsp,VOLUME_DRY,0.0625,false
+Teaspoon,tsp,VOLUME_DRY,0.020833,false
+Minute,min,TIME,1,true
+Hour,hr,TIME,60,false

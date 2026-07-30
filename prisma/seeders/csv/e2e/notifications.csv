@@ -1,0 +1,10 @@
+id,userId,type,title,message,isRead,link,hoursAgo
+e2e-notif-unread-1,e2e-admin-1,COMPLIANCE_REMINDER,Shift Ended Without Reconciliation,Cashier Two closed their shift but did not reconcile. Please verify.,FALSE,/tasks/e2e-task-session-closed,1
+e2e-notif-unread-2,e2e-admin-1,LOW_STOCK,Low Stock Alert,E2E Low Stock Product is running critically low (3 units remaining).,FALSE,/ingredients,2
+e2e-notif-unread-3,e2e-admin-1,TASK_ASSIGNED,Task Requires Your Approval,A General Chore task has been submitted and is awaiting your approval.,FALSE,/tasks/e2e-task-pending,3
+e2e-notif-read-1,e2e-admin-1,TASK_ASSIGNED,Task Approved,Shelf Refill task has been approved and assigned to E2E Cashier One.,TRUE,/tasks/e2e-task-approved,6
+e2e-notif-read-2,e2e-admin-1,COMPLIANCE_REMINDER,Previous Shift Verified,Shift reconciliation has been verified and locked by supervisor.,TRUE,/tasks/e2e-task-reviewed,24
+e2e-notif-sup-1,e2e-supervisor-1,TASK_ASSIGNED,Task Fulfilled — Ready for Review,General Chore task has been marked fulfilled and is pending your review.,FALSE,/tasks/e2e-task-fulfilled,1
+e2e-notif-sup-2,e2e-supervisor-1,LOW_STOCK,Inventory Alert,Multiple ingredients are below their minimum stock thresholds.,TRUE,/ingredients,12
+e2e-notif-cash-1,e2e-cashier-1,TASK_ASSIGNED,Task Approved — Ready to Start,Your Shelf Refill task has been approved. You can now start working on it.,FALSE,/tasks/e2e-task-approved,2
+e2e-notif-cash-2,e2e-cashier-1,TASK_ASSIGNED,Task Completed,Your General Chore task has been reviewed and locked by the supervisor.,TRUE,/tasks/e2e-task-reviewed,26

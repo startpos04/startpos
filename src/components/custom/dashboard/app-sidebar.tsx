@@ -55,6 +55,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   )
 
   const { team, items } = React.useMemo(() => {
+    if (!user?.business) return { team: { name: APP_NAME, logo: <GalleryVerticalEndIcon />, plan: 'Guest' }, items: [] }
+
     const data = {
       team: {
         name: APP_NAME,
@@ -70,7 +72,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           items: [
             { title: 'Employees', url: '/employees' },
             { title: 'Products', url: '/products' },
-            user.business.businessType === BusinessType.RESTAURANT ? { title: 'Ingredients', url: '/ingredients' } : null,
+            { title: 'Purchases', url: '/purchases' },
+            user.business?.businessType === BusinessType.RESTAURANT ? { title: 'Ingredients', url: '/ingredients' } : null,
           ].filter(Boolean),
         },
         {

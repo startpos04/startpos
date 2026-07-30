@@ -27,6 +27,7 @@ export interface CreateSaleInput {
   compliance: {
     scPwdName?: string
     scPwdIdNumber?: number
+    scPwdDiscount?: number
   }
   customer: {
     customerReference: string | null
@@ -63,7 +64,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
 
     // Calculate total cost side using the dataset reduce block
     const totalDiscount = data.payments.reduce((total, { discount }) => total + (discount || 0), 0) || 0
-    const totalScPwdDiscount = data.payments.reduce((total, { scPwdDiscount }) => total + (scPwdDiscount || 0), 0) || 0
+    const totalScPwdDiscount = data.payments.reduce((total, { scPwdDiscount }) => total + (scPwdDiscount || 0), 0) || data.compliance.scPwdDiscount || 0
 
     const totalCost = data.items.reduce((acc, item) => {
       const product = dbProducts.find(p => p.id === item.product.id)!

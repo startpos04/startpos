@@ -1,0 +1,5 @@
+id,orderNumber,status,orderType,customerReference,hoursAgo
+e2e-order-pending,#E2E-000001,PENDING,DINE_IN,Table 5 — E2E Test,0
+e2e-order-preparing,#E2E-000002,PREPARING,DINE_IN,Table 8 — E2E Test,0
+e2e-order-served,#E2E-000100,SERVED,DINE_IN,Walk-In Guest,2
+e2e-order-served-2,#E2E-000101,SERVED,DINE_IN,E2E Corporate Client,5

@@ -35,7 +35,7 @@ export const calculateStats = (transactions: TransactionReport[]) => {
 
     // Aggregate Cashier
     if (!cashierMap[tx.cashierId]) {
-      cashierMap[tx.cashierId] = { name: tx.cashier.name || '', total: 0, count: 0 }
+      cashierMap[tx.cashierId] = { name: tx.cashier?.name || '', total: 0, count: 0 }
     }
 
     cashierMap[tx.cashierId]!.total += tx.totalAmount / 100

@@ -1,0 +1,11 @@
+id,purchaseId,variantId,quantity,unitAbbreviation,unitCost
+e2e-pi-1-chicken,e2e-purchase-1,e2e-var-raw-chicken,5,kg,32000
+e2e-pi-1-pork,e2e-purchase-1,e2e-var-raw-pork,3,kg,38000
+e2e-pi-1-rice,e2e-purchase-1,e2e-var-rice,5000,g,800
+e2e-pi-1-sauce,e2e-purchase-1,e2e-var-sauce,2000,ml,1500
+e2e-pi-1-flour,e2e-purchase-1,e2e-var-flour,10,kg,5500
+e2e-pi-1-oil,e2e-purchase-1,e2e-var-oil,3000,ml,900
+e2e-pi-2-pearls,e2e-purchase-2,e2e-var-pearls,3000,g,500
+e2e-pi-2-syrup,e2e-purchase-2,e2e-var-syrup,3000,ml,600
+e2e-pi-2-lemon,e2e-purchase-2,e2e-var-lemon,100,pcs,1500
+e2e-pi-2-beef,e2e-purchase-2,e2e-var-ground-beef,10,kg,45000

@@ -179,7 +179,6 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
   const product = products.find(p => p.id === productId)
 
   // Per-variant order item counts — supplemental live query
-  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
   const { data: orderItemCounts } = useLiveQuery(
     q =>
       q
@@ -200,6 +199,7 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
   if (!product) return <div className='p-6 text-center text-sm text-muted-foreground'>Product not found.</div>
 
   const totalSales = (orderItemCounts ?? []).reduce((acc, row) => acc + row.count, 0)
+  const totalStock = product.variants.reduce((acc, v) => acc + (v.inventory ?? []).reduce((s: number, inv: any) => s + inv.quantity, 0), 0)
   const prices = product.variants.map(v => v.price)
   const minPrice = Math.min(...prices)
   const maxPrice = Math.max(...prices)
@@ -309,6 +309,11 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
         <div>
           <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Price</p>
           <p className='text-sm font-black font-mono'>{minPrice === maxPrice ? PriceEngine.format(minPrice) : `${PriceEngine.format(minPrice)}+`}</p>
+        </div>
+        <div className='w-px h-6 bg-border' />
+        <div>
+          <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Stock</p>
+          <p className='text-sm font-black'>{totalStock}</p>
         </div>
         <div className='w-px h-6 bg-border' />
         <div>

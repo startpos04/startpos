@@ -1,0 +1,10 @@
+id,orderId,variantId,quantity,unitPrice,unitCost,unitAbbreviation
+e2e-oi-pending-1,e2e-order-pending,e2e-var-coffee-sm,2,8000,2500,pcs
+e2e-oi-pending-2,e2e-order-pending,e2e-var-sisig,1,18500,7000,pcs
+e2e-oi-preparing-1,e2e-order-preparing,e2e-var-chicken,1,14500,5500,pcs
+e2e-oi-preparing-2,e2e-order-preparing,e2e-var-halohalo,2,9500,3500,pcs
+e2e-oi-served-1,e2e-order-served,e2e-var-coffee-lg,2,12000,3500,pcs
+e2e-oi-served-2,e2e-order-served,e2e-var-halohalo,1,9500,3500,pcs
+e2e-oi-served-3,e2e-order-served,e2e-var-fries-bbq,1,7500,2200,pcs
+e2e-oi-served2-1,e2e-order-served-2,e2e-var-pork-ribs-full,1,58000,25000,pcs
+e2e-oi-served2-2,e2e-order-served-2,e2e-var-milktea,2,13000,4000,pcs

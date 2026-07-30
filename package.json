@@ -19,6 +19,9 @@
     "db:push": "dotenv -e .env -e .env.local -- prisma db push",
     "seed": "tsx --env-file=.env --env-file=.env.local ./prisma/seeders/index.ts",
     "reset": "tsx --env-file=.env --env-file=.env.local ./scripts/reset-db.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
     "docker:dev": "docker compose up --build --watch",
     "docker:down": "docker compose down",
     "docker:exec": "docker compose exec -it app"

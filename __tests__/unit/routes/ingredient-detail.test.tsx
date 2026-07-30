@@ -243,8 +243,8 @@ describe('IngredientDetailsSidebar — stat cards', () => {
     vi.mocked(fetchIngredients).mockReturnValue({ data: [ing], isLoading: false } as any)
     renderDialog(ing.id)
     await waitFor(() => {
-      // Stat card shows "Usage" header and "Recipes" sub-label
-      expect(screen.getByText('Usage')).toBeInTheDocument()
+      // Info row shows "Recipes" label with the usage count — appears multiple times (info row + tab)
+      expect(screen.getAllByText('Recipes').length).toBeGreaterThanOrEqual(1)
     })
   })
 

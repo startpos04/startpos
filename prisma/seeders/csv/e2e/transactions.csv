@@ -1,0 +1,3 @@
+id,invoiceNo,orderId,cashierId,type,totalAmount,totalCost,taxAmount,bufferRate,priceConfiguration,invoiceType,ptuNumber,ptuIssuedAt
+e2e-txn-served,SI-E2E-2026-000001,e2e-order-served,e2e-cashier-1,SALE,41000,9200,4393,20,INCLUSIVE,SALES_INVOICE,PTU-E2E-2026-001,01/01/2026
+e2e-txn-served-2,SI-E2E-2026-000002,e2e-order-served-2,e2e-cashier-1,SALE,84000,33000,9000,20,INCLUSIVE,SALES_INVOICE,PTU-E2E-2026-001,01/01/2026

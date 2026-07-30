@@ -1,0 +1,3 @@
+id,purchaseId,totalCost,notes,supplierName,operationalTaskId
+e2e-purchase-1,PO-E2E-2026-000001,462000,E2E weekly raw ingredient restock,E2E Primary Supplier,e2e-task-purchase-1
+e2e-purchase-2,PO-E2E-2026-000002,280000,E2E beverage ingredient restock — pearls syrup lemons,E2E Beverage Distributor,e2e-task-purchase-2

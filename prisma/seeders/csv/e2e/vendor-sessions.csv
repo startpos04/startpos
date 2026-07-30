@@ -1,0 +1,3 @@
+id,userId,status,openingCash,closingCash,expectedCash,verifiedCash,startTimeOffsetHrs,endTimeOffsetHrs,operationalTaskId
+e2e-session-open,e2e-cashier-1,OPEN,100000,,,,0,,e2e-task-session-open
+e2e-session-closed,e2e-cashier-2,CLOSED,100000,95000,120000,,-8,-0.5,e2e-task-session-closed

@@ -1,0 +1,13 @@
+id,type,status,notes,creatorId,approverId,clerkId,reviewerId,cancelerId,dueDateOffsetHrs,approvedAtOffsetHrs,inProgressAtOffsetHrs,fulfilledAtOffsetHrs,reviewedAtOffsetHrs,canceledAtOffsetHrs
+e2e-task-draft,GENERAL_CHORE,DRAFT,E2E Task — DRAFT status (cashier submits for approval),e2e-cashier-1,e2e-supervisor-1,e2e-cashier-1,,,+24,,,,,
+e2e-task-pending,GENERAL_CHORE,PENDING,E2E Task — PENDING status (supervisor approves or rejects),e2e-cashier-1,e2e-supervisor-1,e2e-cashier-1,,,+12,,,,,
+e2e-task-approved,SHELF_REFILL,APPROVED,E2E Task — APPROVED status (clerk starts work),e2e-supervisor-1,e2e-supervisor-1,e2e-cashier-1,,,0,-2,,,,
+e2e-task-in-progress,SHELF_REFILL,IN_PROGRESS,E2E Task — IN_PROGRESS status (clerk marks done),e2e-supervisor-1,e2e-supervisor-1,e2e-cashier-1,,,0,-3,-1,,,
+e2e-task-fulfilled,GENERAL_CHORE,FULFILLED,E2E Task — FULFILLED status (supervisor reviews and locks),e2e-cashier-2,e2e-supervisor-1,e2e-cashier-2,,,-4,-6,-5,-1,,
+e2e-task-reviewed,GENERAL_CHORE,REVIEWED,E2E Task — REVIEWED (terminal locked),e2e-cashier-2,e2e-supervisor-1,e2e-cashier-2,e2e-supervisor-1,,-24,-26,-25,-10,-2,
+e2e-task-cancelled,GENERAL_CHORE,CANCELLED,E2E Task — CANCELLED (terminal rejected),e2e-cashier-1,e2e-supervisor-1,e2e-cashier-1,,e2e-supervisor-1,-48,,,,,-47
+e2e-task-other-clerk,GENERAL_CHORE,APPROVED,E2E Task — assigned to cashier-2 only (cashier-1 cannot start),e2e-supervisor-1,e2e-supervisor-1,e2e-cashier-2,,,+6,-1,,,,
+e2e-task-session-open,CASH_RECONCILIATION,DRAFT,E2E open session reconciliation task,e2e-cashier-1,e2e-cashier-1,e2e-cashier-1,,,0,-1,-1,,,
+e2e-task-session-closed,CASH_RECONCILIATION,IN_PROGRESS,E2E closed unverified session reconciliation task,e2e-cashier-2,e2e-cashier-2,e2e-cashier-2,,,-8,-9,-8,,,
+e2e-task-purchase-1,GENERAL_CHORE,REVIEWED,E2E Purchase — raw ingredients restocking run,e2e-admin-1,e2e-admin-1,e2e-admin-1,e2e-admin-1,,-48,-50,-49,-48,-47,
+e2e-task-purchase-2,GENERAL_CHORE,REVIEWED,E2E Purchase — beverage ingredient top-up,e2e-admin-1,e2e-admin-1,e2e-admin-1,e2e-admin-1,,-24,-26,-25,-24,-23,

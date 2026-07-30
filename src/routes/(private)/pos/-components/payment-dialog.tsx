@@ -1,12 +1,15 @@
 import { useForm } from '@tanstack/react-form'
 import { useStore } from '@tanstack/react-store'
-import { Banknote, CreditCard, Plus, Trash2 } from 'lucide-react'
+import { Banknote, CreditCard, Plus, Trash2, UserCheck } from 'lucide-react'
 import { PaymentMethod } from 'prisma/generated/prisma/enums'
+import { useState } from 'react'
 import z from 'zod'
 import { LoadingPrompt } from '@/components/custom/prompt/loading-prompt'
 import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import MountManager from '@/lib/mount-manager'
@@ -37,12 +40,20 @@ interface PaymentDialogProps {
   open: boolean
   onClose: () => void
   total: number
-  onConfirm: (payments: PaymentLine[]) => void
+  onConfirm: (payments: PaymentLine[], compliance: { scPwdName?: string; scPwdIdNumber?: number; scPwdDiscount?: number }) => void
   onSave: () => void
   disabled?: boolean
 }
 
 export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialogProps) {
+  const [scPwdOpen, setScPwdOpen] = useState(false)
+  const [scPwdName, setScPwdName] = useState('')
+  const [scPwdId, setScPwdId] = useState('')
+  const [scPwdDiscount, setScPwdDiscount] = useState(0)
+
+  // SC/PWD discount is 20% of the pre-tax amount (PH law), entered in cents
+  const scPwdDiscountCents = Math.round(scPwdDiscount * 100)
+  const effectiveTotal = Math.max(total - scPwdDiscountCents, 0)
   const form = useForm({
     defaultValues: {
       payments: [{ id: '1', method: PaymentMethod.CASH, platform: 'cash', tendered: 0, referenceNo: '' }] as PaymentLine[],
@@ -55,7 +66,7 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
           .refine(
             payments => {
               const totalPaidCombined = payments.reduce((sum, item) => sum + item.tendered, 0)
-              return totalPaidCombined >= total
+              return totalPaidCombined >= effectiveTotal
             },
             { message: 'Combined payments must meet or exceed total bill amount' },
           ),
@@ -68,7 +79,11 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
         description: 'Finalizing dynamic split allocations and updating system registries. Please wait...',
       })
 
-      await onConfirm(value.payments)
+      await onConfirm(value.payments, {
+        ...(scPwdOpen && scPwdName.trim() ? { scPwdName: scPwdName.trim() } : {}),
+        ...(scPwdOpen && scPwdId.trim() ? { scPwdIdNumber: Number(scPwdId.trim()) } : {}),
+        ...(scPwdOpen && scPwdDiscountCents > 0 ? { scPwdDiscount: scPwdDiscountCents } : {}),
+      })
 
       MountManager.close(modalId)
       onClose()
@@ -79,18 +94,22 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
   const paymentsState = useStore(form.store, state => state.values.payments)
   const isFormValid = useStore(form.store, state => state.isValid)
 
-  // Live aggregated computations
+  // Live aggregated computations — use effectiveTotal (post SC/PWD discount)
   const totalPaidCombined = paymentsState.reduce((sum, item) => sum + item.tendered, 0)
-  const remainingDue = total - totalPaidCombined
+  const remainingDue = effectiveTotal - totalPaidCombined
   const isOverpaid = remainingDue < 0
 
   const runningChange = isOverpaid ? Math.abs(remainingDue) : 0
   const runningBalance = isOverpaid ? 0 : remainingDue
 
-  const canSubmit = isFormValid && totalPaidCombined >= total
+  const canSubmit = isFormValid && totalPaidCombined >= effectiveTotal
 
   const handleClose = () => {
     onClose()
+    setScPwdOpen(false)
+    setScPwdName('')
+    setScPwdId('')
+    setScPwdDiscount(0)
     form.reset()
   }
 
@@ -250,12 +269,70 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
 
           <hr className='border-border/60 my-2' />
 
+          {/* SC/PWD Discount — BIR-required compliance section */}
+          <Collapsible open={scPwdOpen} onOpenChange={setScPwdOpen}>
+            <CollapsibleTrigger asChild>
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                className={cn(
+                  'w-full gap-2 rounded-xl border-dashed justify-between',
+                  scPwdOpen && 'border-solid border-amber-300 bg-amber-50/50 text-amber-700',
+                )}
+              >
+                <span className='flex items-center gap-2 font-bold'>
+                  <UserCheck className='w-3.5 h-3.5' /> SC / PWD Discount
+                </span>
+                <span className='text-[10px] text-muted-foreground font-normal'>BIR required</span>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className='space-y-3 pt-3 animate-in slide-in-from-top-1 duration-150'>
+              <div className='p-3.5 rounded-xl border border-amber-200 bg-amber-50/40 space-y-3'>
+                <p className='text-[10px] text-amber-700 font-semibold uppercase tracking-wider'>PH Law: 20% discount + VAT exempt. ID must be recorded.</p>
+                <div className='grid grid-cols-2 gap-2'>
+                  <div className='space-y-1'>
+                    <Label className='text-xs'>Beneficiary Name</Label>
+                    <Input placeholder='Juan dela Cruz' value={scPwdName} onChange={e => setScPwdName(e.target.value)} className='h-9 rounded-lg text-xs' />
+                  </div>
+                  <div className='space-y-1'>
+                    <Label className='text-xs'>SC / PWD ID Number</Label>
+                    <Input placeholder='e.g. 1234567890' value={scPwdId} onChange={e => setScPwdId(e.target.value)} className='h-9 rounded-lg text-xs' />
+                  </div>
+                </div>
+                <div className='space-y-1'>
+                  <Label className='text-xs'>Discount Amount ({PriceEngine.format(scPwdDiscountCents)} applied)</Label>
+                  <Input
+                    type='number'
+                    placeholder='0.00'
+                    value={scPwdDiscount === 0 ? '' : scPwdDiscount}
+                    onChange={e => setScPwdDiscount(Number(e.target.value))}
+                    className='h-9 rounded-lg text-xs font-mono'
+                  />
+                  <p className='text-[10px] text-muted-foreground'>Enter discount in pesos. Suggested: {PriceEngine.format(Math.round(total * 0.2))}</p>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
           {/* Bottom Consolidated Summary Block */}
           <div className='bg-muted/40 p-4 rounded-2xl border border-border/80 space-y-2.5 text-sm font-bold'>
             <div className='flex justify-between items-center text-muted-foreground'>
               <span>Total Bill:</span>
               <span className='text-foreground font-black text-3xl'>{PriceEngine.format(total)}</span>
             </div>
+            {scPwdOpen && scPwdDiscountCents > 0 && (
+              <div className='flex justify-between items-center text-amber-600'>
+                <span>SC/PWD Discount:</span>
+                <span className='text-base font-black'>− {PriceEngine.format(scPwdDiscountCents)}</span>
+              </div>
+            )}
+            {scPwdOpen && scPwdDiscountCents > 0 && (
+              <div className='flex justify-between items-center text-foreground border-t pt-1.5'>
+                <span>Amount Due:</span>
+                <span className='text-xl font-black'>{PriceEngine.format(effectiveTotal)}</span>
+              </div>
+            )}
             <div className='flex justify-between items-center text-muted-foreground'>
               <span>Total Tendered:</span>
               <span className='text-foreground text-base font-black'>{PriceEngine.format(totalPaidCombined)}</span>

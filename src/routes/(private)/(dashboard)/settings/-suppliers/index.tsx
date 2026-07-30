@@ -46,7 +46,6 @@ export function SuppliersPage() {
         description='Manage procurement vendors, supply channels, and external distribution partners.'
         data={data}
         isFetching={isLoading}
-        className='px-4'
         views={{
           list: [{ type: 'table', columns }],
         }}

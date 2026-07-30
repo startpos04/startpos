@@ -39,10 +39,11 @@ export const CartAside = withForm({
       if (isProcessing.current) return
       MountManager.show(PaymentDialog, {
         total,
-        onConfirm: async payments => {
+        onConfirm: async (payments, compliance) => {
           isProcessing.current = true
           try {
             form.setFieldValue('payments', payments)
+            form.setFieldValue('compliance', compliance ?? {})
             await form.handleSubmit()
           } finally {
             isProcessing.current = false
@@ -52,6 +53,7 @@ export const CartAside = withForm({
           isProcessing.current = true
           try {
             form.setFieldValue('payments', [])
+            form.setFieldValue('compliance', {})
             await form.handleSubmit()
           } finally {
             isProcessing.current = false
@@ -62,7 +64,7 @@ export const CartAside = withForm({
 
     const handleNewOrder = () => {
       form.reset()
-      navigate({ to: '.', search: prev => ({ ...prev, orderId: undefined }), replace: true })
+      navigate({ to: '.', search: (prev: Record<string, unknown>) => ({ ...prev, orderId: undefined }), replace: true })
     }
 
     const handleAddItem = () => {

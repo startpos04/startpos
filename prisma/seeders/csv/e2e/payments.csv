@@ -1,0 +1,4 @@
+id,transactionId,method,amount,tendered,change
+e2e-pay-served,e2e-txn-served,CASH,41000,50000,9000
+e2e-pay-served2-cash,e2e-txn-served-2,CASH,40000,40000,0
+e2e-pay-served2-card,e2e-txn-served-2,CREDIT,44000,44000,0

@@ -112,7 +112,8 @@ export const AuthEngine = {
 
     try {
       if (typeof navigator !== 'undefined' && navigator.onLine) {
-        await authClient.signOut({}, params)
+        // Strip the callbacks — we call onSuccess ourselves below so it fires exactly once.
+        await authClient.signOut({})
       }
     } catch (error) {
       console.error('AuthEngine: Server signOut failed', error)

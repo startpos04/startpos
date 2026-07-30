@@ -213,7 +213,8 @@ describe('ProductDetailsSidebar — header', () => {
     vi.mocked(useLiveQuery).mockReturnValue({ data: [product], isLoading: false } as any)
     renderDialog(product.id)
     await waitFor(() => {
-      expect(screen.getByText('Espresso Drinks')).toBeInTheDocument()
+      // Category name appears in both the header badge and the info row badge
+      expect(screen.getAllByText('Espresso Drinks').length).toBeGreaterThanOrEqual(1)
     })
   })
 

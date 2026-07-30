@@ -21,6 +21,8 @@ import { Route as privateOrdersIndexRouteImport } from './routes/(private)/order
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as privatedashboardNotificationsRouteImport } from './routes/(private)/(dashboard)/notifications'
 import { Route as privatedashboardadminRouteRouteImport } from './routes/(private)/(dashboard)/(admin)/route'
+import { Route as privatedashboardsupervisorRouteRouteImport } from './routes/(private)/(dashboard)/(supervisor)/route'
+import { Route as privatedashboardsettingsRouteRouteImport } from './routes/(private)/(dashboard)/settings/route'
 import { Route as privateTasksCreateIndexRouteImport } from './routes/(private)/tasks/create/index'
 import { Route as privateTasksTaskIdIndexRouteImport } from './routes/(private)/tasks/$taskId/index'
 import { Route as privatedashboardSettingsIndexRouteImport } from './routes/(private)/(dashboard)/settings/index'
@@ -30,7 +32,10 @@ import { Route as privatedashboardadminProductsIndexRouteImport } from './routes
 import { Route as privatedashboardadminIngredientsIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/ingredients/index'
 import { Route as privatedashboardadminEmployeesIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/index'
 import { Route as privatedashboardadminProductsCreateIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/products/create/index'
+import { Route as privatedashboardadminPurchasesIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/purchases/index'
+import { Route as privatedashboardadminPurchasesCreateIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/purchases/create/index'
 import { Route as privatedashboardadminProductsProductIdIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/products/$productId/index'
+import { Route as privatedashboardadminPurchasesPurchaseIdIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/purchases/$purchaseId/index'
 import { Route as privatedashboardadminIngredientsCreateIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/ingredients/create/index'
 import { Route as privatedashboardadminIngredientsIngredientIdIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/ingredients/$ingredientId/index'
 import { Route as privatedashboardadminEmployeesCreateIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/create/index'
@@ -94,6 +99,16 @@ const privatedashboardadminRouteRoute =
     id: '/(admin)',
     getParentRoute: () => privatedashboardRouteRoute,
   } as any)
+const privatedashboardsupervisorRouteRoute =
+  privatedashboardsupervisorRouteRouteImport.update({
+    id: '/(supervisor)',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardsettingsRouteRoute =
+  privatedashboardsettingsRouteRouteImport.update({
+    id: '/settings',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
 const privateTasksCreateIndexRoute = privateTasksCreateIndexRouteImport.update({
   id: '/tasks/create/',
   path: '/tasks/create/',
@@ -108,19 +123,19 @@ const privatedashboardSettingsIndexRoute =
   privatedashboardSettingsIndexRouteImport.update({
     id: '/settings/',
     path: '/settings/',
-    getParentRoute: () => privatedashboardRouteRoute,
+    getParentRoute: () => privatedashboardsettingsRouteRoute,
   } as any)
 const privatedashboardsupervisorSalesReportsIndexRoute =
   privatedashboardsupervisorSalesReportsIndexRouteImport.update({
     id: '/(supervisor)/sales-reports/',
     path: '/sales-reports/',
-    getParentRoute: () => privatedashboardRouteRoute,
+    getParentRoute: () => privatedashboardsupervisorRouteRoute,
   } as any)
 const privatedashboardsupervisorInventoryReportsIndexRoute =
   privatedashboardsupervisorInventoryReportsIndexRouteImport.update({
     id: '/(supervisor)/inventory-reports/',
     path: '/inventory-reports/',
-    getParentRoute: () => privatedashboardRouteRoute,
+    getParentRoute: () => privatedashboardsupervisorRouteRoute,
   } as any)
 const privatedashboardadminProductsIndexRoute =
   privatedashboardadminProductsIndexRouteImport.update({
@@ -144,6 +159,24 @@ const privatedashboardadminProductsCreateIndexRoute =
   privatedashboardadminProductsCreateIndexRouteImport.update({
     id: '/products/create/',
     path: '/products/create/',
+    getParentRoute: () => privatedashboardadminRouteRoute,
+  } as any)
+const privatedashboardadminPurchasesIndexRoute =
+  privatedashboardadminPurchasesIndexRouteImport.update({
+    id: '/purchases/',
+    path: '/purchases/',
+    getParentRoute: () => privatedashboardadminRouteRoute,
+  } as any)
+const privatedashboardadminPurchasesCreateIndexRoute =
+  privatedashboardadminPurchasesCreateIndexRouteImport.update({
+    id: '/purchases/create/',
+    path: '/purchases/create/',
+    getParentRoute: () => privatedashboardadminRouteRoute,
+  } as any)
+const privatedashboardadminPurchasesPurchaseIdIndexRoute =
+  privatedashboardadminPurchasesPurchaseIdIndexRouteImport.update({
+    id: '/purchases/$purchaseId/',
+    path: '/purchases/$purchaseId/',
     getParentRoute: () => privatedashboardadminRouteRoute,
   } as any)
 const privatedashboardadminProductsProductIdIndexRoute =
@@ -199,6 +232,9 @@ export interface FileRoutesByFullPath {
   '/ingredients/$ingredientId/': typeof privatedashboardadminIngredientsIngredientIdIndexRoute
   '/ingredients/create/': typeof privatedashboardadminIngredientsCreateIndexRoute
   '/products/$productId/': typeof privatedashboardadminProductsProductIdIndexRoute
+  '/purchases/': typeof privatedashboardadminPurchasesIndexRoute
+  '/purchases/create/': typeof privatedashboardadminPurchasesCreateIndexRoute
+  '/purchases/$purchaseId/': typeof privatedashboardadminPurchasesPurchaseIdIndexRoute
   '/products/create/': typeof privatedashboardadminProductsCreateIndexRoute
 }
 export interface FileRoutesByTo {
@@ -223,6 +259,9 @@ export interface FileRoutesByTo {
   '/ingredients/$ingredientId': typeof privatedashboardadminIngredientsIngredientIdIndexRoute
   '/ingredients/create': typeof privatedashboardadminIngredientsCreateIndexRoute
   '/products/$productId': typeof privatedashboardadminProductsProductIdIndexRoute
+  '/purchases': typeof privatedashboardadminPurchasesIndexRoute
+  '/purchases/create': typeof privatedashboardadminPurchasesCreateIndexRoute
+  '/purchases/$purchaseId': typeof privatedashboardadminPurchasesPurchaseIdIndexRoute
   '/products/create': typeof privatedashboardadminProductsCreateIndexRoute
 }
 export interface FileRoutesById {
@@ -234,6 +273,8 @@ export interface FileRoutesById {
   '/(public)/login': typeof publicLoginRoute
   '/(public)/': typeof publicIndexRoute
   '/(private)/(dashboard)/(admin)': typeof privatedashboardadminRouteRouteWithChildren
+  '/(private)/(dashboard)/(supervisor)': typeof privatedashboardsupervisorRouteRouteWithChildren
+  '/(private)/(dashboard)/settings': typeof privatedashboardsettingsRouteRouteWithChildren
   '/(private)/(dashboard)/notifications': typeof privatedashboardNotificationsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/(private)/orders/': typeof privateOrdersIndexRoute
@@ -253,6 +294,9 @@ export interface FileRoutesById {
   '/(private)/(dashboard)/(admin)/ingredients/create/': typeof privatedashboardadminIngredientsCreateIndexRoute
   '/(private)/(dashboard)/(admin)/products/$productId/': typeof privatedashboardadminProductsProductIdIndexRoute
   '/(private)/(dashboard)/(admin)/products/create/': typeof privatedashboardadminProductsCreateIndexRoute
+  '/(private)/(dashboard)/(admin)/purchases/': typeof privatedashboardadminPurchasesIndexRoute
+  '/(private)/(dashboard)/(admin)/purchases/create/': typeof privatedashboardadminPurchasesCreateIndexRoute
+  '/(private)/(dashboard)/(admin)/purchases/$purchaseId/': typeof privatedashboardadminPurchasesPurchaseIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -279,6 +323,9 @@ export interface FileRouteTypes {
     | '/ingredients/create/'
     | '/products/$productId/'
     | '/products/create/'
+    | '/purchases/'
+    | '/purchases/create/'
+    | '/purchases/$purchaseId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/unauthorized'
@@ -303,6 +350,9 @@ export interface FileRouteTypes {
     | '/ingredients/create'
     | '/products/$productId'
     | '/products/create'
+    | '/purchases'
+    | '/purchases/create'
+    | '/purchases/$purchaseId'
   id:
     | '__root__'
     | '/(private)'
@@ -312,6 +362,8 @@ export interface FileRouteTypes {
     | '/(public)/login'
     | '/(public)/'
     | '/(private)/(dashboard)/(admin)'
+    | '/(private)/(dashboard)/(supervisor)'
+    | '/(private)/(dashboard)/settings'
     | '/(private)/(dashboard)/notifications'
     | '/api/auth/$'
     | '/(private)/orders/'
@@ -331,6 +383,9 @@ export interface FileRouteTypes {
     | '/(private)/(dashboard)/(admin)/ingredients/create/'
     | '/(private)/(dashboard)/(admin)/products/$productId/'
     | '/(private)/(dashboard)/(admin)/products/create/'
+    | '/(private)/(dashboard)/(admin)/purchases/'
+    | '/(private)/(dashboard)/(admin)/purchases/create/'
+    | '/(private)/(dashboard)/(admin)/purchases/$purchaseId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -426,6 +481,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardadminRouteRouteImport
       parentRoute: typeof privatedashboardRouteRoute
     }
+    '/(private)/(dashboard)/(supervisor)': {
+      id: '/(private)/(dashboard)/(supervisor)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof privatedashboardsupervisorRouteRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/settings': {
+      id: '/(private)/(dashboard)/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof privatedashboardsettingsRouteRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
     '/(private)/tasks/create/': {
       id: '/(private)/tasks/create/'
       path: '/tasks/create'
@@ -445,21 +514,21 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings/'
       preLoaderRoute: typeof privatedashboardSettingsIndexRouteImport
-      parentRoute: typeof privatedashboardRouteRoute
+      parentRoute: typeof privatedashboardsettingsRouteRoute
     }
     '/(private)/(dashboard)/(supervisor)/sales-reports/': {
       id: '/(private)/(dashboard)/(supervisor)/sales-reports/'
       path: '/sales-reports'
       fullPath: '/sales-reports/'
       preLoaderRoute: typeof privatedashboardsupervisorSalesReportsIndexRouteImport
-      parentRoute: typeof privatedashboardRouteRoute
+      parentRoute: typeof privatedashboardsupervisorRouteRoute
     }
     '/(private)/(dashboard)/(supervisor)/inventory-reports/': {
       id: '/(private)/(dashboard)/(supervisor)/inventory-reports/'
       path: '/inventory-reports'
       fullPath: '/inventory-reports/'
       preLoaderRoute: typeof privatedashboardsupervisorInventoryReportsIndexRouteImport
-      parentRoute: typeof privatedashboardRouteRoute
+      parentRoute: typeof privatedashboardsupervisorRouteRoute
     }
     '/(private)/(dashboard)/(admin)/products/': {
       id: '/(private)/(dashboard)/(admin)/products/'
@@ -524,6 +593,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardadminEmployeesEmployeeIdIndexRouteImport
       parentRoute: typeof privatedashboardadminRouteRoute
     }
+    '/(private)/(dashboard)/(admin)/purchases/': {
+      id: '/(private)/(dashboard)/(admin)/purchases/'
+      path: '/purchases'
+      fullPath: '/purchases/'
+      preLoaderRoute: typeof privatedashboardadminPurchasesIndexRouteImport
+      parentRoute: typeof privatedashboardadminRouteRoute
+    }
+    '/(private)/(dashboard)/(admin)/purchases/create/': {
+      id: '/(private)/(dashboard)/(admin)/purchases/create/'
+      path: '/purchases/create'
+      fullPath: '/purchases/create/'
+      preLoaderRoute: typeof privatedashboardadminPurchasesCreateIndexRouteImport
+      parentRoute: typeof privatedashboardadminRouteRoute
+    }
+    '/(private)/(dashboard)/(admin)/purchases/$purchaseId/': {
+      id: '/(private)/(dashboard)/(admin)/purchases/$purchaseId/'
+      path: '/purchases/$purchaseId'
+      fullPath: '/purchases/$purchaseId/'
+      preLoaderRoute: typeof privatedashboardadminPurchasesPurchaseIdIndexRouteImport
+      parentRoute: typeof privatedashboardadminRouteRoute
+    }
   }
 }
 
@@ -537,6 +627,9 @@ interface privatedashboardadminRouteRouteChildren {
   privatedashboardadminIngredientsCreateIndexRoute: typeof privatedashboardadminIngredientsCreateIndexRoute
   privatedashboardadminProductsProductIdIndexRoute: typeof privatedashboardadminProductsProductIdIndexRoute
   privatedashboardadminProductsCreateIndexRoute: typeof privatedashboardadminProductsCreateIndexRoute
+  privatedashboardadminPurchasesIndexRoute: typeof privatedashboardadminPurchasesIndexRoute
+  privatedashboardadminPurchasesCreateIndexRoute: typeof privatedashboardadminPurchasesCreateIndexRoute
+  privatedashboardadminPurchasesPurchaseIdIndexRoute: typeof privatedashboardadminPurchasesPurchaseIdIndexRoute
 }
 
 const privatedashboardadminRouteRouteChildren: privatedashboardadminRouteRouteChildren =
@@ -559,6 +652,10 @@ const privatedashboardadminRouteRouteChildren: privatedashboardadminRouteRouteCh
       privatedashboardadminProductsProductIdIndexRoute,
     privatedashboardadminProductsCreateIndexRoute:
       privatedashboardadminProductsCreateIndexRoute,
+    privatedashboardadminPurchasesIndexRoute:
+      privatedashboardadminPurchasesIndexRoute,
+    privatedashboardadminPurchasesCreateIndexRoute:
+      privatedashboardadminPurchasesCreateIndexRoute,
   }
 
 const privatedashboardadminRouteRouteWithChildren =
@@ -566,22 +663,50 @@ const privatedashboardadminRouteRouteWithChildren =
     privatedashboardadminRouteRouteChildren,
   )
 
-interface privatedashboardRouteRouteChildren {
-  privatedashboardadminRouteRoute: typeof privatedashboardadminRouteRouteWithChildren
-  privatedashboardNotificationsRoute: typeof privatedashboardNotificationsRoute
-  privatedashboardSettingsIndexRoute: typeof privatedashboardSettingsIndexRoute
+interface privatedashboardsupervisorRouteRouteChildren {
   privatedashboardsupervisorInventoryReportsIndexRoute: typeof privatedashboardsupervisorInventoryReportsIndexRoute
   privatedashboardsupervisorSalesReportsIndexRoute: typeof privatedashboardsupervisorSalesReportsIndexRoute
 }
 
+const privatedashboardsupervisorRouteRouteChildren: privatedashboardsupervisorRouteRouteChildren =
+  {
+    privatedashboardsupervisorInventoryReportsIndexRoute:
+      privatedashboardsupervisorInventoryReportsIndexRoute,
+    privatedashboardsupervisorSalesReportsIndexRoute:
+      privatedashboardsupervisorSalesReportsIndexRoute,
+  }
+
+const privatedashboardsupervisorRouteRouteWithChildren =
+  privatedashboardsupervisorRouteRoute._addFileChildren(
+    privatedashboardsupervisorRouteRouteChildren,
+  )
+
+interface privatedashboardsettingsRouteRouteChildren {
+  privatedashboardSettingsIndexRoute: typeof privatedashboardSettingsIndexRoute
+}
+
+const privatedashboardsettingsRouteRouteChildren: privatedashboardsettingsRouteRouteChildren =
+  {
+    privatedashboardSettingsIndexRoute: privatedashboardSettingsIndexRoute,
+  }
+
+const privatedashboardsettingsRouteRouteWithChildren =
+  privatedashboardsettingsRouteRoute._addFileChildren(
+    privatedashboardsettingsRouteRouteChildren,
+  )
+
+interface privatedashboardRouteRouteChildren {
+  privatedashboardadminRouteRoute: typeof privatedashboardadminRouteRouteWithChildren
+  privatedashboardsupervisorRouteRoute: typeof privatedashboardsupervisorRouteRouteWithChildren
+  privatedashboardsettingsRouteRoute: typeof privatedashboardsettingsRouteRouteWithChildren
+  privatedashboardNotificationsRoute: typeof privatedashboardNotificationsRoute
+}
+
 const privatedashboardRouteRouteChildren: privatedashboardRouteRouteChildren = {
   privatedashboardadminRouteRoute: privatedashboardadminRouteRouteWithChildren,
+  privatedashboardsupervisorRouteRoute: privatedashboardsupervisorRouteRouteWithChildren,
+  privatedashboardsettingsRouteRoute: privatedashboardsettingsRouteRouteWithChildren,
   privatedashboardNotificationsRoute: privatedashboardNotificationsRoute,
-  privatedashboardSettingsIndexRoute: privatedashboardSettingsIndexRoute,
-  privatedashboardsupervisorInventoryReportsIndexRoute:
-    privatedashboardsupervisorInventoryReportsIndexRoute,
-  privatedashboardsupervisorSalesReportsIndexRoute:
-    privatedashboardsupervisorSalesReportsIndexRoute,
 }
 
 const privatedashboardRouteRouteWithChildren =
