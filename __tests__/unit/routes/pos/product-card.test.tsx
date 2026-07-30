@@ -44,7 +44,7 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { TaxCategory } from 'prisma/generated/prisma/enums'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { makeId, makeInventoryRecord, makePosProduct, makePosVariant, seedMockUser, resetMockUser } from '#tests/helpers'
-import type { posItem } from '@/lib/conversion/inventory-engine'
+import type { posItem } from '@/lib/conversion/pos-stock-engine'
 
 // ---------------------------------------------------------------------------
 // Mock: @tanstack/react-router — preserve all exports, override hooks only

@@ -1,7 +1,9 @@
 import { SequenceType } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
 import { inventoryCollection, inventoryMovementCollection, productVariantCollection, purchaseCollection, purchaseItemCollection } from '@/db/collections'
+// inventoryCollection + inventoryMovementCollection are passed to InventoryEngine — kept for the pass-through
 import { dbTransaction } from '@/db/local-db-transaction'
+import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import { authStore } from '@/store/auth-store'
 import { fetchStructuredId } from './fetch-structured-id'
 
@@ -61,60 +63,26 @@ export const createPurchase = async (data: CreatePurchaseInput) => {
           draft.costPrice = item.unitCost
         })
       }
-
-      // 4. Upsert inventory batch (batch keyed by PO number so each purchase is its own batch)
-      const batchNumber = `PO-${structuredId}`
-      const existingBatch = [...inventoryCollection.values()].find(i => i.variantId === item.variantId && i.batchNumber === batchNumber)
-
-      let inventoryId: string
-
-      if (existingBatch) {
-        inventoryId = existingBatch.id
-        inventoryCollection.update(inventoryId, draft => {
-          draft.quantity += item.quantity
-          draft.costPrice = item.unitCost
-          draft.lastRestocked = new Date()
-        })
-      } else {
-        inventoryId = crypto.randomUUID()
-        inventoryCollection.insert({
-          id: inventoryId,
-          variantId: item.variantId,
-          quantity: item.quantity,
-          unitId: item.unitId,
-          batchNumber,
-          costPrice: item.unitCost,
-          locationId: user.branch.id,
-          expiryDate: null,
-          lastRestocked: new Date(),
-          businessId: user.business.id,
-          branchId: user.branch.id,
-          updatedAt: new Date(),
-          createdAt: new Date(),
-        })
-      }
-
-      // 5. Create audit movement (IN)
-      inventoryMovementCollection.insert({
-        id: crypto.randomUUID(),
-        variantId: item.variantId,
-        inventoryId,
-        userId: user?.id,
-        quantity: item.quantity,
-        unitId: item.unitId,
-        type: 'IN',
-        reason: `${data.notes || 'Purchase Order'}: ${structuredId}`,
-        transactionId: null,
-        targetBranchId: null,
-        purchaseId,
-        locationId: user.branch.id,
-        businessId: user.business.id,
-        branchId: user.branch.id,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-        operationalTaskId: null,
-      })
     }
+
+    // 4. Delegate all inventory mutations to InventoryEngine (single owner)
+    InventoryEngine.applyPurchaseReceipt({
+      purchaseId,
+      structuredId,
+      items: data.items.map(i => ({
+        variantId: i.variantId,
+        quantity: i.quantity,
+        unitId: i.unitId,
+        unitCost: i.unitCost,
+      })),
+      inventoryCollection,
+      movementCollection: inventoryMovementCollection,
+      ctx: {
+        userId: user.id,
+        branchId: user.branch.id,
+        businessId: user.business.id,
+      },
+    })
 
     return { purchaseId, structuredId }
   })

@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { makeId, makePosItem, makePosProduct, makePosVariant } from '#tests/helpers'
-import { InventoryEngine, type posItem } from '@/lib/conversion/inventory-engine'
+import { PosStockEngine, type posItem } from '@/lib/conversion/pos-stock-engine'
 
 // ---------------------------------------------------------------------------
 // Helpers: build component-based variants inline
@@ -53,7 +53,7 @@ describe('InventoryEngine.getReservedMap', () => {
     const product = makePosProduct({ variants: [variant] })
     const item = makePosItem({ product, variant: variant as any, quantity: 3 })
 
-    const reserved = InventoryEngine.getReservedMap([item])
+    const reserved = PosStockEngine.getReservedMap([item])
 
     expect(reserved[variantId]).toBe(3)
   })
@@ -66,7 +66,7 @@ describe('InventoryEngine.getReservedMap', () => {
     const item = makePosItem({ product, variant: variant as any, quantity: 3 })
 
     // 3 qty × 2 per unit = 6 reserved
-    const reserved = InventoryEngine.getReservedMap([item])
+    const reserved = PosStockEngine.getReservedMap([item])
 
     expect(reserved[materialId]).toBe(6)
   })
@@ -79,7 +79,7 @@ describe('InventoryEngine.getReservedMap', () => {
     const item1 = makePosItem({ product, variant: variant as any, quantity: 2 })
     const item2 = makePosItem({ product, variant: variant as any, quantity: 5 })
 
-    const reserved = InventoryEngine.getReservedMap([item1, item2])
+    const reserved = PosStockEngine.getReservedMap([item1, item2])
 
     expect(reserved[materialId]).toBe(7)
   })
@@ -91,7 +91,7 @@ describe('InventoryEngine.getReservedMap', () => {
     const cartItem = makePosItem({ product, variant: variant as any, quantity: 2 })
     const orderItem = makePosItem({ product, variant: variant as any, quantity: 3 })
 
-    const reserved = InventoryEngine.getReservedMap([cartItem], [orderItem])
+    const reserved = PosStockEngine.getReservedMap([cartItem], [orderItem])
 
     expect(reserved[variantId]).toBe(5)
   })
@@ -104,7 +104,7 @@ describe('InventoryEngine.getReservedMap', () => {
     // addons array is empty — user did not select this addon
     const item = makePosItem({ product, variant: variant as any, quantity: 2, addons: [] })
 
-    const reserved = InventoryEngine.getReservedMap([item])
+    const reserved = PosStockEngine.getReservedMap([item])
 
     expect(reserved[materialId]).toBeUndefined()
   })
@@ -117,18 +117,18 @@ describe('InventoryEngine.getReservedMap', () => {
     // addons array contains the addon component — user selected it
     const item = makePosItem({ product, variant: variant as any, quantity: 2, addons: [addonComp] })
 
-    const reserved = InventoryEngine.getReservedMap([item])
+    const reserved = PosStockEngine.getReservedMap([item])
 
     expect(reserved[materialId]).toBe(2)
   })
 
   it('empty cart returns empty reservation map', () => {
-    const reserved = InventoryEngine.getReservedMap([])
+    const reserved = PosStockEngine.getReservedMap([])
     expect(reserved).toEqual({})
   })
 
   it('empty cart and empty orders returns empty map', () => {
-    const reserved = InventoryEngine.getReservedMap([], [])
+    const reserved = PosStockEngine.getReservedMap([], [])
     expect(reserved).toEqual({})
   })
 })
@@ -142,7 +142,7 @@ describe('InventoryEngine.getUnitRequirements', () => {
     const variantId = makeId()
     const variant = makePosVariant({ id: variantId, components: [] })
 
-    const reqs = InventoryEngine.getUnitRequirements(variant as any, [])
+    const reqs = PosStockEngine.getUnitRequirements(variant as any, [])
 
     expect(reqs[variantId]).toBe(1)
     expect(Object.keys(reqs)).toHaveLength(1)
@@ -153,7 +153,7 @@ describe('InventoryEngine.getUnitRequirements', () => {
     const comp = makeComponent(materialId, 3, false)
     const variant = makePosVariant({ components: [comp] })
 
-    const reqs = InventoryEngine.getUnitRequirements(variant as any, [])
+    const reqs = PosStockEngine.getUnitRequirements(variant as any, [])
 
     expect(reqs[materialId]).toBe(3)
   })
@@ -163,7 +163,7 @@ describe('InventoryEngine.getUnitRequirements', () => {
     const addonComp = makeComponent(materialId, 1, true)
     const variant = makePosVariant({ components: [addonComp] })
 
-    const reqs = InventoryEngine.getUnitRequirements(variant as any, [])
+    const reqs = PosStockEngine.getUnitRequirements(variant as any, [])
 
     expect(reqs[materialId]).toBeUndefined()
   })
@@ -173,7 +173,7 @@ describe('InventoryEngine.getUnitRequirements', () => {
     const addonComp = makeComponent(materialId, 2, true)
     const variant = makePosVariant({ components: [addonComp] })
 
-    const reqs = InventoryEngine.getUnitRequirements(variant as any, [addonComp.id])
+    const reqs = PosStockEngine.getUnitRequirements(variant as any, [addonComp.id])
 
     expect(reqs[materialId]).toBe(2)
   })
@@ -184,7 +184,7 @@ describe('InventoryEngine.getUnitRequirements', () => {
     const comp2 = makeComponent(materialId, 3, false)
     const variant = makePosVariant({ components: [comp1, comp2] })
 
-    const reqs = InventoryEngine.getUnitRequirements(variant as any, [])
+    const reqs = PosStockEngine.getUnitRequirements(variant as any, [])
 
     // Same materialId across two components — quantities sum
     expect(reqs[materialId]).toBe(5)
@@ -202,7 +202,7 @@ describe('InventoryEngine.findPhysicalStock', () => {
     const variant = makePosVariant({ id: variantId, name: 'Large', inventory: [inventoryRecord], components: [] })
     const product = makePosProduct({ variants: [variant] })
 
-    const { stock, name } = InventoryEngine.findPhysicalStock(variantId, product)
+    const { stock, name } = PosStockEngine.findPhysicalStock(variantId, product)
 
     expect(stock).toBe(50)
     expect(name).toBe('Large')
@@ -214,7 +214,7 @@ describe('InventoryEngine.findPhysicalStock', () => {
     const variant = makePosVariant({ id: variantId, name: undefined, inventory: [inv], components: [] })
     const product = makePosProduct({ name: 'Coffee Blend', variants: [variant] })
 
-    const { name } = InventoryEngine.findPhysicalStock(variantId, product)
+    const { name } = PosStockEngine.findPhysicalStock(variantId, product)
 
     expect(name).toBe('Coffee Blend')
   })
@@ -226,7 +226,7 @@ describe('InventoryEngine.findPhysicalStock', () => {
     const variant = makePosVariant({ id: variantId, inventory: [batch1, batch2], components: [] })
     const product = makePosProduct({ variants: [variant] })
 
-    const { stock } = InventoryEngine.findPhysicalStock(variantId, product)
+    const { stock } = PosStockEngine.findPhysicalStock(variantId, product)
 
     expect(stock).toBe(50)
   })
@@ -242,7 +242,7 @@ describe('InventoryEngine.findPhysicalStock', () => {
     const variant = makePosVariant({ components: [comp] })
     const product = makePosProduct({ variants: [variant] })
 
-    const { stock, name } = InventoryEngine.findPhysicalStock(materialVariantId, product)
+    const { stock, name } = PosStockEngine.findPhysicalStock(materialVariantId, product)
 
     expect(stock).toBe(100)
     expect(name).toBe('Flour')
@@ -255,7 +255,7 @@ describe('InventoryEngine.findPhysicalStock', () => {
     const product1 = makePosProduct({ variants: [makePosVariant({ components: [] })] })
     const product2 = makePosProduct({ variants: [variant] })
 
-    const { stock } = InventoryEngine.findPhysicalStock(variantId, [product1, product2])
+    const { stock } = PosStockEngine.findPhysicalStock(variantId, [product1, product2])
 
     expect(stock).toBe(25)
   })
@@ -264,7 +264,7 @@ describe('InventoryEngine.findPhysicalStock', () => {
     const unknownId = makeId()
     const product = makePosProduct({ variants: [makePosVariant({ components: [] })] })
 
-    const { stock, name } = InventoryEngine.findPhysicalStock(unknownId, product)
+    const { stock, name } = PosStockEngine.findPhysicalStock(unknownId, product)
 
     expect(stock).toBe(0)
     expect(name).toBe(unknownId)
@@ -275,7 +275,7 @@ describe('InventoryEngine.findPhysicalStock', () => {
     const variant = makePosVariant({ id: variantId, inventory: [], components: [] })
     const product = makePosProduct({ variants: [variant] })
 
-    const { stock } = InventoryEngine.findPhysicalStock(variantId, product)
+    const { stock } = PosStockEngine.findPhysicalStock(variantId, product)
 
     expect(stock).toBe(0)
   })
@@ -299,7 +299,7 @@ describe('InventoryEngine.calculateRemainingYield', () => {
       quantity: 3,
     })
 
-    const remaining = InventoryEngine.calculateRemainingYield(product, variant as any, [], [existingCartItem])
+    const remaining = PosStockEngine.calculateRemainingYield(product, variant as any, [], [existingCartItem])
 
     expect(remaining).toBe(7) // 10 stock - 3 reserved = 7
   })
@@ -314,7 +314,7 @@ describe('InventoryEngine.calculateRemainingYield', () => {
     const product = makePosProduct({ variants: [variant] })
 
     // No reservations yet
-    const remaining = InventoryEngine.calculateRemainingYield(product, variant as any, [], [])
+    const remaining = PosStockEngine.calculateRemainingYield(product, variant as any, [], [])
 
     // 12 / 2 = 6 yields
     expect(remaining).toBe(6)
@@ -333,7 +333,7 @@ describe('InventoryEngine.calculateRemainingYield', () => {
     const variant = makePosVariant({ components: [compA, compB] })
     const product = makePosProduct({ variants: [variant] })
 
-    const remaining = InventoryEngine.calculateRemainingYield(product, variant as any, [], [])
+    const remaining = PosStockEngine.calculateRemainingYield(product, variant as any, [], [])
 
     // matA: 20/1 = 20; matB: 6/2 = 3 → bottleneck is 3
     expect(remaining).toBe(3)
@@ -346,7 +346,7 @@ describe('InventoryEngine.calculateRemainingYield', () => {
     const product = makePosProduct({ variants: [variant] })
 
     const existingItem = makePosItem({ product, variant: variant as any, quantity: 5 })
-    const remaining = InventoryEngine.calculateRemainingYield(product, variant as any, [], [existingItem])
+    const remaining = PosStockEngine.calculateRemainingYield(product, variant as any, [], [existingItem])
 
     expect(remaining).toBe(0)
   })
@@ -358,7 +358,7 @@ describe('InventoryEngine.calculateRemainingYield', () => {
     const product = makePosProduct({ variants: [variant] })
 
     const existingItem = makePosItem({ product, variant: variant as any, quantity: 10 })
-    const remaining = InventoryEngine.calculateRemainingYield(product, variant as any, [], [existingItem])
+    const remaining = PosStockEngine.calculateRemainingYield(product, variant as any, [], [existingItem])
 
     expect(remaining).toBe(0)
   })
@@ -369,7 +369,7 @@ describe('InventoryEngine.calculateRemainingYield', () => {
     // Actually with no components, it returns { variantId: 1 } and stock=0
     const product = makePosProduct({ variants: [variant] })
 
-    const remaining = InventoryEngine.calculateRemainingYield(product, variant, [], [])
+    const remaining = PosStockEngine.calculateRemainingYield(product, variant, [], [])
 
     expect(remaining).toBe(0) // no inventory → 0 yield
   })

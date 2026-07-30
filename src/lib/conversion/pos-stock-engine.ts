@@ -22,7 +22,7 @@ export type posItem = {
   addons: Prettify<Prisma.ProductComponentGetPayload<{ include: typeof posProductComponentProps }>>[]
 }
 
-export const InventoryEngine = {
+export const PosStockEngine = {
   /**
    * CALCULATION LAYER: Sums up all materials.
    * Logic remains identical, but now accepts a combined list of Cart + DB items.
@@ -84,11 +84,11 @@ export const InventoryEngine = {
     cartItems: posItem[],
     orderItems?: posItem[],
   ) => {
-    const reserved = InventoryEngine.getReservedMap(cartItems, orderItems)
-    const unitReqs = InventoryEngine.getUnitRequirements(variant, selectedComponentIds)
+    const reserved = PosStockEngine.getReservedMap(cartItems, orderItems)
+    const unitReqs = PosStockEngine.getUnitRequirements(variant, selectedComponentIds)
 
     const yields = Object.entries(unitReqs).map(([materialId, amountPerUnit]) => {
-      const { stock } = InventoryEngine.findPhysicalStock(materialId, product)
+      const { stock } = PosStockEngine.findPhysicalStock(materialId, product)
       const availableTotal = stock - (reserved[materialId] || 0)
 
       return Math.floor(Math.max(0, availableTotal) / amountPerUnit)

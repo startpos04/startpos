@@ -2,7 +2,10 @@ import { createServerFn } from '@tanstack/react-start'
 import _ from 'lodash'
 import type { Prisma } from 'prisma/generated/prisma/client'
 import { type ComplianceKey, type ConfigKey, Role } from 'prisma/generated/prisma/enums'
-import { getTenantPrisma } from '../prisma-client'
+import { Capabilities, type CapabilityKey } from '../entitlement/capability-keys'
+import { EntitlementEngine } from '../entitlement/entitlement-engine'
+import type { EntitlementOverrideDTO } from '../entitlement/entitlement-types'
+import { getTenantPrisma, prisma as rootPrisma } from '../prisma-client'
 import { ComplianceKeySchema, type ComplianceKeyTypes, ConfigKeySchema, type ConfigKeyTypes } from '../types'
 import { auth } from './auth'
 import { authMiddleware } from './auth-middleware'
@@ -88,6 +91,49 @@ export const getAuthUser = createServerFn({ method: 'GET' })
     const mergedSystemConfigs = _.merge({}, mappedBusinessConfigs, mappedBranchConfigs, mappedUserConfigs)
     const mergedComplianceRegistry = _.merge({}, mappedBusinessCompliance, mappedBranchCompliance)
 
+    // -------------------------------------------------------------------------
+    // Entitlement Summary — Phase 2
+    // Builds a lightweight capability snapshot embedded in every session.
+    // Phase 3 will replace the open-context fallback with real subscription data.
+    // -------------------------------------------------------------------------
+    const [planEntitlements, entitlementOverrides] = await Promise.all([
+      // Fetch all active plan entitlements. Until Phase 3 provisions a
+      // BusinessSubscription, we fetch ALL plan entitlements across all plans
+      // to determine what features exist, but treat the business as ACTIVE.
+      // Replace this query in Phase 3 with: business.subscription.plan.entitlements
+      rootPrisma.planEntitlement.findMany({
+        select: { featureKey: true, usageLimit: true },
+      }),
+
+      // Per-business overrides (grants or revocations)
+      rootPrisma.entitlementOverride.findMany({
+        where: { businessId },
+        select: { featureKey: true, granted: true, expiresAt: true },
+      }),
+    ])
+
+    // Build context. Until Phase 3, use the open (all-access) fallback so
+    // existing workflows continue to work. The ENABLE_* SystemConfig flags
+    // are still checked by the UI/server functions as before (dual-check mode).
+    const allCapabilities = Object.values(Capabilities)
+    const planFeatures = planEntitlements.length > 0 ? (planEntitlements.map((e: { featureKey: string }) => e.featureKey) as CapabilityKey[]) : allCapabilities // No plan seeded yet → grant everything (open mode)
+
+    const entitlementContext = EntitlementEngine.buildOpenContext(planFeatures)
+
+    // Splice in real overrides regardless of open/plan mode
+    const contextWithOverrides = {
+      ...entitlementContext,
+      overrides: entitlementOverrides.map(
+        (o: { featureKey: string; granted: boolean; expiresAt: Date | null }): EntitlementOverrideDTO => ({
+          featureKey: o.featureKey,
+          granted: o.granted,
+          expiresAt: o.expiresAt,
+        }),
+      ),
+    }
+
+    const entitlement = EntitlementEngine.buildSummary(allCapabilities, contextWithOverrides)
+
     return {
       ...user,
       business,
@@ -97,6 +143,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       complianceRegistry: ComplianceKeySchema.parse(mergedComplianceRegistry) as ComplianceKeyTypes,
       landingPage: RoleLandingPages[userData.role] ?? '/',
       localOverrides: localOverrides || [],
+      entitlement,
     }
   })
 

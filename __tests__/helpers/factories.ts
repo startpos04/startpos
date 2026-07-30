@@ -9,7 +9,7 @@ import { faker } from '@faker-js/faker'
 import type { Inventory, Unit } from 'prisma/generated/prisma/browser'
 import { ResourceType, TaxCategory, UnitType } from 'prisma/generated/prisma/enums'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
-import type { posItem } from '../../../lib/conversion/inventory-engine'
+import type { posItem } from '../../../lib/conversion/pos-stock-engine'
 import type { LineItem, TaxEngineConfig } from '../../../lib/conversion/tax-engine'
 import type { InventoryBatchDTO } from '../../../lib/costing/types'
 

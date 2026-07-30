@@ -14,7 +14,7 @@
  */
 
 import { type PriceConfiguration, TaxCategory } from 'prisma/generated/prisma/enums'
-import type { posItem } from './inventory-engine'
+import type { posItem } from './pos-stock-engine'
 import { PriceEngine } from './price-engine'
 
 // ---------------------------------------------------------------------------

@@ -47,6 +47,13 @@ enum ConfigKey {
   ENABLE_ORDER
   ENABLE_CASH_RECONCILIATION
   ENABLE_TASK
+  // --- ENTITLEMENT / BILLING POLICY ---
+  // All values stored as strings; parse at read time.
+  TRIAL_DURATION_DAYS // Default: "30"
+  GRACE_PERIOD_DAYS // Default: "7"  — days after expiry before hard restriction
+  LONG_TERM_INACTIVE_DAYS // Default: "90" — days after expiry before long-term inactive
+  CREDIT_LOW_BALANCE_THRESHOLD // Default: "10" — notify when credits fall below this
+  OVERAGE_BILLING_ENABLED // Default: "false" — block vs. charge on overage
 }
 
 enum ComplianceKey {
@@ -105,32 +112,33 @@ model Business {
   logo         String?
   businessType BusinessType
 
-  members            Membership[]
-  branches           Branch[]
-  products           Product[]
-  categories         Category[]
-  units              Unit[]
-  customers          Customer[]
-  productComponents  ProductComponent[]
-  productUnits       ProductUnit[]
-  purchaseItems      PurchaseItem[]
-  inventory          Inventory[]
-  inventoryMovements InventoryMovement[]
-  transactions       Transaction[]
-  orders             Order[]
-  orderItems         OrderItem[]
-  orderItemAddons    OrderItemAddon[]
-  vendorSessions     VendorSession[]
-  payments           Payment[]
-  variants           ProductVariant[]
-  notifications      Notification[]
-  sequenceCounters   SequenceCounter[]
-  purchases          Purchase[]
-  operationalTasks   OperationalTask[]
-  systemConfigs      SystemConfig[] // Added for localized config
-  complianceRegistry ComplianceRegistry[] // Added for country compliance IDs
-  locations          Location[]
-  suppliers          Supplier[]
+  members              Membership[]
+  branches             Branch[]
+  products             Product[]
+  categories           Category[]
+  units                Unit[]
+  customers            Customer[]
+  productComponents    ProductComponent[]
+  productUnits         ProductUnit[]
+  purchaseItems        PurchaseItem[]
+  inventory            Inventory[]
+  inventoryMovements   InventoryMovement[]
+  transactions         Transaction[]
+  orders               Order[]
+  orderItems           OrderItem[]
+  orderItemAddons      OrderItemAddon[]
+  vendorSessions       VendorSession[]
+  payments             Payment[]
+  variants             ProductVariant[]
+  notifications        Notification[]
+  sequenceCounters     SequenceCounter[]
+  purchases            Purchase[]
+  operationalTasks     OperationalTask[]
+  systemConfigs        SystemConfig[] // Added for localized config
+  complianceRegistry   ComplianceRegistry[] // Added for country compliance IDs
+  locations            Location[]
+  suppliers            Supplier[]
+  entitlementOverrides EntitlementOverride[] // Per-business feature exceptions
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -1065,4 +1073,101 @@ model OperationalTask {
   @@index([clerkId])
   @@index([reviewerId])
   @@map("operational_tasks")
+}
+
+// =============================================================================
+// ENTITLEMENT ENGINE — Phase 2
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// Feature
+// Registry of every capability the application can gate.
+// Decoupled from plan names — new features can be added without touching plans.
+// ---------------------------------------------------------------------------
+model Feature {
+  id          String  @id @default(cuid())
+  key         String  @unique // e.g. "COMPLETE_CHECKOUT", "CREATE_ORDER"
+  label       String // Human-readable label for admin UI
+  description String?
+
+  // true  = blocked when subscription lapses (operational)
+  // false = always accessible regardless of billing status (management)
+  isOperational Boolean @default(false)
+
+  entitlements PlanEntitlement[]
+  overrides    EntitlementOverride[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("features")
+}
+
+// ---------------------------------------------------------------------------
+// SubscriptionPlan
+// Configurable tier registry. Names ("Starter", "Professional") are labels;
+// the engine never branches on plan name — only on entitlements.
+// ---------------------------------------------------------------------------
+model SubscriptionPlan {
+  id          String  @id @default(cuid())
+  name        String  @unique // "Starter", "Professional", "Enterprise", "Trial"
+  description String?
+  isActive    Boolean @default(true) // Soft-disable without deleting
+  sortOrder   Int     @default(0) // Display ordering
+
+  // Billing
+  monthlyPrice       Int // In cents. 0 = free trial base plan
+  includedTxPerMonth Int // Monthly transaction allowance. -1 = unlimited
+  overagePerTx       Int @default(0) // Cents per tx over allowance. 0 = block instead of charge
+
+  entitlements PlanEntitlement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscription_plans")
+}
+
+// ---------------------------------------------------------------------------
+// PlanEntitlement
+// Join table between a plan and its features.
+// A plan "has" a feature if a record exists here.
+// ---------------------------------------------------------------------------
+model PlanEntitlement {
+  id         String           @id @default(cuid())
+  planId     String
+  plan       SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  featureKey String
+  feature    Feature          @relation(fields: [featureKey], references: [key], onDelete: Cascade)
+
+  // Optional per-entitlement usage cap (null = unlimited)
+  // e.g. max 5 employees for Starter, max 20 for Professional
+  usageLimit Int?
+
+  @@unique([planId, featureKey])
+  @@map("plan_entitlements")
+}
+
+// ---------------------------------------------------------------------------
+// EntitlementOverride
+// Per-business exceptions: promotional access, enterprise contracts,
+// temporary grants, or explicit revocations — without changing the plan.
+// ---------------------------------------------------------------------------
+model EntitlementOverride {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  featureKey String
+  feature    Feature  @relation(fields: [featureKey], references: [key], onDelete: Cascade)
+
+  // false = explicitly revoke a feature even if the plan includes it
+  granted   Boolean   @default(true)
+  expiresAt DateTime?
+  reason    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([businessId, featureKey])
+  @@map("entitlement_overrides")
 }

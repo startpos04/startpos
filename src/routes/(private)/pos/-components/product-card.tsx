@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePOS } from '@/hooks/use-pos'
-import { InventoryEngine, type posItem } from '@/lib/conversion/inventory-engine'
+import { PosStockEngine, type posItem } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import MountManager from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
@@ -25,7 +25,7 @@ export function ProductCard({ cartItems, product, onAdd }: ProductCardProps) {
 
   const addonComponents = useMemo(() => variant.components?.filter(c => c.isAddon) || [], [variant])
   const maxAvailable = useMemo(
-    () => InventoryEngine.calculateRemainingYield(product, variant, [], cartItems, orderItems),
+    () => PosStockEngine.calculateRemainingYield(product, variant, [], cartItems, orderItems),
     [product, variant, cartItems, orderItems],
   )
 

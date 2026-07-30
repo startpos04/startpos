@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { withForm } from '@/hooks/form'
 import { usePOS } from '@/hooks/use-pos'
-import { InventoryEngine } from '@/lib/conversion/inventory-engine'
+import { PosStockEngine } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { TaxEngine, type TaxEngineConfig } from '@/lib/conversion/tax-engine'
 import MountManager from '@/lib/mount-manager'
@@ -130,7 +130,7 @@ export const CartAside = withForm({
                 <div className='space-y-4'>
                   {field.state.value.map((item, index: number) => {
                     const selectedAddonIds = item.addons?.map(a => a.id) || []
-                    const additionalYieldPossible = InventoryEngine.calculateRemainingYield(
+                    const additionalYieldPossible = PosStockEngine.calculateRemainingYield(
                       item.product,
                       item.variant,
                       selectedAddonIds,

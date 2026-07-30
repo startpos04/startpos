@@ -1,6 +1,6 @@
 import { uuid } from '@tanstack/react-form'
 import { useMemo } from 'react'
-import type { posItem } from '@/lib/conversion/inventory-engine'
+import type { posItem } from '@/lib/conversion/pos-stock-engine'
 import { type ActiveOrder, fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
 import { fetchPosProducts, type fetchPosProductsProps, type posProduct } from '@/lib/queries/fetch-pos-products'
 

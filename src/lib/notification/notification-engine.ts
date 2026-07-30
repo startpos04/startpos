@@ -1,4 +1,4 @@
-import { NotificationPriority, type NotificationType, Role, TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
+import { NotificationPriority, type NotificationType, Role } from 'prisma/generated/prisma/enums'
 import {
   inventoryCollection,
   membershipCollection,
@@ -8,6 +8,7 @@ import {
   productVariantCollection,
 } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
+import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import { authStore } from '@/store/auth-store'
 
 interface SendNotificationParams {
@@ -60,34 +61,19 @@ export const NotificationEngine = {
 
           const taskId = crypto.randomUUID()
           await dbTransaction(() => {
-            operationalTaskCollection.insert({
-              id: crypto.randomUUID(),
-              type: TaskType.SHELF_REFILL,
-              status: TaskStatus.PENDING,
-              notes: `Auto-generated task: Low stock threshold breached for variant ${variant.id}`,
-              dueDate: new Date(),
-              creatorId: user.id,
-              approverId: user.id,
-              clerkId: user.id,
-              metadata: {
-                variantId: variant.id,
-                currentTotal,
-                link: `/ingredients/${variant.product?.id}`,
-                suggestedQty: threshold - currentTotal > 0 ? threshold - currentTotal : 10,
-                approvedQty: threshold - currentTotal > 0 ? threshold - currentTotal : 10,
-                verifiedQty: null,
+            // Task creation belongs to the Inventory domain (A6 — cross-domain violation fix).
+            // NotificationEngine retains only the send() call below.
+            InventoryEngine.handleLowStockDetected({
+              variantId: variant.id,
+              currentTotal,
+              threshold,
+              productLink: `/ingredients/${variant.product?.id}`,
+              operationalTaskCollection,
+              ctx: {
+                userId: user.id,
+                branchId: user.branch.id,
+                businessId: user.business.id,
               },
-              approvedAt: new Date(),
-              inProgressAt: new Date(),
-              fulfilledAt: null,
-              businessId: user.business.id,
-              branchId: user.branch.id,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              reviewedAt: null,
-              reviewerId: null,
-              canceledAt: null,
-              cancelerId: null,
             })
 
             NotificationEngine.send(

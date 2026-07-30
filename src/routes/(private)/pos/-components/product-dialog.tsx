@@ -10,7 +10,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { usePOS } from '@/hooks/use-pos'
-import { InventoryEngine, type posItem } from '@/lib/conversion/inventory-engine'
+import { PosStockEngine, type posItem } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import type { MountProps } from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
@@ -60,7 +60,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
 
   const remainingYield = useMemo(() => {
     if (!currentVariant) return 0
-    return InventoryEngine.calculateRemainingYield(product, currentVariant, selectedAddonIds, cartItems, orderItems)
+    return PosStockEngine.calculateRemainingYield(product, currentVariant, selectedAddonIds, cartItems, orderItems)
   }, [product, currentVariant, selectedAddonIds, cartItems, orderItems])
 
   // Calculates total price live including chosen options and quantities
@@ -177,8 +177,8 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                     </h4>
                     <div className='grid gap-2 max-h-[160px] overflow-y-auto pr-1 scrollbar-thin'>
                       {availableAddons.map(comp => {
-                        const reserved = InventoryEngine.getReservedMap(cartItems, orderItems)
-                        const stockInfo = InventoryEngine.findPhysicalStock(comp.materialId, [product])
+                        const reserved = PosStockEngine.getReservedMap(cartItems, orderItems)
+                        const stockInfo = PosStockEngine.findPhysicalStock(comp.materialId, [product])
                         const isSoldOut = stockInfo.stock - (reserved[comp.materialId] || 0) < comp.quantityUsed
 
                         return (

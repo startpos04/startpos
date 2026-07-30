@@ -87,8 +87,8 @@ vi.mock('@/lib/conversion/price-engine', () => ({
 // Mock: InventoryEngine — no OPFS dependency
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/conversion/inventory-engine', () => ({
-  InventoryEngine: {
+vi.mock('@/lib/conversion/pos-stock-engine', () => ({
+  PosStockEngine: {
     calculateRemainingYield: vi.fn(() => 10),
     calculateReservedInventory: vi.fn(() => 0),
   },
@@ -387,8 +387,8 @@ describe('Products page — grid card profitability panel', () => {
   })
 
   it('shows "Out of Stock" badge when calculateRemainingYield returns 0', async () => {
-    const { InventoryEngine } = await import('@/lib/conversion/inventory-engine')
-    vi.mocked(InventoryEngine.calculateRemainingYield).mockReturnValue(0)
+    const { PosStockEngine } = await import('@/lib/conversion/pos-stock-engine')
+    vi.mocked(PosStockEngine.calculateRemainingYield).mockReturnValue(0)
     const product = makeProduct()
     setupUsePOS([product])
     renderProductsPage({ view: 'grid' })
@@ -396,7 +396,7 @@ describe('Products page — grid card profitability panel', () => {
       expect(screen.getByText('Out of Stock')).toBeInTheDocument()
     })
     // restore
-    vi.mocked(InventoryEngine.calculateRemainingYield).mockReturnValue(10)
+    vi.mocked(PosStockEngine.calculateRemainingYield).mockReturnValue(10)
   })
 
   it('renders "View Details" and "Delete" buttons in grid card', async () => {

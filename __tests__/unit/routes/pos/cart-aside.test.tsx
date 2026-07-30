@@ -44,7 +44,7 @@ import { TaxCategory } from 'prisma/generated/prisma/enums'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppForm } from '@/hooks/form'
 import { makeId, makeInventoryRecord, makePosProduct, makePosVariant, seedMockUser, resetMockUser } from '#tests/helpers'
-import type { posItem } from '@/lib/conversion/inventory-engine'
+import type { posItem } from '@/lib/conversion/pos-stock-engine'
 import { CartAside } from '@/routes/(private)/pos/-components/cart-aside'
 
 // ---------------------------------------------------------------------------

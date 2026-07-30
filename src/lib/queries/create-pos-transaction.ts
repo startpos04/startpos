@@ -14,7 +14,7 @@ import {
 import { dbTransaction } from '@/db/local-db-transaction'
 import type { PaymentLine } from '@/routes/(private)/pos/-components/payment-dialog'
 import { authStore } from '@/store/auth-store'
-import { InventoryEngine, type posItem } from '../conversion/inventory-engine'
+import { PosStockEngine, type posItem } from '../conversion/pos-stock-engine'
 import { TaxEngine } from '../conversion/tax-engine'
 import { CostingEngine } from '../costing'
 import type { posProduct } from './fetch-pos-products'
@@ -54,8 +54,8 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       return { cartId: item.cartId, product, variant, quantity: item.quantity, addons: item.addons }
     })
 
-    for (const [variantId, amountNeeded] of Object.entries(InventoryEngine.getReservedMap(cartForValidation, []))) {
-      const { stock, name } = InventoryEngine.findPhysicalStock(variantId, dbProducts)
+    for (const [variantId, amountNeeded] of Object.entries(PosStockEngine.getReservedMap(cartForValidation, []))) {
+      const { stock, name } = PosStockEngine.findPhysicalStock(variantId, dbProducts)
       if (stock < amountNeeded) throw new Error(`Insufficient stock for ${name}. Needed: ${amountNeeded}, Available: ${stock}`)
     }
 
@@ -247,7 +247,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
     paymentCollection.insert(payments)
 
     // --- 6. DECREMENT INVENTORY (FIFO) ---
-    const reservedMap = InventoryEngine.getReservedMap(cartForValidation)
+    const reservedMap = PosStockEngine.getReservedMap(cartForValidation)
     for (const [vId, totalQty] of Object.entries(reservedMap)) {
       const productWithVariant = dbProducts.find(p => p.variants.some(v => v.id === vId))
       const unit =

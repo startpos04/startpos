@@ -73,12 +73,12 @@ vi.mock('@/hooks/use-pos', () => ({
 // Mock: InventoryEngine.calculateRemainingYield
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/conversion/inventory-engine', async importOriginal => {
-  const actual = await importOriginal<typeof import('@/lib/conversion/inventory-engine')>()
+vi.mock('@/lib/conversion/pos-stock-engine', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/lib/conversion/pos-stock-engine')>()
   return {
     ...actual,
-    InventoryEngine: {
-      ...actual.InventoryEngine,
+    PosStockEngine: {
+      ...actual.PosStockEngine,
       calculateRemainingYield: vi.fn(() => 10),
       getReservedMap: vi.fn(() => ({})),
       findPhysicalStock: vi.fn(() => ({ stock: 100, batches: [] })),
@@ -103,7 +103,7 @@ vi.mock('@tanstack/react-router', async importOriginal => {
 // Post-mock imports
 // ---------------------------------------------------------------------------
 
-import { InventoryEngine } from '@/lib/conversion/inventory-engine'
+import { PosStockEngine } from '@/lib/conversion/pos-stock-engine'
 import { ProductDialog } from '@/routes/(private)/pos/-components/product-dialog'
 
 // ---------------------------------------------------------------------------
@@ -166,7 +166,7 @@ function renderDialog(productOverrides: Record<string, any> = {}, dialogProps: R
 beforeEach(() => {
   seedMockUser()
   vi.clearAllMocks()
-  vi.mocked(InventoryEngine.calculateRemainingYield).mockReturnValue(10)
+  vi.mocked(PosStockEngine.calculateRemainingYield).mockReturnValue(10)
 })
 
 afterEach(() => {
@@ -194,7 +194,7 @@ describe('ProductDialog — rendering', () => {
   })
 
   it('renders "units left" stock badge when in stock', async () => {
-    vi.mocked(InventoryEngine.calculateRemainingYield).mockReturnValue(8)
+    vi.mocked(PosStockEngine.calculateRemainingYield).mockReturnValue(8)
     renderDialog()
     await waitFor(() => {
       expect(document.body.textContent).toContain('8 units left')
@@ -202,7 +202,7 @@ describe('ProductDialog — rendering', () => {
   })
 
   it('renders "Out of Stock" badge when yield = 0', async () => {
-    vi.mocked(InventoryEngine.calculateRemainingYield).mockReturnValue(0)
+    vi.mocked(PosStockEngine.calculateRemainingYield).mockReturnValue(0)
     renderDialog()
     await waitFor(() => {
       expect(document.body.textContent).toContain('Out of Stock')
@@ -337,7 +337,7 @@ describe('ProductDialog — quantity stepper', () => {
 
 describe('ProductDialog — Add to Order button', () => {
   it('renders "Add to Order" button when in stock', async () => {
-    vi.mocked(InventoryEngine.calculateRemainingYield).mockReturnValue(5)
+    vi.mocked(PosStockEngine.calculateRemainingYield).mockReturnValue(5)
     renderDialog()
     await waitFor(() => {
       expect(document.body.textContent).toContain('Add to Order')
@@ -345,7 +345,7 @@ describe('ProductDialog — Add to Order button', () => {
   })
 
   it('renders "Sold Out" text when yield = 0', async () => {
-    vi.mocked(InventoryEngine.calculateRemainingYield).mockReturnValue(0)
+    vi.mocked(PosStockEngine.calculateRemainingYield).mockReturnValue(0)
     renderDialog()
     await waitFor(() => {
       expect(document.body.textContent).toContain('Sold Out')
@@ -359,7 +359,7 @@ describe('ProductDialog — Add to Order button', () => {
       id: productId,
       variants: [makeVariant({ id: variantId })],
     })
-    vi.mocked(InventoryEngine.calculateRemainingYield).mockReturnValue(5)
+    vi.mocked(PosStockEngine.calculateRemainingYield).mockReturnValue(5)
 
     await waitFor(() => {
       expect(document.body.textContent).toContain('Add to Order')

@@ -19,7 +19,7 @@ import { productCollection } from '@/db/collections'
 import { usePOS } from '@/hooks/use-pos'
 import { productCols } from '@/lib/columns/product-columns'
 import { tableCols } from '@/lib/columns/table-columns'
-import { InventoryEngine } from '@/lib/conversion/inventory-engine'
+import { PosStockEngine } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import MountManager from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
@@ -191,7 +191,7 @@ function RouteComponent() {
                   const primaryVariant = product.variants?.[0]
                   if (!primaryVariant) return null
 
-                  const maxServings = InventoryEngine.calculateRemainingYield(product, primaryVariant, [], [], orderItems)
+                  const maxServings = PosStockEngine.calculateRemainingYield(product, primaryVariant, [], [], orderItems)
                   const recipeComponents = primaryVariant.components?.filter(c => !c.isAddon) || []
                   const addonComponents = primaryVariant.components?.filter(c => c.isAddon) || []
 

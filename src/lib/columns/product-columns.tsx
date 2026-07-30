@@ -6,7 +6,7 @@ import type { Inventory, ProductComponent, ProductVariant } from 'prisma/generat
 import { VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { InventoryEngine, type posItem } from '../conversion/inventory-engine'
+import { PosStockEngine, type posItem } from '../conversion/pos-stock-engine'
 import { PriceEngine } from '../conversion/price-engine'
 import type { posProduct } from '../queries/fetch-pos-products'
 import { cn } from '../utils'
@@ -74,7 +74,7 @@ export const productCols = {
         const primaryVariant = product.variants?.[0]
         if (!primaryVariant) return <span className='text-muted-foreground text-xs'>—</span>
 
-        const maxServings = InventoryEngine.calculateRemainingYield(product, primaryVariant, selectedComponentIds, cartItems, orderItems)
+        const maxServings = PosStockEngine.calculateRemainingYield(product, primaryVariant, selectedComponentIds, cartItems, orderItems)
         const isLowStock = maxServings < 10
 
         return (

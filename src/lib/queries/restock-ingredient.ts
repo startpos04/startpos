@@ -2,6 +2,7 @@ import { SequenceType } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
 import { inventoryCollection, inventoryMovementCollection, productVariantCollection, purchaseCollection, purchaseItemCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
+import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import { authStore } from '@/store/auth-store'
 import { fetchStructuredId } from './fetch-structured-id'
 
@@ -37,10 +38,9 @@ export const restockIngredient = async (data: z.infer<typeof restockSchema>) => 
       operationalTaskId: null,
     })
 
-    // Create the line item for the purchase
     purchaseItemCollection.insert({
       id: crypto.randomUUID(),
-      purchaseId: purchaseId,
+      purchaseId,
       variantId: data.variantId,
       quantity: data.quantity,
       unitId: data.unitId,
@@ -56,58 +56,25 @@ export const restockIngredient = async (data: z.infer<typeof restockSchema>) => 
       })
     }
 
-    // --- 3. UPSERT INVENTORY BATCH ---
-    // Find if a batch already exists for this variant + batchNumber
-    const existingBatch = [...inventoryCollection.values()].find(i => i.variantId === data.variantId && i.batchNumber === data.batchNumber)
-
-    let inventoryId: string
-
-    if (existingBatch) {
-      inventoryId = existingBatch.id
-      inventoryCollection.update(inventoryId, draft => {
-        draft.quantity += data.quantity
-        draft.costPrice = data.unitCost
-        draft.lastRestocked = new Date()
-      })
-    } else {
-      inventoryId = crypto.randomUUID()
-      inventoryCollection.insert({
-        id: inventoryId,
-        variantId: data.variantId,
-        quantity: data.quantity,
-        unitId: data.unitId,
-        batchNumber: data.batchNumber || 'DEFAULT',
-        costPrice: data.unitCost,
-        locationId: data.locationId,
-        expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
-        lastRestocked: new Date(),
-        businessId: user.business.id,
-        branchId: user.branch.id,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-      })
-    }
-
-    // --- 4. CREATE AUDIT TRAIL (MOVEMENT) ---
-    const movementId = crypto.randomUUID()
-    inventoryMovementCollection.insert({
-      id: movementId,
+    // --- 3. Delegate inventory batch upsert + movement to InventoryEngine (single owner) ---
+    const inventoryId = InventoryEngine.applyAdjustment({
       variantId: data.variantId,
-      inventoryId: inventoryId,
-      userId: user?.id,
+      batchNumber: data.batchNumber || 'DEFAULT',
       quantity: data.quantity,
-      unitId: data.unitId,
-      type: 'IN',
-      reason: `${data.reason || 'Restock'}: ${structuredPurchaseId}`,
-      transactionId: null,
-      targetBranchId: null,
-      purchaseId,
       locationId: data.locationId,
-      businessId: user.business.id,
-      branchId: user.branch.id,
-      updatedAt: new Date(),
-      createdAt: new Date(),
-      operationalTaskId: null,
+      costPrice: data.unitCost,
+      expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+      unitId: data.unitId,
+      purchaseId,
+      structuredId: structuredPurchaseId,
+      reason: data.reason,
+      inventoryCollection,
+      movementCollection: inventoryMovementCollection,
+      ctx: {
+        userId: user.id,
+        branchId: user.branch.id,
+        businessId: user.business.id,
+      },
     })
 
     return {
@@ -117,7 +84,6 @@ export const restockIngredient = async (data: z.infer<typeof restockSchema>) => 
         items: [...purchaseItemCollection.values()].filter(i => i.purchaseId === purchaseId),
       },
       inventory: inventoryCollection.get(inventoryId),
-      movement: inventoryMovementCollection.get(movementId),
     }
   })
 
@@ -126,8 +92,5 @@ export const restockIngredient = async (data: z.infer<typeof restockSchema>) => 
     return { data: false, error: result.error }
   }
 
-  // --- 5. RETURN HYDRATED DATA ---
-  return {
-    data: result.value,
-  }
+  return { data: result.value }
 }
