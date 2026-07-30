@@ -84,6 +84,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           items: [
             { title: 'Sales Report', url: '/sales-reports' },
             { title: 'Inventory Reports', url: '/inventory-reports' },
+            { title: 'Transactions', url: '/transactions' },
+            { title: 'Order History', url: '/order-history' },
           ],
         },
         user.systemConfigs.ENABLE_TASK

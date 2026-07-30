@@ -89,16 +89,17 @@ export const createPosRefund = async (originalTransactionId: string) => {
     }
 
     // --- 6. CREATE NEGATIVE PAYMENT ---
-    // This balances the cash drawer/ledger
+    // Mirrors the original payment method so the ledger is correctly balanced
+    const originalPayment = [...paymentCollection.values()].find(p => p.transactionId === originalTransactionId)
     paymentCollection.insert({
       id: crypto.randomUUID(),
       transactionId,
       referenceNo: originalTx.invoiceNo, // Reference the original SI
-      method: 'CASH', // Usually same as original, or 'REFUND'
+      method: originalPayment?.method ?? 'CASH', // Mirror original payment method
       amount: -originalTx.totalAmount, // Negative amount
       tendered: -originalTx.totalAmount,
       change: 0,
-      platform: null,
+      platform: originalPayment?.platform ?? null,
       businessId: user.business.id,
       branchId: user.branch.id,
       createdAt: new Date(),

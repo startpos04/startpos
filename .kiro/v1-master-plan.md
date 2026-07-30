@@ -18,6 +18,8 @@
 | `/notifications` | ✅ Done |
 | `/settings` (categories, units, customers, locations, suppliers) | ✅ Done |
 | `/purchases`, `/purchases/create` | ✅ Done |
+| `/transactions`, `/transactions/$transactionId` | ✅ Done |
+| `/order-history`, `/order-history/$orderId` | ✅ Done |
 
 ---
 
@@ -52,6 +54,16 @@
 
 - [x] **Task FULFILLED → inventory side effect** — `handleStatusChange` wrapped in `dbTransaction`. On FULFILLED: `SHELF_REFILL` deducts from source location and adds to target; `BRANCH_TRANSFER` deducts with `targetBranchId` movement log; `STOCK_COUNT` reconciles to physically counted qty; `WASTE_DISPOSAL` deducts wasted qty. All transitions write to `inventoryMovementCollection`.
 - [x] **Purchases / supplier management route** — `/purchases` list and `/purchases/create` sidebar added under admin layout. Form has supplier, reference/invoice number, and multi-line items (product/variant, qty, unit, unit cost). Creates `purchaseCollection` + `purchaseItemCollection` records and calls `restockIngredient` per item to update inventory and cost price. Added to Admin sidebar nav. Fully wired in `routeTree.gen.ts`.
+
+### Phase 1 — Transaction & Order History ✅ Complete
+
+- [x] **Fix refund payment method** — `create-pos-refund.ts` was hardcoding `method: 'CASH'`. Now reads the original transaction's payment from `paymentCollection` and mirrors its `method` and `platform`.
+- [x] **`/transactions` history page** — Server-side Prisma query via `fetch-transaction-history.ts`. Filters: date range, transaction type (SALE / REFUND / ADJUSTMENT), payment method. Paginated (50/page). TableView + MountManager sidebar pattern identical to purchases/employees/ingredients.
+- [x] **`/transactions/$transactionId` detail sidebar** — Three tabs: Items (line items + addons + SKU), Payments (amount/tendered/change/reference per payment record), Tax (summary + tax line breakdown + SC/PWD compliance data). Export single-transaction CSV. Sidebar receives the full pre-loaded row object — no redundant re-fetch.
+- [x] **`/order-history` history page** — Server-side Prisma query via `fetch-order-history.ts`. Filters: date range, order status, order type (DINE_IN / TAKEOUT / DELIVERY). Paginated. Same architecture.
+- [x] **`/order-history/$orderId` detail sidebar** — Two tabs: Items (line items + addons), Details (order meta + linked transaction card with invoice, cashier, total, payment method).
+- [x] **Extend `downloadTransactionsCSV`** — Added `cashierId`, `method`, and `type` filter params. Refund transactions with no order items now produce a row instead of being silently skipped. Added `Type` column to CSV output.
+- [x] **Sidebar nav** — "Transactions" and "Order History" added to the Supervisor group (accessible to ADMIN + SUPERVISOR).
 
 ---
 
