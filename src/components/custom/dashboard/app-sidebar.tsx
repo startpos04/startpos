@@ -1,5 +1,3 @@
-// Changed: Added Link for better navigation
-
 import { Link, useLocation } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { BookOpenIcon, BotIcon, ChevronRightIcon, ClipboardPenLine, GalleryVerticalEndIcon, SettingsIcon, TerminalSquareIcon } from 'lucide-react'
@@ -20,6 +18,7 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar'
 import { APP_NAME } from '@/lib/constants'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { authStore } from '@/store/auth-store'
 
 interface Items {
@@ -88,7 +87,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             { title: 'Order History', url: '/order-history' },
           ],
         },
-        user.systemConfigs.ENABLE_TASK
+        // F3: Gate Tasks sidebar item through EntitlementEngine (CREATE_TASK capability).
+        // Replaces the ENABLE_TASK SystemConfig dual-gate.
+        user.entitlement?.capabilities.includes(Capabilities.CREATE_TASK)
           ? {
               title: 'Tasks',
               url: '/tasks',

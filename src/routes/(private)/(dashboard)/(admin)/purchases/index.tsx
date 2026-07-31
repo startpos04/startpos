@@ -7,6 +7,7 @@ import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import MountManager from '@/lib/mount-manager'
 import { type fePurchase, fetchPurchases } from '@/lib/queries/fetch-purchases'
+import { getPurchaseStatusUIMetadata } from '@/lib/queries/purchase-workflow'
 import { closePurchaseSidebar, PURCHASE_ASIDE_ID, showPurchaseSidebar } from './-components/purchase-sidebar'
 import { PurchaseDetailsSidebar } from './$purchaseId'
 import { CreatePurchaseSidebar } from './create'
@@ -84,11 +85,10 @@ function RouteComponent() {
           id: 'status',
           header: 'Status',
           cell: ({ row }) => {
-            const isVoided = row.original.notes?.startsWith('[VOIDED]')
-            if (!isVoided) return null
+            const { label, colorClass } = getPurchaseStatusUIMetadata(row.original.status)
             return (
-              <Badge variant='outline' className='text-[10px] text-destructive border-destructive/30 bg-destructive/5'>
-                Voided
+              <Badge variant='outline' className={`text-[10px] ${colorClass}`}>
+                {label}
               </Badge>
             )
           },

@@ -39,6 +39,7 @@ export const DEFAULT_CONFIGS_DATA = {
     { key: ConfigKey.ENABLE_ORDER, value: 'false', scope: ConfigScope.BUSINESS },
     { key: ConfigKey.ENABLE_CASH_RECONCILIATION, value: 'false', scope: ConfigScope.BUSINESS },
     { key: ConfigKey.ENABLE_TASK, value: 'false', scope: ConfigScope.BUSINESS },
+    { key: ConfigKey.AUTO_APPROVE_LOW_STOCK_REFILL, value: 'true', scope: ConfigScope.BUSINESS },
   ] as SystemConfigRow[],
   complianceRecords: [
     { key: ComplianceKey.BIR_TIN, value: '000-123-456-000' },

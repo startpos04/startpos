@@ -1,9 +1,14 @@
 // task-details-tab.tsx
 
-import { ArrowRightLeft, Banknote, BarChart3, ClipboardList, FileText, ShieldCheck, ShoppingBag, Trash2 } from 'lucide-react'
+import { ArrowRightLeft, Banknote, BarChart3, Check, ClipboardList, FileText, Layers, ShieldCheck, ShoppingBag, Trash2 } from 'lucide-react'
 import { TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
+import { useState } from 'react'
 import { SelectInput } from '@/components/custom/form/select-input'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { operationalTaskCollection } from '@/db/collections'
 import { withForm } from '@/hooks/form'
 import dayjs from '@/lib/dayjs'
 import type { feTask } from '@/lib/queries/fetch-tasks'
@@ -16,25 +21,173 @@ interface TaskDetailsTabProps {
   task: feTask
 }
 
+// ---------------------------------------------------------------------------
+// C2/C3: Three-Quantity Badge Strip
+// Displays all three quantity stages together. Editable fields appear when
+// the task is in the right lifecycle stage.
+// ---------------------------------------------------------------------------
+
+interface QuantityStripProps {
+  task: feTask
+}
+
+function QuantityStrip({ task }: QuantityStripProps) {
+  const { status, metadata } = task
+  const suggestedQty = metadata?.suggestedQty
+  const approvedQty = metadata?.approvedQty
+  const verifiedQty = metadata?.verifiedQty
+
+  // C3: approvedQty editable when task is PENDING (approver is reviewing)
+  const canEditApproved = status === TaskStatus.PENDING
+  // C4: verifiedQty editable when task is IN_PROGRESS (clerk is executing)
+  const canEditVerified = status === TaskStatus.IN_PROGRESS
+
+  const [draftApprovedQty, setDraftApprovedQty] = useState<string>(approvedQty != null ? String(approvedQty) : '')
+  const [draftVerifiedQty, setDraftVerifiedQty] = useState<string>(verifiedQty != null ? String(verifiedQty) : '')
+  const [savedApproved, setSavedApproved] = useState(false)
+  const [savedVerified, setSavedVerified] = useState(false)
+
+  const saveApprovedQty = () => {
+    const parsed = Number(draftApprovedQty)
+    if (Number.isNaN(parsed) || parsed < 0) return
+    operationalTaskCollection.update(task.id, draft => {
+      draft.metadata = { ...draft.metadata, approvedQty: parsed }
+      draft.updatedAt = new Date()
+    })
+    setSavedApproved(true)
+    setTimeout(() => setSavedApproved(false), 1500)
+  }
+
+  const saveVerifiedQty = () => {
+    const parsed = Number(draftVerifiedQty)
+    if (Number.isNaN(parsed) || parsed < 0) return
+    operationalTaskCollection.update(task.id, draft => {
+      draft.metadata = { ...draft.metadata, verifiedQty: parsed }
+      draft.updatedAt = new Date()
+    })
+    setSavedVerified(true)
+    setTimeout(() => setSavedVerified(false), 1500)
+  }
+
+  return (
+    <div className='rounded-xl border bg-slate-50/60 p-4 space-y-3'>
+      <div className='flex items-center gap-2 mb-1'>
+        <Layers className='h-3.5 w-3.5 text-slate-500' />
+        <span className='text-[0.65rem] uppercase font-bold text-slate-500 tracking-wide'>Three-Quantity Model</span>
+      </div>
+
+      <div className='grid grid-cols-3 gap-3'>
+        {/* Stage 1 — Suggested (creator's estimate, always read-only here) */}
+        <div className='space-y-1.5'>
+          <div className='flex items-center gap-1.5'>
+            <Badge variant='outline' className='text-[9px] py-0 h-4 text-blue-600 border-blue-200 bg-blue-50'>
+              Suggested
+            </Badge>
+          </div>
+          <p className='text-lg font-bold text-blue-700 tabular-nums'>{suggestedQty ?? '—'}</p>
+          <p className='text-[10px] text-slate-400'>Creator estimate</p>
+        </div>
+
+        {/* Stage 2 — Approved (approver sets this; editable while PENDING) */}
+        <div className='space-y-1.5'>
+          <div className='flex items-center gap-1.5'>
+            <Badge
+              variant='outline'
+              className={cn(
+                'text-[9px] py-0 h-4',
+                canEditApproved ? 'text-amber-600 border-amber-200 bg-amber-50 animate-pulse' : 'text-purple-600 border-purple-200 bg-purple-50',
+              )}
+            >
+              {canEditApproved ? 'Set Approved ↗' : 'Approved'}
+            </Badge>
+          </div>
+          {canEditApproved ? (
+            <div className='flex items-center gap-1'>
+              <Input
+                type='number'
+                min={0}
+                value={draftApprovedQty}
+                onChange={e => setDraftApprovedQty(e.target.value)}
+                className='h-7 text-sm font-bold w-full tabular-nums'
+                placeholder={String(suggestedQty ?? 0)}
+              />
+              <Button type='button' size='icon' variant={savedApproved ? 'default' : 'outline'} className='h-7 w-7 shrink-0' onClick={saveApprovedQty}>
+                <Check className='h-3 w-3' />
+              </Button>
+            </div>
+          ) : (
+            <p className='text-lg font-bold text-purple-700 tabular-nums'>{approvedQty ?? '—'}</p>
+          )}
+          <p className='text-[10px] text-slate-400'>Manager approved</p>
+        </div>
+
+        {/* Stage 3 — Verified (clerk records actual; editable while IN_PROGRESS) */}
+        <div className='space-y-1.5'>
+          <div className='flex items-center gap-1.5'>
+            <Badge
+              variant='outline'
+              className={cn(
+                'text-[9px] py-0 h-4',
+                canEditVerified ? 'text-emerald-600 border-emerald-200 bg-emerald-50 animate-pulse' : 'text-indigo-600 border-indigo-200 bg-indigo-50',
+              )}
+            >
+              {canEditVerified ? 'Record Actual ↗' : 'Verified'}
+            </Badge>
+          </div>
+          {canEditVerified ? (
+            <div className='flex items-center gap-1'>
+              <Input
+                type='number'
+                min={0}
+                value={draftVerifiedQty}
+                onChange={e => setDraftVerifiedQty(e.target.value)}
+                className='h-7 text-sm font-bold w-full tabular-nums'
+                placeholder={String(approvedQty ?? suggestedQty ?? 0)}
+              />
+              <Button type='button' size='icon' variant={savedVerified ? 'default' : 'outline'} className='h-7 w-7 shrink-0' onClick={saveVerifiedQty}>
+                <Check className='h-3 w-3' />
+              </Button>
+            </div>
+          ) : (
+            <p className='text-lg font-bold text-indigo-700 tabular-nums'>{verifiedQty ?? '—'}</p>
+          )}
+          <p className='text-[10px] text-slate-400'>Clerk actual</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Task-type detail sub-components
+// These show the type-specific metadata fields. The quantity model is hoisted
+// into the shared QuantityStrip above — these components focus on everything
+// else (locations, branches, suppliers, etc.).
+// ---------------------------------------------------------------------------
+
 function ShelfRefillDetails({ task }: TaskDetailsTabProps) {
   if (!task) return null
   return (
-    <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm'>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Refill Item (Variant)</p>
-        <p className='font-medium font-mono text-xs'>{task.metadata?.variantId || '—'}</p>
-      </div>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Suggested Quantity</p>
-        <p className='font-semibold text-blue-600'>{task.metadata?.suggestedQty ?? '—'}</p>
-      </div>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Source Location (From)</p>
-        <p className='font-medium'>{task.metadata?.sourceLocationId || '—'}</p>
-      </div>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Target Location (To)</p>
-        <p className='font-medium'>{task.metadata?.targetLocationId || '—'}</p>
+    <div className='space-y-4'>
+      <QuantityStrip task={task} />
+      <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm'>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Refill Item (Variant)</p>
+          <p className='font-medium font-mono text-xs'>{task.metadata?.variantId || '—'}</p>
+        </div>
+        <div>
+          {/* suggestedQty also shown inline for quick scan */}
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Suggested Qty (quick)</p>
+          <p className='font-semibold text-blue-600'>{task.metadata?.suggestedQty ?? '—'}</p>
+        </div>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Source Location (From)</p>
+          <p className='font-medium'>{task.metadata?.sourceLocationId || '—'}</p>
+        </div>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Target Location (To)</p>
+          <p className='font-medium'>{task.metadata?.targetLocationId || '—'}</p>
+        </div>
       </div>
     </div>
   )
@@ -43,18 +196,21 @@ function ShelfRefillDetails({ task }: TaskDetailsTabProps) {
 function PurchaseRequestDetails({ task }: TaskDetailsTabProps) {
   if (!task) return null
   return (
-    <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm'>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Target Supplier</p>
-        <p className='font-medium'>{task.metadata?.supplierId || '—'}</p>
-      </div>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Item to Order</p>
-        <p className='font-medium font-mono text-xs'>{task.metadata?.variantId || '—'}</p>
-      </div>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Order Quantity</p>
-        <p className='font-semibold text-amber-600'>{task.metadata?.suggestedQty ?? '—'}</p>
+    <div className='space-y-4'>
+      <QuantityStrip task={task} />
+      <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm'>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Target Supplier</p>
+          <p className='font-medium'>{task.metadata?.supplierId || '—'}</p>
+        </div>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Item to Order</p>
+          <p className='font-medium font-mono text-xs'>{task.metadata?.variantId || '—'}</p>
+        </div>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Order Quantity</p>
+          <p className='font-semibold text-amber-600'>{task.metadata?.suggestedQty ?? '—'}</p>
+        </div>
       </div>
     </div>
   )
@@ -63,18 +219,21 @@ function PurchaseRequestDetails({ task }: TaskDetailsTabProps) {
 function BranchTransferDetails({ task }: TaskDetailsTabProps) {
   if (!task) return null
   return (
-    <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm'>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Target Item (Variant)</p>
-        <p className='font-medium font-mono text-xs'>{task.metadata?.variantId || '—'}</p>
-      </div>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Transfer Quantity</p>
-        <p className='font-semibold text-blue-600'>{task.metadata?.suggestedQty ?? '—'}</p>
-      </div>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Destination Branch</p>
-        <p className='font-medium'>{task.metadata?.targetBranchId || '—'}</p>
+    <div className='space-y-4'>
+      <QuantityStrip task={task} />
+      <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm'>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Target Item (Variant)</p>
+          <p className='font-medium font-mono text-xs'>{task.metadata?.variantId || '—'}</p>
+        </div>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Transfer Quantity</p>
+          <p className='font-semibold text-blue-600'>{task.metadata?.suggestedQty ?? '—'}</p>
+        </div>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Destination Branch</p>
+          <p className='font-medium'>{task.metadata?.targetBranchId || '—'}</p>
+        </div>
       </div>
     </div>
   )
@@ -83,18 +242,21 @@ function BranchTransferDetails({ task }: TaskDetailsTabProps) {
 function StockCountDetails({ task }: TaskDetailsTabProps) {
   if (!task) return null
   return (
-    <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm'>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Audit Location</p>
-        <p className='font-medium'>{task.metadata?.locationId || '—'}</p>
-      </div>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Target Variant</p>
-        <p className='font-medium font-mono text-xs'>{task.metadata?.variantId || '—'}</p>
-      </div>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Physically Counted Qty</p>
-        <p className='font-semibold text-emerald-600'>{task.metadata?.suggestedQty ?? '—'}</p>
+    <div className='space-y-4'>
+      <QuantityStrip task={task} />
+      <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm'>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Audit Location</p>
+          <p className='font-medium'>{task.metadata?.locationId || '—'}</p>
+        </div>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Target Variant</p>
+          <p className='font-medium font-mono text-xs'>{task.metadata?.variantId || '—'}</p>
+        </div>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Physically Counted Qty</p>
+          <p className='font-semibold text-emerald-600'>{task.metadata?.suggestedQty ?? '—'}</p>
+        </div>
       </div>
     </div>
   )
@@ -103,22 +265,25 @@ function StockCountDetails({ task }: TaskDetailsTabProps) {
 function WasteDisposalDetails({ task }: TaskDetailsTabProps) {
   if (!task) return null
   return (
-    <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm'>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Damaged/Expired Item</p>
-        <p className='font-medium font-mono text-xs'>{task.metadata?.variantId || '—'}</p>
-      </div>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Waste Quantity</p>
-        <p className='font-semibold text-destructive'>{task.metadata?.suggestedQty ?? '—'}</p>
-      </div>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>From Location</p>
-        <p className='font-medium'>{task.metadata?.locationId || '—'}</p>
-      </div>
-      <div>
-        <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Batch / Lot Number</p>
-        <p className='font-medium font-mono'>{task.metadata?.batchNumber || 'N/A'}</p>
+    <div className='space-y-4'>
+      <QuantityStrip task={task} />
+      <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm'>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Damaged/Expired Item</p>
+          <p className='font-medium font-mono text-xs'>{task.metadata?.variantId || '—'}</p>
+        </div>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Waste Quantity</p>
+          <p className='font-semibold text-destructive'>{task.metadata?.suggestedQty ?? '—'}</p>
+        </div>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>From Location</p>
+          <p className='font-medium'>{task.metadata?.locationId || '—'}</p>
+        </div>
+        <div>
+          <p className='text-[0.65rem] uppercase font-bold text-slate-400'>Batch / Lot Number</p>
+          <p className='font-medium font-mono'>{task.metadata?.batchNumber || 'N/A'}</p>
+        </div>
       </div>
     </div>
   )
@@ -169,6 +334,17 @@ const TASK_CONFIG = {
   [TaskType.GENERAL_CHORE]: { component: GeneralChoreDetails, icon: FileText },
 } as const
 
+// Task types that participate in the three-quantity model.
+// CASH_RECONCILIATION and GENERAL_CHORE are excluded — they have no quantity concept.
+// biome-ignore lint/correctness/noUnusedVariables: fix later
+const QUANTITY_TASK_TYPES = new Set<TaskType>([
+  TaskType.SHELF_REFILL,
+  TaskType.PURCHASE_REQUEST,
+  TaskType.BRANCH_TRANSFER,
+  TaskType.STOCK_COUNT,
+  TaskType.WASTE_DISPOSAL,
+])
+
 export const TaskDetailsTab = withForm({
   ...taskFormOpts,
   props: {} as TaskDetailsTabProps,
@@ -213,12 +389,12 @@ export const TaskDetailsTab = withForm({
                   <p className='text-sm font-medium mb-5'>{task.clerk?.name || 'Unassigned Operator'}</p>
                 ) : (
                   <form.Field
-                    name='clerkId' // Changed from 'status' to target employee tracking
+                    name='clerkId'
                     children={field => (
                       <SelectInput
                         field={field}
                         placeholder={task.clerk?.name || 'Assign Clerk...'}
-                        options={userOptions} // Changed options source to employee array
+                        options={userOptions}
                         disabled={userOptions.length === 0}
                       />
                     )}
@@ -241,12 +417,12 @@ export const TaskDetailsTab = withForm({
                   </p>
                 ) : (
                   <form.Field
-                    name='approverId' // Changed from 'status'
+                    name='approverId'
                     children={field => (
                       <SelectInput
                         field={field}
                         placeholder={task.approver?.name || 'Assign Supervisor...'}
-                        options={userOptions} // Changed options source
+                        options={userOptions}
                         disabled={userOptions.length === 0}
                       />
                     )}
@@ -262,12 +438,12 @@ export const TaskDetailsTab = withForm({
                   </p>
                 ) : (
                   <form.Field
-                    name='reviewerId' // Changed from 'status'
+                    name='reviewerId'
                     children={field => (
                       <SelectInput
                         field={field}
                         placeholder={task.reviewer?.name || 'Assign Post-Audit Reviewer...'}
-                        options={userOptions} // Changed options source
+                        options={userOptions}
                         disabled={userOptions.length === 0}
                       />
                     )}

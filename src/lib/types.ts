@@ -77,6 +77,7 @@ const BaseConfigSchema = z.object({
   [ConfigKey.ENABLE_CASH_RECONCILIATION]: z.boolean(),
   [ConfigKey.ENABLE_TASK]: z.boolean(),
   [ConfigKey.ENABLE_ORDER]: z.boolean(),
+  [ConfigKey.AUTO_APPROVE_LOW_STOCK_REFILL]: z.boolean(),
 })
 
 const BaseComplianceSchema = z.object({

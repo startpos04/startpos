@@ -1,3 +1,4 @@
+import { PurchaseStatus } from 'prisma/generated/prisma/enums'
 import { inventoryCollection, inventoryMovementCollection, purchaseCollection, purchaseItemCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
@@ -14,7 +15,10 @@ export const voidPurchase = async (purchaseId: string) => {
   const result = await dbTransaction(() => {
     const purchase = purchaseCollection.get(purchaseId)
     if (!purchase) throw new Error('Purchase not found')
-    if (purchase.notes?.startsWith('[VOIDED]')) throw new Error('Purchase is already voided')
+    // D6: guard on status field; retain notes-prefix check during transition window
+    if (purchase.status === PurchaseStatus.VOIDED || purchase.notes?.startsWith('[VOIDED]')) {
+      throw new Error('Purchase is already voided')
+    }
 
     // Get all line items for this purchase
     const items = [...purchaseItemCollection.values()].filter(i => i.purchaseId === purchaseId)
@@ -31,8 +35,10 @@ export const voidPurchase = async (purchaseId: string) => {
         locationId: m.locationId,
       }))
 
-    // 1. Mark purchase as voided
+    // 1. Mark purchase as voided — set status field (D6); retain notes prefix for
+    //    backward compat with any code that still reads the notes prefix.
     purchaseCollection.update(purchaseId, draft => {
+      draft.status = PurchaseStatus.VOIDED
       draft.notes = `[VOIDED] ${draft.notes ?? ''}`
     })
 

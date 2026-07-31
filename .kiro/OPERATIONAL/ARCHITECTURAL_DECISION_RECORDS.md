@@ -5,7 +5,7 @@
 >   or retains a shared abstraction. Decisions that defer or reject abstractions are recorded
 >   in the corrected roadmap, not here.
 > **Scope:** Every new abstraction that survives the Phase 5 course correction.
-> **Date:** July 30, 2026
+> **Last updated:** July 31, 2026 (Phase D + Phase E complete)
 
 ---
 
@@ -13,10 +13,10 @@
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| [ADR-001](#adr-001--inventoryengine) | InventoryEngine | Accepted |
-| [ADR-002](#adr-002--workflowts--createworkflow) | workflow.ts / createWorkflow() | Accepted — Dormant Until Phase D |
-| [ADR-003](#adr-003--resultts--operationresult) | result.ts / OperationResult | Accepted — Already Active |
-| [ADR-004](#adr-004--notificationengine-checkLowStock-separation) | NotificationEngine checkLowStock separation | Accepted — Part of Phase A |
+| [ADR-001](#adr-001--inventoryengine) | InventoryEngine | Accepted — Active |
+| [ADR-002](#adr-002--workflowts--createworkflow) | workflow.ts / createWorkflow() | Accepted — Active (Phase D) |
+| [ADR-003](#adr-003--resultts--operationresult) | result.ts / OperationResult | Accepted — Active |
+| [ADR-004](#adr-004--notificationengine-checkLowStock-separation) | NotificationEngine checkLowStock separation | Accepted — Active (Phase A) |
 
 
 ---
@@ -130,9 +130,15 @@ Reconsider the name if:
 ## ADR-002 — workflow.ts / createWorkflow()
 
 **Date:** July 30, 2026
-**Status:** Accepted — Dormant Until Phase D
-**Introduced in:** Written now. Consumed at Phase D (Purchase status field introduction).
-**File:** `src/lib/workflow.ts` (already exists)
+**Status:** Accepted — Active (activated Phase D + extended Phase E, July 31, 2026)
+**Introduced in:** Written at Phase 5. Consumed at Phase D.
+**File:** `src/lib/workflow.ts`
+
+**Activation evidence:**
+- Consumer 1: `purchaseWorkflow` in `src/lib/queries/purchase-workflow.ts` (Phase D)
+- Consumer 2: `taskWorkflow` in `src/routes/(private)/tasks/$taskId/-components/task-workflow.ts` (Phase D migration)
+- Both consumers exist simultaneously in the same PR — the two-implementation rule is satisfied.
+- Consumer 3: `receiptWorkflow` in `src/lib/queries/receipt-workflow.ts` (Phase E — GoodsReceipt lifecycle, PENDING→CONFIRMED/DISPUTED)
 
 ---
 
@@ -247,8 +253,8 @@ The migration is a refactor with identical externally-observable behavior. It sh
 ## ADR-003 — result.ts / OperationResult
 
 **Date:** July 30, 2026
-**Status:** Accepted — Already Active
-**Introduced in:** Already exists and is in use.
+**Status:** Accepted — Active (created Phase D, July 31, 2026)
+**Introduced in:** Phase D (file did not exist prior; referenced as "already active" in the original roadmap because `workflow.ts` was written expecting it)
 **File:** `src/lib/result.ts`
 
 ---
@@ -438,9 +444,13 @@ These are abstractions that were considered and explicitly deferred. They are re
 ### DEFERRED: ProcurementService
 
 **Considered for:** Phase D
-**Decision:** Deferred until Purchase logic demonstrates rule duplication or multiple mutation owners.
-**Reasoning:** `create-purchase.ts` and `void-purchase.ts` are query functions. They are the correct pattern for single-domain mutations. After `InventoryEngine` extracts the inventory portion, each file becomes a thin wrapper around its primary domain operation. No second mutation owner exists. No rule duplication is confirmed.
-**Trigger for reconsideration:** A third purchase mutation path is introduced (partial void, purchase amendment) that requires the same rules as the existing two, OR purchase approval routing becomes complex enough to warrant a coordinating object.
+**Decision:** Deferred — trigger condition not yet met after Phase D.
+**Reasoning:** Phase D introduced `create-purchase-request.ts` as a second purchase mutation path. The trigger condition for `ProcurementService` is: a third path OR rule duplication between existing paths. After Phase D the two paths are:
+  - `create-purchase.ts` (quick-receive → RECEIVED)
+  - `create-purchase-request.ts` (approval path → PENDING_APPROVAL)
+
+Both paths share `InventoryEngine.applyPurchaseReceipt()` for inventory credit — no duplication exists at that layer. The purchase header insert logic differs by design (different status, different notification). A ProcurementService would combine them without evidence of shared rules being violated.
+**Trigger for reconsideration:** A third purchase mutation path is introduced (partial void, purchase amendment, GRN-triggered receipt) that requires the same validation rules as the existing two, OR the approval routing logic (threshold checks, approver assignment) grows complex enough that both `create-purchase.ts` and `create-purchase-request.ts` independently re-implement it.
 
 ---
 

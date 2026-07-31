@@ -92,47 +92,118 @@ export const getAuthUser = createServerFn({ method: 'GET' })
     const mergedComplianceRegistry = _.merge({}, mappedBusinessCompliance, mappedBranchCompliance)
 
     // -------------------------------------------------------------------------
-    // Entitlement Summary — Phase 2
+    // Entitlement Summary — Phase F
     // Builds a lightweight capability snapshot embedded in every session.
-    // Phase 3 will replace the open-context fallback with real subscription data.
+    // When a BusinessSubscription record exists, the real plan + status drive
+    // the engine. When no subscription exists (dev / first-time onboarding),
+    // the open-context fallback grants everything so existing workflows continue.
     // -------------------------------------------------------------------------
-    const [planEntitlements, entitlementOverrides] = await Promise.all([
-      // Fetch all active plan entitlements. Until Phase 3 provisions a
-      // BusinessSubscription, we fetch ALL plan entitlements across all plans
-      // to determine what features exist, but treat the business as ACTIVE.
-      // Replace this query in Phase 3 with: business.subscription.plan.entitlements
-      rootPrisma.planEntitlement.findMany({
-        select: { featureKey: true, usageLimit: true },
+
+    const [businessSubscription, entitlementOverrides] = await Promise.all([
+      // F2: Fetch the business's active subscription and its plan's entitlements.
+      // Root Prisma is used here intentionally — subscription data is platform-level
+      // (not tenant-scoped) and BusinessSubscription lives outside branch isolation.
+      rootPrisma.businessSubscription.findUnique({
+        where: { businessId },
+        select: {
+          status: true,
+          trialEndsAt: true,
+          currentPeriodEnd: true,
+          txUsedThisPeriod: true,
+          creditBalance: true,
+          plan: {
+            select: {
+              includedTxPerMonth: true,
+              entitlements: {
+                select: { featureKey: true, usageLimit: true },
+              },
+            },
+          },
+        },
       }),
 
-      // Per-business overrides (grants or revocations)
+      // Per-business overrides (grants or revocations) — unchanged from Phase 2
       rootPrisma.entitlementOverride.findMany({
         where: { businessId },
         select: { featureKey: true, granted: true, expiresAt: true },
       }),
     ])
 
-    // Build context. Until Phase 3, use the open (all-access) fallback so
-    // existing workflows continue to work. The ENABLE_* SystemConfig flags
-    // are still checked by the UI/server functions as before (dual-check mode).
     const allCapabilities = Object.values(Capabilities)
-    const planFeatures = planEntitlements.length > 0 ? (planEntitlements.map((e: { featureKey: string }) => e.featureKey) as CapabilityKey[]) : allCapabilities // No plan seeded yet → grant everything (open mode)
 
-    const entitlementContext = EntitlementEngine.buildOpenContext(planFeatures)
+    // biome-ignore lint/suspicious/noImplicitAnyLet: fix later
+    let entitlementContext
 
-    // Splice in real overrides regardless of open/plan mode
-    const contextWithOverrides = {
-      ...entitlementContext,
-      overrides: entitlementOverrides.map(
-        (o: { featureKey: string; granted: boolean; expiresAt: Date | null }): EntitlementOverrideDTO => ({
-          featureKey: o.featureKey,
-          granted: o.granted,
-          expiresAt: o.expiresAt,
-        }),
-      ),
+    if (businessSubscription) {
+      // -----------------------------------------------------------------------
+      // Real subscription path — Phase F active
+      // -----------------------------------------------------------------------
+
+      // Map Prisma SubscriptionStatus enum string to the TS const value.
+      // Both are the same string values so a cast is safe; the domain layer
+      // stays infrastructure-free by using its own const object.
+      const status = businessSubscription.status as import('../entitlement/entitlement-types').SubscriptionStatus
+
+      const planFeatures = businessSubscription.plan.entitlements.map((e: { featureKey: string }) => e.featureKey as CapabilityKey)
+
+      // Build usageLimits from plan entitlements that have a non-null usageLimit
+      const usageLimits: Partial<Record<CapabilityKey, number>> = {}
+      for (const e of businessSubscription.plan.entitlements) {
+        if (e.usageLimit !== null) {
+          usageLimits[e.featureKey as CapabilityKey] = e.usageLimit
+        }
+      }
+
+      // Compute txRemaining from plan allowance minus current period usage.
+      // -1 means unlimited; null means no allowance tracking.
+      const includedTx = businessSubscription.plan.includedTxPerMonth
+      const txRemaining = includedTx === -1 ? null : Math.max(0, includedTx - businessSubscription.txUsedThisPeriod)
+
+      entitlementContext = {
+        status,
+        planFeatures,
+        usageLimits,
+        currentUsage: {}, // Usage counts (employee count etc.) fetched on-demand if needed
+        txRemaining,
+        overrides: entitlementOverrides.map(
+          (o: { featureKey: string; granted: boolean; expiresAt: Date | null }): EntitlementOverrideDTO => ({
+            featureKey: o.featureKey,
+            granted: o.granted,
+            expiresAt: o.expiresAt,
+          }),
+        ),
+        creditBalance: businessSubscription.creditBalance ?? null,
+      }
+    } else {
+      // -----------------------------------------------------------------------
+      // Open-context fallback — no subscription record (dev / onboarding)
+      // All features granted, ACTIVE status, no limits.
+      // -----------------------------------------------------------------------
+
+      // Fetch all plan entitlements across plans so any seeded features are
+      // reflected. If nothing is seeded yet, grant the full capability list.
+      const planEntitlements = await rootPrisma.planEntitlement.findMany({
+        select: { featureKey: true },
+      })
+
+      const planFeatures =
+        planEntitlements.length > 0 ? (planEntitlements.map((e: { featureKey: string }) => e.featureKey) as CapabilityKey[]) : allCapabilities
+
+      const openContext = EntitlementEngine.buildOpenContext(planFeatures)
+
+      entitlementContext = {
+        ...openContext,
+        overrides: entitlementOverrides.map(
+          (o: { featureKey: string; granted: boolean; expiresAt: Date | null }): EntitlementOverrideDTO => ({
+            featureKey: o.featureKey,
+            granted: o.granted,
+            expiresAt: o.expiresAt,
+          }),
+        ),
+      }
     }
 
-    const entitlement = EntitlementEngine.buildSummary(allCapabilities, contextWithOverrides)
+    const entitlement = EntitlementEngine.buildSummary(allCapabilities, entitlementContext)
 
     return {
       ...user,

@@ -1,4 +1,4 @@
-import { SequenceType } from 'prisma/generated/prisma/enums'
+import { PurchaseStatus, SequenceType } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
 import { inventoryCollection, inventoryMovementCollection, productVariantCollection, purchaseCollection, purchaseItemCollection } from '@/db/collections'
 // inventoryCollection + inventoryMovementCollection are passed to InventoryEngine — kept for the pass-through
@@ -34,6 +34,7 @@ export const createPurchase = async (data: CreatePurchaseInput) => {
     purchaseCollection.insert({
       id: purchaseId,
       purchaseId: structuredId,
+      status: PurchaseStatus.RECEIVED, // D7: quick-receive path sets RECEIVED directly
       supplierId: data.supplierId,
       totalCost,
       notes: data.notes || null,

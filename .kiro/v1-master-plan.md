@@ -300,16 +300,46 @@ model SubscriptionPlan {
 
 A registry of every feature the application can gate. Decoupled from plan names so new features can be added without altering plan logic.
 
-```prisma
-model Feature {
-  id          String  @id @default(cuid())
-  key         String  @unique   // e.g. "FEATURE_POS", "FEATURE_ANALYTICS", "FEATURE_API_ACCESS"
-  label       String            // Human-readable label for admin UI
-  description String?
-  isOperational Boolean @default(false) // true = blocks on subscription lapse; false = always accessible
+A `Feature` describes **what the platform provides** — its identity, label, operational classification, and dependency graph. It does not describe how much it costs. Pricing is owned by `FeaturePrice` (see below) and versioned independently through the `PricingCatalog`. This separation allows pricing to evolve — across regions, currencies, promotions, and reseller channels — without touching the feature registry.
 
-  entitlements PlanEntitlement[]
-  overrides    EntitlementOverride[]
+```prisma
+enum PricingCategory {
+  CORE          // Base platform capabilities (always included in composable base)
+  OPERATIONAL   // Day-to-day operations features (POS, Orders, Inventory, Purchasing)
+  MANAGEMENT    // Back-office and reporting features
+  INTEGRATION   // API access, third-party connectors
+  ADVANCED      // Analytics, forecasting, loyalty
+}
+
+model Feature {
+  id            String  @id @default(cuid())
+  key           String  @unique   // e.g. "CREATE_ORDER", "FEATURE_ANALYTICS", "ACCESS_API"
+  label         String            // Human-readable label for admin UI
+  description   String?
+  isOperational Boolean @default(false)
+  // true = blocked when subscription lapses; false = always accessible
+
+  isSelectableByCustomer Boolean @default(false)
+  // When true, this feature appears in the pricing calculator and can be
+  // chosen by a business building a composable subscription.
+
+  pricingCategory PricingCategory?
+  // Groups features in the calculator UI. Does not affect pricing calculation —
+  // the PricingEngine reads category from the active FeaturePrice, not from here.
+
+  sortOrder     Int     @default(0)
+  // Controls display order in the pricing calculator UI.
+
+  // --- Dependency Relations ---
+  dependencies         FeatureDependency[] @relation("DependentFeature")
+  dependents           FeatureDependency[] @relation("RequiredFeature")
+
+  // --- Relations ---
+  prices               FeaturePrice[]
+  entitlements         PlanEntitlement[]
+  subscriptionFeatures BusinessSubscriptionFeature[]
+  bundleItems          FeatureBundleItem[]
+  overrides            EntitlementOverride[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -317,6 +347,213 @@ model Feature {
   @@map("features")
 }
 ```
+
+**Design rationale:** Separating `Feature` from `FeaturePrice` keeps two distinct business concerns from becoming entangled. A feature's identity — what it does, whether it's operational, which other features it requires — changes rarely and only by deliberate product decision. Its pricing changes frequently: promotional rates, annual discounts, regional variations, reseller margins, and negotiated enterprise pricing all drive price changes that have nothing to do with the feature itself. By placing pricing in its own model, the full pricing history for any feature is preserved, historical quotes can be recreated exactly, and new pricing dimensions (currency, region, channel) are added to `FeaturePrice` without touching the feature registry or the entitlement engine.
+
+---
+
+#### `FeaturePrice`
+
+The pricing definition for a single feature within a specific `PricingCatalog` version. A feature may have many price records over its lifetime — one per catalog version it participates in.
+
+`FeaturePrice` describes **how much a feature costs** at a point in time, under a specific pricing catalog. The `PricingEngine` always reads prices from `FeaturePrice`, never from `Feature` directly.
+
+```prisma
+model FeaturePrice {
+  id          String   @id @default(cuid())
+  featureKey  String
+  feature     Feature  @relation(fields: [featureKey], references: [key], onDelete: Cascade)
+  catalogId   String
+  catalog     PricingCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+
+  // Recurring charges (in cents, in the catalog's base currency)
+  monthlyPrice  Int    // Monthly recurring price. 0 = included at no extra charge.
+  yearlyPrice   Int    // Annual recurring price. Typically monthlyPrice * 12 * (1 - annualDiscount).
+
+  // One-time charges (in cents)
+  implementationFee Int @default(0)
+  // Charged once when this feature is first activated on a subscription.
+  // Example: kitchen display system setup and onboarding.
+
+  setupFee      Int    @default(0)
+  // One-time configuration fee, separate from implementation.
+  // Both fees are captured in the BusinessSubscriptionFeature snapshot at activation.
+
+  // Metadata
+  isActive      Boolean @default(true)
+  // When false, this feature is not available for selection in this catalog version.
+  // Used to phase out a feature in a new catalog without deleting historical records.
+
+  notes         String?
+  // Internal documentation explaining this price point (e.g. "Promo rate Q1 2027").
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([featureKey, catalogId])
+  @@map("feature_prices")
+}
+```
+
+**How FeaturePrice and PricingCatalog work together:**
+
+The `PricingCatalog` (see below) is a versioned container. When a new catalog version is published, new `FeaturePrice` records are created for that version. Existing records from previous catalog versions are never modified — they remain as the permanent pricing history for any quotes or subscriptions that were calculated under that version.
+
+```
+PricingCatalog v1 (published 2026-01-01)
+  ├── FeaturePrice: CREATE_ORDER    → ₱200/mo
+  ├── FeaturePrice: FEATURE_INVENTORY → ₱150/mo
+  └── FeaturePrice: ACCESS_API     → ₱500/mo
+
+PricingCatalog v2 (published 2027-01-01)
+  ├── FeaturePrice: CREATE_ORDER    → ₱250/mo  ← price increase
+  ├── FeaturePrice: FEATURE_INVENTORY → ₱150/mo  ← unchanged
+  └── FeaturePrice: ACCESS_API     → ₱500/mo  ← unchanged
+```
+
+A quote calculated under v1 always reproduces correctly because its `PricingQuote.catalogVersion` field points back to v1, and all v1 `FeaturePrice` records are immutable.
+
+---
+
+#### `PricingCatalog`
+
+A versioned, named container that represents the complete active pricing configuration at a point in time. The `PricingEngine` always receives a `PricingCatalog` as input — it never reaches into individual `Feature`, `FeaturePrice`, `FeatureBundle`, or promotion records directly. The catalog is the clean boundary between pricing data and pricing logic.
+
+Rather than `PricingEngine` depending directly on scattered persistence models, the Application Layer loads the active catalog (or the catalog referenced by a quote) and passes it as a single structured input. This creates a clear separation: the Application Layer owns data assembly, the `PricingEngine` owns calculation.
+
+```prisma
+enum CatalogStatus {
+  DRAFT       // Being assembled; not yet used for calculations
+  ACTIVE      // Currently the default catalog for new quotes and subscriptions
+  ARCHIVED    // Superseded by a newer version; preserved for historical reproduction
+}
+
+model PricingCatalog {
+  id          String        @id @default(cuid())
+  version     String        @unique  // e.g. "2026-Q1", "v1", "2027-PROMO"
+  name        String?                // Human label, e.g. "2026 Standard Pricing"
+  description String?
+  status      CatalogStatus @default(DRAFT)
+
+  // Currency configuration
+  currency    String  @default("PHP")
+  // ISO 4217 currency code. All prices in this catalog are denominated in this currency.
+  // Future: a catalog may target a specific region or channel (e.g. "USD", "SGD").
+
+  // Annual billing discount applied to all features in this catalog
+  // unless a FeaturePrice specifies its own yearlyPrice explicitly.
+  defaultAnnualDiscountPercent Int @default(15)
+  // e.g. 15 = all monthly prices * 12 * 0.85 for annual billing.
+
+  // The catalog becomes the active default on this date.
+  // Allows scheduling a catalog transition without a manual promotion step.
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?   // null = no scheduled end date
+
+  // Relations
+  featurePrices      FeaturePrice[]
+  bundleVersions     FeatureBundleVersion[]
+  quotes             PricingQuote[]
+
+  publishedAt DateTime?  // When status changed to ACTIVE
+  publishedBy String?    // userId of the platform admin who activated this catalog
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("pricing_catalogs")
+}
+```
+
+**What a PricingCatalog owns:**
+
+| Component | Description |
+|---|---|
+| Feature prices | One `FeaturePrice` per selectable feature — the monthly and annual price in this catalog version |
+| Bundle versions | One `FeatureBundleVersion` per active bundle — the discount rule applicable in this catalog |
+| Currency | The denomination for all prices in the catalog |
+| Annual discount | Default percentage saving for annual billing commitment |
+| Validity window | `effectiveFrom` / `effectiveTo` for scheduled transitions |
+
+The catalog intentionally does not own promotion records or tax rules directly — those are applied by the `PricingEngine` as overlays on top of the catalog prices. This keeps the catalog as the stable pricing foundation while allowing promotional and tax logic to change without requiring a new catalog version.
+
+**Catalog lifecycle:**
+
+```
+DRAFT
+  ↓ (platform admin configures all FeaturePrices and BundleVersions)
+ACTIVE  ← one catalog is active at a time; activating a new one archives the previous
+  ↓ (new catalog version published)
+ARCHIVED  ← preserved forever for historical quote reproduction
+```
+
+When a new catalog is activated, the previous `ACTIVE` catalog transitions to `ARCHIVED`. It is never deleted. Any `PricingQuote` or `BusinessSubscriptionFeature` that was calculated under the old catalog remains reproducible by loading that archived catalog by ID.
+
+**How the Application Layer uses the catalog:**
+
+```ts
+// Application Layer — assembles the PricingCatalogDTO, passes to the engine
+const activeCatalog = await pricingCatalogRepository.loadActive()
+
+// PricingCatalogDTO — a plain DTO, no Prisma types, safe to pass into the engine
+const catalogDTO: PricingCatalogDTO = {
+  id:             activeCatalog.id,
+  version:        activeCatalog.version,
+  currency:       activeCatalog.currency,
+  annualDiscount: activeCatalog.defaultAnnualDiscountPercent,
+  featurePrices:  activeCatalog.featurePrices.map(toFeaturePriceDTO),
+  bundles:        activeCatalog.bundleVersions.map(toBundleVersionDTO),
+}
+
+// PricingEngine — receives the DTO, knows nothing about Prisma
+const result = PricingEngine.calculate(strategy, input, catalogDTO)
+```
+
+**Why this abstraction improves auditability and reproducibility:**
+
+Every `PricingQuote` records the `catalogId` it was calculated under. To reproduce a quote from three years ago, the Application Layer loads the archived `PricingCatalog` by that ID — all the exact prices, bundle rules, and currency configuration are preserved. No re-calculation from current prices is needed and no current price change can corrupt historical records.
+
+This also means future pricing dimensions — regional pricing, reseller markups, promotional overlays — can be introduced as new catalog variants or as fields on `PricingCatalog` and `FeaturePrice`, without changing the `PricingEngine` or any existing downstream consumers.
+
+---
+
+#### `FeatureDependency`
+
+Defines which features automatically require other features to be active. When a business selects a feature in the composable pricing calculator, all transitive dependencies are automatically added to the selection. The `PricingEngine` validates this graph before calculating a price.
+
+```prisma
+model FeatureDependency {
+  id              String  @id @default(cuid())
+  dependentKey    String
+  dependent       Feature @relation("DependentFeature", fields: [dependentKey], references: [key], onDelete: Cascade)
+  requiredKey     String
+  required        Feature @relation("RequiredFeature",  fields: [requiredKey],  references: [key], onDelete: Cascade)
+
+  // When true, the required feature is added automatically and cannot be
+  // deselected while the dependent feature is active.
+  isAutoIncluded  Boolean @default(true)
+
+  reason          String?
+  // Human-readable explanation shown in the calculator UI.
+  // Example: "Inventory tracking requires an active POS session to record movements."
+
+  createdAt DateTime @default(now())
+
+  @@unique([dependentKey, requiredKey])
+  @@map("feature_dependencies")
+}
+```
+
+**Example dependency seeds:**
+
+| Dependent Feature | Requires | Reason |
+|---|---|---|
+| `FEATURE_INVENTORY` | `FEATURE_POS` | Inventory movements are triggered by POS sales |
+| `FEATURE_KITCHEN_DISPLAY` | `FEATURE_ORDERS` | Kitchen display renders active order queue |
+| `ACCESS_API` | `FEATURE_ADVANCED_REPORTS` | API access requires professional-tier data access |
+| `FEATURE_PURCHASING` | `FEATURE_INVENTORY` | Purchase records update inventory stock levels |
+
+The dependency graph must be acyclic. The `PricingEngine.validateDependencies` method detects cycles at validation time and returns an error before any price is calculated.
 
 #### `PlanEntitlement`
 
@@ -356,7 +593,8 @@ enum SubscriptionStatus {
 enum BillingModel {
   MONTHLY_SUBSCRIPTION
   PREPAID_CREDITS
-  HYBRID // Subscription base + prepaid overages
+  HYBRID              // Subscription base + prepaid overages
+  COMPOSABLE_FEATURES // Business-selected feature set with dynamic price calculation
 }
 
 model BusinessSubscription {
@@ -393,6 +631,7 @@ model BusinessSubscription {
   creditLedger   CreditLedger[]
   invoices       BillingInvoice[]
   statusHistory  SubscriptionStatusHistory[]
+  subscriptionFeatures BusinessSubscriptionFeature[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -557,6 +796,354 @@ model BillingInvoiceItem {
 ```
 
 
+#### `BusinessSubscriptionFeature`
+
+The subscription snapshot for composable plans. When a business activates a `COMPOSABLE_FEATURES` subscription, every selected feature — along with the agreed price at that exact moment — is written here. This record is immutable after creation.
+
+```prisma
+model BusinessSubscriptionFeature {
+  id             String               @id @default(cuid())
+  subscriptionId String
+  subscription   BusinessSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  businessId     String
+  business       Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  featureKey     String
+  feature        Feature              @relation(fields: [featureKey], references: [key], onDelete: Restrict)
+
+  // Agreed pricing — frozen at subscription creation time.
+  // These values never change even if the Feature catalog prices are updated.
+  agreedMonthlyPrice   Int   // In cents. The price the business pays per month for this feature.
+  agreedYearlyPrice    Int   // In cents. Used when billingCycle = ANNUAL.
+  agreedImplFee        Int   @default(0) // One-time implementation fee, charged on first activation.
+  agreedSetupFee       Int   @default(0) // One-time setup fee, charged on first activation.
+
+  // Negotiated pricing — set by a sales rep for enterprise customers.
+  // When present, this overrides the agreed prices above for invoice line items.
+  negotiatedMonthlyPrice Int?
+  negotiatedYearlyPrice  Int?
+
+  // Effective dates — supports mid-cycle feature adds/removes.
+  effectiveFrom  DateTime  @default(now())
+  effectiveTo    DateTime? // null = still active
+
+  // Audit
+  addedBy        String?   // userId of the rep or admin who added this feature
+  addedReason    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([subscriptionId, featureKey, effectiveFrom])
+  @@index([subscriptionId, effectiveFrom])
+  @@map("business_subscription_features")
+}
+```
+
+**Why snapshot instead of recalculate:**
+
+The agreed pricing is frozen at subscription creation for three reasons:
+
+1. **Grandfathered pricing.** When a feature's catalog price increases, active subscribers keep their original price until they explicitly renew or modify their selection. This is a commercial commitment, not a technical accident.
+2. **Auditability.** The invoice line items can always be reconciled against the snapshot without knowing what the catalog price was on any given historical date.
+3. **Performance.** Generating an invoice or checking overage charges requires reading a small fixed set of snapshot rows, not joining through feature catalog prices and applying historical rate logic.
+
+The `negotiatedMonthlyPrice` and `negotiatedYearlyPrice` fields support enterprise customers where a sales representative has agreed to a custom price. When these are populated, the `InvoiceEngine` uses them instead of the agreed catalog prices. The agreed price on a quote line item (`PricingQuoteItem.agreedPrice = negotiatedPrice ?? catalogMonthlyPrice`) is what flows into this snapshot at conversion time.
+
+---
+
+#### `FeatureBundle`
+
+A named bundle of features that qualifies for a discount or a fixed combined price. Bundles are database records — adding a new promotional bundle requires no code change.
+
+`FeatureBundle` defines the bundle's identity and composition (which features it groups). The discount rules for each catalog version are owned by `FeatureBundleVersion` (see below), keeping bundle identity separate from bundle pricing — exactly the same separation applied to `Feature` and `FeaturePrice`.
+
+```prisma
+model FeatureBundle {
+  id          String  @id @default(cuid())
+  name        String  @unique  // e.g. "Restaurant Essentials", "Retail Starter Pack"
+  description String?
+  isActive    Boolean @default(true)
+  // When false, the bundle is hidden from the pricing calculator entirely.
+  // Existing subscriptions that were created under this bundle are unaffected.
+
+  items    FeatureBundleItem[]
+  versions FeatureBundleVersion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("feature_bundles")
+}
+
+model FeatureBundleItem {
+  id         String        @id @default(cuid())
+  bundleId   String
+  bundle     FeatureBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  featureKey String
+  feature    Feature       @relation(fields: [featureKey], references: [key], onDelete: Cascade)
+
+  // When true, the feature is required to qualify for the bundle discount.
+  // When false, the feature is included as a bonus (does not affect qualification).
+  isRequired Boolean @default(true)
+
+  @@unique([bundleId, featureKey])
+  @@map("feature_bundle_items")
+}
+```
+
+#### `FeatureBundleVersion`
+
+The pricing and discount configuration for a bundle within a specific `PricingCatalog` version. A bundle may have different discount rules in different catalog versions — the `FeatureBundleVersion` records that history without ever modifying existing data.
+
+```prisma
+enum BundlePricingType {
+  PERCENTAGE_DISCOUNT // Apply X% discount to the combined à la carte price
+  FIXED_PRICE         // Charge a flat monthly price for the bundle regardless of individual prices
+  FLAT_DISCOUNT       // Subtract a fixed amount in cents from the combined monthly price
+}
+
+model FeatureBundleVersion {
+  id          String            @id @default(cuid())
+  bundleId    String
+  bundle      FeatureBundle     @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  catalogId   String
+  catalog     PricingCatalog    @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+
+  pricingType BundlePricingType
+
+  // Meaning depends on pricingType:
+  //   PERCENTAGE_DISCOUNT → value = 15 means 15% off combined monthly price
+  //   FIXED_PRICE         → value = 150000 means ₱1,500.00/month flat for the bundle
+  //   FLAT_DISCOUNT       → value = 50000 means ₱500.00 off combined monthly price
+  discountValue Int
+
+  // Annual equivalent — when populated, used instead of discountValue for annual quotes.
+  // Falls back to discountValue * 12 if null.
+  annualDiscountValue Int?
+
+  isActive    Boolean @default(true)
+  // Allows disabling a bundle discount in a specific catalog version without
+  // removing it globally (e.g. a promotional bundle that only applied in one quarter).
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([bundleId, catalogId])
+  @@map("feature_bundle_versions")
+}
+```
+
+**Why bundle versioning matters:**
+
+A bundle's discount is a pricing commitment, not just a configuration value. If the "Restaurant Essentials" bundle offered a 15% discount in 2026 and the platform raises that to 20% in 2027, two things must be true simultaneously:
+
+1. **New quotes** use the 2027 catalog and see the 20% discount.
+2. **Historical quotes** calculated in 2026 must reproduce exactly with the 15% they were calculated under.
+
+Without `FeatureBundleVersion`, there is no way to achieve both. Updating a single `discountValue` field would silently corrupt every historical quote that referenced it. By tying the discount to the `PricingCatalog` version, historical quotes remain immutable and reproducible forever — the `PricingEngine` simply loads the catalog version the quote was calculated under and finds the exact `FeatureBundleVersion` that applied at that time.
+
+**Example bundle version progression:**
+
+| Bundle | Catalog | Pricing Type | Value | Notes |
+|---|---|---|---|---|
+| Restaurant Essentials | v1 (2026-Q1) | `PERCENTAGE_DISCOUNT` | 15% | Launch pricing |
+| Restaurant Essentials | v2 (2027-Q1) | `PERCENTAGE_DISCOUNT` | 20% | Increased incentive |
+| Retail Core | v1 (2026-Q1) | `FLAT_DISCOUNT` | ₱500/mo | |
+| Retail Core | v2 (2027-Q1) | `FLAT_DISCOUNT` | ₱600/mo | Adjusted for price increases |
+
+**Bundle detection in PricingEngine:**
+
+The `PricingEngine` receives `FeatureBundleVersionDTO` objects as part of the `PricingCatalogDTO` — it never queries `FeatureBundle` or `FeatureBundleVersion` directly. For each bundle version where every `isRequired = true` item is present in the selection, the engine evaluates the discount. If multiple bundles qualify, the most favorable one (largest absolute saving) wins. This logic is fully contained in the engine — no application code changes when bundles are added or modified.
+
+---
+
+#### `PricingQuote`
+
+A `PricingQuote` is an **immutable business document**. Once calculated, it is a complete, self-contained record of a pricing proposal that must remain reproducible years after it was created, regardless of any subsequent changes to the feature catalog, bundle rules, or pricing strategies.
+
+The quote snapshot contains everything needed to recreate it independently: the feature descriptions, bundle information, tax breakdown, currency, pricing strategy name, catalog version, and all computed totals. It does not rely on joining back to the current `Feature`, `FeaturePrice`, or `FeatureBundleVersion` tables for its meaning — all the relevant data is captured at calculation time.
+
+```prisma
+enum QuoteStatus {
+  DRAFT       // Being assembled; PricingEngine has not yet run a full calculation
+  CALCULATED  // PricingEngine has run; totals are up to date; not yet sent to the business
+  SENT        // Shared with the business (link, PDF, or email); awaiting response
+  ACCEPTED    // Business confirmed they want to proceed; pending subscription creation
+  CONVERTED   // Subscription was successfully created from this quote
+  EXPIRED     // validUntil passed without acceptance; no subscription created
+  CANCELLED   // Explicitly withdrawn by rep or business before acceptance
+}
+
+model PricingQuote {
+  id             String      @id @default(cuid())
+  businessId     String
+  business       Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  status         QuoteStatus @default(DRAFT)
+  createdBy      String?     // userId of the sales rep; null = self-service
+
+  // --- Pricing Catalog Snapshot ---
+  // These fields capture the catalog context at calculation time so the quote
+  // can always be reproduced without querying the current catalog state.
+  catalogId      String
+  catalog        PricingCatalog @relation(fields: [catalogId], references: [id])
+  catalogVersion String         // Snapshot of PricingCatalog.version at calculation time
+  currency       String         // ISO 4217 — snapshot of PricingCatalog.currency
+
+  // --- Pricing Strategy ---
+  pricingStrategy String
+  // Name of the PricingEngine strategy used: e.g. "FEATURE_BASED", "ENTERPRISE".
+  // Recorded so the quote document is self-describing and auditable.
+
+  billingCycle    String @default("MONTHLY")
+  // "MONTHLY" or "ANNUAL" — the billing cycle the totals were calculated for.
+
+  // --- Tax Breakdown (see section 2.17) ---
+  // Taxes are recorded as a breakdown, not a single total.
+  // This supports different taxation systems across countries (VAT, GST, sales tax, etc.)
+  taxBreakdown    Json?
+  // Serialised TaxBreakdownDTO — array of { name, rate, taxableAmount, taxAmount }.
+  // Example: [{ name: "VAT", rate: 12, taxableAmount: 100000, taxAmount: 12000 }]
+  // null = pricing is tax-exclusive and tax is calculated at invoice time.
+
+  taxInclusive    Boolean @default(false)
+  // When true, the grand total already includes all taxes.
+  // When false, taxes are itemised separately and added to reach the grand total.
+
+  // --- Computed Totals (in cents, in quote currency) ---
+  subtotal        Int   // Sum of all feature recurring prices before any discounts
+  bundleDiscount  Int   @default(0)  // Discount applied by the qualifying bundle
+  promoDiscount   Int   @default(0)  // Discount from promotional or negotiated overrides
+  totalDiscount   Int   @default(0)  // bundleDiscount + promoDiscount
+  taxTotal        Int   @default(0)  // Sum of all tax amounts from taxBreakdown
+  surchargeTotal  Int   @default(0)  // Branch / employee surcharges
+  oneTimeFees     Int   @default(0)  // Sum of all implementation + setup fees
+  grandTotal      Int   // subtotal - totalDiscount + surchargeTotal + taxTotal
+  // oneTimeFees is shown separately on the quote; it is not included in grandTotal
+  // because it is charged once, not recurring.
+
+  // --- Applied Bundle Snapshot ---
+  appliedBundleName       String?  // Snapshot of FeatureBundle.name at calculation time
+  appliedBundleVersionId  String?  // FK to the FeatureBundleVersion used
+
+  // --- Quote Validity & Notes ---
+  validUntil      DateTime?
+  notes           String?          // Internal sales rep notes; not shown to the business
+  externalRef     String?          // Optional CRM or deal reference number
+
+  // --- System Version (optional) ---
+  systemVersion   String?
+  // Semver of the platform at quote creation. Useful for enterprise support contexts
+  // where the product may have changed significantly since the quote was issued.
+
+  lineItems       PricingQuoteItem[]
+
+  // --- Lifecycle ---
+  calculatedAt    DateTime?  // When status moved to CALCULATED
+  sentAt          DateTime?  // When status moved to SENT
+  acceptedAt      DateTime?  // When status moved to ACCEPTED
+  convertedAt     DateTime?  // When status moved to CONVERTED
+  expiredAt       DateTime?  // When status moved to EXPIRED
+  cancelledAt     DateTime?  // When status moved to CANCELLED
+  cancelReason    String?
+
+  // When converted, the subscription created from this quote
+  convertedSubscriptionId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, status])
+  @@map("pricing_quotes")
+}
+```
+
+#### `PricingQuoteItem`
+
+Each line item on the quote is a complete, self-contained snapshot. It captures everything needed to describe and reproduce that line years later, including the feature's label and description at quote time. If the feature label changes in the catalog, the quote still shows what the customer was presented with.
+
+```prisma
+enum QuoteLineType {
+  FEATURE         // A recurring feature price
+  BUNDLE_DISCOUNT // The bundle discount line (negative amount)
+  PROMO_DISCOUNT  // Promotional or negotiated discount (negative amount)
+  SURCHARGE       // Branch or employee surcharge
+  TAX             // A tax line item (may be positive or informational)
+  ONE_TIME_FEE    // Implementation or setup fee
+}
+
+model PricingQuoteItem {
+  id              String         @id @default(cuid())
+  quoteId         String
+  quote           PricingQuote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  lineType        QuoteLineType  @default(FEATURE)
+
+  // Feature snapshot (populated for FEATURE lines; null for discount/surcharge lines)
+  featureKey      String?
+  featureLabel    String?        // Snapshot of Feature.label at quote time
+  featureDescription String?     // Snapshot of Feature.description at quote time
+  pricingCategory String?        // Snapshot of Feature.pricingCategory at quote time
+
+  // Pricing snapshot (all amounts in cents, in quote currency)
+  catalogMonthlyPrice  Int?      // The FeaturePrice.monthlyPrice from the catalog
+  catalogYearlyPrice   Int?      // The FeaturePrice.yearlyPrice from the catalog
+  negotiatedPrice      Int?      // Rep-overridden price; when set, used instead of catalog price
+  agreedPrice          Int       // The final price charged: negotiatedPrice ?? catalog price
+  implFee              Int       @default(0)  // Snapshot of FeaturePrice.implementationFee
+  setupFee             Int       @default(0)  // Snapshot of FeaturePrice.setupFee
+
+  // Dependency flag
+  isAutoAdded     Boolean @default(false)
+  // true = added by dependency resolution, not explicitly selected by the customer.
+  // Shown with a visual indicator in the quote document.
+
+  // Description for non-feature lines (discounts, surcharges, taxes, fees)
+  description     String?
+
+  sortOrder       Int @default(0)
+
+  @@map("pricing_quote_items")
+}
+```
+
+**Quote lifecycle and state transitions:**
+
+```
+DRAFT
+  ↓ (PricingEngine.calculate called with current selection)
+CALCULATED  ← totals are confirmed; quote is ready to share
+  ↓ (rep or self-service shares the quote link or PDF)
+SENT
+  ↓ (business confirms acceptance)
+ACCEPTED
+  ↓ (Application Layer creates subscription from quote)
+CONVERTED  ← terminal state; subscription exists
+
+SENT / CALCULATED / ACCEPTED
+  ↓ (validUntil passes without acceptance)
+EXPIRED    ← terminal state; daily background job sets this
+
+DRAFT / CALCULATED / SENT
+  ↓ (rep or business withdraws the quote)
+CANCELLED  ← terminal state; no subscription created
+```
+
+A quote may be recalculated (returning to `CALCULATED`) while in `DRAFT` state as the selection changes. Once `SENT`, the quote is locked — the line items and totals are frozen. To revise a sent quote, a new quote is created; the original is `CANCELLED`.
+
+**Why immutability matters:**
+
+A `PricingQuote` in `CONVERTED` state is a commercial commitment. It is the documented basis for the subscription that was created. The `BusinessSubscriptionFeature` snapshot is derived from it. If the customer disputes a charge two years later, the original quote — with its snapshotted feature labels, catalog version, tax breakdown, and pricing strategy — provides the full audit trail. No current catalog change can ever modify it.
+
+**Quote-to-subscription conversion:**
+
+When a quote is accepted and moves to `CONVERTED`, the Application Layer:
+1. Reads each `PricingQuoteItem` with `lineType = FEATURE`.
+2. Creates one `BusinessSubscriptionFeature` record per item, copying `agreedPrice`, `implFee`, `setupFee`, and `featureKey`.
+3. Creates a `BusinessSubscription` with `billingModel = COMPOSABLE_FEATURES` and `catalogId` pointing to the catalog the quote was calculated under.
+4. Sets `PricingQuote.convertedSubscriptionId` and `convertedAt`.
+5. Emits `QuoteConverted`.
+
+No re-calculation occurs during conversion. The quote is the sole source of truth for what was agreed.
+
 ---
 
 ### 2.3 Existing Schema Changes Required
@@ -570,6 +1157,8 @@ The following changes must be made to models that already exist:
 | `Business` | Add `usageCounters UsageCounter[]` relation | Usage tracking |
 | `Business` | Add `creditLedger CreditLedger[]` relation | Prepaid credit history |
 | `Business` | Add `billingInvoices BillingInvoice[]` relation | Invoice history |
+| `Business` | Add `subscriptionFeatures BusinessSubscriptionFeature[]` relation | Composable feature snapshots |
+| `Business` | Add `pricingQuotes PricingQuote[]` relation | Quote history for enterprise sales |
 | `Transaction` | Add `usageCounterId String?` relation | Link sale to the usage counter it incremented |
 
 No destructive changes to existing columns are required. All new fields are additive.
@@ -578,15 +1167,24 @@ No destructive changes to existing columns are required. All new fields are addi
 
 ### 2.4 Existing `ConfigKey` Additions
 
-Add the following keys to the `ConfigKey` enum for inactivity policy configuration. These are stored in `SystemConfig` at the business scope and are configurable without code changes.
+Add the following keys to the `ConfigKey` enum. These are stored in `SystemConfig` at the business scope and are configurable without code changes.
 
 ```prisma
 // Add to ConfigKey enum:
+
+// Subscription lifecycle policy
 TRIAL_DURATION_DAYS           // Default: 30
 GRACE_PERIOD_DAYS             // Default: 7 (days after expiry before hard restriction)
 LONG_TERM_INACTIVE_DAYS       // Default: 90 (days after expiry before long-term inactive)
 CREDIT_LOW_BALANCE_THRESHOLD  // Default: 10 (notify when credits fall below this)
 OVERAGE_BILLING_ENABLED       // Default: false (block vs. charge on overage)
+
+// Composable feature-based pricing
+COMPOSABLE_BRANCH_MONTHLY_RATE     // Cents per additional branch above included count
+COMPOSABLE_EMPLOYEE_MONTHLY_RATE   // Cents per additional employee above included count
+COMPOSABLE_INCLUDED_BRANCHES       // Default: 1 (branches included in base composable fee)
+COMPOSABLE_INCLUDED_EMPLOYEES      // Default: 5 (employees included in base composable fee)
+COMPOSABLE_ANNUAL_DISCOUNT_PERCENT // Default: 15 (percentage saving for annual billing vs. monthly)
 ```
 
 ---
@@ -687,7 +1285,7 @@ Per-feature usage limits (e.g., max 5 employees for Starter) are stored in `Plan
 
 ### 2.8 Billing Models
 
-The architecture supports three billing models via `BillingModel` enum on `BusinessSubscription`. Switching models requires only a field update on the subscription, not a schema redesign.
+The architecture supports four billing models via `BillingModel` enum on `BusinessSubscription`. Switching models requires only a field update on the subscription, not a schema redesign. The first three models are predefined-plan models; the fourth — `COMPOSABLE_FEATURES` — allows a business to build its own subscription by selecting the exact features it needs. All four coexist and are treated as interchangeable strategies within the same lifecycle and entitlement infrastructure.
 
 #### Monthly Subscription
 
@@ -713,6 +1311,29 @@ The architecture supports three billing models via `BillingModel` enum on `Busin
 - This gives businesses flexibility: they can pre-purchase a credit buffer for busy months without upgrading their entire plan.
 - The entitlement engine checks: subscription allowance remaining → credit balance → block.
 
+#### Composable Features (Business-Assembled Subscription)
+
+Rather than selecting a predefined plan tier, a business using `COMPOSABLE_FEATURES` selects only the features applicable to its operations. The system dynamically calculates the subscription price from the selected features and applicable pricing rules. This model is not a replacement for the other three — it is an additional option suited to businesses with specialized needs or enterprise customers who negotiate custom bundles.
+
+**How it works:**
+- A sales representative or the business owner opens the pricing calculator (see section 2.16).
+- They select features from the published `Feature` registry where `isSelectableByCustomer = true`.
+- Feature dependencies are automatically resolved and added to the selection.
+- The `PricingEngine` (see section 6.6) calculates a monthly and annual price from the selection, applying any applicable bundle discounts, promotional rules, and negotiated overrides.
+- The resulting price and the selected feature set are frozen into a `BusinessSubscriptionFeature` snapshot at the moment the subscription is created.
+- The subscription is stored with `billingModel = COMPOSABLE_FEATURES` and a `planId` that points to a special sentinel plan (`COMPOSABLE`) used only to attach lifecycle and status rules.
+
+**Entitlement evaluation for composable subscriptions:**
+- The `EntitlementEngine` resolves entitlements from `BusinessSubscriptionFeature` records for the active subscription, not from `PlanEntitlement` records.
+- This is handled transparently — the engine checks which source to use based on `billingModel`.
+- All subscription lifecycle states (TRIAL, ACTIVE, GRACE_PERIOD, etc.) apply identically to composable subscriptions.
+
+**Pricing recalculation policy:**
+- The agreed price is locked at subscription creation via the snapshot model.
+- Price changes to individual features do not affect active subscriptions.
+- On renewal, the system optionally recalculates the price at the new rates, depending on the renewal policy configured for that subscription.
+- A business on a composable plan is shown the updated price ahead of renewal so they can accept or adjust their feature selection.
+
 ---
 
 ### 2.9 Usage Tracking Strategy
@@ -724,6 +1345,7 @@ When `createPosTransaction` completes successfully:
 1. Increment `UsageCounter.txCount` for the current billing period (upsert by `businessId + periodStart`).
 2. If `txCount` now exceeds `includedTxPerMonth`, increment `overageTxCount` and calculate overage charges.
 3. If billing model is `PREPAID_CREDITS` or `HYBRID`, insert a `CreditLedger` `CONSUMED` entry.
+4. If billing model is `COMPOSABLE_FEATURES` and overage billing is enabled, the overage charge is calculated against the composable plan's base `overagePerTx` rate (stored on the sentinel `SubscriptionPlan`). The same `overageTxCount` and `overageCharged` fields on `UsageCounter` are used — no schema difference.
 
 This increment happens inside the existing `dbTransaction` wrapper so it rolls back if the sale fails.
 
@@ -752,7 +1374,7 @@ The entitlement engine is a single module — `EntitlementEngine` — that every
 1. Is the business `SUSPENDED` or `LONG_TERM_INACTIVE`? → Block all operational features.
 2. Is the subscription `EXPIRED` (past grace period)? → Block all operational features.
 3. Is there an `EntitlementOverride` for this business + feature key that is not expired? → Honor it (can grant or revoke).
-4. Does the business's current plan have a `PlanEntitlement` for this feature key? → Proceed if yes.
+4. Does the business's current plan have a `PlanEntitlement` for this feature key? → Proceed if yes. **For `COMPOSABLE_FEATURES` subscriptions:** check `BusinessSubscriptionFeature` records for the active subscription instead of `PlanEntitlement`. A feature is granted if a `BusinessSubscriptionFeature` row exists with `featureKey = key` and `effectiveTo IS NULL` (or `effectiveTo > now`). The engine resolves the source transparently based on `subscription.billingModel`.
 5. Is there a usage limit on the entitlement? → Check against current counter.
 6. Is the TX allowance exhausted this period? → Check overage policy.
 7. For prepaid: is credit balance sufficient? → Block if zero.
@@ -862,17 +1484,411 @@ Every transition writes a `SubscriptionStatusHistory` record.
 - After subscribing, the status transitions back to `ACTIVE` and the full UI is immediately restored.
 - No data migration or restore process is needed.
 
+---
+
+### 2.13 Composable Pricing Formula
+
+The `PricingEngine` uses a deterministic pipeline to calculate the total subscription price from a set of selected features. Every component of the formula is configurable — no amounts are hardcoded. The Application Layer assembles the `PricingCatalogDTO` and all configuration inputs; the engine performs the calculation and returns a `PricingResult`.
+
+```
+Base Platform Fee
++ Σ Feature Recurring Prices        (from PricingCatalog FeaturePrice records)
++ Surcharges                         (branches, employees above included count)
+─ Bundle Discount                    (best qualifying FeatureBundleVersion)
+─ Promotional / Negotiated Discount  (EntitlementOverride or negotiatedPrice)
++ Taxes                              (applied per TaxBreakdownLine, tax-system agnostic)
+────────────────────────────────────────────────────────────────────────────
+= Grand Total (recurring)
++ One-Time Fees (implementation + setup, shown separately, not in grand total)
+```
+
+**Pipeline stages — executed in order by `PricingEngine.calculate`:**
+
+| Stage | Input | Output |
+|---|---|---|
+| 1. Dependency resolution | Raw feature key list, `FeatureDependencyDTO[]` | Expanded selection with transitive dependencies auto-added |
+| 2. Dependency validation | Expanded selection | Validation result; detects cycles and unresolvable conflicts |
+| 3. Base fee lookup | Sentinel plan config from `PricingConfig` | `basePlatformFee` in catalog currency |
+| 4. Feature price summation | Expanded selection × `FeaturePriceDTO[]` from catalog | `featureSubtotal` |
+| 5. Surcharge calculation | Branch count, employee count, config limits | `surchargeTotal` |
+| 6. Bundle detection | Selection, `FeatureBundleVersionDTO[]` from catalog | `appliedBundle`, `bundleDiscount` |
+| 7. Discount application | Promotional overrides, negotiated prices per line | `promoDiscount` per line |
+| 8. Tax calculation | Net amount, tax rules from `PricingConfig` | `TaxBreakdownLine[]`, `taxTotal` |
+| 9. One-time fee calculation | `FeaturePriceDTO.implementationFee`, `setupFee` | `oneTimeFees` |
+| 10. Annual price calculation | Monthly totals × 12 × (1 - annualDiscount) | Annual equivalents |
+| 11. Result assembly | All above | `PricingResult` value object |
+
+Stage 4 reads prices from `FeaturePriceDTO` objects supplied by the catalog — not from `Feature` directly. The `PricingEngine` never knows the source of pricing data; it only knows the `PricingCatalogDTO` it was given.
+
+**Configurability:**
+
+All thresholds and rates are read by the Application Layer from `SystemConfig` and the active `PricingCatalog`, then passed into the engine as a `PricingConfig` value object. The engine never reads from any config store directly.
+
+```ts
+interface PricingConfig {
+  basePlatformFee:       number        // Cents — from sentinel COMPOSABLE plan
+  includedBranches:      number        // From COMPOSABLE_INCLUDED_BRANCHES ConfigKey
+  branchMonthlyRate:     number        // From COMPOSABLE_BRANCH_MONTHLY_RATE ConfigKey
+  includedEmployees:     number        // From COMPOSABLE_INCLUDED_EMPLOYEES ConfigKey
+  employeeMonthlyRate:   number        // From COMPOSABLE_EMPLOYEE_MONTHLY_RATE ConfigKey
+  annualDiscountPercent: number        // From PricingCatalog.defaultAnnualDiscountPercent
+  taxRules:              TaxRuleDTO[]  // Applicable tax rules for this business/region
+  strategy:              PricingStrategyType
+}
+```
 
 ---
 
-## Part 3 — Architecture Review
+### 2.14 Bundle Pricing
+
+Bundles allow businesses to unlock a discount when they select a qualifying combination of features. All bundle rules are contained in `FeatureBundleVersion` records tied to the active `PricingCatalog` — the `PricingEngine` receives them as `FeatureBundleVersionDTO` objects and never queries the database.
+
+**Qualification rules:**
+- A bundle version qualifies when every `FeatureBundleItem` with `isRequired = true` is present in the expanded feature selection (after dependency resolution).
+- Optional bundle items (`isRequired = false`) are added to the selection as bonuses if the bundle qualifies, at no extra charge.
+- If multiple bundle versions qualify simultaneously, the engine selects the one with the highest absolute savings. Only one bundle discount applies per quote.
+
+**Bundle evaluation sequence (inside `PricingEngine.detectBundle`):**
+
+```
+1. Iterate FeatureBundleVersionDTO[] from PricingCatalogDTO
+2. For each bundle version:
+   a. Check all isRequired items are present in the expanded selection
+   b. If qualifying, calculate absolute savings:
+      - PERCENTAGE_DISCOUNT: savings = featureSubtotal × (discountValue / 100)
+      - FIXED_PRICE:         savings = featureSubtotal - discountValue (skip if negative)
+      - FLAT_DISCOUNT:       savings = discountValue
+3. Select the bundle version with the highest savings
+4. Add bonus (isRequired = false) features to selection, marked as autoAdded
+5. Return (appliedBundleVersion, bundleDiscount, updatedSelection)
+```
+
+**Annual bundle pricing:**
+For annual quotes, `FeatureBundleVersion.annualDiscountValue` is used if populated; otherwise the monthly discount is multiplied by the annual factor from `PricingCatalog.defaultAnnualDiscountPercent`. This allows bundles to offer an enhanced annual incentive independently of the base annual savings rate.
+
+**Adding new bundles:**
+A platform administrator creates a `FeatureBundle` with its `FeatureBundleItem` rows, then adds a `FeatureBundleVersion` to the active (or next) `PricingCatalog`. No code deployment is needed. The bundle becomes available for the next quote calculation under that catalog.
+
+**Example bundle seeds:**
+
+| Bundle | Catalog | Required Features | Pricing Type | Value |
+|---|---|---|---|---|
+| Restaurant Essentials | v1 | POS + Orders + Kitchen Display | `PERCENTAGE_DISCOUNT` | 15% |
+| Retail Core | v1 | POS + Inventory + Purchasing | `FLAT_DISCOUNT` | ₱500/mo |
+| Full Operations | v1 | POS + Orders + Inventory + Purchasing + Tasks | `FIXED_PRICE` | ₱2,000/mo |
+
+---
+
+### 2.15 Enterprise Quotations
+
+The composable pricing model naturally supports the enterprise sales workflow. A sales representative can assemble a custom subscription, apply negotiated pricing, and generate a formal quote — all without creating a new plan in the database.
+
+**Enterprise sales workflow:**
+
+```
+1. Sales rep opens the pricing calculator on the Platform Administration interface
+   (or the business owner opens it on the self-service billing page)
+
+2. Rep selects features
+   → PricingEngine resolves dependencies and calculates base price
+   → PricingQuote created with status = DRAFT
+
+3. Rep reviews PricingResult — line items, discounts, taxes, totals
+
+4. Rep optionally overrides individual line items via negotiatedPrice
+   → PricingEngine recalculates → PricingQuote moves to CALCULATED
+
+5. Rep sets validUntil, adds notes
+   → PricingQuote moves to SENT; line items and totals frozen
+
+6. Quote shared with the business (link, PDF export, or email)
+
+7. Business accepts → Application Layer reads PricingQuoteItem[] and creates:
+   → BusinessSubscription (billingModel = COMPOSABLE_FEATURES)
+   → BusinessSubscriptionFeature snapshot per FEATURE line item
+   → PricingQuote.status = CONVERTED, convertedAt set, QuoteConverted event emitted
+
+8. If business withdraws → PricingQuote.status = CANCELLED
+   If validUntil passes  → background job sets PricingQuote.status = EXPIRED
+```
+
+**What makes this enterprise without needing a new plan:**
+
+The `negotiatedPrice` on each `PricingQuoteItem` overrides the catalog price for that line. A rep can set any value. The `agreedPrice` (`negotiatedPrice ?? catalogMonthlyPrice`) is frozen into the `BusinessSubscriptionFeature` snapshot on conversion and never recalculated without explicit action.
+
+**Self-service vs. rep-assisted:**
+The same `PricingQuote` model serves both paths. Self-service: `createdBy = null`, quote moves `DRAFT → CALCULATED → SENT → ACCEPTED`. Rep-assisted: `createdBy = userId`, same flow but with the rep setting negotiated prices at the `CALCULATED` stage before moving to `SENT`.
+
+---
+
+### 2.16 Pricing Calculator — UI Recommendation
+
+> This section is documentation only. No UI implementation is required at this stage.
+
+A future pricing calculator should be available in two contexts:
+
+1. **Self-service** — accessible from the business's `/billing` page for businesses exploring the composable model.
+2. **Rep-assisted** — accessible from the Platform Administration interface when a sales rep is building a quote.
+
+Both contexts use the same `PricingEngine` calculation; only the input controls and the ability to set negotiated prices differ.
+
+**Recommended capabilities:**
+
+- Feature checklist organized by `PricingCategory` (CORE, OPERATIONAL, MANAGEMENT, INTEGRATION, ADVANCED)
+- Required dependency features automatically checked and locked when a dependent feature is selected — with a tooltip explaining why ("Required by Kitchen Display")
+- Live price update on every selection change — calls `PricingEngine.calculate` on the server; no client-side price logic
+- Monthly / Annual billing toggle — shows both totals and highlights the annual savings amount
+- Bundle indicator — when a qualifying bundle version is detected, a badge appears on the affected features and the discount is shown as a distinct line item
+- Tax breakdown section — each `TaxBreakdownLine` from the `PricingResult` is shown as a named line item (VAT, GST, etc.)
+- One-time fees section — implementation and setup fees listed separately from recurring charges
+- Surcharge breakdown — additional branches and employee tiers shown as distinct line items
+- Rep-only controls — `negotiatedPrice` override inputs per line item, visible only in Platform Administration context
+- Quote export — generates a PDF or shareable link from the `PricingQuote` record; uses the `PricingResult` line items as the document body
+- Comparison view — side-by-side comparison of the composable selection against standard Starter, Professional, and Enterprise plans
+
+**What the calculator must not do:**
+- Calculate prices client-side. All calculation goes through `PricingEngine` on the server. The UI only renders `PricingResult`.
+- Store a partial state as a committed subscription. All in-progress selections live in a `DRAFT` `PricingQuote` until explicitly confirmed.
+- Bypass dependency validation. Required features must always be included before the "Accept Quote" action is enabled.
+
+---
+
+### 2.17 PricingEngine — Infrastructure Boundaries
+
+> These are hard constraints, not guidelines. A violation breaks the Business Engine architecture
+> and makes pricing logic untestable and non-portable.
+
+`PricingEngine` is a pure Business Engine. It receives data as inputs and returns a `PricingResult` as output. It has no knowledge of where data came from or where results go.
+
+**Explicit prohibitions:**
+
+| Prohibited action | Why | Correct alternative |
+|---|---|---|
+| Import `prisma-client` or any ORM | Unrunnable in browser or test runner without DB | Application Layer fetches data and maps to DTOs |
+| Read from `ConfigKey` / `SystemConfig` | Infrastructure concern | Application Layer reads values and passes as `PricingConfig` |
+| Call `Date.now()` or `new Date()` | Non-deterministic | Pass `calculatedAt: Date` as a parameter |
+| Format currency or numbers | Presentation concern | `PriceEngine.format` handles formatting; `PricingEngine` returns raw cent integers |
+| Know about `PricingCatalog`, `FeaturePrice`, or `FeatureBundleVersion` Prisma types | Couples engine to persistence schema | Application Layer maps to `PricingCatalogDTO`, `FeaturePriceDTO`, `FeatureBundleVersionDTO` |
+| Access `authStore`, session, or HTTP context | Framework coupling | All context passed in `PricingInput` |
+| Emit domain events | Side effects break engine purity | Application Layer emits after receiving `PricingResult` |
+
+**The Application Layer's assembly responsibility:**
+
+```
+Infrastructure (Application Layer)
+  1. Load active PricingCatalog via pricingCatalogRepository.loadActive()
+  2. Load feature selections, dependencies, overrides from database
+  3. Read PricingConfig values from SystemConfig and PricingCatalog
+  4. Map everything to DTOs: PricingCatalogDTO, PricingInput, PricingConfig
+  ↓
+Domain (PricingEngine)
+  5. PricingEngine.calculate(strategy, input, catalogDTO) → PricingResult
+  ↓
+Infrastructure (Application Layer)
+  6. Persist PricingResult as PricingQuote + PricingQuoteItem records
+  7. Emit QuoteCalculated or QuoteConverted domain event
+```
+
+The engine is exercised in step 5 only. Everything before and after is infrastructure.
+
+**`PricingCatalogRepository` — the Application Layer interface:**
+
+```ts
+// Lives in infrastructure, not in the engine domain
+interface PricingCatalogRepository {
+  loadActive(): Promise<PricingCatalogDTO>
+  loadById(catalogId: string): Promise<PricingCatalogDTO>
+  // loadById is used to reproduce a historical quote under its original catalog
+}
+```
+
+`PricingEngine` never calls `PricingCatalogRepository` — it receives a `PricingCatalogDTO` that the Application Layer has already assembled.
+
+---
+
+### 2.18 Quote Tax Breakdown
+
+Quotes expose a full tax breakdown rather than a single tax total. This supports different taxation systems across countries — VAT, GST, sales tax, withholding tax — without hardcoding any assumptions about tax structure into the engine or the schema.
+
+**Pricing breakdown formula:**
+
+```
+Subtotal                 (sum of all feature recurring prices at catalog rates)
+─ Bundle Discount        (from qualifying FeatureBundleVersion)
+─ Promotional Discount   (negotiated prices or promotional overrides)
+= Discounted Subtotal
++ Surcharges             (additional branches, additional employees)
+= Net Recurring Amount
++ Taxes                  (one or more named TaxBreakdownLine entries)
+= Grand Total            (recurring, per billing cycle)
+
+──────────────────────────────────────
++ One-Time Fees          (implementation + setup — shown separately, not in Grand Total)
+```
+
+Each component is a named, visible line item on the quote document. No rounding or hiding of intermediate values.
+
+**`TaxBreakdownLine` — tax-system agnostic:**
+
+```ts
+interface TaxBreakdownLine {
+  name:           string   // e.g. "VAT", "GST", "Sales Tax", "Withholding Tax"
+  rate:           number   // Percentage, e.g. 12 for 12%
+  taxableAmount:  number   // Base amount the rate is applied to (in cents)
+  taxAmount:      number   // rate / 100 * taxableAmount, rounded (in cents)
+  isInclusive:    boolean  // When true, taxableAmount already includes this tax
+}
+```
+
+**Tax rules are configuration, not code:**
+
+Tax rules are passed into the engine as `TaxRuleDTO[]` inside `PricingConfig`. The Application Layer reads them from the business's `SystemConfig` or a future `TaxRule` model. The `PricingEngine` applies them mechanically — it does not know which country or tax regime it is operating under.
+
+**Relationship to invoice tax:**
+
+The quote tax breakdown flows directly into the `BillingInvoice` when the subscription is billed. The `InvoiceEngine` reads the `BusinessSubscriptionFeature` snapshot and the original `PricingQuote.taxBreakdown` to reconstruct the same breakdown on the invoice, ensuring the customer sees consistent figures from quote to invoice.
+
+**Tax-inclusive vs. tax-exclusive pricing:**
+
+`PricingQuote.taxInclusive` controls whether the grand total already includes taxes (`true`) or whether taxes are added on top (`false`). The `PricingEngine` calculates both representations from the `TaxBreakdownLine[]` so either display mode is supported without re-running the engine.
+
+---
+
+### 2.19 PricingResult — The Canonical Engine Output
+
+`PricingResult` is the rich, structured value object returned by every `PricingEngine.calculate` call. It is the single source of truth for a pricing calculation — not just a bag of totals, but a complete line-item breakdown that any downstream consumer can render or persist directly.
+
+**Why a rich object rather than totals only:**
+
+| Consumer | What it needs from PricingResult |
+|---|---|
+| Pricing Calculator UI | Line items, discounts, taxes, one-time fees, auto-added features, validation errors |
+| Quote Generator | Everything — result maps 1:1 to `PricingQuote` + `PricingQuoteItem` records |
+| Subscription Creation | FEATURE lines only — maps to `BusinessSubscriptionFeature` snapshots |
+| Invoice Generation | Recurring totals, tax breakdown, surcharges — maps to `BillingInvoiceItem` records |
+| Public API / Webhooks | All fields — external consumers expect a complete pricing document |
+
+If `PricingEngine` returned only totals, each consumer would need its own partial re-implementation of the line-item logic. The rich result eliminates that duplication.
+
+**`PricingResult` full structure:**
+
+```ts
+interface PricingResult {
+  // Identity & context
+  catalogVersion:      string              // PricingCatalog.version used
+  currency:            string              // ISO 4217, from the catalog
+  pricingStrategy:     string              // e.g. "FEATURE_BASED", "ENTERPRISE"
+  billingCycle:        'MONTHLY' | 'ANNUAL'
+  calculatedAt:        Date                // Passed in — never Date.now() inside the engine
+
+  // Line items — every price component, named and typed
+  lineItems:           PricingLineItem[]
+
+  // Aggregated totals (all amounts in cents)
+  subtotal:            number              // Sum of FEATURE lines at catalog prices
+  bundleDiscount:      number              // Total bundle savings (positive = saving)
+  promoDiscount:       number              // Total promotional/negotiated savings
+  totalDiscount:       number              // bundleDiscount + promoDiscount
+  surchargeTotal:      number              // Sum of SURCHARGE lines
+  taxLines:            TaxBreakdownLine[]  // One entry per applicable tax
+  taxTotal:            number              // Sum of taxLine.taxAmount entries
+  grandTotal:          number              // subtotal - totalDiscount + surchargeTotal + taxTotal
+  oneTimeFees:         number              // Sum of ONE_TIME_FEE lines — shown separately
+
+  // Annual equivalents (populated when billingCycle = ANNUAL)
+  annualGrandTotal:    number | null
+  annualSavings:       number | null       // monthlyGrandTotal * 12 - annualGrandTotal
+
+  // Applied bundle
+  appliedBundle:       AppliedBundleRef | null
+
+  // Dependency resolution
+  autoAddedFeatures:   string[]            // Feature keys added automatically
+  validationErrors:    string[]            // Non-empty = calculation blocked
+
+  // Grandfathered price detection (populated on renewal calculations)
+  priceChanges:        PriceChangeNotice[]
+  // Non-empty = features with different catalog prices vs. existing subscription snapshot.
+  // Presented to the business before renewal confirmation.
+}
+
+interface PricingLineItem {
+  lineType:            QuoteLineType       // FEATURE | BUNDLE_DISCOUNT | PROMO_DISCOUNT | SURCHARGE | TAX | ONE_TIME_FEE
+  featureKey:          string | null
+  featureLabel:        string              // Human-readable; snapshotted into quote
+  featureDescription:  string | null
+  pricingCategory:     string | null
+  catalogPrice:        number              // From FeaturePriceDTO (informational)
+  negotiatedPrice:     number | null       // Rep override, if any
+  agreedPrice:         number              // negotiatedPrice ?? catalogPrice
+  isAutoAdded:         boolean
+  sortOrder:           number
+}
+
+interface PriceChangeNotice {
+  featureKey:          string
+  featureLabel:        string
+  previousPrice:       number             // Price in existing BusinessSubscriptionFeature snapshot
+  currentCatalogPrice: number             // Price in current active PricingCatalog
+  difference:          number             // currentCatalogPrice - previousPrice
+}
+```
+
+All amounts are raw integers in cents. Formatting is always `PriceEngine.format` — never inside `PricingEngine`.
+
+---
+
+### 2.20 Pricing as an Emerging Subdomain
+
+> This section is a roadmap recommendation only. No implementation changes are required now.
+> The architecture already accommodates this evolution without redesign.
+
+The Billing domain currently owns Pricing as one of its concerns. As the platform grows, Pricing will develop into a business subdomain with enough distinct rules, models, and engines to justify its own bounded context.
+
+```
+Billing Domain
+  ├── Subscription        (lifecycle, status, cancellation)
+  ├── Credits             (ledger, deduction, low-balance)
+  ├── Usage               (counters, period tracking, allowances)
+  ├── Invoices            (generation, line items, payment)
+  └── Lifecycle           (trial, grace period, long-term inactive)
+
+Pricing Subdomain  (emerging — currently nested in Billing)
+  ├── PricingEngine        (calculation, strategies, dependency resolution)
+  ├── PricingCatalog       (versioned catalog, FeaturePrice, FeatureBundleVersion)
+  ├── Quotes               (PricingQuote lifecycle, immutable snapshots)
+  ├── Bundles              (FeatureBundle, FeatureBundleVersion)
+  ├── Discounts            (bundle discounts, promotional overrides, negotiated pricing)
+  ├── Taxes                (TaxBreakdownLine, tax rules, inclusive/exclusive)
+  ├── Pricing Strategies   (FeatureBased, Enterprise, PartnerReseller, Promotional, Flat)
+  └── Future extensions
+       ├── Regional pricing   (per-country PricingCatalog variants)
+       ├── Multi-currency     (currency conversion, catalog currency per region)
+       ├── Reseller pricing   (partner margin, retail vs. cost price)
+       └── Scheduled pricing  (future-dated catalog activation)
+```
+
+**When to make the split:**
+
+The Pricing subdomain should be promoted to a fully independent domain when one or more of the following is true:
+- Regional pricing or multi-currency is being implemented
+- A dedicated pricing team owns the catalog
+- Pricing changes require a different deployment cadence from subscription lifecycle changes
+- A public pricing API is introduced for external integrations
+
+Until then, Pricing lives in `src/lib/billing/` organized into its own `pricing/` subdirectory — so the future extraction is a directory move, not a logic refactor.
+
+---
 
 ### 3.1 New Database Tables Required
 
 | Table | Purpose |
 |---|---|
 | `subscription_plans` | Configurable tier registry |
-| `features` | Feature key registry |
+| `features` | Feature registry — identity, entitlement classification, dependency graph, and UI metadata only (no pricing) |
+| `feature_prices` | Feature pricing per catalog version — owned by PricingCatalog, not Feature |
+| `pricing_catalogs` | Versioned pricing catalog — container for all FeaturePrice and FeatureBundleVersion records at a point in time |
+| `feature_dependencies` | Directed acyclic dependency graph between features |
 | `plan_entitlements` | Plan-to-feature mapping with optional usage limits |
 | `business_subscriptions` | Active subscription record per business |
 | `subscription_status_history` | Immutable audit log of status transitions |
@@ -881,14 +1897,20 @@ Every transition writes a `SubscriptionStatusHistory` record.
 | `credit_ledger` | Append-only credit event history |
 | `billing_invoices` | Invoice records |
 | `billing_invoice_items` | Invoice line items |
+| `business_subscription_features` | Composable plan snapshot — selected features with agreed pricing frozen at subscription creation |
+| `feature_bundles` | Named bundle identity and composition (feature membership) |
+| `feature_bundle_items` | Feature membership in a bundle |
+| `feature_bundle_versions` | Bundle discount rules per catalog version — versioned alongside FeaturePrice |
+| `pricing_quotes` | Immutable quote business documents — full snapshot including feature labels, tax breakdown, catalog version |
+| `pricing_quote_items` | Typed line items within a pricing quote (FEATURE, BUNDLE_DISCOUNT, SURCHARGE, TAX, ONE_TIME_FEE) |
 
 ### 3.2 Existing Schema Changes
 
 | Model | Change |
 |---|---|
-| `Business` | Add relations to `BusinessSubscription`, `EntitlementOverride`, `UsageCounter`, `CreditLedger`, `BillingInvoice` |
+| `Business` | Add relations to `BusinessSubscription`, `EntitlementOverride`, `UsageCounter`, `CreditLedger`, `BillingInvoice`, `BusinessSubscriptionFeature`, `PricingQuote` |
 | `Transaction` | Add optional `usageCounterId` to link a sale to the counter it incremented |
-| `ConfigKey` enum | Add `TRIAL_DURATION_DAYS`, `GRACE_PERIOD_DAYS`, `LONG_TERM_INACTIVE_DAYS`, `CREDIT_LOW_BALANCE_THRESHOLD`, `OVERAGE_BILLING_ENABLED` |
+| `ConfigKey` enum | Add `TRIAL_DURATION_DAYS`, `GRACE_PERIOD_DAYS`, `LONG_TERM_INACTIVE_DAYS`, `CREDIT_LOW_BALANCE_THRESHOLD`, `OVERAGE_BILLING_ENABLED`, `COMPOSABLE_BRANCH_MONTHLY_RATE`, `COMPOSABLE_EMPLOYEE_MONTHLY_RATE`, `COMPOSABLE_INCLUDED_BRANCHES`, `COMPOSABLE_INCLUDED_EMPLOYEES`, `COMPOSABLE_ANNUAL_DISCOUNT_PERCENT` |
 
 ### 3.3 Background Jobs
 
@@ -899,6 +1921,8 @@ Every transition writes a `SubscriptionStatusHistory` record.
 | `usage-counter-reset` | Monthly, on `currentPeriodEnd` per business | Create new `UsageCounter` for next period; carry over overage if applicable |
 | `credit-low-balance-notify` | On each credit deduction | Check if balance < threshold; emit notification if so |
 | `billing-invoice-generation` | Monthly, on period end | Generate subscription invoice; attach overage line items if applicable |
+| `pricing-quote-expiry` | Daily cron | Set `PricingQuote.status = EXPIRED` for DRAFT/CALCULATED/SENT quotes past `validUntil` |
+| `composable-renewal-preview` | Configurable days before renewal | Run `PricingEngine.validateGrandfatheredPrices`; notify businesses of price changes before renewal |
 
 ### 3.4 Middleware Changes
 
@@ -917,7 +1941,11 @@ entitlement: {
   status: SubscriptionStatus
   creditBalance: number | null
   txRemaining: number | null     // null = unlimited
-  features: string[]             // Array of granted feature keys for this session
+  features: string[]             // Array of granted feature keys for this session.
+                                 // For COMPOSABLE_FEATURES subscriptions, derived from
+                                 // active BusinessSubscriptionFeature records.
+                                 // For predefined plans, derived from PlanEntitlement records.
+                                 // EntitlementOverrides are applied on top of both sources.
 }
 ```
 
@@ -933,6 +1961,9 @@ This avoids per-action DB round-trips for the most common entitlement checks (is
 | `/billing` | Management | Subscription status, plan details, upgrade/downgrade |
 | `/billing/invoices` | Management | Invoice history |
 | `/billing/credits` | Management | Credit balance, purchase credits, credit history |
+| `/billing/pricing` | Management | Composable pricing calculator — feature selection, live price preview, quote generation |
+| `/billing/quotes` | Management | Saved quote history (DRAFT, CALCULATED, SENT, ACCEPTED, CONVERTED) |
+| `/billing/quotes/$quoteId` | Management | Quote detail with accept/decline actions |
 | `/subscription/reactivate` | Always accessible | Reactivation flow for LONG_TERM_INACTIVE accounts |
 
 ### 3.7 Feature Flag Migration
@@ -951,6 +1982,8 @@ New collections needed in `src/db/collections.ts`:
 | `usageCounterCollection` | `eager` | Needed for real-time checkout entitlement checks |
 | `creditLedgerCollection` | `on-demand` | Credit history; only needed on billing pages |
 | `featureCollection` | `eager` | Feature key registry for entitlement checks |
+| `featureDependencyCollection` | `eager` | Needed by the pricing calculator for live dependency resolution |
+| `featureBundleCollection` | `on-demand` | Bundle definitions; only needed on billing/pricing pages |
 
 The `entitlement` summary on `authStore` (derived from the above) is the primary source for UI-level feature gating. Full entitlement engine validation is performed server-side on all mutations.
 
@@ -970,6 +2003,10 @@ If `FEATURE_API_ACCESS` is introduced as a premium feature in the future, the ex
 | Billing period reset job failures | Medium | Idempotent job design; `UsageCounter` upsert by `businessId + periodStart` prevents duplicate resets |
 | Data migration complexity when adding subscription to existing businesses | Medium | All new fields are nullable or have defaults; existing businesses get a default `TRIAL` record on first entitlement check |
 | External billing provider coupling (e.g. Stripe) | Low | All billing logic references `externalId` only; provider-specific code is isolated to a `billing-provider` adapter |
+| Feature dependency cycle in composable selection | Low | `PricingEngine.validateDependencies` detects cycles at quote calculation time and returns a validation error before any subscription is created; cycle detection is enforced at seed time via constraint |
+| Stale `BusinessSubscriptionFeature` snapshot after feature key rename | Low | Feature keys are immutable after creation (`onDelete: Restrict` on `FeatureDependency`); renaming a key requires a migration that updates all snapshot rows; key immutability is enforced at the application layer |
+| Bundle qualification drift (feature removed from selection after bundle applied) | Medium | Bundle re-validation runs on every pricing calculator load and on every renewal; if a required bundle feature is removed, the bundle discount is automatically withdrawn and the business is notified before confirming |
+| Negotiated price lower than cost | Low | `PricingEngine` does not enforce a minimum price floor — that is a sales policy decision; a platform admin UI warning can flag quotes where `negotiatedPrice < catalogPrice * threshold` without hard-blocking |
 
 ---
 
@@ -1045,6 +2082,29 @@ Deliverables:
 
 Dependencies: Phase 5 complete.
 
+### Phase 7 — Composable Feature-Based Pricing
+
+Deliverables:
+- Add `PricingCatalog`, `FeaturePrice`, `FeatureBundleVersion` tables; seed initial v1 catalog with all feature prices and bundle versions
+- Refactor `Feature` schema: remove pricing fields, add `FeaturePrice` model with `catalogId` FK
+- Refactor `FeatureBundle`: remove `discountValue`/`pricingType` fields, add `FeatureBundleVersion` model
+- Add `FeatureDependency`, `BusinessSubscriptionFeature`, `PricingQuote`, `PricingQuoteItem` tables
+- Seed `COMPOSABLE` sentinel `SubscriptionPlan` and initial `FeatureBundleVersion` records
+- Implement `PricingEngine` with: `resolveDependencies`, `validateDependencies`, `calculate`, `detectBundle`, `generateQuote`, `validateGrandfatheredPrices`; all five pricing strategies
+- Implement `PricingCatalogRepository` (Application Layer) with `loadActive()` and `loadById()`
+- Add `ComposableFeaturesStrategy` to `SubscriptionEngine`
+- Extend `EntitlementEngine` to resolve entitlements from `BusinessSubscriptionFeature` when `billingModel = COMPOSABLE_FEATURES`
+- Add `COMPOSABLE_FEATURES` to `BillingModel` enum in `schema.prisma`
+- Add composable `ConfigKey` entries (`COMPOSABLE_BRANCH_MONTHLY_RATE`, etc.)
+- `/billing/pricing` pricing calculator route — renders `PricingResult` from server; no client-side price logic
+- `/billing/quotes` and `/billing/quotes/$quoteId` routes
+- `pricing-quote-expiry` background job (DRAFT/CALCULATED/SENT quotes past `validUntil` → EXPIRED)
+- `composable-renewal-preview` background job (calls `PricingEngine.validateGrandfatheredPrices`)
+- Emit `QuoteConverted` domain event on subscription creation from quote
+- Platform Administration: rep-assisted quote builder with `negotiatedPrice` controls per line item
+
+Dependencies: Phase 6 complete (billing provider needed for payment on quote acceptance).
+
 ---
 
 ## Summary of New Files & Modules
@@ -1053,18 +2113,45 @@ Dependencies: Phase 5 complete.
 |---|---|
 | `src/lib/entitlement/entitlement-engine.ts` | Core entitlement evaluation logic |
 | `src/lib/entitlement/entitlement-types.ts` | `EntitlementResult`, `EntitlementCode` types |
-| `src/lib/entitlement/feature-keys.ts` | `FEATURE_*` string constants |
+| `src/lib/entitlement/feature-keys.ts` | `FEATURE_*` / capability key string constants |
 | `src/lib/billing/credit-engine.ts` | Credit deduction, balance read, low-balance check |
 | `src/lib/billing/usage-engine.ts` | TX counter increment and period tracking |
+| `src/lib/billing/invoice-engine.ts` | Invoice construction and line item calculation |
+| `src/lib/billing/plan-engine.ts` | Plan comparison, capability matrix, upgrade eligibility |
+| `src/lib/billing/pricing/pricing-engine.ts` | PricingEngine facade — single source of truth for all pricing calculations |
+| `src/lib/billing/pricing/pricing-catalog-repository.ts` | Application Layer interface: `loadActive()`, `loadById()` |
+| `src/lib/billing/pricing/types.ts` | `PricingInput`, `PricingConfig`, `PricingCatalogDTO`, `FeaturePriceDTO`, `FeatureBundleVersionDTO` |
+| `src/lib/billing/pricing/value-objects/pricing-result.ts` | Immutable `PricingResult` with full line-item breakdown |
+| `src/lib/billing/pricing/value-objects/tax-breakdown-line.ts` | Tax-system-agnostic `TaxBreakdownLine` value object |
+| `src/lib/billing/pricing/value-objects/price-change-notice.ts` | `PriceChangeNotice` for grandfathered pricing detection |
 | `src/lib/billing/billing-provider.ts` | External billing provider adapter interface |
+| `src/lib/billing/strategies/monthly-subscription-strategy.ts` | SubscriptionEngine: monthly billing checkout evaluation |
+| `src/lib/billing/strategies/prepaid-credits-strategy.ts` | SubscriptionEngine: prepaid credits checkout evaluation |
+| `src/lib/billing/strategies/hybrid-strategy.ts` | SubscriptionEngine: hybrid checkout evaluation |
+| `src/lib/billing/strategies/composable-features-strategy.ts` | SubscriptionEngine: composable features checkout evaluation |
+| `src/lib/billing/pricing/strategies/flat-subscription-pricing-strategy.ts` | PricingEngine: standard plan flat price |
+| `src/lib/billing/pricing/strategies/feature-based-pricing-strategy.ts` | PricingEngine: full composable pipeline |
+| `src/lib/billing/pricing/strategies/enterprise-pricing-strategy.ts` | PricingEngine: feature-based + negotiated price overrides |
+| `src/lib/billing/pricing/strategies/partner-reseller-pricing-strategy.ts` | PricingEngine: partner margin and retail price |
+| `src/lib/billing/pricing/strategies/promotional-pricing-strategy.ts` | PricingEngine: promotional discount wrapper |
 | `src/lib/jobs/subscription-lifecycle.ts` | Daily status transition job |
 | `src/lib/jobs/usage-counter-reset.ts` | Monthly counter reset job |
+| `src/lib/jobs/pricing-quote-expiry.ts` | Daily job to expire stale quotes past `validUntil` |
+| `src/lib/jobs/composable-renewal-preview.ts` | Pre-renewal job: `validateGrandfatheredPrices` and notify |
 | `src/routes/(private)/(dashboard)/transactions/index.tsx` | Transaction history page |
 | `src/routes/(private)/(dashboard)/transactions/$transactionId/index.tsx` | Transaction detail page |
 | `src/routes/(private)/(dashboard)/order-history/index.tsx` | Order history page |
 | `src/routes/(private)/(dashboard)/billing/index.tsx` | Subscription & billing dashboard |
 | `src/routes/(private)/(dashboard)/billing/invoices/index.tsx` | Invoice history |
 | `src/routes/(private)/(dashboard)/billing/credits/index.tsx` | Credit balance & history |
+| `src/routes/(private)/(dashboard)/billing/pricing/index.tsx` | Composable pricing calculator |
+| `src/routes/(private)/(dashboard)/billing/quotes/index.tsx` | Saved quote list |
+| `src/routes/(private)/(dashboard)/billing/quotes/$quoteId/index.tsx` | Quote detail with accept/decline |
+| `src/routes/subscription/reactivate/index.tsx` | Reactivation flow (minimal auth shell) |
+| `src/routes/(private)/(dashboard)/billing/credits/index.tsx` | Credit balance & history |
+| `src/routes/(private)/(dashboard)/billing/pricing/index.tsx` | Composable pricing calculator |
+| `src/routes/(private)/(dashboard)/billing/quotes/index.tsx` | Saved quote list |
+| `src/routes/(private)/(dashboard)/billing/quotes/$quoteId/index.tsx` | Quote detail with accept/decline |
 | `src/routes/subscription/reactivate/index.tsx` | Reactivation flow (minimal auth shell) |
 
 
@@ -1197,6 +2284,7 @@ The proposed engines for the billing domain:
 | `CreditEngine` | `src/lib/billing/credit-engine.ts` | Credit balance reads, deduction rules, low-balance detection |
 | `InvoiceEngine` | `src/lib/billing/invoice-engine.ts` | Invoice construction, line item calculation, total computation |
 | `PlanEngine` | `src/lib/billing/plan-engine.ts` | Plan comparisons, upgrade/downgrade eligibility, feature matrix |
+| `PricingEngine` | `src/lib/billing/pricing-engine.ts` | Composable subscription price calculation — the single source of truth for all pricing decisions |
 
 Each engine owns only its domain. Infrastructure (server functions, background jobs, middleware) calls these engines with data it fetched from the database and persists the results.
 
@@ -1223,16 +2311,105 @@ if (!result.granted) throw new EntitlementError(result.code)
 
 **Example: SubscriptionEngine with strategies**
 
-Billing model logic (monthly subscription, prepaid credits, hybrid) should be expressed as strategies behind a `SubscriptionEngine` facade — directly mirroring the `CostingEngine` pattern:
+Billing model logic (monthly subscription, prepaid credits, hybrid, composable) should be expressed as strategies behind a `SubscriptionEngine` facade — directly mirroring the `CostingEngine` pattern:
 
 ```
 SubscriptionEngine.evaluateCheckout(billingModel, context)
   ├─ 'MONTHLY_SUBSCRIPTION' → MonthlySubscriptionStrategy.evaluate(context)
   ├─ 'PREPAID_CREDITS'      → PrepaidCreditsStrategy.evaluate(context)
-  └─ 'HYBRID'               → HybridStrategy.evaluate(context)
+  ├─ 'HYBRID'               → HybridStrategy.evaluate(context)
+  └─ 'COMPOSABLE_FEATURES'  → ComposableFeaturesStrategy.evaluate(context)
 ```
 
 This means switching a business's billing model is a data change (update `billingModel` on `BusinessSubscription`), not a code change.
+
+---
+
+**PricingEngine — the single source of truth for pricing calculations**
+
+`PricingEngine` is a pure Business Engine that owns all pricing logic for the `COMPOSABLE_FEATURES` model. It follows the same architectural principles as every other engine in this codebase: no database access, no infrastructure dependencies, deterministic output from deterministic input.
+
+**Responsibilities:**
+
+| Method | Input | Output |
+|---|---|---|
+| `PricingEngine.resolveDependencies` | Raw feature key list, `FeatureDependencyDTO[]` | Expanded feature list with all transitive dependencies included |
+| `PricingEngine.validateDependencies` | Expanded feature list, `FeatureDependencyDTO[]` | Validation result; detects cycles and missing required features |
+| `PricingEngine.calculate` | `PricingInput`, `PricingConfig`, `PricingCatalogDTO` | `PricingResult` — rich line-item breakdown, totals, tax breakdown, applied bundle |
+| `PricingEngine.detectBundle` | Expanded feature list, `FeatureBundleVersionDTO[]` from catalog | Best qualifying bundle version + discount amount |
+| `PricingEngine.generateQuote` | `PricingResult`, quote metadata | `PricingQuoteDTO` ready for persistence — maps 1:1 to `PricingQuote` + `PricingQuoteItem` records |
+| `PricingEngine.validateGrandfatheredPrices` | `BusinessSubscriptionFeature[]`, `PricingCatalogDTO` | `PriceChangeNotice[]` — features whose catalog price changed since the subscription snapshot |
+
+**What PricingEngine must not contain:**
+- Database queries (`prisma`, collection reads) — the Application Layer assembles `PricingCatalogDTO` via `PricingCatalogRepository`
+- Config reads (`ConfigKey`, `SystemConfig`) — all config values arrive as `PricingConfig` parameters
+- Date/time generation (`Date.now()`, `new Date()`) — dates are passed as explicit parameters
+- Formatting logic — formatting is `PriceEngine.format`'s responsibility; `PricingEngine` returns raw cent integers
+- HTTP calls or external API interactions
+- Any reference to React, routing, or UI frameworks
+
+These constraints are enforced by the engine principles in section 6.3 and documented as explicit prohibitions in section 2.17. The engine can be called identically from the pricing calculator server function, a background renewal job, and a test runner with zero setup.
+
+**Pricing strategies — the strategy pattern applied to PricingEngine**
+
+Following the `CostingEngine` reference implementation, `PricingEngine` dispatches to an interchangeable pricing strategy. The strategy is selected based on the context the Application Layer passes in — not by the engine reading the database.
+
+```
+PricingEngine.calculate(strategy, input, config)
+  ├─ 'FLAT_SUBSCRIPTION'   → FlatSubscriptionPricingStrategy.calculate(input, config)
+  ├─ 'FEATURE_BASED'       → FeatureBasedPricingStrategy.calculate(input, config)
+  ├─ 'ENTERPRISE'          → EnterprisePricingStrategy.calculate(input, config)
+  ├─ 'PARTNER_RESELLER'    → PartnerResellerPricingStrategy.calculate(input, config)
+  └─ 'PROMOTIONAL'         → PromotionalPricingStrategy.calculate(input, config)
+```
+
+Every strategy implements the same `(input: PricingInput, config: PricingConfig) → PricingResult` contract. Adding a new strategy — for example a `FRANCHISE` strategy for multi-location franchise pricing — requires one new file and one `case` in the switch. No callers change.
+
+**Strategy responsibilities:**
+
+| Strategy | When Used | Key Behaviour |
+|---|---|---|
+| `FlatSubscriptionPricingStrategy` | Standard Starter / Professional / Enterprise plan | Returns a fixed plan price; feature prices ignored; no bundle evaluation |
+| `FeatureBasedPricingStrategy` | `COMPOSABLE_FEATURES` self-service | Full pipeline: dependency resolution → feature summation → bundle detection → surcharges → discounts |
+| `EnterprisePricingStrategy` | Rep-assisted enterprise quotes | Same as feature-based but applies `negotiatedPrices` overrides before finalising totals |
+| `PartnerResellerPricingStrategy` | Partner or reseller channel deals | Applies a partner margin factor to the feature-based total; returns both the partner cost and the recommended retail price |
+| `PromotionalPricingStrategy` | Limited-time promotions, trial conversion offers | Wraps any strategy with a promotional discount layer; uses `validFrom`/`validUntil` from the promotion config |
+
+**Input and output contracts:**
+
+```ts
+// PricingInput — assembled by the Application Layer from DB data; passed to the engine
+interface PricingInput {
+  selectedFeatureKeys: string[]          // Raw selection from the business
+  features:            FeaturePriceDTO[] // Catalog snapshot: key, monthlyPrice, yearlyPrice, deps, etc.
+  dependencies:        FeatureDependencyDTO[]
+  bundles:             FeatureBundleDTO[]
+  billingCycle:        'MONTHLY' | 'ANNUAL'
+  branchCount:         number
+  employeeCount:       number
+  negotiatedPrices?:   Record<string, number> // featureKey → negotiated monthly price in cents
+  promotionCode?:      string
+}
+
+// PricingConfig — assembled from SystemConfig by the Application Layer
+interface PricingConfig {
+  basePlatformFee:             number   // Cents
+  includedBranches:            number
+  branchMonthlyRate:           number   // Cents per additional branch
+  includedEmployees:           number
+  employeeMonthlyRate:         number   // Cents per additional employee
+  annualDiscountPercent:       number   // e.g. 15 = 15% off annual total
+  strategy:                    PricingStrategyType
+}
+```
+
+**Grandfathered pricing:**
+
+When a composable subscription renews, the Application Layer calls `PricingEngine.validateGrandfatheredPrices` to compare the frozen `BusinessSubscriptionFeature.agreedMonthlyPrice` values against the corresponding `FeaturePrice.monthlyPrice` in the current active `PricingCatalog`. If differences are detected, the engine returns a `PriceChangeNotice[]` that the billing page surfaces to the business before they confirm renewal. The business can accept the new prices or adjust their feature selection. No price changes are applied silently.
+
+**Future extensibility:**
+
+New pricing dimensions (e.g., per-transaction pricing for high-volume tiers, or geographic pricing regions) are added by extending `PricingInput` and `PricingConfig` and implementing a new strategy or extending an existing one. The engine's public `calculate` method signature does not change, preserving backward compatibility with all existing callers.
 
 ---
 
@@ -1284,7 +2461,7 @@ src/lib/
     specific-engine.ts
 ```
 
-Proposed layout for billing engines:
+Proposed layout for billing and pricing engines:
 
 ```
 src/lib/
@@ -1299,16 +2476,52 @@ src/lib/
     invoice-engine.ts
     plan-engine.ts
     types.ts
+    policies/
+      subscription-policy.ts
+      billing-policy.ts
     strategies/
-      monthly-subscription-strategy.ts
+      monthly-subscription-strategy.ts     ← SubscriptionEngine strategies
       prepaid-credits-strategy.ts
       hybrid-strategy.ts
+      composable-features-strategy.ts
+    value-objects/
+      billing-period.ts     ← BillingPeriod
+      credit-balance.ts     ← CreditBalance
+      usage-summary.ts      ← UsageSummary
+      subscription-status.ts
+    events/
+      subscription-activated.ts
+      subscription-expired.ts
+      trial-started.ts
+      trial-expired.ts
+      credits-purchased.ts
+      credits-consumed.ts
+      usage-limit-reached.ts
+      business-suspended.ts
+      business-reactivated.ts
+      quote-converted.ts
+    pricing/                              ← Pricing subdomain (nested in Billing until promoted)
+      pricing-engine.ts                   ← PricingEngine facade
+      pricing-catalog-repository.ts       ← Application Layer interface: loadActive / loadById
+      types.ts                            ← PricingInput, PricingConfig, PricingCatalogDTO, DTOs
+      strategies/
+        flat-subscription-pricing-strategy.ts   ← PricingEngine strategies
+        feature-based-pricing-strategy.ts
+        enterprise-pricing-strategy.ts
+        partner-reseller-pricing-strategy.ts
+        promotional-pricing-strategy.ts
+      value-objects/
+        pricing-result.ts                 ← Rich PricingResult with line items and tax breakdown
+        tax-breakdown-line.ts             ← TaxBreakdownLine (tax-system agnostic)
+        price-change-notice.ts            ← PriceChangeNotice for grandfathered pricing detection
   jobs/
     subscription-lifecycle.ts   ← infrastructure; calls SubscriptionEngine
     usage-counter-reset.ts      ← infrastructure; calls UsageEngine
+    pricing-quote-expiry.ts     ← infrastructure; expires stale quotes past validUntil
+    composable-renewal-preview.ts ← infrastructure; calls PricingEngine.validateGrandfatheredPrices
 ```
 
-The pattern is consistent: a `types.ts` file per domain, a facade engine that owns the public API, and strategy files where the algorithm can vary.
+Pricing lives in `billing/pricing/` as a subdirectory rather than a top-level domain directory. This reflects its current status as an emerging subdomain within Billing. When the split criteria in section 2.20 are met, the `pricing/` directory moves to `src/lib/pricing/` — a directory rename, not a logic refactor.
 
 ---
 
@@ -1326,6 +2539,12 @@ The pattern is consistent: a `types.ts` file per domain, a facade engine that ow
 | Usage tracking logic | `UsageEngine` |
 | Credit balance rules | `CreditEngine` |
 | Invoice construction | `InvoiceEngine` |
+| Composable subscription pricing | `PricingEngine` + pricing strategies (in `billing/pricing/`) |
+| Pricing catalog versioning | `PricingCatalog` models + `PricingCatalogRepository` (Application Layer) |
+| Feature pricing over time | `FeaturePrice` — one record per feature per catalog version |
+| Bundle discount versioning | `FeatureBundleVersion` — one record per bundle per catalog version |
+| Immutable quote documents | `PricingQuote` + `PricingResult` value object |
+| Tax breakdown (multi-country) | `TaxBreakdownLine` value object; rules passed as `TaxRuleDTO[]` in `PricingConfig` |
 | Database access | Server functions, background jobs |
 | React, routing, UI | Routes and components |
 | Authentication | better-auth + `authMiddleware` |
@@ -1391,7 +2610,7 @@ Owns all rules governing physical stock: what exists, where it is, and how it mo
 | `LowStockReached` | Domain Event | Emitted when stock falls below threshold |
 
 #### Billing Domain
-Owns everything related to subscription lifecycle, feature entitlement, usage tracking, and credit management.
+Owns everything related to subscription lifecycle, feature entitlement, usage tracking, credit management, and composable pricing. The Pricing subdomain is nested here until the split criteria in section 2.20 are met.
 
 | Component | Type | Responsibility |
 |---|---|---|
@@ -1401,12 +2620,17 @@ Owns everything related to subscription lifecycle, feature entitlement, usage tr
 | `CreditEngine` | Engine | Credit balance reads, deduction rules, low-balance detection |
 | `InvoiceEngine` | Engine | Invoice construction, line item calculation, totals |
 | `PlanEngine` | Engine | Plan comparisons, capability matrix, upgrade eligibility |
+| `PricingEngine` | Engine | Composable pricing — dependency resolution, catalog-driven calculation, bundle detection, rich `PricingResult`, grandfathered price validation |
+| `PricingCatalogRepository` | Application Layer | Loads `PricingCatalogDTO` from persistence for the engine; never called by the engine itself |
 | `SubscriptionPolicy` | Policy | Grace period rules, long-term inactivity thresholds, trial conversion rules |
 | `BillingPolicy` | Policy | Overage billing vs. blocking decisions, credit consumption rates |
 | `BillingPeriod` | Value Object | Immutable period start/end pair with boundary calculations |
 | `CreditBalance` | Value Object | Immutable credit amount with insufficient-balance detection |
 | `UsageSummary` | Value Object | Snapshot of txCount, allowance, remaining, and overage |
 | `SubscriptionStatus` | Value Object | Typed status with capability resolution methods |
+| `PricingResult` | Value Object | Immutable rich output of `PricingEngine.calculate` — line items, totals, tax breakdown, applied bundle, validation errors, price change notices |
+| `TaxBreakdownLine` | Value Object | Tax-system-agnostic tax line (name, rate, taxable amount, tax amount, inclusive flag) |
+| `PriceChangeNotice` | Value Object | Grandfathered pricing notice — previous vs. current catalog price for a feature |
 | `SubscriptionActivated` | Domain Event | |
 | `SubscriptionExpired` | Domain Event | |
 | `TrialStarted` | Domain Event | |
@@ -1416,6 +2640,8 @@ Owns everything related to subscription lifecycle, feature entitlement, usage tr
 | `UsageLimitReached` | Domain Event | |
 | `BusinessSuspended` | Domain Event | |
 | `BusinessReactivated` | Domain Event | |
+| `QuoteCalculated` | Domain Event | Emitted when a `PricingQuote` moves to `CALCULATED`; consumers may trigger notifications or analytics |
+| `QuoteConverted` | Domain Event | Emitted when a `PricingQuote` transitions to `CONVERTED` and a composable subscription is created |
 
 #### Identity Domain
 Owns authentication, authorization, role resolution, and multi-tenancy concerns. Already implemented via better-auth + Membership model. Remains thin by design.
@@ -1752,6 +2978,8 @@ A **Domain Event** is a record that something significant happened in the domain
 | `UsageLimitReached` | Billing | `businessId`, `txCount`, `limit` | Entitlement (re-evaluate), Notifications |
 | `BusinessSuspended` | Billing | `businessId`, `reason` | Entitlement (cache invalidate), Notifications |
 | `BusinessReactivated` | Billing | `businessId` | Entitlement (cache invalidate), Notifications |
+| `QuoteCalculated` | Billing | `quoteId`, `businessId`, `catalogVersion`, `grandTotal` | Notifications (quote ready), Analytics |
+| `QuoteConverted` | Billing | `quoteId`, `businessId`, `subscriptionId`, `grandTotal` | Entitlement (cache invalidate), Notifications, Billing (invoice generation) |
 
 **Publication and consumption:**
 
@@ -1792,13 +3020,17 @@ The entitlement check before `createPosTransaction` remains a direct call. The u
 
 Every engine candidate below was evaluated against the same criteria: does it represent a cohesive business domain with enough logic to warrant extraction? Utilities and infrastructure concerns are excluded.
 
+**Defined — now part of this architecture:**
+
+`PricingEngine` — composable subscription pricing, dependency resolution, bundle detection, quote generation, and grandfathered price validation. Fully specified in section 6.6 and implemented in Phase 7. No longer a candidate; it is a first-class billing domain engine.
+
 **Recommended — clear domain with non-trivial logic:**
 
 `ReportingEngine`
 Aggregation logic, period-over-period comparison, metric derivation (gross margin, turn rate, sell-through). Currently implicit in the reports pages. As reporting moves server-side, a dedicated engine prevents report logic from living in Prisma queries.
 
 `PromotionEngine`
-Discount rules for promotional campaigns: percentage off, buy-X-get-Y, minimum spend thresholds, validity windows. Different from `DiscountPolicy` (which governs when discounts apply) — `PromotionEngine` calculates what the promotion yields. Introduced when promotions ship.
+Discount rules for promotional campaigns: percentage off, buy-X-get-Y, minimum spend thresholds, validity windows. Different from `DiscountPolicy` (which governs when discounts apply) — `PromotionEngine` calculates what the promotion yields. Note: the `PromotionalPricingStrategy` inside `PricingEngine` handles subscription-level promotional discounts; `PromotionEngine` would handle transaction-level promotional discounts (e.g. buy-one-get-one on POS items). These are distinct concerns. Introduced when promotions ship.
 
 `ProcurementEngine`
 Supplier pricing logic, purchase cost vs. moving average cost comparison, reorder quantity suggestions. Currently the purchase creation flow has no cost analysis. This becomes relevant when procurement reporting is added.
@@ -1818,6 +3050,7 @@ Supplier pricing logic, purchase cost vs. moving average cost comparison, reorde
 - Barcode parsing: utility function, not a domain
 - Notification dispatch: infrastructure concern (delivery mechanism)
 - Email templates: infrastructure concern
+- Pricing calculator UI state: UI concern; all calculations go through `PricingEngine` on the server
 
 The test: if it does not make a domain decision — if it is purely transformation, formatting, or I/O — it does not belong in an engine.
 
@@ -1893,6 +3126,8 @@ The current architecture focuses entirely on the **tenant application** — the 
 | Credit management | Issue promotional credits, adjust credit balances |
 | Invoice management | View all invoices, mark as paid, void invoices |
 | Billing configuration | Manage `SubscriptionPlan` tiers and `PlanEntitlement` records |
+| Composable pricing management | Manage `PricingCatalog` versions, `FeaturePrice` records, `FeatureBundle` identity, and `FeatureBundleVersion` discount rules; publish new catalog versions |
+| Rep-assisted quote builder | Build `PricingQuote` records with negotiated prices on behalf of enterprise customers; convert accepted quotes to active subscriptions |
 | Platform analytics | Cross-tenant metrics: active businesses, churn, MRR, usage trends |
 | Feature rollouts | Manage `Feature` registry, enable/disable features globally |
 | Operational support | Audit subscription status history, investigate billing disputes |
@@ -1908,7 +3143,7 @@ This means:
 - Domain logic is written once and tested once
 - Platform admin operations go through the same engine rules as tenant operations — no special-casing
 
-**Timeline:** Platform Administration is a post-Phase 3 concern. The schema and domain engines are designed with it in mind from the start (hence the `EntitlementOverride`, `SubscriptionStatusHistory`, and `BillingInvoice` models), but the UI and auth system for platform admins are deferred.
+**Timeline:** Platform Administration is a post-Phase 3 concern. The schema and domain engines are designed with it in mind from the start (hence the `EntitlementOverride`, `SubscriptionStatusHistory`, `BillingInvoice`, and `PricingQuote` models), but the UI and auth system for platform admins are deferred. The rep-assisted quote builder and composable pricing management UI are Phase 7 deliverables of the Platform Administration application.
 
 **Auth separation:**
 
@@ -1965,9 +3200,10 @@ src/
         subscription-policy.ts
         billing-policy.ts
       strategies/
-        monthly-subscription-strategy.ts
+        monthly-subscription-strategy.ts       ← SubscriptionEngine strategies
         prepaid-credits-strategy.ts
         hybrid-strategy.ts
+        composable-features-strategy.ts
       value-objects/
         billing-period.ts     ← BillingPeriod
         credit-balance.ts     ← CreditBalance
@@ -1983,6 +3219,22 @@ src/
         usage-limit-reached.ts
         business-suspended.ts
         business-reactivated.ts
+        quote-converted.ts
+        quote-calculated.ts
+      pricing/                              ← Pricing subdomain (nested; see section 2.20)
+        pricing-engine.ts                   ← PricingEngine facade
+        pricing-catalog-repository.ts       ← Application Layer interface
+        types.ts                            ← PricingInput, PricingConfig, PricingCatalogDTO, DTOs
+        strategies/
+          flat-subscription-pricing-strategy.ts
+          feature-based-pricing-strategy.ts
+          enterprise-pricing-strategy.ts
+          partner-reseller-pricing-strategy.ts
+          promotional-pricing-strategy.ts
+        value-objects/
+          pricing-result.ts                 ← Rich PricingResult (line items, totals, tax breakdown)
+          tax-breakdown-line.ts             ← TaxBreakdownLine (tax-system agnostic)
+          price-change-notice.ts            ← PriceChangeNotice (grandfathered pricing)
 
     // --- SHARED ---
     shared/
@@ -2083,6 +3335,11 @@ The following terms are the canonical vocabulary of this project. Every PR, comm
 | **EntitlementContext** | The plain data object passed into `EntitlementEngine.check` — assembled by infrastructure, consumed by the engine. | Session, user context (ambiguous) |
 | **Capability key** | A string constant in `SCREAMING_SNAKE_CASE` verb-noun form registered in the `Feature` table and evaluated by `EntitlementEngine`. | Feature flag, permission name, scope |
 | **Billing period** | The window of time covered by a `UsageCounter` record. Defined by `periodStart` and `periodEnd`. | Billing cycle, subscription period |
+| **Pricing Catalog** | A versioned, named container (`PricingCatalog`) that holds all `FeaturePrice` and `FeatureBundleVersion` records active at a point in time. The `PricingEngine` always receives a catalog; it never fetches one. | Price list, config, settings |
+| **Feature Price** | A `FeaturePrice` record — the recurring and one-time cost of a single feature within a specific `PricingCatalog` version. Separate from the feature's identity and entitlement classification. | Feature config, pricing field |
+| **Bundle Version** | A `FeatureBundleVersion` record — the discount rules for a bundle within a specific `PricingCatalog` version. Immutable once the catalog is published. | Bundle config, bundle discount |
+| **Pricing Catalog DTO** | The plain data object (`PricingCatalogDTO`) assembled by the Application Layer from a `PricingCatalog` and passed into `PricingEngine`. Contains no Prisma types. | Catalog model, catalog entity |
+| **Quote snapshot** | A `PricingQuote` in `CALCULATED` or later state — an immutable business document containing snapshotted feature labels, prices, tax breakdown, catalog version, and all components needed for reproduction years later. | Draft quote, saved quote |
 | **Tenant** | A `Business` record. The unit of multi-tenancy. | Account, organisation, client |
 
 **Terminology conflicts in the current document to be aware of:**
@@ -2275,6 +3532,33 @@ _Consequences:_ Two applications to maintain. Shared domain layer must remain po
 
 _Trade-offs:_ Additional deployment surface. Accepted as the correct long-term model.
 
+---
+
+**ADR-009: Composable Feature-Based Pricing via PricingEngine and Snapshot Model**
+
+_Decision:_ The `COMPOSABLE_FEATURES` billing model uses a dedicated `PricingEngine` as the single source of truth for all pricing calculations. Agreed prices are frozen into `BusinessSubscriptionFeature` snapshot records at subscription creation and never recalculated silently.
+
+_Context:_ Predefined plan tiers (Starter, Professional, Enterprise) cannot accommodate every business's feature needs without creating a combinatorial explosion of plans. Enterprise customers frequently negotiate custom combinations and prices. A composable model allows businesses to build their own subscription while the system remains fully configurable — no new code needed to introduce a new feature price, bundle, or promotional rate.
+
+_Rationale:_ Centralizing all pricing calculations in `PricingEngine` (following the same engine pattern as `TaxEngine`, `CostingEngine`, etc.) prevents pricing logic from scattering across server functions, background jobs, and UI components. The snapshot model solves the historical integrity problem: a price change to a feature catalog entry never retroactively affects active subscriptions, which is both a commercial commitment and an audit requirement.
+
+_Consequences:_ Six new database tables. `PricingEngine` with five strategies must be implemented before the composable model can be activated. `EntitlementEngine` must be extended to resolve entitlements from `BusinessSubscriptionFeature` in addition to `PlanEntitlement`. Existing predefined-plan subscriptions are unaffected.
+
+_Trade-offs:_ Additional schema complexity vs. flexibility. The snapshot model means pricing history is preserved at the cost of more rows per subscription. The benefits — grandfathered pricing, auditability, and zero recalculation risk — outweigh the storage cost at this scale.
+
+---
+
+**ADR-010: Feature and Pricing as Separate Domain Objects**
+
+_Decision:_ The `Feature` model owns identity, entitlement classification, and dependency graph only. Pricing is owned by `FeaturePrice`, versioned through `PricingCatalog`. The `PricingEngine` receives a `PricingCatalogDTO` assembled by the Application Layer — it never reads `Feature` or `FeaturePrice` from the database directly.
+
+_Context:_ The previous iteration placed pricing fields (`monthlyPrice`, `yearlyPrice`, `implementationFee`, `setupFee`) directly on the `Feature` model. This worked for a single pricing tier in a single currency, but created coupling that would have made regional pricing, multi-currency, reseller channels, and promotional pricing difficult to implement correctly. Updating a feature's price under the old model would have silently changed the reproduction of all historical quotes.
+
+_Rationale:_ A feature's identity changes rarely and only by deliberate product decision. Its price changes frequently — across catalog versions, promotions, regions, and negotiated deals. Separating the two concerns means each evolves independently. The `PricingCatalog` version becomes the audit anchor: any quote or subscription snapshot can be reproduced exactly by loading the catalog version it was calculated under. Historical records are never affected by current catalog changes.
+
+_Consequences:_ Three new models: `FeaturePrice` (replaces pricing fields on `Feature`), `PricingCatalog` (versioned container), `FeatureBundleVersion` (replaces pricing fields on `FeatureBundle`). The Application Layer gains a `PricingCatalogRepository` responsibility. `PricingEngine` receives `PricingCatalogDTO` instead of individual persistence model types.
+
+_Trade-offs:_ More models to reason about. Mitigated by clear naming and the consistent pattern of "identity model + versioned pricing model" already established by `FeatureBundle → FeatureBundleVersion`.
 
 ---
 
@@ -2307,6 +3591,10 @@ These are well-defined but will expand as features ship. The shape is stable; th
 | Subscription lifecycle states | May add new states (e.g., `PAUSED`) without breaking existing logic |
 | Domain Event catalog (ADR-005) | New events added; existing events gain consumers |
 | `SubscriptionPlan` tier data | Tier names, prices, and limits change via database seed; no code changes |
+| `PricingCatalog` records | New catalog versions published via database operations; no code deployment needed |
+| `FeaturePrice` records | Pricing changes are new catalog versions; existing versions immutable |
+| `FeatureBundleVersion` records | Bundle discount changes are new catalog version records; existing versions immutable |
+| `PricingEngine` strategies | New strategies added as new pricing channels emerge; existing strategies unchanged |
 | `SystemConfig` / `ConfigKey` enum | New keys added as configuration needs grow |
 | Implementation Phases (Part 5) | Phases are delivered sequentially; completed phases become stable |
 
@@ -2319,9 +3607,10 @@ These are directional decisions. The architecture accommodates them, but the imp
 | Event bus promotion to durable/async | Currently in-process and synchronous; promoted when three or more consumers need reliability guarantees |
 | Value Objects (`Money`, `Quantity`, `TaxBreakdown`) | Defined architecturally; introduced progressively as engines are touched |
 | `ReportingEngine` | Defined as a candidate; introduced when reports migrate off local collections |
-| `PromotionEngine` | Introduced when promotional campaigns ship |
-| Platform Administration application (ADR-008) | Schema-ready; UI and auth deferred to post-Phase 3 |
+| `PromotionEngine` | Introduced when promotional campaigns ship (distinct from `PromotionalPricingStrategy` in `PricingEngine`) |
+| Platform Administration application (ADR-008) | Schema-ready; UI and auth deferred to post-Phase 3; composable quote builder is a Phase 7 deliverable of the platform admin UI |
 | External billing provider integration (Stripe) | Phase 6; provider adapter interface defined, implementation deferred |
+| Composable Feature-Based Pricing (`PricingEngine`, `PricingCatalog`, `FeaturePrice`, `FeatureBundleVersion`) | Fully specified (ADR-009, ADR-010); implementation scheduled for Phase 7 after Phase 6 completes |
 | `ProcurementEngine`, `LoyaltyEngine` | Post-v2; introduced only when those domains are well-understood |
 
 
@@ -2471,13 +3760,34 @@ Resolution: Part 6.7 remains as the introduction of the concept. Part 7.6 is the
 The following were reviewed and confirmed as appropriately scoped — not over-engineered for the problem size:
 
 - Strategy pattern in `CostingEngine`: three costing methods exist today; the pattern is already in production.
-- `SubscriptionEngine` with billing model strategies: three billing models are planned for Phase 5; strategies are the correct tool when the algorithm varies by a runtime value.
+- `SubscriptionEngine` with billing model strategies: four billing models are now defined; strategies are the correct tool when the algorithm varies by a runtime value.
 - `EntitlementContext` value object: the entitlement engine has eight evaluation rules; a structured context object is necessary for clarity, not over-engineering.
-- Event catalog with 16 events: each event has at least two consumers. An event with one consumer should be a direct call; the threshold is met for all listed events.
+- Event catalog with 18 events: each event has at least two consumers. An event with one consumer should be a direct call; the threshold is met for all listed events.
+- `PricingEngine` with five strategies: five distinct pricing channels (flat plan, feature-based, enterprise, partner/reseller, promotional) exist in the target market from day one of the composable model. The strategy pattern is appropriate — not speculative.
+- `BusinessSubscriptionFeature` snapshot model: the grandfathered pricing requirement is a concrete commercial commitment, not a theoretical concern. Snapshot rows are small and bounded by the number of selected features per subscription.
+- Nine new tables for composable pricing and pricing catalog: `feature_prices`, `pricing_catalogs`, `feature_dependencies`, `feature_bundles`, `feature_bundle_versions`, `feature_bundle_items`, `business_subscription_features`, `pricing_quotes`, `pricing_quote_items` — each owns a distinct concern and has no viable alternative without merging unrelated data.
+- `PricingCatalog` versioning: the immutability requirement for historical quote reproduction makes versioning mandatory. The cost is additional rows per catalog cycle; the benefit is an unbreakable audit trail.
+- Rich `PricingResult` value object: five distinct downstream consumers (pricing calculator, quote generator, subscription creation, invoice generation, public API) need different slices of the same calculation. A rich result object eliminates five separate partial re-implementations of line-item logic.
 
 **Confirmed: No under-specified areas remaining**
 
 All areas reviewed are either fully specified or explicitly classified as Experimental in the stability table (Part 8.4). Experimental items have a clear trigger for when specification work begins.
+
+**Resolved: PromotionalPricingStrategy vs. PromotionEngine**
+
+The `PromotionalPricingStrategy` inside `PricingEngine` applies subscription-level promotional discounts during composable price calculation (e.g., 20% off a quote for a new customer). The future `PromotionEngine` will handle transaction-level promotional rules (e.g., buy-one-get-one on POS items). These are distinct concerns in different domains. No overlap; no contradiction.
+
+**Resolved: Feature pricing fields removed — backward compatibility**
+
+The `Feature` model no longer carries `monthlyPrice`, `yearlyPrice`, `implementationFee`, or `setupFee` fields. These have moved to `FeaturePrice`. Existing `Feature` records that were seeded with pricing data require a one-time migration to create corresponding `FeaturePrice` records under the initial `PricingCatalog` v1. The entitlement engine does not read pricing fields from `Feature` and is therefore unaffected. All existing predefined-plan subscriptions continue to work — they use `PlanEntitlement`, not `FeaturePrice`.
+
+**Resolved: QuoteStatus PRESENTED renamed to SENT**
+
+The previous iteration used `PRESENTED` as the status for a quote that has been shared with the business. This has been renamed to `SENT` to better reflect the action (sharing the quote document) rather than the receipt state. All references in the document use `SENT`. No downstream impact on existing subscriptions or entitlement logic.
+
+**Resolved: PricingEngine.convertQuote removed as an engine method**
+
+The previous iteration had `PricingEngine.convertQuote` as an engine method. Converting a quote to a subscription requires writing to the database — a side effect that violates engine purity. The Application Layer now owns this responsibility: it reads `PricingQuoteItem` records and creates `BusinessSubscriptionFeature` and `BusinessSubscription` records directly. The engine's `generateQuote` method returns a `PricingQuoteDTO` that the Application Layer persists. No domain logic was lost; it was correctly placed in infrastructure.
 
 
 ---
@@ -2501,7 +3811,10 @@ All capability checks go through `EntitlementEngine.check(capability, context)`.
 **The one data rule:**
 Business data is never deleted for billing reasons. Subscription status controls access; it never controls data existence.
 
-**Eight Architecture Decision Records:**
+**The one pricing rule:**
+All composable subscription pricing calculations go through `PricingEngine`. The engine receives a `PricingCatalogDTO` assembled by the Application Layer — it never reads pricing data from the database directly.
+
+**Ten Architecture Decision Records:**
 
 | ADR | Decision |
 |---|---|
@@ -2513,8 +3826,10 @@ Business data is never deleted for billing reasons. Subscription status controls
 | ADR-006 | Business Capabilities over feature flags |
 | ADR-007 | Data preservation on billing lapse |
 | ADR-008 | Platform Administration as a separate application |
+| ADR-009 | Composable feature-based pricing via PricingEngine and snapshot model |
+| ADR-010 | Feature and Pricing as separate domain objects; PricingCatalog as the versioned pricing container |
 
-**Six implementation phases:**
+**Seven implementation phases:**
 
 1. Transaction & Order History
 2. Entitlement Engine Foundation
@@ -2522,6 +3837,7 @@ Business data is never deleted for billing reasons. Subscription status controls
 4. Usage Tracking & Monthly Billing
 5. Prepaid Credits
 6. External Billing Integration
+7. Composable Feature-Based Pricing (PricingCatalog, FeaturePrice, FeatureBundleVersion, PricingEngine, rich PricingResult, immutable PricingQuote)
 
 **This document is now stable.**
 Future architectural changes are made through new ADRs, not revisions to this plan.

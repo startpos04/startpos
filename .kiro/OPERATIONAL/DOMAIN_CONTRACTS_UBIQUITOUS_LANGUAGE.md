@@ -930,6 +930,13 @@ Business events are the lingua franca between contexts. Every event is a complet
 - **Consumers:** Notification context (notifies the assigned clerk)
 - **Required payload:** `taskId`, `assignedTo`, `assignedBy`, `assignedAt`
 
+  *Implementation note (July 31, 2026):* In the current implementation, the `TASK_ASSIGNED`
+  notification fires when the task transitions to `IN_PROGRESS` — the moment the clerk's
+  immediate action is required — not when `clerkId` is first written (which may happen days
+  earlier at planning time). This is the operationally correct trigger: assignment at planning
+  time does not require immediate action; task start time does. Self-notification is suppressed
+  when the clerk starts their own task.
+
 ---
 
 **`TaskStarted`**
@@ -2206,6 +2213,32 @@ src/lib/{domain}/
   {domain}-policies.ts      ← Configurable policy rules
   {domain}-workflow.ts      ← State machine (for workflow domains)
 ```
+
+---
+
+### `OperationResult<T>` — Domain-Layer Operation Outcome
+
+**Source:** `src/lib/result.ts` (ADR-003)
+
+**Definition:** The canonical typed outcome for synchronous business-layer operations that
+need to communicate a specific condition to their caller — distinct from infrastructure
+failures (which use `neverthrow` `ResultAsync`).
+
+**Shape:** `{ ok: true; value: T } | { ok: false; code: OperationCode; reason: string }`
+
+**When to use:**
+- Workflow transition guards: `workflow.canTransition()` returns `OperationResult`
+- Domain pre-checks before entering `dbTransaction`
+- Any function that needs to distinguish *why* an action was denied (not just that it was)
+
+**When NOT to use:**
+- Infrastructure failures (DB constraint, network error) → use `neverthrow ResultAsync`
+- Simple boolean guards (hide/show a button) → use `boolean`
+
+**OperationCode values:** `PERMISSION_DENIED`, `PRECONDITION_FAILED`, `NOT_FOUND`,
+`CONFLICT`, `VALIDATION_FAILED`
+
+**Constructors:** `opOk(value?)`, `opFail(code, reason)`
 
 ---
 

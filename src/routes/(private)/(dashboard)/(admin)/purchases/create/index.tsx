@@ -1,5 +1,6 @@
 import { useForm, useStore } from '@tanstack/react-form'
-import { Minus, Plus, Save, ShoppingCart, X } from 'lucide-react'
+import { Minus, Plus, Save, Send, ShoppingCart, X } from 'lucide-react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { Form } from '@/components/custom/form'
@@ -10,9 +11,11 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { createPurchase } from '@/lib/queries/create-purchase'
+import { createPurchaseRequest } from '@/lib/queries/create-purchase-request'
 import { fetchSupplierOptions } from '@/lib/queries/fetch-supplier-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { fetchVariantOptions } from '@/lib/queries/fetch-variant-options'
+import { cn } from '@/lib/utils'
 import { closePurchaseSidebar } from '../-components/purchase-sidebar'
 
 const lineItemSchema = z.object({
@@ -30,11 +33,20 @@ const createPurchaseFormSchema = z.object({
 
 type CreatePurchaseFormData = z.infer<typeof createPurchaseFormSchema>
 
+/**
+ * Two submission modes:
+ *  'quick-receive'    — goods in hand, inventory credited immediately (RECEIVED)
+ *  'request-approval' — above-threshold or delegated, goes to PENDING_APPROVAL first
+ */
+type SubmitMode = 'quick-receive' | 'request-approval'
+
 interface CreatePurchaseSidebarProps {
   onClose?: () => void
 }
 
 export function CreatePurchaseSidebar({ onClose }: CreatePurchaseSidebarProps) {
+  const [mode, setMode] = useState<SubmitMode>('quick-receive')
+
   const { data: supplierOptions = [] } = fetchSupplierOptions()
   const { data: unitOptions = [] } = fetchUnitOptions()
   const { data: variantOptions = [] } = fetchVariantOptions()
@@ -52,18 +64,28 @@ export function CreatePurchaseSidebar({ onClose }: CreatePurchaseSidebarProps) {
     } as CreatePurchaseFormData,
     validators: { onChange: createPurchaseFormSchema },
     onSubmit: async ({ value }) => {
-      const { data, error } = await createPurchase({
+      const input = {
         supplierId: value.supplierId,
         notes: value.notes || null,
         items: value.items,
-      })
-
-      if (error || !data) {
-        toast.error('Failed to create purchase')
-        return
       }
 
-      toast.success(`Purchase ${data.structuredId} created and inventory updated`)
+      if (mode === 'request-approval') {
+        const { data, error } = await createPurchaseRequest(input)
+        if (error || !data) {
+          toast.error('Failed to submit purchase request')
+          return
+        }
+        toast.success(`Purchase request ${data.structuredId} submitted for approval`)
+      } else {
+        const { data, error } = await createPurchase(input)
+        if (error || !data) {
+          toast.error('Failed to create purchase')
+          return
+        }
+        toast.success(`Purchase ${data.structuredId} created and inventory updated`)
+      }
+
       handleClose()
     },
   })
@@ -79,12 +101,44 @@ export function CreatePurchaseSidebar({ onClose }: CreatePurchaseSidebarProps) {
           <ShoppingCart className='h-4 w-4 text-primary' />
           <div>
             <h2 className='text-base font-semibold leading-none'>New Purchase</h2>
-            <p className='text-xs text-muted-foreground mt-1'>Record supplier delivery & update stock</p>
+            <p className='text-xs text-muted-foreground mt-1'>
+              {mode === 'quick-receive' ? 'Record supplier delivery & update stock immediately' : 'Submit purchase request for management approval'}
+            </p>
           </div>
         </div>
         <Button variant='ghost' size='icon' onClick={handleClose} className='h-7 w-7'>
           <X className='size-4' />
         </Button>
+      </div>
+
+      {/* Mode toggle */}
+      <div className='px-4 pt-3 pb-0 shrink-0'>
+        <div className='flex rounded-xl border border-border/60 bg-muted/30 p-1 gap-1'>
+          <button
+            type='button'
+            onClick={() => setMode('quick-receive')}
+            className={cn(
+              'flex-1 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all',
+              mode === 'quick-receive' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            Quick Receive
+          </button>
+          <button
+            type='button'
+            onClick={() => setMode('request-approval')}
+            className={cn(
+              'flex-1 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all',
+              mode === 'request-approval' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            Request Approval
+          </button>
+        </div>
+
+        {mode === 'request-approval' && (
+          <p className='text-[10px] text-amber-600 mt-2 px-1'>Goods will not be credited until a supervisor approves and confirms receipt.</p>
+        )}
       </div>
 
       <Form onSubmit={form.handleSubmit} className='flex flex-col flex-1 min-h-0'>
@@ -176,8 +230,8 @@ export function CreatePurchaseSidebar({ onClose }: CreatePurchaseSidebarProps) {
                 disabled={!canSubmit || isSubmitting}
                 className='w-full h-11 rounded-xl font-semibold flex gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'
               >
-                <Save className='size-4' />
-                {isSubmitting ? 'Saving...' : 'Create Purchase & Update Stock'}
+                {mode === 'request-approval' ? <Send className='size-4' /> : <Save className='size-4' />}
+                {isSubmitting ? 'Saving...' : mode === 'request-approval' ? 'Submit for Approval' : 'Create Purchase & Update Stock'}
               </Button>
             )}
           />

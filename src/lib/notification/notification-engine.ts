@@ -1,4 +1,4 @@
-import { NotificationPriority, type NotificationType, Role } from 'prisma/generated/prisma/enums'
+import { NotificationPriority, NotificationType, Role } from 'prisma/generated/prisma/enums'
 import {
   inventoryCollection,
   membershipCollection,
@@ -17,6 +17,23 @@ interface SendNotificationParams {
   message: string
   metadata?: Record<string, unknown>
   link: string | null
+  /** Optional priority override. Defaults to the per-type value in DEFAULT_PRIORITY. */
+  priority?: NotificationPriority
+}
+
+/**
+ * DEV-6: Per-type default priorities.
+ * Callers may pass an explicit `priority` override when context warrants it
+ * (e.g. cash variance above threshold → URGENT).
+ */
+const DEFAULT_PRIORITY: Record<NotificationType, NotificationPriority> = {
+  [NotificationType.LOW_STOCK]: NotificationPriority.MEDIUM,
+  [NotificationType.NEW_ORDER]: NotificationPriority.MEDIUM,
+  [NotificationType.SYSTEM_ALERT]: NotificationPriority.URGENT,
+  [NotificationType.TASK_ASSIGNED]: NotificationPriority.MEDIUM,
+  [NotificationType.TASK_OVERDUE]: NotificationPriority.HIGH,
+  [NotificationType.COMPLIANCE_REMINDER]: NotificationPriority.MEDIUM,
+  [NotificationType.PURCHASE_PENDING_APPROVAL]: NotificationPriority.HIGH,
 }
 
 export const NotificationEngine = {
@@ -73,6 +90,7 @@ export const NotificationEngine = {
                 userId: user.id,
                 branchId: user.branch.id,
                 businessId: user.business.id,
+                autoApproveLowStockRefill: user.systemConfigs.AUTO_APPROVE_LOW_STOCK_REFILL,
               },
             })
 
@@ -97,13 +115,13 @@ export const NotificationEngine = {
   /**
    * Internal helper to distribute notifications to all branch admins
    */
-  async send(receiverIds: string[], { type, title, message, metadata, link }: SendNotificationParams) {
+  async send(receiverIds: string[], { type, title, message, metadata, link, priority }: SendNotificationParams) {
     const { user } = authStore.state
 
     const notificationsToInsert = receiverIds.map(receiverId => ({
       id: crypto.randomUUID(),
       userId: receiverId,
-      priority: NotificationPriority.MEDIUM,
+      priority: priority ?? DEFAULT_PRIORITY[type],
       type,
       title,
       message,
@@ -113,6 +131,7 @@ export const NotificationEngine = {
       businessId: user.business.id,
       branchId: user.branch.id,
       createdAt: new Date(),
+      archivedAt: null,
     }))
 
     // Step the mutation via the transaction engine

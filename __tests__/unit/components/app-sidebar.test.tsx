@@ -14,7 +14,7 @@
  *  ✅ ADMIN sees Admin, Supervisor, Tasks, POS, Settings items
  *  ✅ CASHIER only sees Tasks and POS (no Admin/Supervisor/Settings)
  *  ✅ SUPERVISOR sees Supervisor, Tasks, POS, Settings (no Admin)
- *  ✅ ENABLE_TASK=false hides Tasks item
+ *  ✅ CREATE_TASK capability absent hides Tasks item (F3)
  *  ✅ RESTAURANT businessType includes Ingredients in Admin submenu
  *  ✅ Non-RESTAURANT hides Ingredients from Admin submenu
  *  ✅ Active route item gets isActive styling
@@ -120,13 +120,22 @@ describe('AppSidebar — ADMIN', () => {
     expect(screen.getByText('Supervisor')).toBeInTheDocument()
   })
 
-  it('shows Tasks when ENABLE_TASK=true', () => {
+  it('shows Tasks when CREATE_TASK capability is granted', () => {
     renderSidebar()
     expect(screen.getByText('Tasks')).toBeInTheDocument()
   })
 
-  it('hides Tasks when ENABLE_TASK=false', () => {
-    seedMockUser({ role: Role.ADMIN, systemConfigs: { ENABLE_TASK: false } } as any)
+  it('hides Tasks when CREATE_TASK capability is not granted', () => {
+    // F3: Entitlement gate — omit CREATE_TASK from capabilities to simulate revocation
+    seedMockUser({
+      role: Role.ADMIN,
+      entitlement: {
+        status: 'ACTIVE' as any,
+        capabilities: [], // No capabilities → CREATE_TASK not present
+        txRemaining: null,
+        creditBalance: null,
+      },
+    } as any)
     renderSidebar()
     expect(screen.queryByText('Tasks')).not.toBeInTheDocument()
   })

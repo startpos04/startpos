@@ -1,5 +1,7 @@
 import { PriceConfiguration, Role } from 'prisma/generated/prisma/enums'
 import type { ServerUser } from '@/lib/better-auth/auth-server'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
+import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
 import { authStore } from '@/store/auth-store'
 
 /**
@@ -45,6 +47,15 @@ export function createMockUser(overrides: Partial<ServerUser> = {}): ServerUser 
       BIR_PTU_NUMBER: 'PTU-2024-001',
       BIR_PTU_ISSUED_AT: '2024-01-01',
       ...((overrides as any).complianceRegistry ?? {}),
+    },
+    // F3: Default entitlement grants all capabilities (open-context / dev mode).
+    // Tests that need to revoke a specific capability can spread over this default.
+    entitlement: {
+      status: SubscriptionStatus.ACTIVE,
+      capabilities: Object.values(Capabilities),
+      txRemaining: null,
+      creditBalance: null,
+      ...((overrides as any).entitlement ?? {}),
     },
     landingPage: '/pos',
     localOverrides: [],

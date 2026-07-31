@@ -47,6 +47,7 @@ enum ConfigKey {
   ENABLE_ORDER
   ENABLE_CASH_RECONCILIATION
   ENABLE_TASK
+  AUTO_APPROVE_LOW_STOCK_REFILL // Default: "true" — auto-approve SHELF_REFILL tasks on low-stock detection (P-TASK-04 exception)
   // --- ENTITLEMENT / BILLING POLICY ---
   // All values stored as strings; parse at read time.
   TRIAL_DURATION_DAYS // Default: "30"
@@ -139,6 +140,9 @@ model Business {
   locations            Location[]
   suppliers            Supplier[]
   entitlementOverrides EntitlementOverride[] // Per-business feature exceptions
+  goodsReceipts        GoodsReceipt[]
+  goodsReceiptItems    GoodsReceiptItem[]
+  subscription         BusinessSubscription? // F1: Active subscription record (nullable = no plan assigned yet)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -178,6 +182,8 @@ model Branch {
   systemConfigs      SystemConfig[] // Added for localized config
   complianceRegistry ComplianceRegistry[] // Added for country compliance IDs
   locations          Location[]
+  goodsReceipts      GoodsReceipt[]
+  goodsReceiptItems  GoodsReceiptItem[]
 
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -240,11 +246,13 @@ model User {
   fulfilledTasks     OperationalTask[]   @relation("TaskClerk")
   reviewedTasks      OperationalTask[]   @relation("TaskReviewer")
   canceledTasks      OperationalTask[]   @relation("TaskCanceler")
+  receivedGoods      GoodsReceipt[]      @relation("GoodsReceiptReceiver")
   systemConfigs      SystemConfig[]
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+  goodsReceipts GoodsReceipt[]
 
   @@index([deletedAt])
   @@map("users")
@@ -374,6 +382,7 @@ model ProductVariant {
   orderItemAddons    OrderItemAddon[]    @relation("AddonToOrderItem")
   productUnits       ProductUnit[]
   purchaseItems      PurchaseItem[]
+  goodsReceiptItems  GoodsReceiptItem[]
 
   businessId String
   business   Business @relation(fields: [businessId], references: [id])
@@ -432,13 +441,14 @@ model Unit {
   conversionFactor Float   @default(1)
   isBaseUnit       Boolean @default(false)
 
-  products      Product[]           @relation("ProductBaseUnit")
-  components    ProductComponent[]
-  inventory     Inventory[]
-  movements     InventoryMovement[]
-  orderItems    OrderItem[]
-  productUnits  ProductUnit[]
-  purchaseItems PurchaseItem[]
+  products          Product[]           @relation("ProductBaseUnit")
+  components        ProductComponent[]
+  inventory         Inventory[]
+  movements         InventoryMovement[]
+  orderItems        OrderItem[]
+  productUnits      ProductUnit[]
+  purchaseItems     PurchaseItem[]
+  goodsReceiptItems GoodsReceiptItem[]
 
   businessId String
   business   Business @relation(fields: [businessId], references: [id])
@@ -492,9 +502,26 @@ model Supplier {
   @@map("suppliers")
 }
 
+// D1: Purchase lifecycle status.
+// DRAFT            — Created locally; not yet submitted to management.
+// PENDING_APPROVAL — Submitted for supervisor/admin approval (above-threshold purchases).
+// APPROVED         — Authorized by management; goods can be received.
+// RECEIVED         — Goods physically received; inventory credited. Terminal for normal flow.
+// VOIDED           — Reversed; inventory debited back. Terminal.
+// CLOSED           — Archived after review. Terminal.
+enum PurchaseStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  RECEIVED
+  VOIDED
+  CLOSED
+}
+
 model Purchase {
-  id         String  @id @default(cuid())
+  id         String         @id @default(cuid())
   purchaseId String
+  status     PurchaseStatus @default(RECEIVED) // RECEIVED preserves backward compat for existing records
   totalCost  Int // Total cost of the purchase (in cents)
   notes      String?
 
@@ -502,6 +529,7 @@ model Purchase {
   supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
 
   items              PurchaseItem[]
+  goodsReceipts      GoodsReceipt[]
   inventoryMovements InventoryMovement[]
   operationalTask    OperationalTask?    @relation(fields: [operationalTaskId], references: [id])
   operationalTaskId  String?
@@ -528,6 +556,8 @@ model PurchaseItem {
   unit       Unit           @relation(fields: [unitId], references: [id])
   unitCost   Int
 
+  goodsReceiptItems GoodsReceiptItem[]
+
   businessId String
   business   Business @relation(fields: [businessId], references: [id])
   branchId   String
@@ -535,6 +565,82 @@ model PurchaseItem {
 
   @@index([businessId, branchId])
   @@map("purchase_items")
+}
+
+// ---------------------------------------------------------------------------
+// Receiving Domain — Phase E
+// ---------------------------------------------------------------------------
+
+// E1: Goods Receipt Note lifecycle status.
+// PENDING   — GRN created; goods arrived but not yet inspected / confirmed.
+// CONFIRMED — Receiver has counted and accepted the goods; inventory is credited.
+// DISPUTED  — Discrepancy found; flagged for supplier follow-up. Inventory NOT credited.
+enum GoodsReceiptStatus {
+  PENDING
+  CONFIRMED
+  DISPUTED
+}
+
+// E1: Goods Receipt Note — the formal record of a specific physical delivery event.
+// One Purchase can have multiple GRNs (partial deliveries).
+// Inventory is only credited when a GRN transitions PENDING → CONFIRMED.
+model GoodsReceipt {
+  id         String             @id @default(cuid())
+  purchaseId String
+  purchase   Purchase           @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  status     GoodsReceiptStatus @default(PENDING)
+  notes      String?
+
+  receivedById String
+  receivedBy   User   @relation("GoodsReceiptReceiver", fields: [receivedById], references: [id])
+
+  items GoodsReceiptItem[]
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+
+  @@index([businessId, branchId, purchaseId])
+  @@index([status])
+  @@map("goods_receipts")
+}
+
+// E2: Per-line quantities for a GRN. Supports partial receipts and discrepancy recording.
+// orderedQty  — quantity on the original PO line item
+// receivedQty — quantity physically counted at the time of receipt
+// Discrepancy = orderedQty - receivedQty (positive = short delivery)
+model GoodsReceiptItem {
+  id        String       @id @default(cuid())
+  receiptId String
+  receipt   GoodsReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  purchaseItemId String
+  purchaseItem   PurchaseItem   @relation(fields: [purchaseItemId], references: [id])
+  variantId      String
+  variant        ProductVariant @relation(fields: [variantId], references: [id])
+  unitId         String
+  unit           Unit           @relation(fields: [unitId], references: [id])
+
+  orderedQty  Float // Quantity on the original PO line
+  receivedQty Float // Quantity physically counted at receipt time
+  unitCost    Int // Cost per unit at time of receipt (carries over from PO, may be adjusted)
+
+  discrepancyNotes String? // Explanation if receivedQty != orderedQty
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  @@index([receiptId])
+  @@index([businessId, branchId])
+  @@map("goods_receipt_items")
 }
 
 // --- INVENTORY & BATCH TRACKING ---
@@ -937,7 +1043,9 @@ enum NotificationType {
   NEW_ORDER
   SYSTEM_ALERT
   TASK_ASSIGNED
+  TASK_OVERDUE // fires when dueDate is past and task is not yet FULFILLED
   COMPLIANCE_REMINDER
+  PURCHASE_PENDING_APPROVAL // D7: A purchase above threshold requires management sign-off
 }
 
 model Notification {
@@ -960,9 +1068,10 @@ model Notification {
   branchId   String?
   branch     Branch?  @relation(fields: [branchId], references: [id])
 
-  createdAt DateTime @default(now())
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime? // Soft-archive after retention period (see P-NOTIF archival policy)
 
-  @@index([userId, isRead])
+  @@index([userId, isRead, archivedAt])
   @@index([businessId])
   @@map("notifications")
 }
@@ -1076,8 +1185,61 @@ model OperationalTask {
 }
 
 // =============================================================================
-// ENTITLEMENT ENGINE — Phase 2
+// ENTITLEMENT ENGINE — Phase 2 / Phase F
 // =============================================================================
+
+// ---------------------------------------------------------------------------
+// SubscriptionStatus
+// Lifecycle states for a BusinessSubscription record.
+// Mirrors the SubscriptionStatus const in src/lib/entitlement/entitlement-types.ts.
+// ---------------------------------------------------------------------------
+enum SubscriptionStatus {
+  TRIAL // Within the free-trial window; operational features active.
+  ACTIVE // Paid and current; all plan features available.
+  GRACE_PERIOD // Payment overdue but within the configured grace window; features still active.
+  EXPIRED // Past grace period; operational features blocked.
+  SUSPENDED // Manually suspended by platform admin; all operational features blocked.
+  LONG_TERM_INACTIVE // Inactive past the long-term-inactive threshold; all operational features blocked.
+  CANCELLED // Voluntarily cancelled; treated as EXPIRED for feature gating purposes.
+}
+
+// ---------------------------------------------------------------------------
+// BusinessSubscription — F1
+// The active subscription record for a business.
+// One business has at most one active subscription at a time.
+// Historical subscriptions can be tracked by querying all records per business.
+// ---------------------------------------------------------------------------
+model BusinessSubscription {
+  id         String             @id @default(cuid())
+  businessId String             @unique // One active subscription per business (enforced via unique)
+  business   Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  planId     String
+  plan       SubscriptionPlan   @relation(fields: [planId], references: [id])
+  status     SubscriptionStatus @default(TRIAL)
+
+  // Billing period dates
+  trialEndsAt        DateTime? // Set when status = TRIAL; null = no trial
+  currentPeriodStart DateTime? // Start of the current paid billing period
+  currentPeriodEnd   DateTime? // End of the current paid billing period; null = open-ended
+
+  // Transaction consumption for the current billing period
+  // -1 = unlimited (mirrors SubscriptionPlan.includedTxPerMonth)
+  txUsedThisPeriod Int @default(0)
+
+  // Prepaid credit balance (units, not cents). null = not a prepaid plan.
+  creditBalance Int?
+
+  // Timestamps
+  activatedAt DateTime? // When the subscription first became ACTIVE
+  cancelledAt DateTime? // When the subscription was cancelled (if applicable)
+  suspendedAt DateTime? // When the subscription was manually suspended
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, status])
+  @@map("business_subscriptions")
+}
 
 // ---------------------------------------------------------------------------
 // Feature
@@ -1122,8 +1284,9 @@ model SubscriptionPlan {
 
   entitlements PlanEntitlement[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  businessSubscriptions BusinessSubscription[]
 
   @@map("subscription_plans")
 }

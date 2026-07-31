@@ -12,6 +12,7 @@ import { FeatureDisabledPage } from '@/components/pages/feature-disabled-page'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { operationalTaskCollection } from '@/db/collections'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager from '@/lib/mount-manager'
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
 import { cn } from '@/lib/utils'
@@ -33,7 +34,10 @@ const TYPE_CONFIG: Record<string, string> = {
 export const Route = createFileRoute('/(private)/tasks/')({
   component: () => {
     const user = useStore(authStore, state => state.user)
-    if (!user.systemConfigs.ENABLE_TASK) return <FeatureDisabledPage />
+    // F3: Gate through EntitlementEngine only. CREATE_TASK capability replaces
+    // the ENABLE_TASK SystemConfig dual-gate. Open-context fallback (no subscription)
+    // grants CREATE_TASK to all businesses, preserving backward compatibility.
+    if (!user.entitlement?.capabilities.includes(Capabilities.CREATE_TASK)) return <FeatureDisabledPage />
     if (user.role === Role.CASHIER) return <RouteComponent />
 
     return (
@@ -44,8 +48,14 @@ export const Route = createFileRoute('/(private)/tasks/')({
   },
 })
 
+// B3: only these statuses permit deletion
+const DELETABLE_STATUSES: TaskStatus[] = [TaskStatus.DRAFT, TaskStatus.PENDING]
+// B3: only these roles may delete tasks
+const DELETABLE_ROLES: Role[] = [Role.ADMIN, Role.SUPERVISOR]
+
 function RouteComponent() {
   const { data, isLoading } = fetchTasks()
+  const user = useStore(authStore, state => state.user)
   const [selectedId, setSelectedId] = useState<string>('')
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -226,11 +236,20 @@ function RouteComponent() {
           id: 'actions',
           header: () => <div className='text-right pr-4'>Actions</div>,
           cell: ({ row }) => {
+            const canDelete = DELETABLE_ROLES.includes(user?.role as Role) && DELETABLE_STATUSES.includes(row.original.status as TaskStatus)
+
+            if (!canDelete) return <div className='pr-2 h-8' />
+
             const handleDelete = async () => {
               MountManager.show(WarningPrompt, {
                 title: 'Delete Task',
                 description: 'Are you sure you want to remove this task? This action cannot be undone.',
                 onConfirm: async () => {
+                  // B3: re-check at confirmation time in case status changed while prompt was open
+                  if (!DELETABLE_ROLES.includes(user?.role as Role) || !DELETABLE_STATUSES.includes(row.original.status as TaskStatus)) {
+                    toast.error('This task can no longer be deleted.')
+                    return false
+                  }
                   try {
                     operationalTaskCollection.delete(row.original.id)
                     toast.success('Task removed successfully')
@@ -261,7 +280,7 @@ function RouteComponent() {
           },
         }),
       ]),
-    [],
+    [user],
   )
 
   return (

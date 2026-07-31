@@ -20,7 +20,7 @@
  *  ✅ Renders empty state when no tasks
  *  ✅ Add Task button calls showModal(CreateTaskDialog)
  *  ✅ Edit button calls showModal(TaskDetailsDialog)
- *  ✅ Shows FeatureDisabledPage when ENABLE_TASK = false
+ *  ✅ Shows FeatureDisabledPage when CREATE_TASK capability not granted (F3)
  *  ✅ Shows route for CASHIER role (no Dashboard wrapper)
  *
  * Run with: pnpm test routes/tasks
@@ -138,7 +138,9 @@ function renderTasksPage(searchParams: Record<string, any> = {}) {
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
-  seedMockUser({ systemConfigs: { ENABLE_TASK: true } } as any)
+  // F3: Entitlement gate — default mock user has CREATE_TASK in capabilities (open-context mode).
+  // Individual tests that need to revoke it will call seedMockUser with an empty capabilities array.
+  seedMockUser()
   vi.clearAllMocks()
   vi.mocked(MountManager.show).mockResolvedValue('modal-id')
 })
@@ -256,16 +258,24 @@ describe('Tasks page — add task', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Feature flag
+// Feature gate — entitlement engine (F3)
 // ---------------------------------------------------------------------------
 
-describe('Tasks page — feature flag', () => {
-  it('shows FeatureDisabledPage when ENABLE_TASK is false', async () => {
-    seedMockUser({ systemConfigs: { ENABLE_TASK: false } } as any)
+describe('Tasks page — feature gate', () => {
+  it('shows FeatureDisabledPage when CREATE_TASK capability is not granted', async () => {
+    // Simulate a subscription that does not include CREATE_TASK
+    seedMockUser({
+      entitlement: {
+        status: 'ACTIVE' as any,
+        capabilities: [], // CREATE_TASK intentionally absent
+        txRemaining: null,
+        creditBalance: null,
+      },
+    } as any)
     vi.mocked(fetchTasks).mockReturnValue({ data: [], isLoading: false } as any)
     renderTasksPage()
     await waitFor(() => {
-      // FeatureDisabledPage renders some indicator that feature is off
+      // FeatureDisabledPage renders — the tasks heading should not be present
       expect(screen.queryByText('Operational Tasks')).not.toBeInTheDocument()
     })
   })

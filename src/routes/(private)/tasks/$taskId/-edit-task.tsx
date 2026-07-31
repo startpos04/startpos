@@ -1,4 +1,5 @@
-import { ArrowLeft, X } from 'lucide-react'
+import { ArrowLeft, Lock, X } from 'lucide-react'
+import { TaskStatus } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { operationalTaskCollection } from '@/db/collections'
@@ -6,14 +7,27 @@ import type { MountProps } from '@/lib/mount-manager'
 import { closeTaskSidebar } from '../../-components/task-sidebar'
 import { CreateTask, type CreateTaskFormData } from '../../create/-create-task'
 
+// B2: statuses that lock editing — task has already progressed past the point
+// where its requirements or assignment can meaningfully change.
+const LOCKED_STATUSES: TaskStatus[] = [TaskStatus.FULFILLED, TaskStatus.REVIEWED, TaskStatus.CANCELLED]
+
 interface EditTaskSidebarProps extends MountProps {
   taskId: string
+  taskStatus: TaskStatus
   defaultValues: CreateTaskFormData
   onBack?: () => void
 }
 
-export function EditTaskSidebar({ taskId, defaultValues, open: _open, onClose, onBack }: EditTaskSidebarProps) {
+export function EditTaskSidebar({ taskId, taskStatus, defaultValues, open: _open, onClose, onBack }: EditTaskSidebarProps) {
+  const isLocked = LOCKED_STATUSES.includes(taskStatus)
+
   const handleSubmit = async ({ value }: { value: CreateTaskFormData }) => {
+    // B2: safety-net guard — reject if status has changed since the sidebar was opened
+    if (isLocked) {
+      toast.error('This task can no longer be edited.')
+      return
+    }
+
     const { type, clerkId, approverId, notes, ...subTaskMetadata } = value
     try {
       operationalTaskCollection.update(taskId, draft => {
@@ -61,15 +75,33 @@ export function EditTaskSidebar({ taskId, defaultValues, open: _open, onClose, o
         </Button>
       </div>
 
-      {/* Form — CreateTask already has flex-col h-full with scrollable body + sticky footer */}
-      <CreateTask
-        defaultValues={defaultValues}
-        onSubmit={handleSubmit}
-        textBtn={{
-          default: 'Save Changes',
-          isSubmitting: 'Saving...',
-        }}
-      />
+      {/* B2: Locked state — task has passed a terminal or post-fulfillment status */}
+      {isLocked ? (
+        <div className='flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center'>
+          <div className='h-10 w-10 rounded-xl bg-muted flex items-center justify-center'>
+            <Lock className='size-5 text-muted-foreground' />
+          </div>
+          <div>
+            <p className='text-sm font-semibold'>Task is locked</p>
+            <p className='text-xs text-muted-foreground mt-1'>
+              Tasks in <span className='font-medium'>{taskStatus.replace(/_/g, ' ').toLowerCase()}</span> status cannot be edited.
+            </p>
+          </div>
+          <Button variant='outline' size='sm' onClick={handleClose} className='mt-2'>
+            Close
+          </Button>
+        </div>
+      ) : (
+        /* Form — CreateTask already has flex-col h-full with scrollable body + sticky footer */
+        <CreateTask
+          defaultValues={defaultValues}
+          onSubmit={handleSubmit}
+          textBtn={{
+            default: 'Save Changes',
+            isSubmitting: 'Saving...',
+          }}
+        />
+      )}
     </div>
   )
 }

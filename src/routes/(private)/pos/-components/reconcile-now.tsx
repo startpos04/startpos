@@ -73,21 +73,26 @@ export function ReconcileNow({ onClose }: MountProps) {
       if (admins.length === 0) return
 
       const result = await dbTransaction(() => {
-        // Create the Reconciliation Task
+        const verifiedCash = Number(value.closingCash)
+        const variance = verifiedCash - expectedCash
+
+        // B4: task moves to FULFILLED (not REVIEWED directly — supervisor reviews via the task workflow)
         operationalTaskCollection.update(session.operationalTaskId, draft => {
-          draft.status = TaskStatus.REVIEWED
+          draft.status = TaskStatus.FULFILLED
           draft.notes = value.notes || `Reconciliation for session ${session.id}`
           draft.dueDate = dayjs().endOf('day').toDate()
-          draft.metadata = { vendorSessionId: session.id, expectedCash, approvedCash: value.closingCash }
-          draft.inProgressAt = new Date()
+          // B4: include verifiedCash and variance so CashReconciliationDetails can display them
+          draft.metadata = { vendorSessionId: session.id, expectedCash, approvedCash: value.closingCash, verifiedCash, variance }
+          draft.fulfilledAt = new Date()
         })
 
         vendorSessionCollection.update(session.id, draft => {
           draft.status = SessionStatus.CLOSED
           draft.endTime = new Date()
-          draft.closingCash = Number(value.closingCash)
+          draft.closingCash = verifiedCash
           draft.expectedCash = expectedCash
-          draft.verifiedCash = expectedCash
+          // B4: verifiedCash is the actual cash counted by the supervisor, not expectedCash
+          draft.verifiedCash = verifiedCash
         })
       })
 

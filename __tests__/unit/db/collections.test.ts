@@ -19,8 +19,9 @@
  *  - On-demand collections: membership, session, inventory,
  *    inventoryMovement, transaction, transactionTaxLine, payment,
  *    order, orderItem, orderItemAddon, purchase, purchaseItem,
- *    notification, operationalTask, vendorSession
- *  - All collections use SCHEMA_VERSION = 10
+ *    notification, operationalTask, vendorSession,
+ *    goodsReceipt, goodsReceiptItem (Phase E)
+ *  - All collections use SCHEMA_VERSION = 11 (bumped in Phase E)
  *
  * Run with: pnpm test collections
  */
@@ -59,7 +60,8 @@ function assertCollection(apiKey: string, expectedSyncMode: 'eager' | 'on-demand
   const opts = capturedCalls.get(apiKey)
   expect(opts, `Missing collection: ${apiKey}`).toBeDefined()
   expect(opts!.syncMode).toBe(expectedSyncMode)
-  expect(opts!.schemaVersion).toBe(10)
+  // Phase E bumped SCHEMA_VERSION from 10 → 11 (GoodsReceipt + GoodsReceiptItem added)
+  expect(opts!.schemaVersion).toBe(11)
 }
 
 // ---------------------------------------------------------------------------
@@ -180,6 +182,15 @@ describe('collections — on-demand syncMode (transactional data)', () => {
   it('vendorSessionCollection has apiKey="vendorSession" and syncMode="on-demand"', () => {
     assertCollection('vendorSession', 'on-demand')
   })
+
+  // Phase E — Receiving Domain
+  it('goodsReceiptCollection has apiKey="goodsReceipt" and syncMode="on-demand"', () => {
+    assertCollection('goodsReceipt', 'on-demand')
+  })
+
+  it('goodsReceiptItemCollection has apiKey="goodsReceiptItem" and syncMode="on-demand"', () => {
+    assertCollection('goodsReceiptItem', 'on-demand')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -187,7 +198,8 @@ describe('collections — on-demand syncMode (transactional data)', () => {
 // ---------------------------------------------------------------------------
 
 describe('collections — completeness', () => {
-  it('registers exactly 27 collections', () => {
-    expect(capturedCalls.size).toBe(27)
+  // Phase E added goodsReceipt + goodsReceiptItem (27 → 29)
+  it('registers exactly 29 collections', () => {
+    expect(capturedCalls.size).toBe(29)
   })
 })

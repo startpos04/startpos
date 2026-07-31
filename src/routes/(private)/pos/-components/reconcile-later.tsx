@@ -75,12 +75,16 @@ export function ReconcileLater({ onClose }: MountProps) {
       if (admins.length === 0) return
 
       const result = await dbTransaction(() => {
+        const verifiedCash = Number(value.closingCash)
+        const variance = verifiedCash - expectedCash
+
         // Create the Reconciliation Task
         operationalTaskCollection.update(session.operationalTaskId, draft => {
           draft.status = TaskStatus.IN_PROGRESS
           draft.notes = value.notes || `Reconciliation for session ${session.id}`
           draft.dueDate = dayjs().endOf('day').toDate()
-          draft.metadata = { vendorSessionId: session.id, expectedCash, approvedCash: value.closingCash }
+          // B5: capture verifiedCash and variance so the supervisor can see the discrepancy on review
+          draft.metadata = { vendorSessionId: session.id, expectedCash, approvedCash: value.closingCash, verifiedCash, variance }
           draft.inProgressAt = new Date()
         })
 
@@ -88,8 +92,14 @@ export function ReconcileLater({ onClose }: MountProps) {
         vendorSessionCollection.update(session.id, draft => {
           draft.status = SessionStatus.CLOSED
           draft.endTime = new Date()
-          draft.closingCash = Number(value.closingCash)
+          draft.closingCash = verifiedCash
           draft.expectedCash = expectedCash
+          // DEV-8: write verifiedCash to session record so both reconciliation paths
+          // produce a consistent session state. ReconcileNow already sets this field;
+          // ReconcileLater was the only path that left it null.
+          // The supervisor's REVIEWED step on the task is the formal confirmation;
+          // this write records the cashier's submitted count at session close time.
+          draft.verifiedCash = verifiedCash
         })
 
         NotificationEngine.send(

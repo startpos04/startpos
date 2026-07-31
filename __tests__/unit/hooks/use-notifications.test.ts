@@ -228,7 +228,7 @@ describe('useNotifications — markAsRead', () => {
 // ---------------------------------------------------------------------------
 
 describe('useNotifications — markAllRead', () => {
-  it('calls update for each unread notification', async () => {
+  it('calls update for each unread notification', () => {
     const n1 = makeNotification({ isRead: false })
     const n2 = makeNotification({ isRead: false })
     mockValues.mockReturnValue([n1, n2])
@@ -236,8 +236,8 @@ describe('useNotifications — markAllRead', () => {
 
     const { result } = renderHook(() => useNotifications())
 
-    await act(async () => {
-      await result.current.markAllRead()
+    act(() => {
+      result.current.markAllRead()
     })
 
     expect(mockUpdate).toHaveBeenCalledTimes(2)
@@ -245,34 +245,34 @@ describe('useNotifications — markAllRead', () => {
     expect(mockUpdate).toHaveBeenCalledWith(n2.id, expect.any(Function))
   })
 
-  it('does not call update when all notifications are already read', async () => {
+  it('does not call update when all notifications are already read', () => {
     const n1 = makeNotification({ isRead: true })
     mockValues.mockReturnValue([n1])
     setupMocks()
 
     const { result } = renderHook(() => useNotifications())
 
-    await act(async () => {
-      await result.current.markAllRead()
+    act(() => {
+      result.current.markAllRead()
     })
 
     expect(mockUpdate).not.toHaveBeenCalled()
   })
 
-  it('does nothing when no notifications exist', async () => {
+  it('does nothing when no notifications exist', () => {
     mockValues.mockReturnValue([])
     setupMocks()
 
     const { result } = renderHook(() => useNotifications())
 
-    await act(async () => {
-      await result.current.markAllRead()
+    act(() => {
+      result.current.markAllRead()
     })
 
     expect(mockUpdate).not.toHaveBeenCalled()
   })
 
-  it('skips already-read notifications in mixed list', async () => {
+  it('skips already-read notifications in mixed list', () => {
     const unread = makeNotification({ isRead: false })
     const read = makeNotification({ isRead: true })
     mockValues.mockReturnValue([unread, read])
@@ -280,8 +280,8 @@ describe('useNotifications — markAllRead', () => {
 
     const { result } = renderHook(() => useNotifications())
 
-    await act(async () => {
-      await result.current.markAllRead()
+    act(() => {
+      result.current.markAllRead()
     })
 
     expect(mockUpdate).toHaveBeenCalledTimes(1)

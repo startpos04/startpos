@@ -2,6 +2,7 @@ import { count, eq, useLiveInfiniteQuery, useLiveQuery } from '@tanstack/react-d
 import type { Notification } from 'prisma/generated/prisma/browser'
 import { toast } from 'sonner'
 import { notificationCollection } from '@/db/collections'
+import { dbTransaction } from '@/db/local-db-transaction'
 
 export function useNotifications(pageSize = 10) {
   const { data: unread } = useLiveQuery(q =>
@@ -50,13 +51,21 @@ export function useNotifications(pageSize = 10) {
   }
 
   // Mutation: Mark All as Read
-  const markAllRead = async () => {
-    const unreadItems = [...notificationCollection.values()].filter(n => !n.isRead)
-    for (const item of unreadItems) {
-      await notificationCollection.update(item.id, draft => {
-        draft.isRead = true
-      })
-    }
+  const markAllRead = () => {
+    // DEV-3: Batch all updates in a single transaction — O(1) sync operations
+    // instead of O(n) individual async awaits. Each update is a synchronous
+    // Immer draft mutation; dbTransaction commits them atomically.
+    const unreadIds = [...notificationCollection.values()].filter(n => !n.isRead).map(n => n.id)
+
+    if (unreadIds.length === 0) return
+
+    dbTransaction(() => {
+      for (const id of unreadIds) {
+        notificationCollection.update(id, draft => {
+          draft.isRead = true
+        })
+      }
+    })
   }
   return {
     unreadCount: unread[0]?.count || 0,

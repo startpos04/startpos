@@ -3,6 +3,8 @@ import type {
   Business,
   Category,
   Customer,
+  GoodsReceipt,
+  GoodsReceiptItem,
   Inventory,
   InventoryMovement,
   Location,
@@ -30,7 +32,8 @@ import type {
 import type { TaskMetadata, TransactionComplianceData } from '@/lib/types'
 import { createSyncableCollection } from '.'
 
-const SCHEMA_VERSION = 10
+// Bumped from 10 → 11 after Phase E schema additions (GoodsReceipt, GoodsReceiptItem)
+const SCHEMA_VERSION = 11
 
 export const businessCollection = createSyncableCollection<Business>({
   apiKey: 'business',
@@ -190,6 +193,22 @@ export const operationalTaskCollection = createSyncableCollection<Omit<Operation
 
 export const vendorSessionCollection = createSyncableCollection<VendorSession>({
   apiKey: 'vendorSession',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand',
+})
+
+// Phase E — Receiving Domain
+// syncMode: 'on-demand' — receipts are loaded only when the purchase detail
+// page is open. They are not needed globally.
+
+export const goodsReceiptCollection = createSyncableCollection<GoodsReceipt>({
+  apiKey: 'goodsReceipt',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand',
+})
+
+export const goodsReceiptItemCollection = createSyncableCollection<GoodsReceiptItem>({
+  apiKey: 'goodsReceiptItem',
   schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
 })

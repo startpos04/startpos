@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { AlertCircle, CheckCircle2, ClipboardList, FileCheck, Play, ShieldAlert, X } from 'lucide-react'
 import { TaskStatus } from 'prisma/generated/prisma/enums'
+import { toast } from 'sonner'
 import Tab from '@/components/custom/tab'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,7 @@ import { dbTransaction } from '@/db/local-db-transaction'
 import { useAppForm } from '@/hooks/form'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import type { MountProps } from '@/lib/mount-manager'
+import { NotificationEngine } from '@/lib/notification/notification-engine'
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
 import { cn } from '@/lib/utils'
 import { authStore } from '@/store/auth-store'
@@ -17,7 +19,7 @@ import { closeTaskSidebar } from '../-components/task-sidebar'
 import { taskFormOpts } from '../create/-create-task'
 import { TaskDetailsTab } from './-components/task-details-tab'
 import { TaskTimelineTab } from './-components/task-timeline-tab'
-import { getAllowedTransitionsForUser, getStatusUIMetadata } from './-components/task-workflow'
+import { checkWorkflowPermission, getAllowedTransitionsForUser, getStatusUIMetadata } from './-components/task-workflow'
 
 interface TaskDetailsSidebarProps extends MountProps {
   taskId: string
@@ -48,7 +50,47 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
   } = fetchTasks(taskId)
 
   const handleStatusChange = async ({ nextStatus }: { nextStatus: TaskStatus }) => {
+    if (!task || !user) return
+
+    // B1 — Client-side transition guard (re-validation before commit).
+    // This calls checkWorkflowPermission a second time immediately before dbTransaction to:
+    //   (a) catch race conditions (another user changed the task status between render and submit)
+    //   (b) prevent accidental double-submissions from stale UI state
+    //
+    // LIMITATION: This guard runs in the client process. A technically capable actor who
+    // constructs a direct transactionAPI call bypasses it entirely. Full server-side
+    // enforcement requires a TanStack Start server function that reads the task from Prisma
+    // and calls checkWorkflowPermission with the server-fetched state before returning
+    // a permission token. This is the intended B1 target state.
+    //
+    // DEFERRAL REASON: TanStack Start server functions with session-aware Prisma access
+    // require additional auth middleware wiring that is not yet in place. The current guard
+    // is a meaningful improvement over zero enforcement (the pre-Phase-B state).
+    // Revisit when server/auth infrastructure supports per-transition server validation.
+    //
+    // Architecture Compliance Audit — Deviation 1 (Medium severity, deferred).
+    const permitted = checkWorkflowPermission({
+      currentStatus: task.status,
+      targetStatus: nextStatus,
+      taskType: task.type,
+      userRole: user.role,
+      taskClerkId: task.clerkId,
+      taskApproverId: task.approverId,
+      taskReviewerId: task.reviewerId,
+      currentUserId: user.id,
+    })
+
+    if (!permitted) {
+      toast.error('You do not have permission to perform this action.')
+      return
+    }
+
     const timestamp = new Date()
+
+    // C6: Capture the effective clerk before the transaction so we can notify
+    // after it commits. The clerk is either already assigned or will be set to
+    // the current user by the IN_PROGRESS handler below.
+    const effectiveClerkId = nextStatus === TaskStatus.IN_PROGRESS ? (task.clerkId ?? user.id) : null
 
     await dbTransaction(() => {
       operationalTaskCollection.update(taskId, draft => {
@@ -93,6 +135,22 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
         })
       }
     })
+
+    // C6: TASK_ASSIGNED notification — sent after the transaction commits so
+    // the clerk's record is guaranteed to be written before the notification
+    // is delivered. Only fires when transitioning to IN_PROGRESS and the
+    // assigned clerk is a different person from the one performing the action
+    // (no self-notification when a clerk starts their own task).
+    if (nextStatus === TaskStatus.IN_PROGRESS && effectiveClerkId && effectiveClerkId !== user.id) {
+      const taskTypeLabel = task.type.replace(/_/g, ' ').toLowerCase()
+      await NotificationEngine.send([effectiveClerkId], {
+        type: 'TASK_ASSIGNED',
+        title: 'Task Assigned to You',
+        message: `You have been assigned a ${taskTypeLabel} task. Please review and begin when ready.`,
+        metadata: { taskId: task.id, taskType: task.type },
+        link: `/tasks/${task.id}`,
+      })
+    }
   }
 
   const form = useAppForm({
