@@ -502,3 +502,419 @@ When a deferred abstraction's trigger condition is met:
 *End of Architectural Decision Records*
 *StartPOS Operational Domain*
 *Version 1.0 — July 30, 2026*
+
+---
+
+## ADR-005 — UsageEngine
+
+**Date:** August 1, 2026
+**Status:** Accepted — Active
+**Introduced in:** Phase 2 (Usage Tracking + Monthly Billing Foundation)
+**File:** `src/lib/billing/usage-engine.ts`
+
+---
+
+### Problem Being Solved
+
+Transaction usage tracking requires incrementing a counter on every POS checkout, checking the allowance on every checkout, and resetting the counter at the end of each billing period. These three operations share the same counter data structure (`UsageCounterSnapshot`) and the same business rules (unlimited at -1, floor at 0, overage at exhaustion).
+
+Without an engine, the increment logic would live in `createPosTransaction`, the allowance check would be duplicated in the entitlement engine's inline check, and the reset logic would live in the background job — three locations with shared rules that diverge over time.
+
+`createPosTransaction` is also the most critical path in the application: it is the only code that runs inside a `dbTransaction` callback during a checkout. Any async boundary introduced here would break the offline-first behavior. The engine must be synchronous.
+
+---
+
+### Alternatives Considered
+
+**Alternative 1: Inline increment logic in `createPosTransaction`**
+
+Write the counter arithmetic directly in `create-pos-transaction.ts`.
+
+*Why rejected:* `createPosTransaction` already coordinates TaxEngine, CostingEngine, PosStockEngine, CreditEngine, and InventoryEngine. Adding raw counter arithmetic would grow the file further and duplicate the boundary calculation in the reset job. The two call sites (checkout + reset job) already justify extraction per the Engine pattern.
+
+**Alternative 2: Extend EntitlementEngine with counter logic**
+
+Add a `checkAndIncrementCounter()` method to `EntitlementEngine`.
+
+*Why rejected:* `EntitlementEngine` is a pure evaluation engine — it checks a context and returns a result without side effects. Adding mutation logic (incrementing a counter) would violate its contract. The entitlement check and the counter increment are separate operations at separate points in time.
+
+**Alternative 3: Introduce UsageEngine (the chosen approach)**
+
+Extract the counter arithmetic, exhaustion check, and overage logic into `UsageEngine`. The engine receives a `UsageCounterSnapshot` DTO, applies the rules, and returns an updated snapshot or an `OperationResult` failure. The Application Layer reads from the collection, calls the engine, and writes the result back to the collection.
+
+*Why chosen:* Exactly two call sites use usage counter logic (`createPosTransaction` and `usage-counter-reset.ts`). The shared rules are non-trivial (unlimited plan detection, overage routing, floor-at-zero). The Engine pattern is the established mechanism for this class of problem. The method is synchronous — it can be called inside `dbTransaction` without any architectural change.
+
+---
+
+### Why Existing Patterns Were Insufficient
+
+The existing pattern — inline arithmetic in query functions — is correct when a single function owns the logic. It breaks down when the same arithmetic must apply from two separate call sites (`createPosTransaction` and the reset job) and when the rules are rich enough to warrant a name (`isExhausted`, `computeRemaining`, `increment`).
+
+`UsageEngine` is the fourth domain engine in the billing layer. Its introduction follows the same two-call-site justification as `CreditEngine` and mirrors the exact synchronous/DTO pattern established by `InventoryEngine`.
+
+---
+
+### Why This Abstraction Was Chosen
+
+1. **Two call sites before introduction:** `createPosTransaction` and `usage-counter-reset.ts` both need the same counter arithmetic before the engine exists — the standard activation condition is met.
+2. **Synchronous methods:** All `UsageEngine` methods are synchronous. `increment()` can be called inside `dbTransaction` without breaking offline behavior.
+3. **No infrastructure imports:** `UsageEngine` receives `UsageCounterSnapshot` as a plain DTO. It never reads from a Prisma model or a collection. It is fully testable with mock data.
+4. **Returns `OperationResult`:** `increment()` returns `opFail` when the allowance is exhausted and overage is disabled, instead of throwing. The caller blocks the checkout by returning an error from the `dbTransaction` callback.
+5. **Mirrors InventoryEngine pattern:** The call sequence — read from collection → call engine → write result to collection — is identical to how `InventoryEngine` is used in `createPosTransaction`.
+
+---
+
+### Design Constraints That Must Be Preserved
+
+1. **All methods must be synchronous.** The `dbTransaction` callback is synchronous. Any async method would require restructuring the checkout path and breaking offline behavior.
+2. **No Prisma imports.** `UsageEngine` must remain importable from any layer without pulling in database infrastructure.
+3. **`increment()` returns `OperationResult`.** Blocking behavior (exhaustion) must be communicated through the result type, not via exceptions. The caller throws inside `dbTransaction` to roll back the local write.
+4. **The engine does not read from the auth store.** `includedTxPerMonth` and `overageBillingEnabled` are passed as parameters from the Application Layer.
+
+---
+
+### Conditions for Removal or Reconsideration
+
+Remove `UsageEngine` if:
+
+- The usage tracking domain is promoted to a separate service with its own API — at that point the engine becomes an internal implementation detail of that service.
+- The `UsageCounter` model is replaced by a metered event stream — at that point the counter increment pattern is replaced by event publication and the engine's methods are replaced by event handler bodies.
+
+---
+
+## ADR-006 — CreditEngine
+
+**Date:** August 1, 2026
+**Status:** Accepted — Active
+**Introduced in:** Phase 3 (Prepaid Credits)
+**File:** `src/lib/billing/credit-engine.ts`
+
+---
+
+### Problem Being Solved
+
+Prepaid credit management requires the same balance read and deduction rules in two separate call sites that run in different contexts:
+
+- `createPosTransaction` — reads the latest ledger entry, deducts 1 credit, builds a CONSUMED entry, checks the low-balance threshold.
+- `createPosRefund` — reads the latest ledger entry, restores 1 credit, builds a REFUNDED entry.
+
+Without an engine, both files would independently implement:
+- The "read `balanceAfter` from the latest ledger entry or default to 0" pattern
+- The "new balance = current balance + signed amount" arithmetic
+- The "is balance < threshold?" check
+- The ledger entry DTO construction pattern
+
+This is exactly the duplication pattern that Engine introduction resolves.
+
+Additionally, `createPosTransaction` is offline-first. The credit deduction must be synchronous — it runs inside a `dbTransaction` callback. An async credit deduction would break checkout offline behavior in the same way an async usage counter increment would.
+
+---
+
+### Alternatives Considered
+
+**Alternative 1: Duplicate credit logic in both query files**
+
+Write the balance read, arithmetic, and DTO construction inline in both `createPosTransaction` and `createPosRefund`.
+
+*Why rejected:* Two call sites with shared business rules is the minimum justification for Engine extraction per the established pattern. The rules are non-trivial (balance floor, low-balance detection, signed amount semantics). A future change to the deduction rule (e.g., variable credit cost per transaction type) would need to be applied in both files.
+
+**Alternative 2: Extract a utility module (not an Engine)**
+
+Create `src/lib/billing/credit-utils.ts` with exported functions.
+
+*Why rejected:* The project uses the Engine naming convention for domain behavior objects (`InventoryEngine`, `UsageEngine`, `EntitlementEngine`). A `credit-utils.ts` would introduce a parallel naming convention for the same architectural role. Naming consistency is an explicit architectural constraint (ADR-001, §"Why Existing Patterns Were Insufficient").
+
+**Alternative 3: Introduce CreditEngine (the chosen approach)**
+
+Follow the established Engine pattern. `CreditEngine` receives a `CreditLedgerSnapshot` DTO (the latest ledger row), applies rules, and returns either an `OperationResult<CreditDeductionResult>` (for deduct) or a new entry DTO (for restore). The Application Layer inserts the returned entry into the collection.
+
+*Why chosen:* Two simultaneous call sites at introduction. Synchronous methods. No infrastructure imports. Returns `OperationResult`. Identical pattern to `UsageEngine`.
+
+---
+
+### Known Limitation — R2 Race Condition
+
+Two concurrent checkouts on different devices may both pass the balance check before either deduction commits, allowing the balance to go temporarily negative. The `CreditLedger` append-only model makes this auditable: both transactions are recorded with their signed amounts, and a correction `ADJUSTMENT` entry can restore the correct balance.
+
+A server-side optimistic lock (compare-and-insert) is the planned mitigation for a future hardening phase. It is not implemented in Phase 3 because the scope is an accepted risk for the initial prepaid model.
+
+This limitation is documented as a code comment on `CreditEngine.deduct()`.
+
+---
+
+### Why This Abstraction Was Chosen
+
+1. **Two simultaneous call sites:** `createPosTransaction` and `createPosRefund` both need credit logic before the engine exists.
+2. **Synchronous methods:** `deduct()` and `restore()` are synchronous. Both are called inside `dbTransaction` callbacks.
+3. **No infrastructure imports:** `CreditEngine` receives `CreditLedgerSnapshot` as a plain DTO and never reads from Prisma or collections.
+4. **Returns `OperationResult`:** `deduct()` returns `opFail(CREDIT_BALANCE_ZERO)` when balance is 0 — the caller throws inside `dbTransaction` to block the checkout.
+5. **Billing-model-conditional:** The Application Layer wraps the engine call in `if (billingModel === PREPAID_CREDITS)`. The engine itself does not check the billing model — it is a pure arithmetic engine.
+
+---
+
+### Design Constraints That Must Be Preserved
+
+1. **All methods must be synchronous.** Same constraint as `UsageEngine`.
+2. **`deduct()` does not check billing model.** The conditional is the Application Layer's responsibility.
+3. **Low-balance check is part of `deduct()` result.** The `isLowBalance` flag on `CreditDeductionResult` is computed inside the engine call so the Application Layer can fire the notification after `dbTransaction` commits, without re-reading state.
+4. **No Prisma imports.** Same constraint as all billing engines.
+
+---
+
+### Conditions for Removal or Reconsideration
+
+Remove or replace `CreditEngine` if:
+
+- The credit balance model is replaced by a real-time balance service (e.g., a separate credit ledger microservice with atomic deduction) — the engine's arithmetic is replaced by an API call.
+- The R2 race condition is addressed via a server-side optimistic lock, which may require restructuring `deduct()` into an async server function pattern rather than a synchronous engine call.
+
+---
+
+## ADR-007 — BillingProviderAdapter Pattern
+
+**Date:** August 1, 2026
+**Status:** Accepted — Active
+**Introduced in:** Phase 4 (External Billing Integration)
+**Files:** `src/lib/billing/billing-provider.ts` (interface), `src/lib/billing/adapters/stripe-adapter.ts` (implementation)
+
+---
+
+### Problem Being Solved
+
+Integrating an external payment provider (Stripe) into the billing infrastructure requires making HTTP calls to an external SDK at multiple points: subscription creation, cancellation, invoice retrieval, credit package purchase, and webhook signature verification.
+
+Without an adapter boundary, the Stripe SDK would be imported directly in server functions, background jobs, and the webhook handler. A provider swap (or a mock for testing) would require changing every import site. SDK types would leak into the Application Layer, coupling all billing logic to Stripe's type definitions.
+
+The webhook handler in particular creates a security constraint: signature verification must happen before any payload is processed. If the verification call is embedded inside a handler alongside business logic, a refactor that reorders the code could introduce a security regression.
+
+---
+
+### Alternatives Considered
+
+**Alternative 1: Import Stripe SDK directly in every call site**
+
+Use `import Stripe from 'stripe'` in webhook handler, server functions, and jobs.
+
+*Why rejected:* Three or more call sites means a provider swap affects every file that has the import. Stripe's type system is large — SDK types leaking into the Application Layer would make the billing types Stripe-specific. Testing requires mocking the Stripe SDK at every call site individually.
+
+**Alternative 2: Create a BillingService class**
+
+A class that encapsulates all Stripe calls, instantiated with a Stripe API key.
+
+*Why rejected:* A class is the correct approach for stateful services. The adapter is essentially stateless — its behavior is determined by configuration (API key, webhook secret), not by accumulated state. A class adds `this` binding without benefit. The existing codebase uses the Engine pattern (static objects or factories returning plain objects) for domain behavior objects, not classes. Introducing a class pattern here would create a naming inconsistency.
+
+**Alternative 3: Provider adapter interface with concrete implementation (the chosen approach)**
+
+Define `BillingProviderAdapter` as a TypeScript interface in `billing-provider.ts`. The concrete Stripe implementation lives entirely in `src/lib/billing/adapters/stripe-adapter.ts`. Application Layer code depends only on the interface.
+
+*Why chosen:*
+- The only file in the entire codebase that imports from `stripe` is `stripe-adapter.ts`. A provider swap changes exactly one file.
+- Testing: the Application Layer can be tested with a mock `BillingProviderAdapter` implementation — no Stripe SDK required.
+- Security: `verifyWebhookSignature()` is a named method on the interface. The webhook handler calls it first before any other method. The interface contract makes the verification step impossible to miss or reorder.
+- Follows the same infrastructure isolation principle as Engines: the domain/application layer depends on abstractions, not concrete implementations.
+
+---
+
+### Why This Abstraction Was Chosen
+
+1. **Zero SDK imports in application code.** `billing-provider.ts` is pure TypeScript. Application Layer code (`create-subscription.ts`, `webhook/index.ts`, `billing-invoice-generation.ts`) depends only on the interface.
+2. **Security property.** `verifyWebhookSignature()` being a first-class interface method prevents the security check from being skipped. The webhook handler's pattern is: verify → process. This ordering is enforced by convention and code review, not just documentation.
+3. **Testability.** A mock `BillingProviderAdapter` can implement the interface with deterministic responses. All Phase 4 integration tests use mock adapters instead of live Stripe API calls.
+4. **Idempotency is the caller's responsibility.** The adapter interface does not enforce idempotency — that is the Application Layer's job. Each call site checks the current state before calling the adapter, so duplicate adapter calls are harmless (the state check prevents re-application).
+
+---
+
+### Design Constraints That Must Be Preserved
+
+1. **`stripe` package is only imported in `src/lib/billing/adapters/`.** No file outside this directory may import from `stripe`. Enforced by code review; a linting rule is recommended.
+2. **The interface is provider-agnostic.** No method on `BillingProviderAdapter` uses Stripe-specific terminology (no `checkoutSession`, no `paymentIntent`). The adapter normalizes provider concepts to domain concepts.
+3. **All adapter methods are async.** They make network calls. The caller handles failures via `try/catch` or `ResultAsync`.
+4. **`normaliseStripeEvent()` in the adapter maps provider event types to domain `WebhookEventType`.** The webhook handler works only with domain types — it has no switch on Stripe event strings.
+
+---
+
+### Conditions for Removal or Reconsideration
+
+This abstraction is correct as long as there is exactly one external payment provider. If a second provider is added:
+
+- Add a second adapter file implementing `BillingProviderAdapter`.
+- A factory or configuration key selects the active adapter at startup.
+- No Application Layer code changes.
+
+Remove the abstraction only if the external billing integration is replaced by a fully internal system — at that point the interface and adapter collapse into direct Prisma writes.
+
+---
+
+## ADR-008 — Data Preservation on Billing Lapse
+
+**Date:** August 1, 2026
+**Status:** Accepted — Active
+**Relevant phases:** Phase 0 (SubscriptionEngine), Phase 1 (UI Enforcement)
+**Decision source:** `v1-master-plan.md` §8.3
+
+---
+
+### Decision
+
+No business data is deleted, archived, or hidden because of a billing status change. Subscription status controls operational access; it never controls data existence.
+
+---
+
+### Problem Being Solved
+
+When a subscription expires, there are two approaches to inactive tenants:
+1. Archive or delete their data after a retention window.
+2. Preserve all data indefinitely and control access via subscription status only.
+
+The first approach is common in consumer SaaS to manage storage costs. The second is the correct model for small business operators whose transaction history, customer records, and inventory data represent years of operational records — data they cannot afford to lose.
+
+---
+
+### Rationale
+
+**Commercial commitment:** Data preservation is a product differentiator and a trust signal. A POS operator who loses transaction records because of a missed payment would have cause for regulatory, financial, and reputational harm. The risk to the platform outweighs the storage cost savings.
+
+**Technical simplicity:** Reactivation is a `BusinessSubscription.status` change from `EXPIRED` (or `LONG_TERM_INACTIVE`) to `ACTIVE`. There is no data restore, no migration, no job to reverse archival. This reduces the `SubscriptionEngine` state machine complexity significantly.
+
+**Audit trail:** The `SubscriptionStatusHistory` table records every status transition. If a business disputes access loss, the exact transition timestamps and triggers are available.
+
+---
+
+### Consequences
+
+- Storage grows without bound for long-term inactive tenants. This is an accepted cost at the current scale.
+- The `LONG_TERM_INACTIVE` state exists to signal platform-level de-prioritization of the tenant without deleting data.
+- No archival jobs are needed. The `src/lib/jobs/` directory has no "archive tenant" or "purge inactive business data" job and must never have one.
+- The entitlement engine blocks operational access (`isOperational = true` capabilities) for EXPIRED and LONG_TERM_INACTIVE subscriptions. Data reads (reports, transaction history) remain accessible regardless of status.
+
+---
+
+### Trade-offs
+
+Storage grows for inactive accounts. At current data volumes (POS transactions, ~1–10 KB per transaction), a business with 10,000 historical transactions consumes roughly 10–100 MB. Indefinite retention at this scale is inexpensive on PostgreSQL. If the platform grows to millions of tenants with years of inactivity, a soft-archive strategy (cold storage, not deletion) can be layered on without changing the access control model.
+
+---
+
+## ADR-009 — Composable Feature-Based Pricing via PricingEngine and Snapshot Model
+
+**Date:** August 1, 2026
+**Status:** Accepted — Active
+**Introduced in:** Phase 5 (Composable Feature-Based Pricing)
+**Files:** `src/lib/billing/pricing/pricing-engine.ts`, `src/lib/billing/pricing/pricing-catalog-repository.ts`
+**Decision source:** `v1-master-plan.md` §8.3
+
+---
+
+### Decision
+
+The `COMPOSABLE_FEATURES` billing model uses a dedicated `PricingEngine` as the single source of truth for all pricing calculations. Agreed prices are frozen into `BusinessSubscriptionFeature` snapshot records at subscription creation and are never recalculated silently. The `PricingEngine` receives all data as DTOs from the Application Layer — it has zero Prisma or collection imports.
+
+---
+
+### Problem Being Solved
+
+Predefined plan tiers cannot accommodate every business's feature needs without a combinatorial explosion of plans. Enterprise customers negotiate custom combinations. A composable model allows businesses to build their own subscription while the system remains configurable — no code deployment needed to introduce a new feature price, bundle, or promotional rate.
+
+The challenge is: pricing calculations are complex (dependency resolution, bundle qualification, tax calculation, annual pricing), and they must be correct at the moment of quote generation, not recalculated when a subscription renews. A price change in the catalog must not retroactively change what a business agreed to pay.
+
+---
+
+### Why a Dedicated Engine
+
+Centralizing all pricing calculations in `PricingEngine` follows the same pattern as `TaxEngine` and `CostingEngine` — both are pure calculation engines that receive data as DTOs and return structured results. Scattering pricing logic across server functions, background jobs, and UI components would create the same rule-duplication problem that motivated `InventoryEngine`.
+
+The Engine pattern has been validated by three prior engines in the billing domain (`UsageEngine`, `CreditEngine`, `InvoiceEngine`). The `PricingEngine` is the most complex but not architecturally different.
+
+---
+
+### Why the Snapshot Model
+
+When a business accepts a quote, the agreed prices are written as `BusinessSubscriptionFeature` records — one per selected feature, storing the `priceAtSubscription` at the time of acceptance. These records never change after creation.
+
+If the `FeaturePrice` for a feature changes in a subsequent `PricingCatalog` version, that change:
+- Does NOT affect existing subscriptions (they read from their snapshot records).
+- DOES affect new quotes (they calculate from the active catalog version).
+- IS detected by `PricingEngine.validateGrandfatheredPrices()`, which compares snapshot prices against the current catalog.
+
+This means:
+1. A business that negotiated a price 12 months ago continues to pay that price until renewal.
+2. The renewal preview job (`composable-renewal-preview.ts`) runs before renewal, calls `validateGrandfatheredPrices`, and notifies the business if their price is changing.
+3. No price change is ever silent.
+
+---
+
+### Architectural Constraints (Hard Gates — Phase 5 Compliance)
+
+- **Zero Prisma imports in `src/lib/billing/pricing/`.** The pricing subdomain is the strictest infrastructure isolation in the codebase. A linting rule or `import/no-restricted-paths` configuration should enforce this. Verified by unit tests that run without a database.
+- **`PricingEngine` receives `calculatedAt` as a parameter.** The engine never calls `new Date()` internally. This makes calculations reproducible for testing and audit.
+- **`PricingResult.grandTotal` does not include `oneTimeFees`.** One-time fees are shown separately in the quote and are not part of the recurring total.
+- **`PricingCatalogRepository` is the only code that reads `FeaturePrice` and `PricingCatalog` from Prisma.** The Engine receives a `PricingCatalogDTO` — a plain DTO assembled by the repository.
+
+---
+
+### Consequences
+
+Six new database tables. `PricingEngine` with five strategies must be implemented before the composable model is activated. `EntitlementEngine` is extended to resolve entitlements from `BusinessSubscriptionFeature` when `billingModel = COMPOSABLE_FEATURES`. Existing predefined-plan subscriptions are entirely unaffected.
+
+---
+
+## ADR-010 — Feature and Pricing as Separate Domain Objects
+
+**Date:** August 1, 2026
+**Status:** Accepted — Active
+**Introduced in:** Phase 5 (Composable Feature-Based Pricing)
+**Files:** `prisma/schema.prisma` (`Feature`, `FeaturePrice`, `PricingCatalog` models)
+**Decision source:** `v1-master-plan.md` §8.3
+
+---
+
+### Decision
+
+The `Feature` model owns identity, entitlement classification, and dependency graph only. Pricing is owned by `FeaturePrice`, versioned through `PricingCatalog`. The `PricingEngine` receives a `PricingCatalogDTO` assembled by the Application Layer — it never reads `Feature` or `FeaturePrice` from the database directly.
+
+---
+
+### Problem Being Solved
+
+The previous iteration placed pricing fields (`monthlyPrice`, `yearlyPrice`, `implementationFee`, `setupFee`) directly on the `Feature` model. This worked for a single pricing tier in a single currency, but created coupling that made regional pricing, multi-currency, reseller channels, and promotional pricing architecturally difficult:
+
+1. Updating a feature's price would silently change the reproduction of all historical quotes (no price history).
+2. Applying a promotional rate required either modifying the Feature record (destructive) or adding a parallel override mechanism.
+3. A reseller's margin could not be expressed without a separate price column on `Feature`.
+4. Currency-specific pricing required either multiple `Feature` records or a denormalized price map on the model.
+
+---
+
+### Why Separation Is the Right Model
+
+A feature's **identity** changes rarely and only by deliberate product decision (renaming `CREATE_ORDER` to `PLACE_ORDER`, for example). Its **price** changes frequently — across catalog versions, promotions, regions, and negotiated deals.
+
+Separating the two concerns means each evolves at its own rate. The `PricingCatalog` version becomes the audit anchor: any quote or subscription snapshot can be reproduced exactly by loading the catalog version it was calculated under. Historical records are never affected by current catalog changes.
+
+This mirrors the same pattern used for `FeatureBundle → FeatureBundleVersion`: the bundle identity is stable; its discount terms are versioned separately.
+
+---
+
+### The Three-Model Pattern
+
+| Model | Responsibility |
+|-------|---------------|
+| `Feature` | Identity, `CapabilityKey`, `isSelectableByCustomer`, `pricingCategory`, dependency graph |
+| `FeaturePrice` | Price per billing cycle for a specific feature in a specific catalog version |
+| `PricingCatalog` | Version container with status (`DRAFT`, `ACTIVE`, `ARCHIVED`); only one `ACTIVE` catalog at a time |
+
+---
+
+### Consequences
+
+Three additional models at Phase 5 schema expansion. The `PricingCatalogRepository` gains the `loadActive()` and `loadById()` methods as the sole read path for pricing data from the Application Layer.
+
+The initial `PricingCatalog v1` seed is applied after Migration 15b. The seeder must atomically insert the catalog, all `FeaturePrice` records, and the initial `FeatureBundleVersion` records in one transaction.
+
+---
+
+### Trade-offs
+
+More models to reason about at the schema level. Mitigated by clear naming, consistent documentation, and the fact that pricing administrators interact with catalog records via the Platform Administration UI (ADR-011, deferred), not by editing `Feature` records.
+
+The `Feature` model becomes leaner — it no longer contains any monetary values. This simplifies the entitlement path: `EntitlementEngine` reads `Feature` keys for capability checks and never touches pricing data.

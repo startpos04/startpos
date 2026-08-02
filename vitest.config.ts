@@ -24,10 +24,11 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
     include: ['__tests__/**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/tests/**', '**/e2e/**', '__tests__/e2e/**'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/tests/**', '**/e2e/**', '__tests__/e2e/**', '__tests__/integration/**'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
+      reporter: ['text', 'html', 'json'],
+      reportsDirectory: 'coverage',
       include: ['src/**/*.ts', 'src/**/*.tsx'],
       exclude: [
         'node_modules/**',

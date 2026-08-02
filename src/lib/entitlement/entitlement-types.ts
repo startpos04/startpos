@@ -89,6 +89,18 @@ export type EntitlementOverrideDTO = {
 }
 
 // ---------------------------------------------------------------------------
+// BillingModel (domain copy — mirrors Prisma enum, no infrastructure import)
+// ---------------------------------------------------------------------------
+export const BillingModelDomain = {
+  MONTHLY_SUBSCRIPTION: 'MONTHLY_SUBSCRIPTION',
+  YEARLY_SUBSCRIPTION: 'YEARLY_SUBSCRIPTION',
+  PREPAID_CREDITS: 'PREPAID_CREDITS',
+  HYBRID: 'HYBRID',
+  COMPOSABLE_FEATURES: 'COMPOSABLE_FEATURES',
+} as const
+export type BillingModelDomain = (typeof BillingModelDomain)[keyof typeof BillingModelDomain]
+
+// ---------------------------------------------------------------------------
 // EntitlementContext
 // The complete data snapshot the engine needs to evaluate a capability.
 // Assembled by the Application Layer from DB/collection reads;
@@ -99,8 +111,16 @@ export type EntitlementContext = {
   status: SubscriptionStatus
 
   /**
+   * The billing model for this subscription.
+   * Used by EntitlementEngine to select the correct check path for COMPLETE_CHECKOUT.
+   * Defaults to MONTHLY_SUBSCRIPTION for backwards compatibility.
+   */
+  billingModel?: BillingModelDomain
+
+  /**
    * All capability keys the business's current plan entitles them to.
-   * Derived from PlanEntitlement records for the active plan.
+   * For COMPOSABLE_FEATURES: derived from BusinessSubscriptionFeature records.
+   * For other models: derived from PlanEntitlement records.
    * Empty array = no plan assigned (blocks all operational features).
    */
   planFeatures: CapabilityKey[]
@@ -109,6 +129,7 @@ export type EntitlementContext = {
    * Per-feature usage limits from PlanEntitlement.usageLimit.
    * Key = capability key, value = max allowed units (null = unlimited).
    * Only populated for features that have a non-null usageLimit.
+   * Not used for COMPOSABLE_FEATURES (no usage limits in composable model).
    */
   usageLimits: Partial<Record<CapabilityKey, number>>
 
@@ -121,8 +142,8 @@ export type EntitlementContext = {
 
   /**
    * Remaining transactions in the current billing period.
-   * null = unlimited (plan has includedTxPerMonth = -1).
-   * 0    = exhausted; engine will deny COMPLETE_CHECKOUT.
+   * null = unlimited (plan has includedTxPerMonth = -1, or COMPOSABLE_FEATURES model).
+   * 0    = exhausted; engine will deny COMPLETE_CHECKOUT for non-composable models.
    */
   txRemaining: number | null
 
@@ -154,4 +175,10 @@ export type EntitlementSummary = {
   txRemaining: number | null
   /** null = not a prepaid plan */
   creditBalance: number | null
+  /** ISO string of trial end date — used by SubscriptionBanner countdown. null if not in trial. */
+  trialEndsAt: string | null
+  /** ISO string of billing period end — used by /billing usage display. null if no active period. */
+  currentPeriodEnd: string | null
+  /** Active billing model — determines which payment card to show on /billing. */
+  billingModel: BillingModelDomain | null
 }

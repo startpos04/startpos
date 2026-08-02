@@ -115,7 +115,7 @@
 | `HIGH` / `URGENT` notification priority | Evolution Strategy Phase C (step 3) | — | 🔴 | All notifications created at `MEDIUM` priority |
 | Task overdue notification (`TASK_OVERDUE`) | Evolution Strategy Phase C (step 2) | — | 🔴 | Notification type not defined; no scheduled check |
 | Notification escalation | Business Domain Model Part 7; Domain Contracts Part 6 | — | 🔴 | No escalation timer; NOTIF domain contract escalation not implemented |
-| Tenant scoping defense in transactionAPI | Architecture Audit Part 10; Evolution Strategy Phase 3 Risk R9 | — | 🟡 | Root Prisma still used in transactionAPI; no explicit businessId assertion added |
+| Tenant scoping defense in transactionAPI | Architecture Audit Part 10; Evolution Strategy Phase 3 Risk R9 | `src/lib/prisma-client/transaction-api.ts` | ✅ | Phase 6: switched to `getTenantPrisma`; session identity asserted before any DB access |
 | `DRAFT` for auto-generated tasks | Evolution Strategy P-TASK-04; Business Invariant INV-07 | `inventory-engine.ts:handleLowStockDetected()` | 🟡 | Creates task at `PENDING` with self-approval; architecturally acceptable as "auto-approve by policy" but not explicitly declared |
 | `BusinessSubscription` wired into entitlement assembly | Evolution Strategy Phase F2 | — | 🟡 | Model exists; `buildOpenContext()` fallback still active in `getAuthUser` |
 | `ENABLE_TASK` SystemConfig removed in favor of entitlement engine | Evolution Strategy Phase F3 | — | 🟡 | Both gates still active; dual-gate not yet resolved |
@@ -155,7 +155,7 @@
 
 ✅ All `InventoryEngine` methods are synchronous and called from inside `dbTransaction` callbacks. Atomicity is preserved across purchase creation, void, task fulfillment, and adjustment.
 
-🟡 `transactionAPI` still uses root Prisma without the `multiTenantExtension`. The tenant scoping defense proposed in Evolution Strategy Risk R9 has not been implemented.
+🟡 `transactionAPI` — Phase 6 resolved: switched to `getTenantPrisma(businessId, branchId)`. Session identity assertion added. The tenant scoping defense is now enforced at the ORM level for all batch operations.
 
 #### Cross-Domain Collaboration
 

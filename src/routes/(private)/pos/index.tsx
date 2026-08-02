@@ -9,6 +9,7 @@ import Loading from '@/components/custom/loading'
 import { AlertPrompt } from '@/components/custom/prompt/alert-prompt'
 import { SuccessPrompt } from '@/components/custom/prompt/success-prompt'
 import { ThemeToggle } from '@/components/custom/theme/theme-toggle'
+import { useSubscriptionGate } from '@/components/feature-disabled'
 import { sequenceCounterCollection } from '@/db/collections'
 import { useAppForm } from '@/hooks/form'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -46,8 +47,16 @@ export const Route = createFileRoute('/(private)/pos/')({
     page: search['page'] as number | undefined,
     pageSize: search['page-size'] as number | undefined,
   }),
-  component: POSPage,
+  component: POSPageGate,
 })
+
+// Subscription gate wrapper — hooks must always be called unconditionally,
+// so we split the gate check into its own component that renders before POSPage.
+function POSPageGate() {
+  const gate = useSubscriptionGate()
+  if (gate) return gate
+  return <POSPage />
+}
 
 function POSPage() {
   const navigate = useNavigate()

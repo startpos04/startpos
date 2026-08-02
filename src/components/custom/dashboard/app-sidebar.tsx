@@ -1,12 +1,23 @@
 import { Link, useLocation } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
-import { BookOpenIcon, BotIcon, ChevronRightIcon, ClipboardPenLine, GalleryVerticalEndIcon, SettingsIcon, TerminalSquareIcon } from 'lucide-react'
+import {
+  BookOpenIcon,
+  BotIcon,
+  ChevronRightIcon,
+  ClipboardPenLine,
+  CreditCardIcon,
+  GalleryVerticalEndIcon,
+  LayoutDashboardIcon,
+  SettingsIcon,
+  TerminalSquareIcon,
+} from 'lucide-react'
 import { BusinessType, Role } from 'prisma/generated/prisma/enums'
 import * as React from 'react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarHeader,
   SidebarMenu,
@@ -17,8 +28,11 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
+import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
 import { APP_NAME } from '@/lib/constants'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
+import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
+import { cn } from '@/lib/utils'
 import { authStore } from '@/store/auth-store'
 
 interface Items {
@@ -64,6 +78,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
       items: [
         {
+          title: 'Dashboard',
+          url: '/dashboard',
+          icon: <LayoutDashboardIcon />,
+          allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+        },
+        {
           title: 'Admin',
           url: '#',
           icon: <TerminalSquareIcon />,
@@ -108,6 +128,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: '/settings',
           icon: <SettingsIcon />,
           allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+        },
+        // Billing — always accessible to ADMIN regardless of subscription status.
+        // This is the escape hatch: even EXPIRED admins must be able to reach /billing.
+        {
+          title: 'Billing',
+          url: '/billing',
+          icon: <CreditCardIcon />,
+          allowedRoles: [Role.ADMIN],
         },
       ].filter(Boolean) as Items[],
     }
@@ -189,7 +217,44 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+      <SubscriptionStatusFooter />
       <SidebarRail />
     </Sidebar>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// SubscriptionStatusFooter
+// Shows a compact subscription status badge at the bottom of the sidebar.
+// Only visible for ADMIN users (they're the ones managing billing).
+// Shows an upgrade CTA when in TRIAL (warning window) or blocked states.
+// ---------------------------------------------------------------------------
+function SubscriptionStatusFooter() {
+  const user = useStore(authStore, state => state.user)
+  if (user?.role !== Role.ADMIN) return null
+
+  const status = user?.entitlement?.status
+  if (!status || status === SubscriptionStatus.ACTIVE) return null
+
+  const severity = SubscriptionStatusVO.toBannerSeverity(status)
+  const label = SubscriptionStatusVO.toLabel(status)
+
+  const colorClass =
+    severity === 'error'
+      ? 'text-destructive border-destructive/30 bg-destructive/5'
+      : severity === 'warning'
+        ? 'text-amber-600 border-amber-300/50 bg-amber-50/50 dark:text-amber-400 dark:bg-amber-950/20'
+        : 'text-blue-600 border-blue-300/50 bg-blue-50/50 dark:text-blue-400 dark:bg-blue-950/20'
+
+  return (
+    <SidebarFooter className='p-2'>
+      <Link
+        to='/billing'
+        className={cn('flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-colors hover:opacity-80', colorClass)}
+      >
+        <CreditCardIcon className='h-3.5 w-3.5 shrink-0' />
+        <span className='truncate'>{label} — View Billing</span>
+      </Link>
+    </SidebarFooter>
   )
 }

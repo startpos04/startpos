@@ -34,6 +34,7 @@ const DEFAULT_PRIORITY: Record<NotificationType, NotificationPriority> = {
   [NotificationType.TASK_OVERDUE]: NotificationPriority.HIGH,
   [NotificationType.COMPLIANCE_REMINDER]: NotificationPriority.MEDIUM,
   [NotificationType.PURCHASE_PENDING_APPROVAL]: NotificationPriority.HIGH,
+  [NotificationType.CREDIT_LOW_BALANCE]: NotificationPriority.HIGH,
 }
 
 export const NotificationEngine = {
@@ -109,6 +110,34 @@ export const NotificationEngine = {
       }
     } catch (error) {
       console.error('Notification Engine Error [Low Stock]:', error)
+    }
+  },
+
+  /**
+   * Phase 3 — Send a CREDIT_LOW_BALANCE notification to all ADMIN members
+   * of the business when the credit balance drops below the configured threshold.
+   *
+   * Called by createPosTransaction after a PREPAID_CREDITS deduction when
+   * CreditEngine.deduct() returns isLowBalance = true.
+   */
+  async sendCreditLowBalance(currentBalance: number, threshold: number) {
+    try {
+      const admins = [...membershipCollection.values()].filter(member => ([Role.ADMIN, Role.SUPERVISOR] as Role[]).includes(member.role))
+      if (admins.length === 0) return
+
+      await NotificationEngine.send(
+        admins.map(a => a.id),
+        {
+          type: NotificationType.CREDIT_LOW_BALANCE,
+          title: 'Low Credit Balance',
+          message: `Your credit balance has dropped to ${currentBalance} credit${currentBalance === 1 ? '' : 's'} — below the threshold of ${threshold}. Top up to avoid checkout interruptions.`,
+          metadata: { currentBalance, threshold },
+          link: '/billing/credits',
+          priority: NotificationPriority.HIGH,
+        },
+      )
+    } catch (error) {
+      console.error('Notification Engine Error [Credit Low Balance]:', error)
     }
   },
 

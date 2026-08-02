@@ -49,7 +49,7 @@
 | Phase F status not recorded in roadmap | Doc Update 6 | Ready | Phase F is already marked ✅ in roadmap — verify and record confirmed |
 | ADR-002 third consumer note | Doc Update 1 | Ready — Already present | ADR already lists Consumer 3; verify exact wording is accurate |
 | Notification archival cleanup job | Deviation 2 | Deferred | Requires business retention period decision before any cleanup runs |
-| Server-side task auth server function | Deviation 1 | Deferred | Requires TanStack Start server function infrastructure; current guard is correct interim |
+| Server-side task auth server function | Deviation 1 | ✅ Phase 6 — `validate-task-transition.ts` created |
 | Notification escalation | 🔴 | Deferred | Escalation policy (who, when, threshold) not defined; no implementation possible |
 | `BusinessSubscription` wired into entitlement | 🟡 F2 | Already done | Phase F marked complete in roadmap; `buildOpenContext()` replaced in `getAuthUser` |
 | `ENABLE_TASK` dual-gate | 🟡 F3 | Already done | Phase F3 marked complete; gate now through entitlement engine |
@@ -539,10 +539,10 @@ These findings are documented as intentionally deferred. No code or documentatio
 
 | Finding | Reason for Deferral | Trigger to Revisit |
 |---|---|---|
-| **Server-side B1 task auth server function** | TanStack Start server function with session-aware Prisma not yet wired. Current client re-check is the correct interim. | When TanStack Start `createServerFn` is used elsewhere in the codebase for auth-sensitive mutations |
+| Server-side B1 task auth server function | TanStack Start server function with session-aware Prisma not yet wired. Current client re-check is the correct interim. | ✅ Phase 6: `validate-task-transition.ts` server function created; reads authoritative task state; `tasks/$taskId/index.tsx` calls it before `dbTransaction` |
 | **Notification archival cleanup job** | Retention period is a business policy decision, not a technical one. Schema field (`archivedAt`) will be added. | When business specifies: "archive after N days" |
 | **Notification escalation** | Escalation policy (who escalates to whom, after how many hours, for which types) is completely undefined. | When business defines escalation rules |
-| **Tenant scoping defense in `transactionAPI`** | Requires `businessId` assertion in batch executor. Additive security hardening with no current confirmed exploit vector. | When a multi-tenant security review is scheduled |
+| **Tenant scoping defense in `transactionAPI`** | Requires `businessId` assertion in batch executor. Additive security hardening with no current confirmed exploit vector. | ✅ Phase 6: `getTenantPrisma` now used; session identity asserted; non-empty batch validated |
 | **`TASK_OVERDUE` detection logic** | The notification type is added (DEV-5). The detection loop (scheduled or on-access `dueDate` check) requires a background job pattern not yet in the codebase. | When a background/scheduled job infrastructure is introduced |
 
 ---

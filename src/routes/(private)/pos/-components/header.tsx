@@ -17,7 +17,7 @@ export const PosHeader = () => {
         <div className='w-10 ml-5'>
           <ThemeToggle />
         </div>
-        {user.systemConfigs.ENABLE_ORDER ? <ActiveOrdersButton /> : null}
+        {user?.systemConfigs?.ENABLE_ORDER ? <ActiveOrdersButton /> : null}
         <ProfileDropdown />
       </div>
     </header>

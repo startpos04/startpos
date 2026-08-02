@@ -13,13 +13,14 @@ import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import type { MountProps } from '@/lib/mount-manager'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
+import { validateTaskTransition } from '@/lib/queries/validate-task-transition'
 import { cn } from '@/lib/utils'
 import { authStore } from '@/store/auth-store'
 import { closeTaskSidebar } from '../-components/task-sidebar'
 import { taskFormOpts } from '../create/-create-task'
 import { TaskDetailsTab } from './-components/task-details-tab'
 import { TaskTimelineTab } from './-components/task-timeline-tab'
-import { checkWorkflowPermission, getAllowedTransitionsForUser, getStatusUIMetadata } from './-components/task-workflow'
+import { getAllowedTransitionsForUser, getStatusUIMetadata } from './-components/task-workflow'
 
 interface TaskDetailsSidebarProps extends MountProps {
   taskId: string
@@ -52,36 +53,27 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
   const handleStatusChange = async ({ nextStatus }: { nextStatus: TaskStatus }) => {
     if (!task || !user) return
 
-    // B1 — Client-side transition guard (re-validation before commit).
-    // This calls checkWorkflowPermission a second time immediately before dbTransaction to:
-    //   (a) catch race conditions (another user changed the task status between render and submit)
-    //   (b) prevent accidental double-submissions from stale UI state
+    // B1 — Server-side transition validator (Architecture Compliance Phase 6).
     //
-    // LIMITATION: This guard runs in the client process. A technically capable actor who
-    // constructs a direct transactionAPI call bypasses it entirely. Full server-side
-    // enforcement requires a TanStack Start server function that reads the task from Prisma
-    // and calls checkWorkflowPermission with the server-fetched state before returning
-    // a permission token. This is the intended B1 target state.
+    // Calls a TanStack Start server function that:
+    //   1. Reads the task's CURRENT state from Prisma (server-authoritative — not from
+    //      client state, preventing spoofed currentStatus attacks).
+    //   2. Asserts tenant isolation (task.businessId === session.businessId).
+    //   3. Calls checkWorkflowPermission with the server-fetched state.
+    //   4. Returns { permitted: false, reason } if the transition is disallowed.
     //
-    // DEFERRAL REASON: TanStack Start server functions with session-aware Prisma access
-    // require additional auth middleware wiring that is not yet in place. The current guard
-    // is a meaningful improvement over zero enforcement (the pre-Phase-B state).
-    // Revisit when server/auth infrastructure supports per-transition server validation.
+    // This replaces the previous client-only guard (which ran in the client process and
+    // could be bypassed by a direct transactionAPI call). The server function runs in the
+    // TanStack Start server process with session context injected by authMiddleware.
     //
-    // Architecture Compliance Audit — Deviation 1 (Medium severity, deferred).
-    const permitted = checkWorkflowPermission({
-      currentStatus: task.status,
-      targetStatus: nextStatus,
-      taskType: task.type,
-      userRole: user.role,
-      taskClerkId: task.clerkId,
-      taskApproverId: task.approverId,
-      taskReviewerId: task.reviewerId,
-      currentUserId: user.id,
+    // The UI still shows `getAllowedTransitionsForUser` buttons (client-side pre-filter
+    // for UX responsiveness), but this server call is the authoritative enforcement gate.
+    const validationResult = await validateTaskTransition({
+      data: { taskId: task.id, targetStatus: nextStatus },
     })
 
-    if (!permitted) {
-      toast.error('You do not have permission to perform this action.')
+    if (!validationResult.permitted) {
+      toast.error(validationResult.reason)
       return
     }
 

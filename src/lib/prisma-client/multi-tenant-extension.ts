@@ -31,11 +31,42 @@ export const multiTenantExtension = (businessId: string, branchId?: string) => {
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }: any) {
-          const systemModels = ['Business', 'User', 'Account', 'Session']
-          if (systemModels.includes(model)) return query(args)
+          // Models with no businessId/branchId column — skip data injection entirely.
+          // Session and Account are pure auth infrastructure; never tenant-scoped.
+          const fullBypassModels = ['Business', 'Account', 'Session']
+          if (fullBypassModels.includes(model)) return query(args)
+
+          // User has no businessId column, so we cannot inject businessId into
+          // data writes or WHERE clauses directly. However, read operations MUST
+          // be scoped to the current tenant via the Membership relation — otherwise
+          // every tenant sees all users on the platform.
+          if (model === 'User') {
+            const readOps = ['findFirst', 'findMany', 'findUnique', 'findUniqueOrThrow', 'count']
+            if (readOps.includes(operation)) {
+              args.where = args.where ?? {}
+              // Scope reads to users who have a Membership in this business+branch.
+              // This is additive — callers can still add their own where conditions.
+              args.where.memberships = args.where.memberships ?? {
+                some: {
+                  businessId,
+                  ...(branchId ? { branchId } : {}),
+                },
+              }
+            }
+            return query(args)
+          }
 
           const modelKey = model as keyof typeof SCHEMA_METADATA
           const topLevelMeta = SCHEMA_METADATA[modelKey]
+
+          // Derive hasOrg/hasBranch from the relations map.
+          // Every model with a "business": "Business" relation has a businessId column.
+          // Every model with a "branch": "Branch" relation has a branchId column.
+          // The generated metadata does not carry explicit hasOrg/hasBranch flags,
+          // so we derive them here — this is the single source of truth.
+          const relations = (topLevelMeta as any)?.relations as Record<string, string> | undefined
+          const hasOrg = relations?.['business'] === 'Business'
+          const hasBranch = relations?.['branch'] === 'Branch'
 
           /**
            * RECURSIVE INJECTOR
@@ -45,12 +76,17 @@ export const multiTenantExtension = (businessId: string, branchId?: string) => {
             const meta = SCHEMA_METADATA[currentModelName as keyof typeof SCHEMA_METADATA]
             if (!meta || !data || typeof data !== 'object') return
 
+            // Derive hasOrg/hasBranch from relations (same pattern as top-level)
+            const metaRelations = (meta as any)?.relations as Record<string, string> | undefined
+            const metaHasOrg = metaRelations?.['business'] === 'Business'
+            const metaHasBranch = metaRelations?.['branch'] === 'Branch'
+
             // 1. Inject IDs into the current object(s)
             const itemsToProcess = Array.isArray(data) ? data : [data]
 
             itemsToProcess.forEach(item => {
-              if (meta.hasOrg) item.businessId = businessId
-              if (meta.hasBranch && branchId) item.branchId = branchId
+              if (metaHasOrg) item.businessId = businessId
+              if (metaHasBranch && branchId) item.branchId = branchId
             })
 
             // 2. Look for nested relations
@@ -77,14 +113,15 @@ export const multiTenantExtension = (businessId: string, branchId?: string) => {
                           // IMPORTANT: Inject into the 'where' block to ensure tenant isolation
                           if (item.where) {
                             const nestedMeta = SCHEMA_METADATA[nestedModelName as keyof typeof SCHEMA_METADATA]
-                            if (nestedMeta?.hasOrg) item.where.businessId = businessId
+                            const nestedRelations = (nestedMeta as any)?.relations as Record<string, string> | undefined
+                            if (nestedRelations?.['business'] === 'Business') item.where.businessId = businessId
                           }
                         })
                       } else if (op === 'connectOrCreate') {
                         const items = Array.isArray(nestedData[op]) ? nestedData[op] : [nestedData[op]]
                         items.forEach(item => {
                           if (item.create) injectIds(item.create, nestedModelName)
-                          if (item.where && meta.hasOrg) item.where.businessId = businessId
+                          if (item.where && metaHasOrg) item.where.businessId = businessId
                         })
                       } else {
                         const items = Array.isArray(nestedData[op]) ? nestedData[op] : [nestedData[op]]
@@ -126,8 +163,8 @@ export const multiTenantExtension = (businessId: string, branchId?: string) => {
               throw new Error(`Unauthorized access to Business ${args.where.businessId}`)
             }
 
-            if (topLevelMeta?.hasOrg) args.where.businessId = businessId
-            if (topLevelMeta?.hasBranch && branchId) args.where.branchId = branchId
+            if (hasOrg) args.where.businessId = businessId
+            if (hasBranch && branchId) args.where.branchId = branchId
           }
 
           return query(args)

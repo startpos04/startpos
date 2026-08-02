@@ -2,8 +2,10 @@
 
 import type { Role } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
+import { clearLocalDatabase } from '@/db'
 import { localAuthCollection } from '@/db/local-auth'
 import MountManager from '@/lib/mount-manager'
+import { getQueryClient } from '@/lib/query-client'
 import { authStore, resetAuth } from '@/store/auth-store'
 import { authClient } from './auth-client'
 import { getAuthUser, type ServerUser, verifyAuth } from './auth-server'
@@ -34,6 +36,10 @@ export const AuthEngine = {
 
   /**
    * Captures the password hash during a successful online login.
+   * If the incoming tenant differs from the previously cached businessId,
+   * the local SQLite database is wiped before the new user's data syncs —
+   * ensuring cross-tenant data never bleeds through.
+   * Same-tenant re-logins (including offline recovery) are unaffected.
    */
   async loginOnline(email: string, password: string, onSuccess: (user: ServerUser) => void): Promise<void> {
     await authClient.signIn.email(
@@ -44,6 +50,25 @@ export const AuthEngine = {
           if (!fullUser) {
             toast.error('Login succeeded but user profile could not be loaded.')
             return
+          }
+
+          // Detect a tenant switch: compare incoming businessId against the
+          // last businessId that was successfully logged in on this device.
+          // Use a dedicated key that is only written on successful login —
+          // never cleared on logout — so this survives the logout→login cycle.
+          const lastBusinessId = localStorage.getItem('last-business-id')
+          const incomingBusinessId = fullUser.business?.id
+
+          if (incomingBusinessId && lastBusinessId && lastBusinessId !== incomingBusinessId) {
+            // Different tenant — wipe local cache so stale data never bleeds through
+            const queryClient = getQueryClient()
+            queryClient.resetQueries()
+            await clearLocalDatabase()
+          }
+
+          // Always write the current businessId after a successful login
+          if (incomingBusinessId) {
+            localStorage.setItem('last-business-id', incomingBusinessId)
           }
 
           const hashedPassword = await AuthEngine.hashCredentials(password)
@@ -103,7 +128,10 @@ export const AuthEngine = {
 
   /**
    * Performs a clean logout.
-   * Clears the server session (if online) and wipes the local shadow.
+   * Clears the server session and resets auth state.
+   * Does NOT wipe the local SQLite cache — that only happens in loginOnline
+   * when a different tenant is detected, so the same-user offline re-login path
+   * retains its cached data.
    */
   async logout(params: { onSuccess: () => void }): Promise<void> {
     authStore.setState(state => ({ ...state, isLoggingOut: true }))

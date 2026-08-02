@@ -217,10 +217,7 @@ function RouteComponent({ transaction: propTransaction, onClose }: RouteComponen
   // Only fetch when rendered as a standalone route (no prop passed from list page)
   const { data: result, isLoading } = useQuery({
     queryKey: ['transaction-detail-route', transactionId],
-    queryFn: () =>
-      fetchTransactionHistory({
-        data: { from: startOfYear, to: today, page: 1, pageSize: 9999 },
-      }),
+    queryFn: () => fetchTransactionHistory({ from: startOfYear, to: today, page: 1, pageSize: 9999 }),
     enabled: !!transactionId && !propTransaction,
   })
 

@@ -218,3 +218,29 @@ export function createSyncableCollection<TRecord extends SyncableRecord>(config:
 
   return collection
 }
+
+/**
+ * Wipes all tables in the local SQLite database.
+ *
+ * Called on logout so the next user gets a clean cache scoped to their own
+ * tenant. The table names are hashed by the persistence library so we query
+ * sqlite_master to discover them rather than hardcoding names.
+ *
+ * This does NOT delete the database file — it just empties all rows so the
+ * next login re-syncs fresh data from the server.
+ */
+export async function clearLocalDatabase(): Promise<void> {
+  if (!localDB) return
+
+  try {
+    // Discover every table currently in the database
+    const tables = await localDB.execute<{ name: string }>(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`)
+
+    // Drop each table so all persisted rows are gone
+    for (const { name } of tables) {
+      await localDB.execute(`DROP TABLE IF EXISTS "${name}"`)
+    }
+  } catch (err) {
+    console.error('[clearLocalDatabase] Failed to clear local DB:', err)
+  }
+}

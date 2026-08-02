@@ -1,20 +1,40 @@
 # Testing Plan for Start POS
 
-## Overview
+## Goal
 
-This document outlines a comprehensive testing strategy for the Start POS application, prioritizing critical business logic, financial calculations, and data integrity.
+90–100% confidence across all critical paths. Three test layers work together — each owns
+what the others cannot do:
+
+| Layer | Owns | Run with |
+|---|---|---|
+| Unit (Pattern A/B) | Engine logic, algorithms, query orchestration — fast, always-on | `pnpm test` |
+| Integration (C1/C2) | DB atomicity, FK constraints, multi-handler sequence | `pnpm test:integration` |
+| E2E (Playwright) | Full browser journeys, role-based navigation, session behavior | `pnpm test:e2e` |
+
+Tests are not redundant across layers — they verify different things. A unit test that passes
+does not make an integration test unnecessary. An integration test that passes does not make an
+E2E test unnecessary. Each layer adds distinct confidence.
+
+---
 
 ## Current Coverage Status
 
-**Last Updated**: 2026-07-24  
-**Coverage Report**: Generated from `pnpm test:coverage`
+**Last Updated**: 2026-08-02  
+**Unit tests**: 58 files, 1012 tests  
+**Integration tests**: 2 files, ~40 tests  
+**E2E tests**: 0 spec files (global-setup.ts only — suites planned)
 
-| Metric | Current | Target (75%) | Gap |
-|--------|---------|--------------|-----|
-| **Statements** | 13.59% (520/3826) | 75% (2,870/3826) | +2,350 statements |
-| **Branches** | 9.93% (239/2406) | 75% (1,805/2406) | +1,566 branches |
-| **Functions** | 9.28% (137/1476) | 75% (1,107/1476) | +970 functions |
-| **Lines** | 13.84% (467/3373) | 75% (2,530/3373) | +2,063 lines |
+| Metric | Current (unit only) | Target (90%+) | Gap |
+|--------|---------------------|---------------|-----|
+| **Statements** | 51.6% (1980/3837) | 90% (3453/3837) | +1,473 statements |
+| **Branches** | ~45% | 90% | large |
+| **Functions** | ~43% | 90% | large |
+| **Lines** | ~50% | 90% | large |
+
+**Note**: The 90% target for unit coverage is achievable by completing Phase 9 (zero-coverage
+engines) + Phase 10 (remaining route components). Integration coverage is tracked separately
+in `INTEGRATION_PLAN.md` and `coverage-integration/`. E2E coverage is tracked in
+`.kiro/e2e-master-plan.md`.
 
 ---
 
@@ -24,6 +44,26 @@ This document outlines a comprehensive testing strategy for the Start POS applic
 - **E2E Tests**: Playwright
 - **Coverage Tool**: Vitest Coverage (v8)
 - **Test Helpers**: Mock collections, factories, auth mocking
+
+---
+
+## Coverage Strategy
+
+Coverage is intentionally split into two separate reports:
+
+| Command | Scope | Output | CI gate? |
+|---------|-------|--------|----------|
+| `pnpm coverage` | Unit tests only (`__tests__/unit/`) | `coverage/` | ✅ Yes — threshold enforced |
+| `pnpm coverage:integration` | Integration tests only (`__tests__/integration/`) | `coverage-integration/` | ❌ No — informational only |
+| `pnpm coverage:all` | Both suites sequentially | Both directories | — |
+
+**Why separate?**
+
+- Unit coverage is infrastructure-free and runs everywhere. Thresholds against it are meaningful and enforceable in CI.
+- Integration coverage requires Postgres. Merging it into the unit threshold would make the gate unreliable (passes on machines with DB, fails without).
+- A line hit by a mocked unit test and a line hit by a real DB round-trip are not equivalent. Keeping them separate lets you see which paths have real end-to-end confidence.
+
+Use `coverage-integration/` periodically to find DB error branches and constraint handlers that unit tests can't reach — not to track a percentage.
 
 ---
 
@@ -1394,3 +1434,115 @@ pnpm test -t "payment dialog"
    - **Phase 8 added**: +99 statements (+2.58%)
    - **Total progress**: 13.59% → **51.6%** (+38 percentage points from baseline)
 11. ⚠️ Phase 9 (route guards + report pages) — **DEFERRED** (user satisfied with current coverage level)
+
+
+---
+
+## Phase 9 — Zero-coverage pure engines (Path to 90%+ unit coverage)
+
+**Goal**: Cover every pure engine and value object that currently has zero unit tests.
+These are all Pattern A — no mocks, no infrastructure, fast.
+**Estimated yield**: +~400 statements → brings unit coverage from 51.6% to ~62-65%.
+
+### Task 33: EntitlementEngine (CRITICAL)
+
+- **File**: `src/lib/entitlement/entitlement-engine.ts`
+- **Test file**: `__tests__/unit/lib/entitlement/entitlement-engine.test.ts`
+- **Why critical**: gates every feature capability check in the entire app — zero coverage here means zero regression safety on the security layer
+- **Test cases**: see INTEGRATION_PLAN.md Phase 1a for the full list (~20 cases)
+- **Coverage target**: 100%
+
+### Task 34: UsageEngine
+
+- **File**: `src/lib/billing/usage-engine.ts`
+- **Test file**: `__tests__/unit/lib/billing/usage-engine.test.ts`
+- **Test cases**: computeRemaining (unlimited, at limit, below), increment (normal, overage, closed counter), isExhausted, shouldBillOverage
+- **Coverage target**: 100%
+
+### Task 35: SubscriptionStatusVO
+
+- **File**: `src/lib/billing/value-objects/subscription-status.ts`
+- **Test file**: `__tests__/unit/lib/billing/subscription-status.test.ts`
+- **Test cases**: isOperationallyBlocked, isActive, canReactivate, isSuspended, isTrial — all status values
+- **Coverage target**: 100%
+
+### Task 36: UsageSummary + BillingPeriod value objects
+
+- **Files**: `src/lib/billing/value-objects/usage-summary.ts`, `src/lib/billing/value-objects/billing-period.ts`
+- **Test file**: `__tests__/unit/lib/billing/usage-summary.test.ts`
+- **Test cases**: UsageSummary.of (txCount, percentUsed, txRemaining), BillingPeriod.contains, BillingPeriod.daysRemaining
+- **Coverage target**: 100%
+
+### Task 37: PricingEngine + all 5 strategies
+
+- **Files**: `src/lib/billing/pricing/pricing-engine.ts` + all 5 strategy files
+- **Test file**: `__tests__/unit/lib/billing/pricing-engine.test.ts`
+- **Test cases**: each strategy's happy path, bundle discount, dependency resolution, cycle detection, maxFeatures exceeded, generateQuote line items
+- **Coverage target**: 95%+
+
+### Task 38: unit-engine.ts (long-standing TODO)
+
+- **File**: `src/lib/conversion/unit-engine.ts`
+- **Test file**: `__tests__/unit/lib/conversion/unit-engine.test.ts`
+- **Coverage target**: 100%
+
+---
+
+## Phase 10 — Remaining route and component gaps (Path to 90%+ unit coverage)
+
+**Goal**: Cover the remaining zero-coverage route pages and components with Vitest + RTL.
+These were previously deferred as "deep form wiring" but at 90% target they are required.
+**Estimated yield**: +~600 statements → brings unit coverage from ~62% to ~78%.
+
+The remaining 12% gap to 90% will be covered by E2E (Playwright) coverage instrumentation
+which exercises all form dialogs, the sidebar, and the PDF receipt renderer via real browser
+interaction.
+
+### Task 39: Reports pages (Sales + Inventory)
+
+- **Files**: `sales-reports/index.tsx` + all `-components/*.tsx`, `inventory-reports/index.tsx` + all `-components/*.tsx`
+- **Test file**: `__tests__/unit/routes/reports.test.tsx`
+- **Strategy**: render with mocked `useLiveQuery` returning sample data; assert chart components receive correct data props; assert date filter changes re-query
+- **Estimated coverage gain**: ~255 statements
+
+### Task 40: Billing route pages
+
+- **Files**: `billing/index.tsx`, `billing/credits/index.tsx`, `billing/plans/index.tsx`, `billing/invoices/index.tsx`, `billing/pricing/index.tsx`
+- **Test file**: `__tests__/unit/routes/billing.test.tsx`
+- **Strategy**: render each page with mocked server function return values; assert status badge, credit balance, plan cards render; assert empty states
+- **Estimated coverage gain**: ~180 statements
+- **Note**: Stripe-triggered flows (checkoutUrl redirect) are E2E only
+
+### Task 41: Registration route pages
+
+- **Files**: `(public)/register.tsx`, `(public)/register/business-setup.tsx`
+- **Test file**: `__tests__/unit/routes/register.test.tsx`
+- **Strategy**: render form, assert fields present, assert validation fires; do NOT test the submit handler (covered by Pattern B unit test for `completeRegistration`)
+- **Estimated coverage gain**: ~80 statements
+
+### Task 42: Transaction history + order history pages
+
+- **Files**: `transactions/index.tsx`, `transactions/$transactionId/index.tsx`, `order-history/index.tsx`, `order-history/$orderId/index.tsx`
+- **Test file**: `__tests__/unit/routes/transaction-history.test.tsx`
+- **Estimated coverage gain**: ~120 statements
+
+### Task 43: Purchases pages
+
+- **Files**: `purchases/index.tsx`, `purchases/create/-index.tsx`, `purchases/$purchaseId/index.tsx`
+- **Test file**: `__tests__/unit/routes/purchases.test.tsx`
+- **Estimated coverage gain**: ~100 statements
+
+---
+
+## Coverage Targets by Layer
+
+| Layer | Current | Target | How to get there |
+|---|---|---|---|
+| Unit (`pnpm coverage`) | 51.6% | 90% | Phase 9 (engines) + Phase 10 (routes) |
+| Integration (`pnpm coverage:integration`) | ~5% | Informational (no gate) | INTEGRATION_PLAN.md phases 1–7 |
+| E2E (Playwright) | 0 spec files | All P0 suites green | .kiro/e2e-master-plan.md suites 01, 02, 04, 12, 13 |
+
+**Confidence target at 90%+ across all layers means**:
+- Every engine bug is caught by a unit test before it reaches the DB
+- Every DB constraint violation is caught by an integration test before it reaches the browser
+- Every user-visible regression is caught by an E2E test before it reaches production

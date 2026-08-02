@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
 
 export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionResponse; data: NonNullable<(typeof posFormOpts)['defaultValues']> }) => {
   const user = useStore(authStore, state => state.user)
-  if (result.error || !result.data) return null
+  if (result.error || !result.data || !user) return null
   const { transaction, payments } = result.data
   const payment = payments[0]
 
@@ -63,7 +63,7 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
   const totalHeight = receiptHeader + receiptInfo + receiptItemsHeight + receiptFooter + vPadding + 20 // 20pt safety buffer
 
   let kitchenHeight = 0
-  if (user.systemConfigs.ENABLE_ORDER_TAB) {
+  if (user.systemConfigs?.ENABLE_ORDER_TAB) {
     const kitchenHeader = 80
     const kitchenFooter = 60
     const kitchenItemsHeight = data.items.reduce((acc, item) => {
@@ -101,7 +101,7 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
         </View>
 
         {/* If custom order tab references exist (like tables or buzzers), display them on the receipt */}
-        {user.systemConfigs.ENABLE_ORDER_TAB && transaction.notes && (
+        {user.systemConfigs?.ENABLE_ORDER_TAB && transaction.notes && (
           <View style={styles.infoRow}>
             <Text>Routing:</Text>
             <Text>{(transaction.notes as string).replace('Order Tab Ref: ', '')}</Text>
@@ -140,16 +140,16 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
         <View style={styles.totalsContainer}>
           <View style={styles.infoRow}>
             <Text>Vatable Sales</Text>
-            <Text>{PriceEngine.toDollars(transaction.totalAmount / (1 + user.systemConfigs.VAT_RATE)).toFixed(2)}</Text>
+            <Text>{PriceEngine.toDollars(transaction.totalAmount / (1 + (user.systemConfigs?.VAT_RATE ?? 0.12))).toFixed(2)}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text>VAT Amount ({user.systemConfigs.VAT_RATE * 100}%)</Text>
+            <Text>VAT Amount ({(user.systemConfigs?.VAT_RATE ?? 0.12) * 100}%)</Text>
             <Text>{PriceEngine.toDollars(transaction.taxAmount).toFixed(2)}</Text>
           </View>
           <View style={[styles.infoRow, styles.totalText]}>
             <Text>TOTAL AMOUNT</Text>
             <Text>
-              {user?.systemConfigs.CURRENCY} {PriceEngine.toDollars(transaction.totalAmount).toFixed(2)}
+              {user?.systemConfigs?.CURRENCY} {PriceEngine.toDollars(transaction.totalAmount).toFixed(2)}
             </Text>
           </View>
           <View style={{ marginTop: 5, borderTopWidth: 0.5, borderTopStyle: 'dashed', paddingTop: 5 }}>
@@ -176,7 +176,7 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
       </Page>
 
       {/* KITCHEN SLIP */}
-      {user.systemConfigs.ENABLE_ORDER_TAB && (
+      {user.systemConfigs?.ENABLE_ORDER_TAB && (
         <Page size={[PAGE_WIDTH, kitchenHeight]} style={styles.page}>
           <View style={styles.header}>
             <Text style={styles.kitchenTitle}>** ORDER SLIP **</Text>

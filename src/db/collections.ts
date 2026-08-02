@@ -1,8 +1,13 @@
 import type {
   Branch,
   Business,
+  BusinessSubscription,
   Category,
+  CreditLedger,
   Customer,
+  Feature,
+  FeatureBundle,
+  FeatureDependency,
   GoodsReceipt,
   GoodsReceiptItem,
   Inventory,
@@ -26,14 +31,14 @@ import type {
   Transaction,
   TransactionTaxLine,
   Unit,
+  UsageCounter,
   User,
   VendorSession,
 } from 'prisma/generated/prisma/browser'
 import type { TaskMetadata, TransactionComplianceData } from '@/lib/types'
 import { createSyncableCollection } from '.'
 
-// Bumped from 10 → 11 after Phase E schema additions (GoodsReceipt, GoodsReceiptItem)
-const SCHEMA_VERSION = 11
+const SCHEMA_VERSION = 2
 
 export const businessCollection = createSyncableCollection<Business>({
   apiKey: 'business',
@@ -105,6 +110,24 @@ export const customerCollection = createSyncableCollection<Customer>({
   apiKey: 'customer',
   schemaVersion: SCHEMA_VERSION,
   syncMode: 'eager',
+})
+
+export const businessSubscriptionCollection = createSyncableCollection<BusinessSubscription>({
+  apiKey: 'businessSubscription',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'eager',
+})
+
+export const usageCounterCollection = createSyncableCollection<UsageCounter>({
+  apiKey: 'usageCounter',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'eager',
+})
+
+export const creditLedgerCollection = createSyncableCollection<CreditLedger>({
+  apiKey: 'creditLedger',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand',
 })
 
 export const membershipCollection = createSyncableCollection<Membership>({
@@ -197,10 +220,6 @@ export const vendorSessionCollection = createSyncableCollection<VendorSession>({
   syncMode: 'on-demand',
 })
 
-// Phase E — Receiving Domain
-// syncMode: 'on-demand' — receipts are loaded only when the purchase detail
-// page is open. They are not needed globally.
-
 export const goodsReceiptCollection = createSyncableCollection<GoodsReceipt>({
   apiKey: 'goodsReceipt',
   schemaVersion: SCHEMA_VERSION,
@@ -209,6 +228,24 @@ export const goodsReceiptCollection = createSyncableCollection<GoodsReceipt>({
 
 export const goodsReceiptItemCollection = createSyncableCollection<GoodsReceiptItem>({
   apiKey: 'goodsReceiptItem',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand',
+})
+
+export const featureCollection = createSyncableCollection<Feature>({
+  apiKey: 'feature',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'eager',
+})
+
+export const featureDependencyCollection = createSyncableCollection<FeatureDependency>({
+  apiKey: 'featureDependency',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand',
+})
+
+export const featureBundleCollection = createSyncableCollection<FeatureBundle>({
+  apiKey: 'featureBundle',
   schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
 })

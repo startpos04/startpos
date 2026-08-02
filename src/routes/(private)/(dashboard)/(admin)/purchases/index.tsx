@@ -10,7 +10,7 @@ import { type fePurchase, fetchPurchases } from '@/lib/queries/fetch-purchases'
 import { getPurchaseStatusUIMetadata } from '@/lib/queries/purchase-workflow'
 import { closePurchaseSidebar, PURCHASE_ASIDE_ID, showPurchaseSidebar } from './-components/purchase-sidebar'
 import { PurchaseDetailsSidebar } from './$purchaseId'
-import { CreatePurchaseSidebar } from './create'
+import { CreatePurchaseSidebar } from './create/-index'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/purchases/')({
   component: RouteComponent,

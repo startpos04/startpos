@@ -77,7 +77,20 @@ const BaseConfigSchema = z.object({
   [ConfigKey.ENABLE_CASH_RECONCILIATION]: z.boolean(),
   [ConfigKey.ENABLE_TASK]: z.boolean(),
   [ConfigKey.ENABLE_ORDER]: z.boolean(),
-  [ConfigKey.AUTO_APPROVE_LOW_STOCK_REFILL]: z.boolean(),
+  [ConfigKey.AUTO_APPROVE_LOW_STOCK_REFILL]: z.boolean().default(true),
+  // --- Phase 5: Composable Pricing ---
+  [ConfigKey.COMPOSABLE_BRANCH_MONTHLY_RATE]: z.number().default(0),
+  [ConfigKey.COMPOSABLE_MAX_FEATURES]: z.number().default(0),
+  [ConfigKey.COMPOSABLE_ANNUAL_DISCOUNT_PCT]: z.number().default(0),
+  [ConfigKey.COMPOSABLE_TAX_RATE]: z.number().default(0),
+  [ConfigKey.COMPOSABLE_QUOTE_VALIDITY_DAYS]: z.number().default(30),
+  [ConfigKey.COMPOSABLE_PARTNER_MARGIN_PCT]: z.number().default(0),
+  [ConfigKey.COMPOSABLE_PROMO_CODE_ENABLED]: z.boolean().default(false),
+  // --- Add-on pricing (PHP cents, admin-configurable) ---
+  [ConfigKey.ADDON_ANALYTICS_PRICE]: z.number().default(29900),
+  [ConfigKey.ADDON_API_PRICE]: z.number().default(49900),
+  [ConfigKey.ADDON_BRANCH_PRICE]: z.number().default(19900),
+  [ConfigKey.ADDON_EMPLOYEE_PRICE]: z.number().default(4900),
 })
 
 const BaseComplianceSchema = z.object({

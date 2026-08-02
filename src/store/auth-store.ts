@@ -14,8 +14,6 @@ export const authStore = new Store<AuthState>(defaultValue)
 
 export const setUser = (user: ServerUser) => {
   authStore.setState(state => {
-    if (state.user.id) return state
-
     return user ? { ...state, isAuthenticated: true, user } : defaultValue
   })
 }

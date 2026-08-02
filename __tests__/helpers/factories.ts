@@ -180,3 +180,142 @@ export function makePosItem(overrides: Partial<posItem> = {}): posItem {
     ...overrides,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Billing / Subscription factories
+// Used by both Type 1 (real-DB) and Type 2 (mock-boundary) integration tests.
+// ---------------------------------------------------------------------------
+
+import type {
+  SubscriptionSnapshot,
+  CreditLedgerEntryDTO,
+  LifecycleThresholds,
+} from '@/lib/billing/types'
+import { BillingModel, InvoiceStatus } from '@/lib/billing/types'
+import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
+import type { PlanDTO } from '@/lib/billing/plan-engine'
+
+// Default thresholds — mirrors the values used in completeRegistration
+export const DEFAULT_THRESHOLDS: LifecycleThresholds = {
+  trialDurationDays: 30,
+  gracePeriodDays: 7,
+  longTermInactiveDays: 90,
+}
+
+// ---------------------------------------------------------------------------
+// makeSubscriptionPlan
+// Returns a PlanDTO suitable for PlanEngine tests and as seed data.
+// ---------------------------------------------------------------------------
+export function makeSubscriptionPlan(overrides: Partial<PlanDTO> = {}): PlanDTO {
+  return {
+    id: makeId(),
+    name: 'Starter',
+    description: 'Starter plan',
+    sortOrder: 1,
+    monthlyPrice: 29900,
+    includedTxPerMonth: 500,
+    isActive: true,
+    ...overrides,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// makeSubscriptionSnapshot
+// Builds a minimal SubscriptionSnapshot DTO for engine tests.
+// ---------------------------------------------------------------------------
+export function makeSubscriptionSnapshot(overrides: Partial<SubscriptionSnapshot> = {}): SubscriptionSnapshot {
+  return {
+    id: makeId(),
+    businessId: 'biz-test-001',
+    status: SubscriptionStatus.TRIAL,
+    billingModel: BillingModel.PREPAID_CREDITS,
+    trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    currentPeriodStart: null,
+    currentPeriodEnd: null,
+    gracePeriodEndsAt: null,
+    expiredAt: null,
+    longTermInactiveAt: null,
+    activatedAt: null,
+    cancelledAt: null,
+    suspendedAt: null,
+    ...overrides,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// makeActiveSubscriptionSnapshot
+// Convenience: snapshot in ACTIVE state with a current billing period.
+// ---------------------------------------------------------------------------
+export function makeActiveSubscriptionSnapshot(overrides: Partial<SubscriptionSnapshot> = {}): SubscriptionSnapshot {
+  const now = new Date()
+  const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+  return makeSubscriptionSnapshot({
+    status: SubscriptionStatus.ACTIVE,
+    billingModel: BillingModel.MONTHLY_SUBSCRIPTION,
+    trialEndsAt: null,
+    activatedAt: now,
+    currentPeriodStart: now,
+    currentPeriodEnd: periodEnd,
+    ...overrides,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// makeCreditLedgerEntry
+// Builds a CreditLedgerEntryDTO as returned by CreditEngine.
+// ---------------------------------------------------------------------------
+export function makeCreditLedgerEntry(overrides: Partial<CreditLedgerEntryDTO> = {}): CreditLedgerEntryDTO {
+  return {
+    businessId: 'biz-test-001',
+    eventType: 'PROMOTIONAL',
+    amount: 50,
+    balanceAfter: 50,
+    transactionId: null,
+    note: null,
+    actorId: null,
+    ...overrides,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// DB seed shapes
+// Plain objects matching the Prisma `create` data shape for integration tests
+// that call testPrisma directly.
+// ---------------------------------------------------------------------------
+
+export type SeedUserData = {
+  id: string
+  name: string
+  email: string
+  emailVerified: boolean
+  role: 'ADMIN' | 'CASHIER' | 'SUPERVISOR'
+}
+
+export type SeedBusinessData = {
+  id: string
+  name: string
+  slug: string
+  businessType: 'RETAIL' | 'RESTAURANT' | 'GROCERY'
+}
+
+export function makeSeedUser(overrides: Partial<SeedUserData> = {}): SeedUserData {
+  return {
+    id: makeId(),
+    name: faker.person.fullName(),
+    email: faker.internet.email().toLowerCase(),
+    emailVerified: true,
+    role: 'ADMIN',
+    ...overrides,
+  }
+}
+
+export function makeSeedBusiness(overrides: Partial<SeedBusinessData> = {}): SeedBusinessData {
+  const name = faker.company.name()
+  return {
+    id: makeId(),
+    name,
+    slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') + '-' + makeId().slice(0, 6),
+    businessType: 'RETAIL',
+    ...overrides,
+  }
+}

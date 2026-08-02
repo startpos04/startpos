@@ -1,7 +1,16 @@
 import { MovementType, SequenceType, TransactionType } from 'prisma/generated/prisma/enums'
-import { inventoryCollection, inventoryMovementCollection, paymentCollection, transactionCollection, transactionTaxLineCollection } from '@/db/collections'
+import {
+  creditLedgerCollection,
+  inventoryCollection,
+  inventoryMovementCollection,
+  paymentCollection,
+  transactionCollection,
+  transactionTaxLineCollection,
+} from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { authStore } from '@/store/auth-store'
+import { CreditEngine } from '../billing/credit-engine'
+import { BillingModel } from '../billing/types'
 import { fetchStructuredId } from './fetch-structured-id'
 
 export const createPosRefund = async (originalTransactionId: string) => {
@@ -88,7 +97,39 @@ export const createPosRefund = async (originalTransactionId: string) => {
       transactionTaxLineCollection.insert(refundTaxLine)
     }
 
-    // --- 6. CREATE NEGATIVE PAYMENT ---
+    // --- 6. RESTORE CREDIT (Phase 3 — PREPAID_CREDITS billing model only) ---
+    // If the original transaction consumed a credit, restore it on refund.
+    // Conditional on billing model — MONTHLY_SUBSCRIPTION is unaffected.
+    const subscription = authStore.state.user?.entitlement
+    const billingModel = (subscription as { billingModel?: string } | undefined)?.billingModel
+
+    if (billingModel === BillingModel.PREPAID_CREDITS) {
+      const businessId = user.business.id
+      // Read the latest ledger entry from the on-demand collection (O(1) balance read).
+      const ledgerEntries = [...creditLedgerCollection.values()]
+        .filter(e => e.businessId === businessId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      const latestEntry = ledgerEntries[0] ?? null
+
+      const restoreResult = CreditEngine.restore(businessId, latestEntry ? { balanceAfter: latestEntry.balanceAfter } : null, transactionId)
+
+      if (restoreResult.ok) {
+        const entry = restoreResult.value
+        creditLedgerCollection.insert({
+          id: crypto.randomUUID(),
+          businessId: entry.businessId,
+          eventType: entry.eventType as import('prisma/generated/prisma/browser').CreditEventType,
+          amount: entry.amount,
+          balanceAfter: entry.balanceAfter,
+          transactionId: entry.transactionId,
+          note: entry.note,
+          actorId: entry.actorId,
+          createdAt: new Date(),
+        })
+      }
+    }
+
+    // --- 7. CREATE NEGATIVE PAYMENT ---
     // Mirrors the original payment method so the ledger is correctly balanced
     const originalPayment = [...paymentCollection.values()].find(p => p.transactionId === originalTransactionId)
     paymentCollection.insert({

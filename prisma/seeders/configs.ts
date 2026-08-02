@@ -72,7 +72,7 @@ export async function configs(prisma: PrismaClient, options: { folder: string })
 
   // --- RESOLVE SYSTEM CONFIGURATIONS ---
   let runtimeConfigs = DEFAULT_CONFIGS_DATA.configurations
-  const configsCsv = parseConfigsCsv<any>(`${options.folder}/system_configs.csv`, ['key', 'value', 'scope'])
+  const configsCsv = parseConfigsCsv<any>(`${options.folder}/system-configs.csv`, ['key', 'value', 'scope'])
 
   if (configsCsv) {
     console.info('📈 Hydrating system configs from system_configs.csv...')

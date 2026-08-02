@@ -191,10 +191,7 @@ function RouteComponent({ order: propOrder, onClose }: RouteComponentProps) {
   // Only fetch when rendered as a standalone route (no prop passed from list page)
   const { data: result, isLoading } = useQuery({
     queryKey: ['order-detail-route', orderId],
-    queryFn: () =>
-      fetchOrderHistory({
-        data: { from: startOfYear, to: today, page: 1, pageSize: 9999 },
-      }),
+    queryFn: () => fetchOrderHistory({ from: startOfYear, to: today, page: 1, pageSize: 9999 }),
     enabled: !!orderId && !propOrder,
   })
 

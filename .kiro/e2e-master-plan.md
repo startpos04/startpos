@@ -33,6 +33,16 @@ __tests__/
     │   ├── ingredients.page.ts
     │   ├── employees.page.ts
     │   └── settings.page.ts
+    ├── pages/                      # Page Object Models
+    │   ├── login.page.ts
+    │   ├── pos.page.ts
+    │   ├── orders.page.ts
+    │   ├── products.page.ts
+    │   ├── ingredients.page.ts
+    │   ├── employees.page.ts
+    │   ├── settings.page.ts
+    │   ├── register.page.ts            # Registration + onboarding flow
+    │   └── billing.page.ts             # Billing, credits, subscription pages
     ├── specs/
     │   ├── 01-auth.spec.ts              # Authentication
     │   ├── 02-authorization.spec.ts     # Route guards & role access control
@@ -45,7 +55,9 @@ __tests__/
     │   ├── 09-settings.spec.ts          # Categories, units CRUD
     │   ├── 10-reports.spec.ts           # Reports smoke tests
     │   ├── 11-offline-online.spec.ts    # Offline login, transactions, sync
-    │   └── 12-operational-blockers.spec.ts # Session, orders, tasks, notifications
+    │   ├── 12-operational-blockers.spec.ts # Session, orders, tasks, notifications
+    │   ├── 13-registration.spec.ts      # Registration + onboarding journey
+    │   └── 14-billing.spec.ts           # Subscription + credits + billing journey
     └── global-setup.ts                 # One-time seed + auth state generation
 ```
 
@@ -559,6 +571,149 @@ A failure here means the business cannot process sales, close a shift, or track 
 
 ---
 
+## Suite 13 — Registration & Onboarding
+
+**File**: `__tests__/e2e/specs/13-registration.spec.ts`
+
+Registration is not covered by any unit or integration test that runs a real browser. The
+critical things to verify here are: the session refresh after registration (so `getAuthUser()`
+returns a complete `ServerUser` on the next call), the redirect to the correct landing page,
+and the business-type-specific config taking effect immediately.
+
+**Auth**: no pre-auth state — registration tests start unauthenticated.
+
+### Critical — Email/Password registration flow
+
+| # | Test | Expected |
+|---|------|----------|
+| C1 | Register with valid email + password → business setup form shown | `/register/business-setup` visible |
+| C2 | Complete business setup (RETAIL) → redirected to `/pos` | CASHIER role landing page |
+| C3 | Complete business setup (RESTAURANT) → ENABLE_ORDER_TAB config active | POS page loads, Order Tab feature available |
+| C4 | Complete business setup (GROCERY) → ENABLE_ORDER_TAB=false | Order Tab hidden on POS |
+| C5 | Register with duplicate email → error shown | "Email already in use" message visible |
+| C6 | Register with invalid email format → blocked by form validation | Error shown before submit |
+| C7 | Register with password too short → blocked | Validation error shown |
+| C8 | After registration, 50 complimentary credits visible on billing page | `/billing/credits` shows balance = 50 |
+| C9 | After registration, subscription status shows TRIAL | `/billing` shows TRIAL badge |
+| C10 | After registration, trial end date shown (~30 days from now) | Trial banner visible with countdown |
+
+### Critical — OAuth registration flow (Google / Facebook)
+
+| # | Test | Expected |
+|---|------|----------|
+| C11 | OAuth callback arrives → business setup interstitial shown | `/register/business-setup` rendered |
+| C12 | Complete business setup after OAuth → session fully populated | `getAuthUser()` returns businessId + branchId |
+| C13 | OAuth user skips business setup (double-submit) → idempotency: existing IDs returned | No duplicate business created |
+
+### Normal — Onboarding state after registration
+
+| # | Test | Expected |
+|---|------|----------|
+| N1 | First login as newly registered ADMIN — sidebar shows all admin routes | Not stuck in cashier view |
+| N2 | `/billing` page loads with correct plan name (Trial) | Plan name "Trial" visible |
+| N3 | Subscription history entry: `fromStatus=null, toStatus=TRIAL` | Initial history record created |
+| N4 | SystemConfig LOCALE=en-PH, CURRENCY=PHP visible in settings | Locale + currency displayed |
+| N5 | Branch "Main Branch" visible in branch selector (future) | Created with branchCode=00001 |
+| N6 | User role ADMIN confirmed — navigating to `/employees` does not redirect | Access granted |
+
+### Edge Cases
+
+| # | Test | Expected |
+|---|------|----------|
+| E1 | Submit business setup twice (double-click) → only one business created | Idempotency guard works |
+| E2 | Registration with businessName containing special characters | Slug is sanitised, no crash |
+| E3 | Registration with very long businessName (100 chars) | Accepted up to max; truncated gracefully |
+| E4 | Unauthenticated user visits `/register/business-setup` directly | Redirected to `/register` or `/login` |
+
+---
+
+## Suite 14 — Billing & Subscription Journey
+
+**File**: `__tests__/e2e/specs/14-billing.spec.ts`
+**Auth**: `admin.json` (billing is admin-only)
+
+Billing tests are only meaningful after the Stripe environment variables are configured
+(`STRIPE_SECRET_KEY`, `STRIPE_PLAN_*_PRICE_ID`, `STRIPE_CREDIT_PKG_*_PRICE_ID`). When those
+vars are absent, Stripe-dependent tests should use `test.skip` with a clear message.
+
+For tests that do **not** require Stripe (credit balance display, trial status, invoice list),
+no skip is needed.
+
+### Critical — Subscription status display
+
+| # | Test | Expected |
+|---|------|----------|
+| C1 | `/billing` shows correct subscription status badge (TRIAL) | Badge text = "Trial" |
+| C2 | Trial countdown banner visible on any page during trial period | Banner with days remaining |
+| C3 | Trial countdown shows 0 days when expired | "Trial expired" state displayed |
+| C4 | `/billing/plans` lists all active plans with prices | Plan cards render, no blank screen |
+| C5 | Current plan highlighted on `/billing/plans` | Active plan has visual indicator |
+
+### Critical — Credit balance
+
+| # | Test | Expected |
+|---|------|----------|
+| C6 | `/billing/credits` shows balance = 50 for new account | Balance card shows "50 credits" |
+| C7 | After completing a POS transaction, credit balance decrements by 1 | Balance = 49 |
+| C8 | Balance reaching low threshold (≤10) shows low-balance warning | Warning banner visible |
+| C9 | Balance = 0 blocks POS checkout with an actionable error | "Top up your credits" message shown |
+| C10 | `/billing/credits` shows full ledger history (PROMOTIONAL entry on registration) | At least 1 row in history table |
+
+### Critical — Subscription lifecycle (requires Stripe env)
+
+| # | Test | Stripe required | Expected |
+|---|------|----------------|----------|
+| C11 | Select a paid plan → redirected to Stripe checkout | ✅ | Stripe checkout URL in browser |
+| C12 | Return from Stripe with `?purchase=success` → credits updated | ✅ | Balance increased by package amount |
+| C13 | Cancel subscription (immediate) → status changes to CANCELLED | ✅ | Badge shows CANCELLED |
+| C14 | Cancel subscription (scheduled) → status remains ACTIVE until period end | ✅ | "Cancels on [date]" shown |
+| C15 | Cancelled subscription → resubscribe → status ACTIVE | ✅ | Badge shows ACTIVE |
+
+### Normal — Billing pages render without errors
+
+| # | Test | Expected |
+|---|------|----------|
+| N1 | `/billing` loads without console errors | No errors in console monitor |
+| N2 | `/billing/credits` loads, shows balance card and ledger table | All sections visible |
+| N3 | `/billing/plans` loads, shows plan cards with feature list | Cards render |
+| N4 | `/billing/invoices` loads (empty state for new account) | Empty state message shown |
+| N5 | `/billing/pricing` loads for composable pricing (if enabled) | Pricing calculator renders |
+| N6 | Non-admin user cannot access `/billing` | Redirect or access-denied shown |
+
+### Normal — Subscription banner behaviour
+
+| # | Test | Expected |
+|---|------|----------|
+| N7 | TRIAL subscription → banner shows days remaining | Countdown visible |
+| N8 | GRACE_PERIOD subscription → banner shows urgent payment message | Different banner style |
+| N9 | EXPIRED subscription → operational features blocked, upgrade prompt shown | POS shows entitlement error |
+| N10 | ACTIVE subscription → no trial/expired banner | Clean UI without banners |
+
+### Edge Cases
+
+| # | Test | Expected |
+|---|------|----------|
+| E1 | Purchase credits with unconfigured Stripe price ID → clear error message | "Not configured" error, no crash |
+| E2 | Two concurrent credit deductions (two browser tabs, same account) | Both deductions complete; balance may go temporarily negative (known P3 limitation — R2); no crash |
+| E3 | `/billing/invoices` with many invoice rows — pagination works | Next page loads correctly |
+| E4 | Webhook arrives for unknown businessId — no crash, 200 returned | Webhook endpoint handles gracefully |
+
+### Seed requirements for Suite 14
+
+The standard e2e seed does not include subscription data (each test uses a freshly registered
+account or a pre-seeded admin account). Suite 14 requires one of:
+
+1. **Freshly registered admin** — register via Suite 13 in the same Playwright session, then
+   use the resulting session for billing tests. Clean, realistic, but slower.
+2. **Pre-seeded admin with subscription** — add a `subscription.csv` to the e2e seed that
+   creates a `BusinessSubscription` (TRIAL) + 50 credits for `e2e-admin-1`.
+
+Option 2 is preferred for CI speed. The `global-setup.ts` seed should include subscription
+and credit ledger rows for `e2e-org-1` so billing pages render meaningfully without needing
+to register first.
+
+---
+
 ## Priority Order
 
 | Priority | Suite | Reason |
@@ -566,12 +721,14 @@ A failure here means the business cannot process sales, close a shift, or track 
 | 🔴 P0 | 01 — Auth | Gate for every other suite |
 | 🔴 P0 | 02 — Authorization | Guards enforced, regression value is high |
 | 🔴 P0 | 04 — POS Checkout | Core revenue path |
-| � P0 | 12 — Operational Blockers | Session open/close, order flow, task lifecycle — first-hour blockers |
-| �🟠 P1 | 03 — Feature Flags | Fast to write, high regression value |
+| 🔴 P0 | 12 — Operational Blockers | Session open/close, order flow, task lifecycle — first-hour blockers |
+| 🔴 P0 | 13 — Registration | Onboarding is the entry point to the entire product |
+| 🟠 P1 | 03 — Feature Flags | Fast to write, high regression value |
 | 🟠 P1 | 05 — POS Orders | Session lifecycle |
 | 🟠 P1 | 06 — Products | Required before POS works |
 | 🟠 P1 | 07 — Ingredients | Inventory accuracy |
 | 🟠 P1 | 11 — Offline/Online | Core advertised feature, distinct code paths |
+| 🟠 P1 | 14 — Billing | Subscription + credits; blocks POS when expired |
 | 🟡 P2 | 08 — Employees | Role management |
 | 🟡 P2 | 09 — Settings | Supporting config |
 | 🟢 P3 | 10 — Reports | Smoke only |
@@ -1712,8 +1869,10 @@ If yes → it belongs in E2E.
 | S-11 Operational Journeys | P0 | Every PR |
 | S-12 Business Invariants | P0 | Every PR |
 | S-13 Cross-Tenant Isolation | P0 | Every PR |
+| Suite 13 Registration | P0 | Every PR |
 | S-10 Cross-Module Workflows | P1 | Every PR |
 | S-14 Browser State & Persistence | P1 | Every PR |
+| Suite 14 Billing | P1 | Every PR (Stripe tests skipped when env absent) |
 | S-15 Concurrent Users | P1 | Nightly |
 | Migration Regression | P0 | Migration PRs only |
 | Visual Regression | P2 | Nightly (advisory) |

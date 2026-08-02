@@ -126,6 +126,7 @@ export const EntitlementEngine = {
   _checkUsageAndQuota(capability: CapabilityKey, context: EntitlementContext): EntitlementResult {
     // ------------------------------------------------------------------
     // Step 5: Per-feature usage limit (e.g. max 5 employees on Starter)
+    // Not applicable for COMPOSABLE_FEATURES (no usage limits in that model).
     // ------------------------------------------------------------------
     const usageLimit = context.usageLimits[capability] ?? null
     if (usageLimit !== null) {
@@ -147,8 +148,11 @@ export const EntitlementEngine = {
 
     // ------------------------------------------------------------------
     // Step 6: Transaction allowance — only checked for COMPLETE_CHECKOUT
+    // on MONTHLY_SUBSCRIPTION and HYBRID billing models.
+    // COMPOSABLE_FEATURES subscriptions do not use TX allowance enforcement.
     // ------------------------------------------------------------------
-    if (capability === 'COMPLETE_CHECKOUT' && context.txRemaining !== null) {
+    const isComposable = context.billingModel === 'COMPOSABLE_FEATURES'
+    if (capability === 'COMPLETE_CHECKOUT' && context.txRemaining !== null && !isComposable) {
       if (context.txRemaining <= 0) {
         return {
           granted: false,
@@ -160,6 +164,7 @@ export const EntitlementEngine = {
 
     // ------------------------------------------------------------------
     // Step 7: Prepaid credit balance — only checked for COMPLETE_CHECKOUT
+    // on PREPAID_CREDITS and HYBRID billing models.
     // ------------------------------------------------------------------
     if (capability === 'COMPLETE_CHECKOUT' && context.creditBalance !== null) {
       if (context.creditBalance <= 0) {
@@ -192,11 +197,19 @@ export const EntitlementEngine = {
   buildSummary(
     allCapabilities: CapabilityKey[],
     context: EntitlementContext,
+    meta?: {
+      trialEndsAt?: Date | null
+      currentPeriodEnd?: Date | null
+      billingModel?: import('./entitlement-types').BillingModelDomain | null
+    },
   ): {
     status: EntitlementContext['status']
     capabilities: CapabilityKey[]
     txRemaining: number | null
     creditBalance: number | null
+    trialEndsAt: string | null
+    currentPeriodEnd: string | null
+    billingModel: import('./entitlement-types').BillingModelDomain | null
   } {
     const granted: CapabilityKey[] = []
 
@@ -212,6 +225,9 @@ export const EntitlementEngine = {
       capabilities: granted,
       txRemaining: context.txRemaining,
       creditBalance: context.creditBalance,
+      trialEndsAt: meta?.trialEndsAt ? meta.trialEndsAt.toISOString() : null,
+      currentPeriodEnd: meta?.currentPeriodEnd ? meta.currentPeriodEnd.toISOString() : null,
+      billingModel: meta?.billingModel ?? null,
     }
   },
 
@@ -223,6 +239,7 @@ export const EntitlementEngine = {
   buildOpenContext(planFeatures: CapabilityKey[]): EntitlementContext {
     return {
       status: SubscriptionStatus.ACTIVE,
+      billingModel: 'MONTHLY_SUBSCRIPTION',
       planFeatures,
       usageLimits: {},
       currentUsage: {},

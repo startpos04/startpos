@@ -1,5 +1,5 @@
 import { useForm } from '@tanstack/react-form'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import z from 'zod'
 import { Form } from '@/components/custom/form'
@@ -39,7 +39,7 @@ function RouteComponent() {
   })
 
   return (
-    <div className='flex flex-col items-center justify-center min-h-screen p-4'>
+    <div className='flex flex-col items-center justify-center min-h-screen overflow-y-auto p-4'>
       <Card className='w-full max-w-md'>
         <CardHeader>
           <div className='flex justify-between items-center'>
@@ -63,6 +63,12 @@ function RouteComponent() {
                 </Button>
               )}
             />
+            <p className='text-sm text-muted-foreground text-center'>
+              Don't have an account?{' '}
+              <Link to='/register' className='font-medium text-primary underline-offset-4 hover:underline'>
+                Create one free
+              </Link>
+            </p>
           </CardFooter>
         </Form>
       </Card>

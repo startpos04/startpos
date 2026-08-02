@@ -2,6 +2,8 @@ import { createServerFn } from '@tanstack/react-start'
 import _ from 'lodash'
 import type { Prisma } from 'prisma/generated/prisma/client'
 import { type ComplianceKey, type ConfigKey, Role } from 'prisma/generated/prisma/enums'
+import { SubscriptionEngine } from '../billing/subscription-engine'
+import { BillingModel, type LifecycleThresholds } from '../billing/types'
 import { Capabilities, type CapabilityKey } from '../entitlement/capability-keys'
 import { EntitlementEngine } from '../entitlement/entitlement-engine'
 import type { EntitlementOverrideDTO } from '../entitlement/entitlement-types'
@@ -11,7 +13,7 @@ import { auth } from './auth'
 import { authMiddleware } from './auth-middleware'
 
 export const RoleLandingPages: Record<Role, string> = {
-  [Role.ADMIN]: '/employees',
+  [Role.ADMIN]: '/dashboard',
   [Role.SUPERVISOR]: '/sales-reports',
   [Role.CASHIER]: '/pos',
   [Role.SERVICE_PROVIDER]: '/',
@@ -92,25 +94,44 @@ export const getAuthUser = createServerFn({ method: 'GET' })
     const mergedComplianceRegistry = _.merge({}, mappedBusinessCompliance, mappedBranchCompliance)
 
     // -------------------------------------------------------------------------
-    // Entitlement Summary — Phase F
-    // Builds a lightweight capability snapshot embedded in every session.
-    // When a BusinessSubscription record exists, the real plan + status drive
-    // the engine. When no subscription exists (dev / first-time onboarding),
-    // the open-context fallback grants everything so existing workflows continue.
+    // Entitlement Summary — Phase 0 (expanded from Phase F)
+    //
+    // 1. Fetch the business's active subscription (and its plan entitlements).
+    // 2. If no subscription exists → auto-provision a TRIAL subscription
+    //    (idempotent: the DB unique constraint on businessId prevents duplicates).
+    // 3. Build EntitlementContext from the subscription record.
+    // 4. Fall back to open-context if provisioning fails (dev / seed mode safety).
+    //
+    // rootPrisma is used intentionally — subscription data is platform-level,
+    // not tenant-scoped, and BusinessSubscription lives outside branch isolation.
     // -------------------------------------------------------------------------
 
-    const [businessSubscription, entitlementOverrides] = await Promise.all([
-      // F2: Fetch the business's active subscription and its plan's entitlements.
-      // Root Prisma is used here intentionally — subscription data is platform-level
-      // (not tenant-scoped) and BusinessSubscription lives outside branch isolation.
+    // Read lifecycle policy thresholds from merged SystemConfig.
+    // These keys are stored as strings in SystemConfig — coerce to numbers here.
+    const rawTrialDays = mergedSystemConfigs['TRIAL_DURATION_DAYS' as ConfigKey] as unknown
+    const rawGraceDays = mergedSystemConfigs['GRACE_PERIOD_DAYS' as ConfigKey] as unknown
+    const rawInactiveDays = mergedSystemConfigs['LONG_TERM_INACTIVE_DAYS' as ConfigKey] as unknown
+
+    const thresholds: LifecycleThresholds = {
+      trialDurationDays: typeof rawTrialDays === 'number' ? rawTrialDays : 30,
+      gracePeriodDays: typeof rawGraceDays === 'number' ? rawGraceDays : 7,
+      longTermInactiveDays: typeof rawInactiveDays === 'number' ? rawInactiveDays : 90,
+    }
+
+    const [businessSubscription, entitlementOverrides, openUsageCounter, latestCreditLedger] = await Promise.all([
+      // Fetch the business's active subscription and its plan's entitlements.
       rootPrisma.businessSubscription.findUnique({
         where: { businessId },
         select: {
+          id: true,
           status: true,
+          billingModel: true,
           trialEndsAt: true,
+          currentPeriodStart: true,
           currentPeriodEnd: true,
-          txUsedThisPeriod: true,
-          creditBalance: true,
+          gracePeriodEndsAt: true,
+          expiredAt: true,
+          longTermInactiveAt: true,
           plan: {
             select: {
               includedTxPerMonth: true,
@@ -122,10 +143,29 @@ export const getAuthUser = createServerFn({ method: 'GET' })
         },
       }),
 
-      // Per-business overrides (grants or revocations) — unchanged from Phase 2
+      // Per-business overrides (grants or revocations)
       rootPrisma.entitlementOverride.findMany({
         where: { businessId },
         select: { featureKey: true, granted: true, expiresAt: true },
+      }),
+
+      // Phase 2 — fetch the open UsageCounter for the current billing period.
+      // Used to compute txRemaining accurately instead of reading the deprecated
+      // txUsedThisPeriod column on BusinessSubscription.
+      rootPrisma.usageCounter.findFirst({
+        where: { businessId, isClosed: false },
+        select: { id: true, txCount: true, billingPeriodStart: true, billingPeriodEnd: true },
+        orderBy: { billingPeriodStart: 'desc' },
+      }),
+
+      // Phase 3 — fetch the latest CreditLedger entry for this business.
+      // The balanceAfter snapshot on the most recent row is the current credit
+      // balance — O(1) read, no SUM required. Null if no ledger entries exist.
+      // Only relevant for PREPAID_CREDITS billing model; ignored otherwise.
+      rootPrisma.creditLedger.findFirst({
+        where: { businessId },
+        select: { balanceAfter: true },
+        orderBy: { createdAt: 'desc' },
       }),
     ])
 
@@ -136,7 +176,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
 
     if (businessSubscription) {
       // -----------------------------------------------------------------------
-      // Real subscription path — Phase F active
+      // Real subscription path — Phase 0 active
       // -----------------------------------------------------------------------
 
       // Map Prisma SubscriptionStatus enum string to the TS const value.
@@ -155,9 +195,18 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       }
 
       // Compute txRemaining from plan allowance minus current period usage.
+      // Phase 2: reads from UsageCounter (openUsageCounter) instead of the
+      // deprecated BusinessSubscription.txUsedThisPeriod field.
       // -1 means unlimited; null means no allowance tracking.
       const includedTx = businessSubscription.plan.includedTxPerMonth
-      const txRemaining = includedTx === -1 ? null : Math.max(0, includedTx - businessSubscription.txUsedThisPeriod)
+      const txUsed = openUsageCounter?.txCount ?? 0
+      const txRemaining = includedTx === -1 ? null : Math.max(0, includedTx - txUsed)
+
+      // Phase 3: credit balance reads from the latest CreditLedger entry.
+      // null = no ledger entries yet (balance is effectively 0 for PREPAID_CREDITS,
+      // but we use null to distinguish "no prepaid plan" from "zero balance").
+      // The entitlement engine receives null for non-prepaid billing models.
+      const creditBalance = businessSubscription.billingModel === BillingModel.PREPAID_CREDITS ? (latestCreditLedger?.balanceAfter ?? 0) : null
 
       entitlementContext = {
         status,
@@ -172,46 +221,193 @@ export const getAuthUser = createServerFn({ method: 'GET' })
             expiresAt: o.expiresAt,
           }),
         ),
-        creditBalance: businessSubscription.creditBalance ?? null,
+        creditBalance,
       }
     } else {
       // -----------------------------------------------------------------------
-      // Open-context fallback — no subscription record (dev / onboarding)
-      // All features granted, ACTIVE status, no limits.
+      // No subscription found — attempt trial auto-provisioning (Phase 0).
+      //
+      // Auto-provisioning is idempotent: the @unique constraint on businessId
+      // prevents duplicate records. If provisioning fails (e.g. Trial plan not
+      // seeded), we fall through to the open-context fallback so existing
+      // workflows are never broken.
       // -----------------------------------------------------------------------
+      try {
+        const trialPlan = await rootPrisma.subscriptionPlan.findFirst({
+          where: { name: 'Trial', isActive: true },
+          select: { id: true },
+        })
 
-      // Fetch all plan entitlements across plans so any seeded features are
-      // reflected. If nothing is seeded yet, grant the full capability list.
-      const planEntitlements = await rootPrisma.planEntitlement.findMany({
-        select: { featureKey: true },
-      })
+        if (trialPlan) {
+          const now = new Date()
+          const initialData = SubscriptionEngine.buildInitialSubscription(businessId, trialPlan.id, BillingModel.MONTHLY_SUBSCRIPTION, thresholds, now)
 
-      const planFeatures =
-        planEntitlements.length > 0 ? (planEntitlements.map((e: { featureKey: string }) => e.featureKey) as CapabilityKey[]) : allCapabilities
+          // Create the subscription and write the initial history record atomically.
+          // The DB unique constraint on businessId means a concurrent request will
+          // simply fail the create and fall through to findUnique on next load.
+          const created = await rootPrisma.$transaction(async tx => {
+            const sub = await tx.businessSubscription.create({
+              data: {
+                businessId: initialData.businessId,
+                planId: initialData.planId,
+                billingModel: initialData.billingModel,
+                status: initialData.status,
+                trialEndsAt: initialData.trialEndsAt,
+              },
+              select: { id: true },
+            })
 
-      const openContext = EntitlementEngine.buildOpenContext(planFeatures)
+            // Write the initial history record with the real subscription id
+            await tx.subscriptionStatusHistory.create({
+              data: {
+                subscriptionId: sub.id,
+                fromStatus: null,
+                toStatus: initialData.transitionRecord.toStatus,
+                reason: initialData.transitionRecord.reason,
+                triggeredBy: initialData.transitionRecord.triggeredBy,
+              },
+            })
 
-      entitlementContext = {
-        ...openContext,
-        overrides: entitlementOverrides.map(
-          (o: { featureKey: string; granted: boolean; expiresAt: Date | null }): EntitlementOverrideDTO => ({
-            featureKey: o.featureKey,
-            granted: o.granted,
-            expiresAt: o.expiresAt,
-          }),
-        ),
+            return sub
+          })
+
+          console.info(`[getAuthUser] Auto-provisioned TRIAL subscription ${created.id} for business ${businessId}`)
+
+          // Re-fetch the newly created subscription with full plan entitlements
+          const freshSubscription = await rootPrisma.businessSubscription.findUnique({
+            where: { businessId },
+            select: {
+              id: true,
+              status: true,
+              billingModel: true,
+              trialEndsAt: true,
+              currentPeriodEnd: true,
+              gracePeriodEndsAt: true,
+              expiredAt: true,
+              longTermInactiveAt: true,
+              plan: {
+                select: {
+                  includedTxPerMonth: true,
+                  entitlements: { select: { featureKey: true, usageLimit: true } },
+                },
+              },
+            },
+          })
+
+          if (freshSubscription) {
+            const status = freshSubscription.status as import('../entitlement/entitlement-types').SubscriptionStatus
+            const planFeatures = freshSubscription.plan.entitlements.map((e: { featureKey: string }) => e.featureKey as CapabilityKey)
+            const usageLimits: Partial<Record<CapabilityKey, number>> = {}
+            for (const e of freshSubscription.plan.entitlements) {
+              if (e.usageLimit !== null) usageLimits[e.featureKey as CapabilityKey] = e.usageLimit
+            }
+            // Phase 2: txRemaining reads from openUsageCounter (fetched above).
+            // A newly provisioned TRIAL subscription has no UsageCounter yet → txUsed = 0.
+            const includedTx = freshSubscription.plan.includedTxPerMonth
+            const txUsed = openUsageCounter?.txCount ?? 0
+            const txRemaining = includedTx === -1 ? null : Math.max(0, includedTx - txUsed)
+
+            // Phase 3: a freshly provisioned TRIAL subscription has no CreditLedger
+            // entries yet. Credit balance is null for non-prepaid billing models.
+            const creditBalance = freshSubscription.billingModel === BillingModel.PREPAID_CREDITS ? (latestCreditLedger?.balanceAfter ?? 0) : null
+
+            entitlementContext = {
+              status,
+              planFeatures,
+              usageLimits,
+              currentUsage: {},
+              txRemaining,
+              overrides: entitlementOverrides.map(
+                (o: { featureKey: string; granted: boolean; expiresAt: Date | null }): EntitlementOverrideDTO => ({
+                  featureKey: o.featureKey,
+                  granted: o.granted,
+                  expiresAt: o.expiresAt,
+                }),
+              ),
+              creditBalance,
+            }
+          }
+        }
+      } catch (provisionErr) {
+        // Provisioning failed (e.g. race condition unique constraint, or Trial plan
+        // not yet seeded). Log and fall through to open-context below.
+        console.warn(`[getAuthUser] Trial auto-provisioning failed for business ${businessId}:`, provisionErr)
+      }
+
+      // If provisioning succeeded, entitlementContext is already set above.
+      // If it failed or Trial plan is not seeded, fall through to open-context.
+      if (!entitlementContext) {
+        // -----------------------------------------------------------------------
+        // Open-context fallback — grants everything so existing workflows continue.
+        // This is the dev/seed-mode safety net; it should not fire in production
+        // once the Trial plan is seeded.
+        // -----------------------------------------------------------------------
+        const planEntitlements = await rootPrisma.planEntitlement.findMany({
+          select: { featureKey: true },
+        })
+
+        const planFeatures =
+          planEntitlements.length > 0 ? (planEntitlements.map((e: { featureKey: string }) => e.featureKey) as CapabilityKey[]) : allCapabilities
+
+        const openContext = EntitlementEngine.buildOpenContext(planFeatures)
+
+        entitlementContext = {
+          ...openContext,
+          overrides: entitlementOverrides.map(
+            (o: { featureKey: string; granted: boolean; expiresAt: Date | null }): EntitlementOverrideDTO => ({
+              featureKey: o.featureKey,
+              granted: o.granted,
+              expiresAt: o.expiresAt,
+            }),
+          ),
+        }
       }
     }
 
-    const entitlement = EntitlementEngine.buildSummary(allCapabilities, entitlementContext)
+    // Pass lifecycle dates into buildSummary so EntitlementSummary carries
+    // trialEndsAt for the SubscriptionBanner countdown and currentPeriodEnd
+    // for the /billing usage display. Both values are sourced from the
+    // subscription record already fetched above.
+    const subscriptionMeta = businessSubscription
+      ? {
+          trialEndsAt: businessSubscription.trialEndsAt ?? null,
+          currentPeriodEnd: businessSubscription.currentPeriodEnd ?? null,
+          billingModel: (businessSubscription.billingModel ?? null) as import('../entitlement/entitlement-types').BillingModelDomain | null,
+        }
+      : undefined
+
+    const entitlement = EntitlementEngine.buildSummary(allCapabilities, entitlementContext, subscriptionMeta)
 
     return {
       ...user,
       business,
       branch,
       vendorSession,
-      systemConfigs: ConfigKeySchema.parse(mergedSystemConfigs) as ConfigKeyTypes,
-      complianceRegistry: ComplianceKeySchema.parse(mergedComplianceRegistry) as ComplianceKeyTypes,
+      systemConfigs: (ConfigKeySchema.safeParse(mergedSystemConfigs).data ??
+        ConfigKeySchema.parse({
+          ...{
+            LOW_STOCK_THRESHOLD: 20,
+            VAT_RATE: 12,
+            BUFFER_RATE: 20,
+            LOCALE: 'en-PH',
+            CURRENCY: 'PHP',
+            IS_VAT_REGISTERED: false,
+            PRICE_CONFIGURATION: 'EXCLUSIVE',
+            ENABLE_PRINT_RECEIPT: true,
+            ENABLE_ORDER_TAB: false,
+            ENABLE_CASH_RECONCILIATION: true,
+            ENABLE_TASK: true,
+            ENABLE_ORDER: true,
+          },
+          ...mergedSystemConfigs,
+        })) as ConfigKeyTypes,
+      complianceRegistry: (ComplianceKeySchema.safeParse(mergedComplianceRegistry).data ??
+        ComplianceKeySchema.parse({
+          BIR_TIN: '',
+          BIR_PTU_NUMBER: '',
+          BIR_PTU_ISSUED_AT: '',
+          ...mergedComplianceRegistry,
+        })) as ComplianceKeyTypes,
       landingPage: RoleLandingPages[userData.role] ?? '/',
       localOverrides: localOverrides || [],
       entitlement,

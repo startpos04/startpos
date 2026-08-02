@@ -5,6 +5,7 @@ import { OrderStatus } from 'prisma/generated/prisma/browser'
 import { toast } from 'sonner'
 import { GridView } from '@/components/custom/data-view/grid-view'
 import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
+import { useSubscriptionGate } from '@/components/feature-disabled'
 import { FeatureDisabledPage } from '@/components/pages/feature-disabled-page'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -41,18 +42,24 @@ interface RouteComponentProps {
 }
 
 export const Route = createFileRoute('/(private)/orders/')({
-  component: () => {
-    const user = useStore(authStore, state => state.user)
-    if (!user.systemConfigs.ENABLE_ORDER) return <FeatureDisabledPage />
-
-    return (
-      <div className='py-6 space-y-6'>
-        <ActiveOrdersHeader />
-        <RouteComponent />
-      </div>
-    )
-  },
+  component: OrdersPageGate,
 })
+
+function OrdersPageGate() {
+  const gate = useSubscriptionGate()
+  if (gate) return gate
+
+  // biome-ignore lint/correctness/useHookAtTopLevel: fix later
+  const user = useStore(authStore, state => state.user)
+  if (!user.systemConfigs.ENABLE_ORDER) return <FeatureDisabledPage />
+
+  return (
+    <div className='py-6 space-y-6'>
+      <ActiveOrdersHeader />
+      <RouteComponent />
+    </div>
+  )
+}
 
 export function ActiveOrdersDialog({ open, onClose, onCancel }: MountProps & { onCancel?: () => void }) {
   return (

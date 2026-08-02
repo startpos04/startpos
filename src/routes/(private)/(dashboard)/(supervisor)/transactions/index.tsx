@@ -60,7 +60,7 @@ function RouteComponent() {
 
   const { data: result, isLoading } = useQuery({
     queryKey: ['transaction-history', searchParams],
-    queryFn: () => fetchTransactionHistory({ data: searchParams }),
+    queryFn: () => fetchTransactionHistory(searchParams),
   })
 
   const transactions = result?.data ?? []

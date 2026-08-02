@@ -1,198 +1,211 @@
 // fallow-ignore-file unused-file
-import { faker } from '@faker-js/faker'
-import type { DefaultArgs } from '@prisma/client/runtime/client'
-import { MovementType, OrderStatus, OrderType, PaymentMethod, type PrismaClient, SequenceType, TransactionType } from 'prisma/generated/prisma/client'
+/**
+ * transaction.ts — Historical transaction seeder (CSV-driven)
+ *
+ * Reads from csv/<folder>/transactions.csv and related files to seed
+ * deterministic transaction history. If no CSV files are present, the seeder
+ * is skipped — faker-based random seeding does not belong in this pipeline.
+ *
+ * CSV files consumed (must all be present or all absent):
+ *   orders.csv           — order headers
+ *   order-items.csv      — line items per order
+ *   transactions.csv     — completed transaction records
+ *   payments.csv         — payment splits per transaction
+ *
+ * This mirrors the e2e.ts approach but is foldered under csv/<folder>/ so
+ * each seed target (examples/, e2e/, client/) can have its own history.
+ */
+
+/** biome-ignore-all lint/suspicious/noExplicitAny: seeder */
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import Papa from 'papaparse'
+import type { OrderStatus, OrderType, PaymentMethod, PrismaClient, TransactionType } from 'prisma/generated/prisma/client'
+import { getAccounts } from './accounts'
+
 export const order = 10000
 
-// It doesn't care if it's in a transaction or not!
-async function generateStructuredId(
-  tx: Omit<PrismaClient<never, undefined, DefaultArgs>, '$extends' | '$disconnect' | '$connect' | '$on' | '$use'>,
-  type: SequenceType,
-  // biome-ignore lint/suspicious/noExplicitAny: just for now
-  employee: any,
-) {
-  const now = new Date()
-  const year = now.getFullYear()
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const CSV_DIR = path.join(__dirname, 'csv')
 
-  const counter = await tx.sequenceCounter.upsert({
-    where: {
-      businessId_branchId_type_year_month_day: {
-        businessId: employee.memberships[0]?.businessId || 'org-1',
-        branchId: employee.memberships[0]?.branchId || 'branch-1',
-        type,
-        year,
-        month: now.getMonth() + 1,
-        day: type === 'ORDER' ? now.getDate() : 0,
-      },
-    },
-    update: { lastNumber: { increment: 1 } },
-    create: {
-      id: `${employee.memberships[0]?.businessId || 'org-1'}-${employee.memberships[0]?.branchId || 'branch-1'}-${type}-${year}-${now.getMonth() + 1}-${type === 'ORDER' ? now.getDate() : 0}`,
-      type,
-      year,
-      month: now.getMonth() + 1,
-      day: type === 'ORDER' ? now.getDate() : 0,
-      lastNumber: 1,
-      businessId: employee.memberships[0]?.businessId || 'org-1',
-      branchId: employee.memberships[0]?.branchId || 'branch-1',
-    },
+function parseCsvOptional<T = any>(folder: string, fileName: string, requiredHeaders: string[] = []): T[] | null {
+  const filePath = path.join(CSV_DIR, folder, fileName)
+  if (!fs.existsSync(filePath)) return null
+
+  const { data, meta } = Papa.parse(fs.readFileSync(filePath, 'utf-8'), {
+    header: true,
+    skipEmptyLines: true,
   })
 
-  const num = counter.lastNumber.toString().padStart(6, '0')
-
-  if (type === SequenceType.INVOICE && employee.memberships[0]?.branch.maxInvoiceNo) {
-    if (counter.lastNumber > employee.memberships[0]?.branch.maxInvoiceNo) {
-      throw new Error(
-        `BIR Permit Limit Reached: The current invoice number (${counter.lastNumber}) exceeds the authorized range (Max: ${employee.memberships[0]?.branch.maxInvoiceNo}). Please update your PTU settings.`,
-      )
-    }
+  const missing = requiredHeaders.filter(h => !meta.fields?.includes(h))
+  if (missing.length > 0) {
+    throw new Error(`❌ ${fileName} missing columns: [${missing.join(', ')}]`)
   }
 
-  switch (type) {
-    case SequenceType.INVOICE:
-      return `SI-${year}-${num}`
-    case SequenceType.ORDER:
-      return `#${num}`
-    case SequenceType.STOCK_TRANSFER:
-      return `ST-${year}-${num}`
-    case SequenceType.PURCHASE:
-      return `PO-${year}-${num}`
-    case SequenceType.COLLECTION_RECEIPT:
-      return `CR-${year}-${num}`
-  }
+  return data as T[]
 }
 
-export async function seedHistoricalTransactions(prisma: PrismaClient) {
-  const transactionCount = 1500
-  console.info(`\n💸 Seeding ${transactionCount} Transactions over 12 months...`)
+export async function seedHistoricalTransactions(prisma: PrismaClient, options: { folder: string }) {
+  const targetFolder = options.folder || 'examples'
+  const accounts = getAccounts(targetFolder)
+  const B1 = accounts.business.id
+  const BR1 = accounts.branch.id
 
-  // 1. Fetch setup datasets upfront (outside the transaction)
-  const employees = await prisma.user.findMany({
-    where: { role: { in: ['ADMIN', 'CASHIER'] } },
-    include: { memberships: { include: { branch: true, business: true } } },
-  })
+  // If no transactions.csv exists, skip silently — not all seed targets need history.
+  const transactionRows = parseCsvOptional(targetFolder, 'transactions.csv', [
+    'id',
+    'invoiceNo',
+    'orderId',
+    'cashierId',
+    'type',
+    'totalAmount',
+    'totalCost',
+    'taxAmount',
+    'bufferRate',
+    'priceConfiguration',
+    'invoiceType',
+    'ptuNumber',
+    'ptuIssuedAt',
+  ])
 
-  if (employees.length === 0) throw new Error('❌ No employees found to process transactions.')
+  if (!transactionRows) {
+    console.info(`ℹ️  No transactions.csv found in csv/${targetFolder}/ — skipping historical transaction seed.`)
+    return
+  }
 
-  const sellableVariants = await prisma.productVariant.findMany({
-    include: { product: true },
-  })
+  console.info(`\n💸 Seeding ${transactionRows.length} transactions from csv/${targetFolder}/transactions.csv...`)
 
-  const endDate = new Date()
-  const startDate = new Date()
-  startDate.setMonth(startDate.getMonth() - 12)
+  // --- ORDERS ---
+  const orderRows = parseCsvOptional(targetFolder, 'orders.csv', ['id', 'orderNumber', 'status', 'orderType'])
+  if (orderRows) {
+    console.info(`  🛒 Seeding ${orderRows.length} orders...`)
+    for (const row of orderRows) {
+      const hoursAgo = parseFloat(row.hoursAgo) || 0
+      const createdAt = new Date(Date.now() - hoursAgo * 60 * 60 * 1000)
 
-  for (let i = 0; i < transactionCount; i++) {
-    const employee = employees[i % employees.length]! || employees[0]
-    const createdAt = faker.date.between({ from: startDate, to: endDate })
-
-    const itemCount = faker.number.int({ min: 1, max: 4 })
-    const cartItems = faker.helpers.arrayElements(sellableVariants, itemCount)
-
-    // 2. Create Order (Execute everything through the consolidated 'tx' instance)
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: (await generateStructuredId(prisma, SequenceType.ORDER, employee))!,
-        customerReference: faker.helpers.arrayElement(['Walk-in', `Table ${faker.number.int(15)}`, 'Takeaway']),
-        status: OrderStatus.SERVED,
-        orderType: OrderType.DINE_IN,
-        businessId: employee.memberships[0]?.businessId || 'org-1',
-        branchId: employee.memberships[0]?.branchId || 'branch-1',
-        createdAt,
-      },
-    })
-
-    let totalSalesAmount = 0
-    let totalCostOfGoods = 0
-
-    for (const variant of cartItems) {
-      const qty = faker.number.int({ min: 1, max: 5 })
-      const unitPrice = variant.price
-      const unitCost = variant.costPrice || 0
-
-      await prisma.orderItem.create({
-        data: {
-          orderId: order.id,
-          variantId: variant.id,
-          quantity: qty,
-          unitPrice,
-          unitCost,
-          unitId: variant.product.baseUnitId,
-          businessId: employee.memberships[0]?.businessId || 'org-1',
-          branchId: employee.memberships[0]?.branchId || 'branch-1',
+      await prisma.order.upsert({
+        where: { id: row.id.trim() },
+        update: {},
+        create: {
+          id: row.id.trim(),
+          orderNumber: row.orderNumber.trim(),
+          status: row.status.trim() as OrderStatus,
+          orderType: row.orderType.trim() as OrderType,
+          customerReference: row.customerReference?.trim() || null,
+          businessId: B1,
+          branchId: BR1,
           createdAt,
         },
       })
-
-      const inventoryRecord = await prisma.inventory.findFirst({
-        where: {
-          variantId: variant.id,
-          branchId: employee.memberships[0]?.branchId || 'branch-1',
-          quantity: { gt: 0 },
-        },
-        orderBy: { createdAt: 'asc' },
-      })
-
-      if (inventoryRecord) {
-        await prisma.inventory.update({
-          where: { id: inventoryRecord.id },
-          data: { quantity: { decrement: qty } },
-        })
-
-        await prisma.inventoryMovement.create({
-          data: {
-            businessId: employee.memberships[0]?.businessId || 'org-1',
-            branchId: employee.memberships[0]?.branchId || 'branch-1',
-            inventoryId: inventoryRecord.id,
-            userId: employee.id,
-            variantId: variant.id,
-            unitId: variant.product.baseUnitId,
-            quantity: qty,
-            type: MovementType.OUT,
-            reason: `Sale: ${order.orderNumber}`,
-            createdAt,
-          },
-        })
-      }
-
-      totalSalesAmount += unitPrice * qty
-      totalCostOfGoods += unitCost * qty
     }
-
-    const taxAmount = Math.round(totalSalesAmount * 0.12)
-    const finalTotal = totalSalesAmount + taxAmount
-
-    const transaction = await prisma.transaction.create({
-      data: {
-        invoiceNo: (await generateStructuredId(prisma, SequenceType.INVOICE, employee))!,
-        orderId: order.id,
-        cashierId: employee.id,
-        totalAmount: finalTotal,
-        totalCost: totalCostOfGoods,
-        taxAmount: taxAmount,
-        bufferRate: 20,
-        type: TransactionType.SALE,
-        businessId: employee.memberships[0]?.businessId || 'org-1',
-        branchId: employee.memberships[0]?.branchId || 'branch-1',
-        createdAt,
-      },
-    })
-
-    await prisma.payment.create({
-      data: {
-        transactionId: transaction.id,
-        amount: finalTotal,
-        tendered: Math.ceil(finalTotal / 100) * 100,
-        change: Math.ceil(finalTotal / 100) * 100 - finalTotal,
-        method: faker.helpers.arrayElement([PaymentMethod.CASH, PaymentMethod.CASH]),
-        businessId: employee.memberships[0]?.businessId || 'org-1',
-        branchId: employee.memberships[0]?.branchId || 'branch-1',
-        createdAt,
-      },
-    })
-
-    if (i % 100 === 0) console.info(` 🚀 Processed ${i} transactions...`)
   }
 
-  console.info(`✅ ${transactionCount} Historical Transactions Seeded successfully.`)
+  // --- ORDER ITEMS ---
+  const orderItemRows = parseCsvOptional(targetFolder, 'order-items.csv', [
+    'id',
+    'orderId',
+    'variantId',
+    'quantity',
+    'unitPrice',
+    'unitCost',
+    'unitAbbreviation',
+  ])
+  if (orderItemRows) {
+    console.info(`  🛒 Seeding ${orderItemRows.length} order items...`)
+    for (const row of orderItemRows) {
+      const unit = await prisma.unit.findUnique({ where: { abbreviation: row.unitAbbreviation.trim() } })
+      if (!unit) {
+        console.warn(`  ⚠️  Skipping order-item ${row.id}: unit "${row.unitAbbreviation}" not found.`)
+        continue
+      }
+      const parentOrder = await prisma.order.findUnique({ where: { id: row.orderId.trim() } })
+
+      await prisma.orderItem.upsert({
+        where: { id: row.id.trim() },
+        update: {},
+        create: {
+          id: row.id.trim(),
+          orderId: row.orderId.trim(),
+          variantId: row.variantId.trim(),
+          quantity: parseFloat(row.quantity) || 1,
+          unitPrice: parseInt(row.unitPrice, 10) || 0,
+          unitCost: parseInt(row.unitCost, 10) || 0,
+          unitId: unit.id,
+          businessId: B1,
+          branchId: BR1,
+          createdAt: parentOrder?.createdAt ?? new Date(),
+        },
+      })
+    }
+  }
+
+  // --- TRANSACTIONS ---
+  for (const row of transactionRows) {
+    const totalAmount = parseInt(row.totalAmount, 10) || 0
+    const taxAmount = parseInt(row.taxAmount, 10) || 0
+    const totalCost = parseInt(row.totalCost, 10) || 0
+    const parentOrder = await prisma.order.findUnique({ where: { id: row.orderId.trim() } })
+
+    await prisma.transaction.upsert({
+      where: { id: row.id.trim() },
+      update: {},
+      create: {
+        id: row.id.trim(),
+        invoiceNo: row.invoiceNo.trim(),
+        orderId: row.orderId.trim(),
+        cashierId: row.cashierId.trim(),
+        type: row.type.trim() as TransactionType,
+        totalAmount,
+        totalCost,
+        taxAmount,
+        bufferRate: parseInt(row.bufferRate, 10) || 20,
+        priceConfiguration: row.priceConfiguration?.trim() || 'INCLUSIVE',
+        invoiceType: row.invoiceType?.trim() || 'SALES_INVOICE',
+        complianceData: {
+          ptuNumber: row.ptuNumber?.trim() || null,
+          ptuIssuedAt: row.ptuIssuedAt?.trim() || null,
+          vatableSales: totalAmount - taxAmount,
+          vatAmount: taxAmount,
+          vatExemptSales: 0,
+          zeroRatedSales: 0,
+          scPwdName: null,
+          scPwdIdNumber: null,
+          scPwdDiscount: 0,
+        },
+        businessId: B1,
+        branchId: BR1,
+        createdAt: parentOrder?.createdAt ?? new Date(),
+      },
+    })
+  }
+
+  // --- PAYMENTS ---
+  const paymentRows = parseCsvOptional(targetFolder, 'payments.csv', ['id', 'transactionId', 'method', 'amount', 'tendered', 'change'])
+  if (paymentRows) {
+    console.info(`  💳 Seeding ${paymentRows.length} payments...`)
+    for (const row of paymentRows) {
+      const txn = await prisma.transaction.findUnique({ where: { id: row.transactionId.trim() } })
+
+      await prisma.payment.upsert({
+        where: { id: row.id.trim() },
+        update: {},
+        create: {
+          id: row.id.trim(),
+          transactionId: row.transactionId.trim(),
+          method: row.method.trim() as PaymentMethod,
+          amount: parseInt(row.amount, 10) || 0,
+          tendered: parseInt(row.tendered, 10) || 0,
+          change: parseInt(row.change, 10) || 0,
+          businessId: B1,
+          branchId: BR1,
+          createdAt: txn?.createdAt ?? new Date(),
+        },
+      })
+    }
+  }
+
+  console.info(`✅ Historical transaction seed complete.`)
 }
+
+export default seedHistoricalTransactions

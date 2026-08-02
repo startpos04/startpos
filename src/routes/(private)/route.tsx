@@ -3,6 +3,7 @@ import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { AppWrapper } from '@/components/custom/app-wrapper'
 import Loading from '@/components/custom/loading'
+import { SubscriptionBanner } from '@/components/subscription-banner'
 import { localAuthCollection } from '@/db/local-auth'
 import { useIsOnline } from '@/hooks/use-is-online'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
@@ -33,6 +34,12 @@ function RouteComponent() {
       return
     }
 
+    // Session exists but no Membership yet → OAuth user needs business setup
+    if (isOnline && user && !user.business?.id) {
+      navigate({ to: '/register/business-setup' })
+      return
+    }
+
     const exists = localAuths.data.find(u => u.id === localUser.id)
 
     if (exists && isOnline && user) {
@@ -43,5 +50,14 @@ function RouteComponent() {
   }, [localAuths.isReady, navigate, user])
 
   if (!user) return <Loading className='w-screen h-screen' />
-  return <Outlet />
+
+  return (
+    <div className='flex flex-col min-h-screen'>
+      {/* SubscriptionBanner renders only when status warrants it (grace, expired, trial countdown) */}
+      <SubscriptionBanner />
+      <div className='flex-1 flex flex-col min-h-0'>
+        <Outlet />
+      </div>
+    </div>
+  )
 }

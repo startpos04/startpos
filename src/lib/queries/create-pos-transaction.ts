@@ -2,6 +2,7 @@ import type { Order, OrderItem } from 'prisma/generated/prisma/browser'
 import type { OrderItemAddon } from 'prisma/generated/prisma/client'
 import { InvoiceType, OrderStatus, OrderType, PaymentMethod, SequenceType, TaxCategory, TaxLineType, TransactionType } from 'prisma/generated/prisma/enums'
 import {
+  creditLedgerCollection,
   inventoryCollection,
   inventoryMovementCollection,
   orderCollection,
@@ -10,13 +11,18 @@ import {
   paymentCollection,
   transactionCollection,
   transactionTaxLineCollection,
+  usageCounterCollection,
 } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import type { PaymentLine } from '@/routes/(private)/pos/-components/payment-dialog'
 import { authStore } from '@/store/auth-store'
+import { CreditEngine } from '../billing/credit-engine'
+import { BillingModel } from '../billing/types'
+import { UsageEngine } from '../billing/usage-engine'
 import { PosStockEngine, type posItem } from '../conversion/pos-stock-engine'
 import { TaxEngine } from '../conversion/tax-engine'
 import { CostingEngine } from '../costing'
+import { NotificationEngine } from '../notification/notification-engine'
 import type { posProduct } from './fetch-pos-products'
 import { fetchStructuredId } from './fetch-structured-id'
 
@@ -168,8 +174,152 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
     }
 
     // --- 5. CREATE TRANSACTION & PAYMENT MAP ---
+    const transactionId = crypto.randomUUID()
+
+    // --- 5a. INCREMENT USAGE COUNTER (Phase 2) ---
+    // Find the open UsageCounter for the current business + billing period.
+    // The subscription stored in authStore carries currentPeriodStart; we use
+    // it as the period key. If no counter exists yet (e.g. first TX of a period,
+    // or counter not yet synced), we create a stub that will be upserted.
+    //
+    // IMPORTANT: This must remain synchronous — it runs inside dbTransaction
+    // which is a synchronous local-first callback (no network I/O).
+    // Pattern mirrors InventoryEngine: read from collection → engine call → write to collection.
+
+    const businessId = user.business.id
+    const subscription = authStore.state.user?.entitlement
+
+    // Locate the open counter for the current period from the offline collection.
+    // Match on businessId; closed counters are filtered out.
+    const openCounterEntry = [...usageCounterCollection.values()].find(c => c.businessId === businessId && !c.isClosed)
+
+    // Read overage policy from authStore systemConfigs (already loaded, no fetch needed)
+    const overageBillingEnabled =
+      (user.systemConfigs as Record<string, unknown>)['OVERAGE_BILLING_ENABLED'] === true ||
+      (user.systemConfigs as Record<string, unknown>)['OVERAGE_BILLING_ENABLED'] === 'true'
+
+    // Determine plan TX allowance from entitlement summary (null = unlimited)
+    // txRemaining null means unlimited; if we have a value, back-calculate includedTxPerMonth
+    // from txRemaining. For the engine we only need: is the counter exhausted?
+    // We use -1 (unlimited) when txRemaining is null.
+    const includedTxPerMonth =
+      subscription?.txRemaining === null || subscription?.txRemaining === undefined
+        ? -1 // unlimited
+        : (subscription.txRemaining ?? 0) + (openCounterEntry?.txCount ?? 0)
+
+    let usageCounterId: string | null = null
+
+    if (openCounterEntry) {
+      const snapshot = {
+        id: openCounterEntry.id,
+        businessId: openCounterEntry.businessId,
+        billingPeriodStart: new Date(openCounterEntry.billingPeriodStart),
+        billingPeriodEnd: new Date(openCounterEntry.billingPeriodEnd),
+        txCount: openCounterEntry.txCount,
+        overageTxCount: openCounterEntry.overageTxCount,
+        isClosed: openCounterEntry.isClosed,
+      }
+
+      const incrementResult = UsageEngine.increment(snapshot, includedTxPerMonth, overageBillingEnabled)
+
+      if (!incrementResult.ok) {
+        // TX allowance exhausted and overage billing is disabled — block the checkout
+        throw new Error(incrementResult.reason)
+      }
+
+      const updated = incrementResult.value
+      usageCounterCollection.update(openCounterEntry.id, draft => {
+        draft.txCount = updated.txCount
+        draft.overageTxCount = updated.overageTxCount
+        draft.updatedAt = new Date()
+      })
+      usageCounterId = openCounterEntry.id
+    } else {
+      // No open counter found in the collection (e.g. start of a new period,
+      // or collection not yet synced). Create a new counter entry locally.
+      // The server-side sync will upsert this into the DB.
+      const now = new Date()
+      // Use a placeholder period if subscription dates are unavailable
+      const periodStart = now
+      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate())
+
+      const newCounterId = crypto.randomUUID()
+      usageCounterCollection.insert({
+        id: newCounterId,
+        businessId,
+        billingPeriodStart: periodStart,
+        billingPeriodEnd: periodEnd,
+        txCount: 1,
+        overageTxCount: 0,
+        isClosed: false,
+        createdAt: now,
+        updatedAt: now,
+      })
+      usageCounterId = newCounterId
+    }
+
+    // --- 5b. DEDUCT CREDIT (Phase 3 — PREPAID_CREDITS billing model only) ---
+    // Credit deduction is conditional on the billing model. For MONTHLY_SUBSCRIPTION
+    // and HYBRID, this block is skipped entirely — zero performance cost.
+    //
+    // The collection holds on-demand-synced CreditLedger entries. The latest
+    // entry's balanceAfter is the current balance (O(1) read — no SUM query).
+    // The deduction inserts a new CONSUMED entry and posts a low-balance
+    // notification asynchronously after the dbTransaction callback returns.
+    //
+    // NOTE (R2 — Phase 3 known limitation): Two concurrent checkouts may both
+    // pass the balance check before either insert commits (race condition).
+    // See CreditEngine.deduct() for the full explanation and mitigation note.
+
+    const billingModel = (subscription as { billingModel?: string } | undefined)?.billingModel
+    let pendingCreditEntry: import('../billing/credit-engine').CreditLedgerEntryDTO | null = null
+    let creditIsLowBalance = false
+
+    if (billingModel === BillingModel.PREPAID_CREDITS) {
+      // Read the latest CreditLedger entry from the on-demand collection.
+      // If the collection is empty (not yet synced), the balance is treated as
+      // zero (deduction is blocked). The user must top up or wait for sync.
+      const ledgerEntries = [...creditLedgerCollection.values()]
+        .filter(e => e.businessId === businessId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      const latestEntry = ledgerEntries[0] ?? null
+
+      // Read the low-balance threshold from systemConfigs (already loaded).
+      const rawThreshold = (user.systemConfigs as Record<string, unknown>)['CREDIT_LOW_BALANCE_THRESHOLD']
+      const lowBalanceThreshold = typeof rawThreshold === 'number' ? rawThreshold : Number(rawThreshold ?? 10)
+
+      const creditResult = CreditEngine.deduct(
+        businessId,
+        latestEntry ? { balanceAfter: latestEntry.balanceAfter } : null,
+        transactionId, // the transaction ID being created in this dbTransaction
+        lowBalanceThreshold,
+      )
+
+      if (!creditResult.ok) {
+        // Balance is zero — block the checkout
+        throw new Error(creditResult.reason)
+      }
+
+      pendingCreditEntry = creditResult.value.entry
+      creditIsLowBalance = creditResult.value.isLowBalance
+
+      // Insert the CONSUMED ledger entry into the local collection.
+      // The server-side sync will persist it to the DB.
+      creditLedgerCollection.insert({
+        id: crypto.randomUUID(),
+        businessId: pendingCreditEntry.businessId,
+        eventType: pendingCreditEntry.eventType as import('prisma/generated/prisma/browser').CreditEventType,
+        amount: pendingCreditEntry.amount,
+        balanceAfter: pendingCreditEntry.balanceAfter,
+        transactionId: pendingCreditEntry.transactionId,
+        note: pendingCreditEntry.note,
+        actorId: pendingCreditEntry.actorId,
+        createdAt: new Date(),
+      })
+    }
+
     const transaction = {
-      id: crypto.randomUUID(),
+      id: transactionId,
       invoiceNo: fetchStructuredId(SequenceType.INVOICE),
       orderId,
       type: TransactionType.SALE,
@@ -204,6 +354,8 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       providerId: null,
       sessionId: null,
       originalTransactionId: null,
+      // Phase 2 — link transaction to its UsageCounter for audit and reporting
+      usageCounterId,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
@@ -296,12 +448,26 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       transaction,
       payments,
       order: { ...order, items },
+      creditIsLowBalance,
+      creditBalanceAfter: pendingCreditEntry?.balanceAfter ?? null,
     }
   })
 
   if (result.isErr()) {
     console.error('Transaction failed:', result.error.message)
     return { error: result.error }
+  }
+
+  // --- POST-TRANSACTION: fire async notifications ---
+  // These run after the dbTransaction has committed locally. They do not
+  // block the checkout response and never throw to the caller.
+  if (result.value.creditIsLowBalance && result.value.creditBalanceAfter !== null) {
+    const rawThreshold = (user.systemConfigs as Record<string, unknown>)['CREDIT_LOW_BALANCE_THRESHOLD']
+    const lowBalanceThreshold = typeof rawThreshold === 'number' ? rawThreshold : Number(rawThreshold ?? 10)
+    // Fire-and-forget — notification failures must not break checkout
+    NotificationEngine.sendCreditLowBalance(result.value.creditBalanceAfter, lowBalanceThreshold).catch(err =>
+      console.warn('[createPosTransaction] Credit low-balance notification failed:', err),
+    )
   }
 
   return {
