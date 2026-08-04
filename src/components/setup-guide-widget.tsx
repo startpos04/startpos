@@ -297,7 +297,7 @@ interface MiniProgressProps {
   total: number
 }
 
-function MiniProgress({ pct, resolved, total }: MiniProgressProps) {
+function MiniProgress({ pct }: MiniProgressProps) {
   const r = 9
   const circumference = 2 * Math.PI * r
   const offset = circumference - (pct / 100) * circumference
