@@ -3,9 +3,10 @@ import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { AppWrapper } from '@/components/custom/app-wrapper'
 import Loading from '@/components/custom/loading'
-import { SubscriptionBanner } from '@/components/subscription-banner'
+import { SetupGuideWidget } from '@/components/setup-guide-widget'
 import { localAuthCollection } from '@/db/local-auth'
 import { useIsOnline } from '@/hooks/use-is-online'
+import { useTutorialContext } from '@/hooks/use-tutorials'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import MountManager from '@/lib/mount-manager'
 import { authStore } from '@/store/auth-store'
@@ -23,6 +24,7 @@ function RouteComponent() {
   const { user } = Route.useRouteContext()
   const navigate = useNavigate({ from: '/' })
   const localAuths = useLiveQuery(q => q.from({ localAuth: localAuthCollection }).select(({ localAuth }) => localAuth))
+  const tutorialContext = useTutorialContext()
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: it will cause  Maximum update depth exceeded error
   useEffect(() => {
@@ -54,10 +56,11 @@ function RouteComponent() {
   return (
     <div className='flex flex-col min-h-screen'>
       {/* SubscriptionBanner renders only when status warrants it (grace, expired, trial countdown) */}
-      <SubscriptionBanner />
       <div className='flex-1 flex flex-col min-h-0'>
         <Outlet />
       </div>
+      {/* Setup guide — Stripe-style floating widget, visible on every private page */}
+      {tutorialContext && <SetupGuideWidget context={tutorialContext} />}
     </div>
   )
 }

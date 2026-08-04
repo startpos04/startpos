@@ -17,7 +17,7 @@
  */
 
 import { useMutation } from '@tanstack/react-query'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import {
   AlertTriangleIcon,
@@ -54,12 +54,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
+import { getAuthUser } from '@/lib/better-auth/auth-server'
 import { SubscriptionPolicy } from '@/lib/billing/policies/subscription-policy'
 import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
 import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
 import { cancelSubscription } from '@/lib/queries/cancel-subscription'
+import { createBillingPortalSession } from '@/lib/queries/create-billing-portal-session'
 import { cn } from '@/lib/utils'
-import { authStore } from '@/store/auth-store'
+import { authStore, refreshUser } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing/')({
   component: BillingDashboard,
@@ -221,7 +223,7 @@ function BillingDashboard() {
               )}
 
               {/* Billing period */}
-              {status === SubscriptionStatus.ACTIVE && periodEnd && (
+              {status === SubscriptionStatus.ACTIVE && periodEnd && !entitlement?.cancelledAt && (
                 <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                   <CalendarIcon className='h-4 w-4 shrink-0' />
                   <span>
@@ -230,10 +232,39 @@ function BillingDashboard() {
                 </div>
               )}
 
+              {/* Cancellation scheduled — status is still ACTIVE but cancelledAt is set (end-of-period cancel) */}
+              {status === SubscriptionStatus.ACTIVE && entitlement?.cancelledAt && (
+                <div className='flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 dark:border-amber-800/60 dark:bg-amber-950/20'>
+                  <AlertTriangleIcon className='h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5' />
+                  <div className='text-sm'>
+                    <p className='font-medium text-amber-900 dark:text-amber-300'>Cancellation scheduled</p>
+                    <p className='text-amber-800/80 dark:text-amber-400/80 mt-0.5'>
+                      Your subscription is active until{' '}
+                      <span className='font-medium'>{periodEnd ? formatDate(periodEnd) : 'the end of your billing period'}</span>. After that, access to
+                      operational features will be restricted.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Fully cancelled — status is CANCELLED */}
+              {status === SubscriptionStatus.CANCELLED && (
+                <div className='flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5'>
+                  <XCircleIcon className='h-4 w-4 text-destructive shrink-0 mt-0.5' />
+                  <div className='text-sm'>
+                    <p className='font-medium text-destructive'>Subscription cancelled</p>
+                    <p className='text-muted-foreground mt-0.5'>
+                      Operational features are currently restricted. Reactivate your subscription to restore access — you can pick any plan including your
+                      previous one.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <Separator />
 
               {/* CTA section */}
-              <BillingCTAs status={status} isBlocked={isBlocked} />
+              <BillingCTAs status={status} isBlocked={isBlocked} cancelledAt={entitlement?.cancelledAt} />
             </CardContent>
           </Card>
 
@@ -403,12 +434,21 @@ function BillingDashboard() {
               <CardTitle className='text-sm font-semibold'>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className='flex flex-col gap-2'>
-              <Button size='sm' variant='outline' className='w-full justify-start' asChild>
-                <Link to={'/billing/plans'}>
-                  <CreditCardIcon className='h-3.5 w-3.5 mr-2' />
-                  {status === SubscriptionStatus.TRIAL ? 'Upgrade plan' : 'Change plan'}
-                </Link>
-              </Button>
+              {status === SubscriptionStatus.CANCELLED ? (
+                <Button size='sm' variant='default' className='w-full justify-start' asChild>
+                  <Link to={'/billing/plans'}>
+                    <RefreshCwIcon className='h-3.5 w-3.5 mr-2' />
+                    Reactivate subscription
+                  </Link>
+                </Button>
+              ) : (
+                <Button size='sm' variant='outline' className='w-full justify-start' asChild>
+                  <Link to={'/billing/plans'}>
+                    <CreditCardIcon className='h-3.5 w-3.5 mr-2' />
+                    {status === SubscriptionStatus.TRIAL ? 'Upgrade plan' : 'Change plan'}
+                  </Link>
+                </Button>
+              )}
               <Button size='sm' variant='outline' className='w-full justify-start' asChild>
                 <Link to={'/billing/pricing'}>
                   <ZapIcon className='h-3.5 w-3.5 mr-2' />
@@ -574,18 +614,32 @@ function ActiveAddons() {
 // Cancel confirmation uses AlertDialog to prevent accidental cancellation.
 // ---------------------------------------------------------------------------
 
-function BillingCTAs({ status, isBlocked }: { status: SubscriptionStatus; isBlocked: boolean }) {
-  const navigate = useNavigate()
+function BillingCTAs({ status, isBlocked, cancelledAt }: { status: SubscriptionStatus; isBlocked: boolean; cancelledAt: string | null | undefined }) {
   const [cancelOpen, setCancelOpen] = useState(false)
 
   const cancelMutation = useMutation({
     mutationFn: () => cancelSubscription({ data: { immediate: false, reason: 'Business-initiated cancellation from billing dashboard.' } }),
-    onSuccess: result => {
-      if (result.success) {
-        // Reload the page to reflect the updated subscription status
-        navigate({ to: '/billing' })
+    onSuccess: async result => {
+      if (!result.success) {
+        toast.error('error' in result ? result.error : 'Cancellation failed.')
+        return
+      }
+      setCancelOpen(false)
+      // Refresh authStore so the billing page reflects the updated
+      // cancelledAt and any status change without a full page reload.
+      const freshUser = await getAuthUser()
+      if (freshUser) refreshUser(freshUser)
+
+      if (result.immediate) {
+        toast.success('Subscription cancelled. Access has been revoked.')
+      } else {
+        const until = result.accessUntil
+          ? new Date(result.accessUntil).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
+          : 'end of billing period'
+        toast.success(`Cancellation scheduled. You have access until ${until}.`)
       }
     },
+    onError: () => toast.error('Something went wrong. Please try again.'),
   })
 
   return (
@@ -610,8 +664,8 @@ function BillingCTAs({ status, isBlocked }: { status: SubscriptionStatus; isBloc
         </Button>
       )}
 
-      {/* Cancel subscription — shown when active or in grace period */}
-      {(status === SubscriptionStatus.ACTIVE || status === SubscriptionStatus.GRACE_PERIOD) && (
+      {/* Cancel subscription — only when ACTIVE and not already scheduled for cancellation */}
+      {status === SubscriptionStatus.ACTIVE && !cancelledAt && (
         <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
           <AlertDialogTrigger asChild>
             <Button size='sm' variant='ghost' className='text-muted-foreground hover:text-destructive'>
@@ -660,15 +714,33 @@ function BillingCTAs({ status, isBlocked }: { status: SubscriptionStatus; isBloc
         </Button>
       )}
 
-      {/* Grace period — update payment method */}
-      {status === SubscriptionStatus.GRACE_PERIOD && (
-        <Button size='sm' variant='outline' asChild>
-          <Link to={'/billing/invoices'}>
-            <CreditCardIcon className='h-4 w-4 mr-1.5' />
-            View Payment Status
-          </Link>
-        </Button>
-      )}
+      {/* Grace period — payment failed. Open Stripe portal to update payment method. */}
+      {status === SubscriptionStatus.GRACE_PERIOD && <GracePeriodPortalButton />}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// GracePeriodPortalButton
+// Opens the Stripe Billing Portal so the user can update their payment method.
+// ---------------------------------------------------------------------------
+function GracePeriodPortalButton() {
+  const portalMutation = useMutation({
+    mutationFn: () => createBillingPortalSession({ data: undefined }),
+    onSuccess: result => {
+      if (!result.success) {
+        toast.error('error' in result ? result.error : 'Could not open billing portal.')
+        return
+      }
+      window.location.href = result.url
+    },
+    onError: () => toast.error('Something went wrong. Please try again.'),
+  })
+
+  return (
+    <Button size='sm' onClick={() => portalMutation.mutate()} disabled={portalMutation.isPending} className='gap-1.5'>
+      <CreditCardIcon className='h-4 w-4' />
+      {portalMutation.isPending ? 'Opening…' : 'Update Payment Method'}
+    </Button>
   )
 }

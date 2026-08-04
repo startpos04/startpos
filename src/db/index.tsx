@@ -233,14 +233,18 @@ export async function clearLocalDatabase(): Promise<void> {
   if (!localDB) return
 
   try {
-    // Discover every table currently in the database
     const tables = await localDB.execute<{ name: string }>(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`)
 
-    // Drop each table so all persisted rows are gone
     for (const { name } of tables) {
       await localDB.execute(`DROP TABLE IF EXISTS "${name}"`)
     }
   } catch (err) {
-    console.error('[clearLocalDatabase] Failed to clear local DB:', err)
+    // OPFS removeEntry errors are expected during cross-origin navigations
+    // (e.g. Stripe redirect back) where the browser tears down the OPFS
+    // worker mid-operation. Non-fatal — the DB recovers on next load.
+    const message = err instanceof Error ? err.message : String(err)
+    if (!message.includes('removeEntry') && !message.includes('modifications are not allowed')) {
+      console.error('[clearLocalDatabase] Failed to clear local DB:', err)
+    }
   }
 }

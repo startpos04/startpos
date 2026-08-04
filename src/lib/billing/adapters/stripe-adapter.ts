@@ -121,47 +121,35 @@ class StripeAdapter implements BillingProviderAdapter {
 
   // -------------------------------------------------------------------------
   // createSubscription
+  // Uses a Stripe Checkout Session (mode: 'subscription') so the customer
+  // gets a real hosted payment page. Stripe redirects to successUrl after
+  // payment and fires invoice.paid + customer.subscription.updated webhooks.
   // -------------------------------------------------------------------------
   async createSubscription(params: {
     externalCustomerId: string
     externalPriceId: string
     metadata: Record<string, string>
+    successUrl: string
+    cancelUrl: string
   }): Promise<CreateSubscriptionResult> {
-    const subscription = await this.client.subscriptions.create({
+    const session = await this.client.checkout.sessions.create({
       customer: params.externalCustomerId,
-      items: [{ price: params.externalPriceId }],
-      payment_behavior: 'default_incomplete',
-      payment_settings: { save_default_payment_method: 'on_subscription' },
-      expand: ['latest_invoice.payment_intent'],
-      metadata: params.metadata,
+      mode: 'subscription',
+      line_items: [{ price: params.externalPriceId, quantity: 1 }],
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
+      subscription_data: { metadata: params.metadata },
     })
 
-    // Build a checkout URL from the payment intent client secret if present.
-    let checkoutUrl: string | null = null
-    const latestInvoice = subscription.latest_invoice
-    if (latestInvoice && typeof latestInvoice === 'object') {
-      // payment_intent is not typed on all Invoice variants — use unknown cast
-      const inv = latestInvoice as unknown as Record<string, unknown>
-      const pi = inv['payment_intent']
-      if (pi && typeof pi === 'object') {
-        const piObj = pi as Record<string, unknown>
-        const secret = piObj['client_secret']
-        if (typeof secret === 'string') {
-          checkoutUrl = secret
-        }
-      }
-    }
-
-    // current_period_start/end live on the subscription item for newer API versions
-    const firstItem = subscription.items?.data?.[0]
-    const periodStart = firstItem?.current_period_start ?? 0
-    const periodEnd = firstItem?.current_period_end ?? 0
-
     return {
-      externalSubscriptionId: subscription.id,
-      checkoutUrl,
-      currentPeriodStart: new Date(periodStart * 1000),
-      currentPeriodEnd: new Date(periodEnd * 1000),
+      // The subscription is not yet created at this point — Stripe creates it
+      // after payment. We store the session ID temporarily; the webhook handler
+      // will receive the real subscription ID via customer.subscription.updated.
+      externalSubscriptionId: session.id,
+      checkoutUrl: session.url ?? null,
+      // Period dates are not known yet — set to epoch; webhook will update them.
+      currentPeriodStart: new Date(0),
+      currentPeriodEnd: new Date(0),
     }
   }
 
@@ -224,6 +212,17 @@ class StripeAdapter implements BillingProviderAdapter {
   }
 
   // -------------------------------------------------------------------------
+  // createCustomerPortalSession
+  // -------------------------------------------------------------------------
+  async createCustomerPortalSession(params: { externalCustomerId: string; returnUrl: string }): Promise<{ url: string }> {
+    const session = await this.client.billingPortal.sessions.create({
+      customer: params.externalCustomerId,
+      return_url: params.returnUrl,
+    })
+    return { url: session.url }
+  }
+
+  // -------------------------------------------------------------------------
   // getInvoice
   // -------------------------------------------------------------------------
   async getInvoice(externalInvoiceId: string): Promise<ProviderInvoice> {
@@ -263,6 +262,10 @@ class StripeAdapter implements BillingProviderAdapter {
       case 'invoice.paid':
       case 'invoice.payment_failed': {
         const inv = event.data.object as Stripe.Invoice
+        // Pull subscription metadata for businessId fallback lookup.
+        // subscription_details.metadata is available on newer API versions;
+        // fall back to empty object if not present.
+        const subMeta = (inv as Stripe.Invoice & { subscription_details?: { metadata?: Record<string, string> } }).subscription_details?.metadata ?? {}
         return {
           ...base,
           invoice: {
@@ -275,6 +278,7 @@ class StripeAdapter implements BillingProviderAdapter {
             paidAt: inv.status_transitions?.paid_at ? new Date(inv.status_transitions.paid_at * 1000) : null,
             hostedInvoiceUrl: inv.hosted_invoice_url ?? null,
             pdfUrl: inv.invoice_pdf ?? null,
+            metadata: subMeta,
           },
         }
       }
@@ -294,6 +298,7 @@ class StripeAdapter implements BillingProviderAdapter {
             currentPeriodStart: new Date(periodStart * 1000),
             currentPeriodEnd: new Date(periodEnd * 1000),
             cancelledAt: sub.canceled_at ? new Date(sub.canceled_at * 1000) : null,
+            metadata: (sub.metadata as Record<string, string>) ?? {},
           },
         }
       }

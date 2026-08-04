@@ -158,6 +158,18 @@ async function handleInvoicePaid(event: WebhookEvent): Promise<WebhookProcessing
       })
     : null
 
+  // Fallback: externalId may not be set yet if customer.subscription.created
+  // hasn't been processed before invoice.paid fires. Look up by businessId
+  // from the invoice metadata if available.
+  const resolvedSubscription =
+    subscription ??
+    (inv.metadata?.['businessId']
+      ? await rootPrisma.businessSubscription.findFirst({
+          where: { businessId: inv.metadata['businessId'] },
+          select: { id: true, status: true, businessId: true },
+        })
+      : null)
+
   const now = new Date()
 
   await rootPrisma.$transaction(async tx => {
@@ -172,16 +184,18 @@ async function handleInvoicePaid(event: WebhookEvent): Promise<WebhookProcessing
       })
     }
 
-    if (subscription && subscription.status !== SubscriptionStatus.ACTIVE) {
+    if (resolvedSubscription && resolvedSubscription.status !== SubscriptionStatus.ACTIVE) {
       const canTransition = SubscriptionEngine.canTransition(
-        subscription.status as (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus],
+        resolvedSubscription.status as (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus],
         SubscriptionStatus.ACTIVE,
       )
       if (canTransition.ok) {
         await tx.businessSubscription.update({
-          where: { id: subscription.id },
+          where: { id: resolvedSubscription.id },
           data: {
             status: SubscriptionStatus.ACTIVE as SubscriptionStatusEnum,
+            // Write externalId now if it wasn't set yet
+            ...(inv.externalSubscriptionId ? { externalId: inv.externalSubscriptionId } : {}),
             activatedAt: now,
             gracePeriodEndsAt: null,
             expiredAt: null,
@@ -190,8 +204,8 @@ async function handleInvoicePaid(event: WebhookEvent): Promise<WebhookProcessing
         })
         await tx.subscriptionStatusHistory.create({
           data: {
-            subscriptionId: subscription.id,
-            fromStatus: subscription.status as SubscriptionStatusEnum,
+            subscriptionId: resolvedSubscription.id,
+            fromStatus: resolvedSubscription.status as SubscriptionStatusEnum,
             toStatus: SubscriptionStatus.ACTIVE as SubscriptionStatusEnum,
             reason: `Payment confirmed via invoice ${inv.externalInvoiceId}.`,
             triggeredBy: TransitionTrigger.PAYMENT,
@@ -325,8 +339,10 @@ async function handleSubscriptionDeleted(event: WebhookEvent): Promise<WebhookPr
 // ---------------------------------------------------------------------------
 // handleSubscriptionUpdated
 // Syncs billing period dates; handles status changes from provider.
-// Uses a typed update object instead of Record<string, unknown> to satisfy
-// Prisma's exactOptionalPropertyTypes constraint.
+// Also handles first-time activation: when a hosted checkout session completes,
+// Stripe creates the real subscription and fires this event. At that point
+// BusinessSubscription.externalId is still null, so we look up by businessId
+// from the subscription metadata and write externalId for the first time.
 // ---------------------------------------------------------------------------
 async function handleSubscriptionUpdated(event: WebhookEvent): Promise<WebhookProcessingResult> {
   const sub = event.subscription
@@ -334,10 +350,46 @@ async function handleSubscriptionUpdated(event: WebhookEvent): Promise<WebhookPr
     return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: 'No subscription payload' }
   }
 
-  const subscription = await rootPrisma.businessSubscription.findFirst({
+  // Primary lookup: find by the real Stripe subscription ID
+  let subscription = await rootPrisma.businessSubscription.findFirst({
     where: { externalId: sub.externalSubscriptionId },
     select: { id: true, status: true, businessId: true, currentPeriodEnd: true },
   })
+
+  // Fallback 1: first-time activation — externalId not yet written.
+  // create-subscription.ts stores businessId in subscription metadata.
+  if (!subscription && sub.metadata['businessId']) {
+    subscription = await rootPrisma.businessSubscription.findFirst({
+      where: { businessId: sub.metadata['businessId'] },
+      select: { id: true, status: true, businessId: true, currentPeriodEnd: true },
+    })
+  }
+
+  // Fallback 2: portal payment retry — metadata may be empty.
+  // Stripe puts businessId on the customer record too (createCustomer in the adapter).
+  // Look it up from the customer metadata via the Stripe API.
+  if (!subscription && sub.externalCustomerId) {
+    const customerMetaBusinessId = await (async () => {
+      try {
+        const secretKey = process.env['STRIPE_SECRET_KEY']
+        if (!secretKey) return null
+        const Stripe = (await import('stripe')).default
+        const stripe = new Stripe(secretKey)
+        const customer = await stripe.customers.retrieve(sub.externalCustomerId)
+        if (customer.deleted) return null
+        return (customer.metadata as Record<string, string>)['businessId'] ?? null
+      } catch {
+        return null
+      }
+    })()
+
+    if (customerMetaBusinessId) {
+      subscription = await rootPrisma.businessSubscription.findFirst({
+        where: { businessId: customerMetaBusinessId },
+        select: { id: true, status: true, businessId: true, currentPeriodEnd: true },
+      })
+    }
+  }
 
   if (!subscription) {
     return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: 'Subscription not found' }
@@ -368,10 +420,13 @@ async function handleSubscriptionUpdated(event: WebhookEvent): Promise<WebhookPr
 
   await rootPrisma.$transaction(async tx => {
     if (shouldTransition && targetStatus) {
-      // Write status update + date sync in a single update
+      // Write status update + date sync in a single update.
+      // Also set externalId if this is the first time we're seeing this subscription
+      // (first-time activation via hosted checkout — externalId was null until now).
       await tx.businessSubscription.update({
         where: { id: subscription.id },
         data: {
+          externalId: sub.externalSubscriptionId,
           currentPeriodStart: sub.currentPeriodStart,
           currentPeriodEnd: sub.currentPeriodEnd,
           status: targetStatus as SubscriptionStatusEnum,
@@ -389,10 +444,11 @@ async function handleSubscriptionUpdated(event: WebhookEvent): Promise<WebhookPr
         },
       })
     } else {
-      // Just sync period dates, no status change
+      // Just sync period dates and externalId, no status change
       await tx.businessSubscription.update({
         where: { id: subscription.id },
         data: {
+          externalId: sub.externalSubscriptionId,
           currentPeriodStart: sub.currentPeriodStart,
           currentPeriodEnd: sub.currentPeriodEnd,
           updatedAt: now,

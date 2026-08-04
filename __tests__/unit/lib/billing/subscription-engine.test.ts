@@ -69,6 +69,7 @@ describe('SubscriptionEngine.canTransition — valid transitions', () => {
   const validEdges: [SubscriptionStatus, SubscriptionStatus][] = [
     // From TRIAL
     [SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE],
+    [SubscriptionStatus.TRIAL, SubscriptionStatus.GRACE_PERIOD], // Stripe checkout path
     [SubscriptionStatus.TRIAL, SubscriptionStatus.EXPIRED],
     [SubscriptionStatus.TRIAL, SubscriptionStatus.CANCELLED],
     [SubscriptionStatus.TRIAL, SubscriptionStatus.SUSPENDED],
@@ -114,7 +115,6 @@ describe('SubscriptionEngine.canTransition — invalid transitions', () => {
     [SubscriptionStatus.EXPIRED, SubscriptionStatus.EXPIRED],
     [SubscriptionStatus.CANCELLED, SubscriptionStatus.CANCELLED],
     // Skipping states
-    [SubscriptionStatus.TRIAL, SubscriptionStatus.GRACE_PERIOD],
     [SubscriptionStatus.TRIAL, SubscriptionStatus.LONG_TERM_INACTIVE],
     [SubscriptionStatus.ACTIVE, SubscriptionStatus.LONG_TERM_INACTIVE],
     [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
@@ -457,16 +457,18 @@ describe('SubscriptionEngine.getValidNextStates', () => {
   it('returns the correct set for TRIAL', () => {
     const states = SubscriptionEngine.getValidNextStates(SubscriptionStatus.TRIAL)
     expect(states).toContain(SubscriptionStatus.ACTIVE)
+    expect(states).toContain(SubscriptionStatus.GRACE_PERIOD) // Stripe checkout path
     expect(states).toContain(SubscriptionStatus.EXPIRED)
     expect(states).toContain(SubscriptionStatus.CANCELLED)
     expect(states).toContain(SubscriptionStatus.SUSPENDED)
     expect(states).not.toContain(SubscriptionStatus.TRIAL)
-    expect(states).not.toContain(SubscriptionStatus.GRACE_PERIOD)
   })
 
-  it('returns only ACTIVE for CANCELLED', () => {
+  it('returns ACTIVE and GRACE_PERIOD for CANCELLED (resubscribe paths)', () => {
     const states = SubscriptionEngine.getValidNextStates(SubscriptionStatus.CANCELLED)
-    expect(states).toEqual([SubscriptionStatus.ACTIVE])
+    expect(states).toHaveLength(2)
+    expect(states).toContain(SubscriptionStatus.ACTIVE)
+    expect(states).toContain(SubscriptionStatus.GRACE_PERIOD)
   })
 
   it('returns only ACTIVE and CANCELLED for LONG_TERM_INACTIVE', () => {

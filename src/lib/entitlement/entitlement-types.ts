@@ -181,4 +181,12 @@ export type EntitlementSummary = {
   currentPeriodEnd: string | null
   /** Active billing model — determines which payment card to show on /billing. */
   billingModel: BillingModelDomain | null
+  /**
+   * ISO string of when the subscription was cancelled (or scheduled to cancel).
+   * Set on both immediate and end-of-period cancellations.
+   * When status is still ACTIVE but cancelledAt is set, a "cancellation scheduled" indicator
+   * should be shown on the billing page.
+   * null = not cancelled.
+   */
+  cancelledAt: string | null
 }

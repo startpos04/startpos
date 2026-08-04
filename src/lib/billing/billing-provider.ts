@@ -117,6 +117,10 @@ export interface BillingProviderAdapter {
     externalPriceId: string
     /** Metadata for idempotency and lookup */
     metadata: Record<string, string>
+    /** URL to redirect to after successful payment */
+    successUrl: string
+    /** URL to redirect to if the user cancels */
+    cancelUrl: string
   }): Promise<CreateSubscriptionResult>
 
   /**
@@ -149,6 +153,14 @@ export interface BillingProviderAdapter {
    * Used by the invoice generation job to attach externalInvoiceId after creation.
    */
   getInvoice(externalInvoiceId: string): Promise<ProviderInvoice>
+
+  /**
+   * Create a Stripe Billing Portal session for the customer.
+   * Returns a URL that redirects the user to Stripe's hosted portal where
+   * they can update their payment method, view invoices, and manage their
+   * subscription. The user is redirected back to returnUrl after they finish.
+   */
+  createCustomerPortalSession(params: { externalCustomerId: string; returnUrl: string }): Promise<{ url: string }>
 
   /**
    * Verify the signature of an incoming webhook payload.
@@ -196,6 +208,8 @@ export type WebhookEvent = {
     paidAt: Date | null
     hostedInvoiceUrl: string | null
     pdfUrl: string | null
+    /** Metadata from the subscription or invoice — used to look up businessId when externalId is not yet set */
+    metadata: Record<string, string>
   }
 
   /** For customer.subscription.deleted / customer.subscription.updated */
@@ -206,6 +220,8 @@ export type WebhookEvent = {
     currentPeriodStart: Date
     currentPeriodEnd: Date
     cancelledAt: Date | null
+    /** Metadata attached to the subscription — used to link back to businessId on first activation */
+    metadata: Record<string, string>
   }
 
   /** For checkout.session.completed (credit package purchase) */

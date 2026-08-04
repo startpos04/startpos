@@ -85,6 +85,16 @@ export function createMockCollections() {
     notificationCollection: makeCollection('notification'),
     operationalTaskCollection: makeCollection('operationalTask'),
     vendorSessionCollection: makeCollection('vendorSession'),
+    // Phase E — Receiving Domain
+    goodsReceiptCollection: makeCollection('goodsReceipt'),
+    goodsReceiptItemCollection: makeCollection('goodsReceiptItem'),
+    // Phase F — Billing / Entitlement
+    businessSubscriptionCollection: makeCollection('businessSubscription'),
+    usageCounterCollection: makeCollection('usageCounter'),
+    creditLedgerCollection: makeCollection('creditLedger'),
+    featureCollection: makeCollection('feature'),
+    featureDependencyCollection: makeCollection('featureDependency'),
+    featureBundleCollection: makeCollection('featureBundle'),
   }
 }
 

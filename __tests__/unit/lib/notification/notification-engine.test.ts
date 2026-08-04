@@ -364,13 +364,16 @@ describe('NotificationEngine.checkLowStock — threshold breach', () => {
     expect(tasks.insert).toHaveBeenCalledOnce()
   })
 
-  it('sets SHELF_REFILL task type and PENDING status', async () => {
+  it('sets SHELF_REFILL task type and IN_PROGRESS status (auto-approved by default)', async () => {
+    // InventoryEngine.handleLowStockDetected defaults autoApproveLowStockRefill=true,
+    // so auto-generated SHELF_REFILL tasks enter IN_PROGRESS immediately.
+    // PENDING status requires AUTO_APPROVE_LOW_STOCK_REFILL=false in systemConfigs.
     const { variantId } = makeVariantWithInventory({ quantity: 2, lowStockThreshold: 5 })
     seedAdmin()
     await NotificationEngine.checkLowStock([variantId])
     const task = tasks.insert.mock.calls[0]![0] as any
     expect(task.type).toBe(TaskType.SHELF_REFILL)
-    expect(task.status).toBe(TaskStatus.PENDING)
+    expect(task.status).toBe(TaskStatus.IN_PROGRESS)
   })
 
   it('task metadata contains variantId and currentTotal', async () => {

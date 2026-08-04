@@ -60,8 +60,8 @@ function assertCollection(apiKey: string, expectedSyncMode: 'eager' | 'on-demand
   const opts = capturedCalls.get(apiKey)
   expect(opts, `Missing collection: ${apiKey}`).toBeDefined()
   expect(opts!.syncMode).toBe(expectedSyncMode)
-  // Phase E bumped SCHEMA_VERSION from 10 → 11 (GoodsReceipt + GoodsReceiptItem added)
-  expect(opts!.schemaVersion).toBe(11)
+  // Phase F reset SCHEMA_VERSION to 2 (billing collections added, fresh migration)
+  expect(opts!.schemaVersion).toBe(2)
 }
 
 // ---------------------------------------------------------------------------
@@ -115,6 +115,19 @@ describe('collections — eager syncMode (master data)', () => {
 
   it('customerCollection has apiKey="customer" and syncMode="eager"', () => {
     assertCollection('customer', 'eager')
+  })
+
+  // Phase F — Billing collections (eager: needed at session load for entitlement)
+  it('businessSubscriptionCollection has apiKey="businessSubscription" and syncMode="eager"', () => {
+    assertCollection('businessSubscription', 'eager')
+  })
+
+  it('usageCounterCollection has apiKey="usageCounter" and syncMode="eager"', () => {
+    assertCollection('usageCounter', 'eager')
+  })
+
+  it('featureCollection has apiKey="feature" and syncMode="eager"', () => {
+    assertCollection('feature', 'eager')
   })
 })
 
@@ -191,6 +204,19 @@ describe('collections — on-demand syncMode (transactional data)', () => {
   it('goodsReceiptItemCollection has apiKey="goodsReceiptItem" and syncMode="on-demand"', () => {
     assertCollection('goodsReceiptItem', 'on-demand')
   })
+
+  // Phase F — Billing / Entitlement (on-demand)
+  it('creditLedgerCollection has apiKey="creditLedger" and syncMode="on-demand"', () => {
+    assertCollection('creditLedger', 'on-demand')
+  })
+
+  it('featureDependencyCollection has apiKey="featureDependency" and syncMode="on-demand"', () => {
+    assertCollection('featureDependency', 'on-demand')
+  })
+
+  it('featureBundleCollection has apiKey="featureBundle" and syncMode="on-demand"', () => {
+    assertCollection('featureBundle', 'on-demand')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -198,8 +224,16 @@ describe('collections — on-demand syncMode (transactional data)', () => {
 // ---------------------------------------------------------------------------
 
 describe('collections — completeness', () => {
-  // Phase E added goodsReceipt + goodsReceiptItem (27 → 29)
-  it('registers exactly 29 collections', () => {
-    expect(capturedCalls.size).toBe(29)
+  // Source has 35 collections after Phase F billing additions:
+  // Eager (15): business, branch, category, unit, product, productVariant, productComponent,
+  //             sequenceCounter, user, location, supplier, customer,
+  //             businessSubscription, usageCounter, feature
+  // On-demand (20): creditLedger, membership, session, inventory, inventoryMovement,
+  //                 transaction, transactionTaxLine, payment, order, orderItem,
+  //                 orderItemAddon, purchase, purchaseItem, notification, operationalTask,
+  //                 vendorSession, goodsReceipt, goodsReceiptItem,
+  //                 featureDependency, featureBundle
+  it('registers exactly 35 collections', () => {
+    expect(capturedCalls.size).toBe(35)
   })
 })

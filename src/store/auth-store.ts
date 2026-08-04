@@ -14,8 +14,25 @@ export const authStore = new Store<AuthState>(defaultValue)
 
 export const setUser = (user: ServerUser) => {
   authStore.setState(state => {
+    // Do not overwrite an already-authenticated user — prevents accidental
+    // re-seeding when multiple components call setUser on the same session.
+    if (state.isAuthenticated && state.user?.id) return state
     return user ? { ...state, isAuthenticated: true, user } : defaultValue
   })
+}
+
+/**
+ * refreshUser — force-overwrites the current user in the store.
+ * Use this after server-side state changes (Stripe webhook, cancel, etc.)
+ * where the entitlement/subscription data needs to be re-read from the server.
+ * Unlike setUser, this bypasses the "already authenticated" guard.
+ */
+export const refreshUser = (user: ServerUser) => {
+  authStore.setState(state => ({
+    ...state,
+    isAuthenticated: true,
+    user,
+  }))
 }
 
 export const resetAuth = () => {

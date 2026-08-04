@@ -315,6 +315,19 @@ model Account {
   @@map("accounts")
 }
 
+// Need for better auth management — used for email verification tokens and OAuth state.
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+
+  @@map("verifications")
+}
+
 // --- PRODUCT & RESOURCE ENGINE ---
 enum ResourceType {
   PHYSICAL_GOOD

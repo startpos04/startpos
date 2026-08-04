@@ -132,6 +132,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
           gracePeriodEndsAt: true,
           expiredAt: true,
           longTermInactiveAt: true,
+          cancelledAt: true,
           plan: {
             select: {
               includedTxPerMonth: true,
@@ -373,6 +374,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
           trialEndsAt: businessSubscription.trialEndsAt ?? null,
           currentPeriodEnd: businessSubscription.currentPeriodEnd ?? null,
           billingModel: (businessSubscription.billingModel ?? null) as import('../entitlement/entitlement-types').BillingModelDomain | null,
+          cancelledAt: businessSubscription.cancelledAt ?? null,
         }
       : undefined
 

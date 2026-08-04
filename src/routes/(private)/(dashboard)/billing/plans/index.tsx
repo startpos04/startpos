@@ -115,24 +115,34 @@ function PlansPage() {
   })
 
   const subscriptionMutation = useMutation({
-    mutationFn: (planId: string) => createSubscription({ data: { planId } }),
+    mutationFn: (planId: string) =>
+      createSubscription({
+        data: {
+          planId,
+          billingInterval: billingMethod === 'annual' ? 'annual' : 'monthly',
+          billingModel: billingMethod === 'credits' ? 'PREPAID_CREDITS' : undefined,
+        },
+      }),
     onSuccess: (result, planId) => {
       if (!result.success) {
         toast.error(result.error)
         return
       }
       if (result.checkoutUrl) {
-        // Stripe will redirect back to /billing/success after payment completes.
-        // Store the plan name in sessionStorage so the success page can read it
-        // after the Stripe redirect (search params survive the redirect).
         window.location.href = result.checkoutUrl
         return
       }
-      // Subscription activated without Stripe redirect (e.g. trial or auto-collect)
+      // Subscription activated without Stripe redirect (e.g. free plan or auto-collect)
       toast.success('Subscription activated!')
       const planName = plans.find(p => p.id === planId)?.name ?? 'your plan'
-      // biome-ignore lint/suspicious/noExplicitAny: /billing/success added; routeTree.gen.ts regeneration required
-      navigate({ to: '/billing/success' as any, search: { plan: planName, billing: billingMethod } as any })
+      if (billingMethod === 'credits') {
+        // Send directly to credits top-up page so they can buy their first package
+        // biome-ignore lint/suspicious/noExplicitAny: route not yet in routeTree.gen.ts
+        navigate({ to: '/billing/credits' as any })
+      } else {
+        // biome-ignore lint/suspicious/noExplicitAny: /billing/success added; routeTree.gen.ts regeneration required
+        navigate({ to: '/billing/success' as any, search: { plan: planName, billing: billingMethod } as any })
+      }
     },
     onError: () => toast.error('Something went wrong. Please try again.'),
     onSettled: () => setSelectingPlanId(null),
@@ -140,14 +150,6 @@ function PlansPage() {
 
   const handleSelectPlan = (plan: PlanWithEntitlements) => {
     setSelectingPlanId(plan.id)
-    if (billingMethod === 'credits') {
-      // Credits mode: navigate to /billing/success which has the add-on upsell,
-      // then the user can buy credits from /billing/credits.
-      setSelectingPlanId(null)
-      // biome-ignore lint/suspicious/noExplicitAny: /billing/success added; routeTree.gen.ts regeneration required
-      navigate({ to: '/billing/success' as any, search: { plan: plan.name, billing: 'credits' } as any })
-      return
-    }
     subscriptionMutation.mutate(plan.id)
   }
 
@@ -169,28 +171,36 @@ function PlansPage() {
       </div>
 
       {/* Billing method toggle */}
-      <div className='flex items-center gap-1 p-1 bg-muted rounded-lg w-fit'>
-        {BILLING_METHODS.map(method => (
-          <button
-            key={method.value}
-            type='button'
-            onClick={() => setBillingMethod(method.value)}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
-              billingMethod === method.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {method.value === 'monthly' && <ZapIcon className='h-3.5 w-3.5' />}
-            {method.value === 'annual' && <SparklesIcon className='h-3.5 w-3.5' />}
-            {method.value === 'credits' && <CreditCardIcon className='h-3.5 w-3.5' />}
-            {method.label}
-            {method.badge && (
-              <Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-4 font-semibold text-emerald-700 bg-emerald-100'>
-                {method.badge}
-              </Badge>
-            )}
-          </button>
-        ))}
+      <div className='flex flex-col gap-2'>
+        <div className='flex items-center gap-1 p-1 bg-muted rounded-lg w-fit'>
+          {BILLING_METHODS.map(method => (
+            <button
+              key={method.value}
+              type='button'
+              onClick={() => setBillingMethod(method.value)}
+              className={cn(
+                'flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
+                billingMethod === method.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {method.value === 'monthly' && <ZapIcon className='h-3.5 w-3.5' />}
+              {method.value === 'annual' && <SparklesIcon className='h-3.5 w-3.5' />}
+              {method.value === 'credits' && <CreditCardIcon className='h-3.5 w-3.5' />}
+              {method.label}
+              {method.badge && (
+                <Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-4 font-semibold text-emerald-700 bg-emerald-100'>
+                  {method.badge}
+                </Badge>
+              )}
+            </button>
+          ))}
+        </div>
+        {billingMethod === 'annual' && (
+          <p className='text-xs text-muted-foreground'>Annual pricing requires separate Stripe price IDs. Contact your admin if checkout fails.</p>
+        )}
+        {billingMethod === 'credits' && (
+          <p className='text-xs text-muted-foreground'>Pay per transaction — no monthly commitment. Top up credits from the billing dashboard.</p>
+        )}
       </div>
 
       {/* Plan cards */}

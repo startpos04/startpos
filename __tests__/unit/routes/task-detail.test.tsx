@@ -46,7 +46,9 @@ vi.mock('@/db/collections', () => ({
   categoryCollection: {}, unitCollection: {}, productCollection: {},
   locationCollection: {}, supplierCollection: {}, customerCollection: {},
   membershipCollection: {}, sessionCollection: {}, notificationCollection: {},
-  vendorSessionCollection: {},
+  vendorSessionCollection: {}, goodsReceiptCollection: {}, goodsReceiptItemCollection: {},
+  businessSubscriptionCollection: {}, usageCounterCollection: {}, creditLedgerCollection: {},
+  featureCollection: {}, featureDependencyCollection: {}, featureBundleCollection: {},
 }))
 
 // ---------------------------------------------------------------------------
@@ -55,6 +57,15 @@ vi.mock('@/db/collections', () => ({
 
 vi.mock('@/lib/queries/fetch-tasks', () => ({
   fetchTasks: vi.fn(),
+}))
+
+// ---------------------------------------------------------------------------
+// Mock: validateTaskTransition — returns permitted=true so handleStatusChange
+// proceeds to dbTransaction instead of bailing out early
+// ---------------------------------------------------------------------------
+
+vi.mock('@/lib/queries/validate-task-transition', () => ({
+  validateTaskTransition: vi.fn().mockResolvedValue({ permitted: true }),
 }))
 
 // ---------------------------------------------------------------------------

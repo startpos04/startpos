@@ -24,15 +24,16 @@
 import { createFileRoute, Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { ArrowRightIcon, BarChart3Icon, CheckCircle2Icon, CodeIcon, GitBranchIcon, MinusIcon, PlusIcon, UsersIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { getAuthUser } from '@/lib/better-auth/auth-server'
 import { cn } from '@/lib/utils'
-import { authStore } from '@/store/auth-store'
+import { authStore, refreshUser } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing/success/')({
   validateSearch: z.object({
@@ -92,6 +93,21 @@ function BillingSuccessPage() {
 
   const user = useStore(authStore, state => state.user)
   const configs = user?.systemConfigs
+
+  // Refresh authStore on mount so the billing dashboard reflects the new status.
+  // We use a short delay to allow the Stripe webhook to complete before reading.
+  // If still GRACE_PERIOD after redirect, the billing page will show correctly.
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        const freshUser = await getAuthUser()
+        if (freshUser) refreshUser(freshUser)
+      } catch {
+        // Non-critical — billing page will refresh on its own load
+      }
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Read add-on prices from SystemConfig (admin-configurable)
   const analyticsPrice = configs?.ADDON_ANALYTICS_PRICE ?? 29900

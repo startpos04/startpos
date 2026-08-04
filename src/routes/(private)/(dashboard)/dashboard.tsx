@@ -7,7 +7,8 @@
  *   - SetupChecklist   — dashboard view of the Tutorial system
  *   - QuickStatCards   — products, team members, transactions today, credits
  *   - QuickActions     — add product, invite employee, view billing
- *   - TutorialBannerList + useHints — corner guidance banners
+ *   - GuidanceBanner   — hint corner banner (tutorial banners now handled
+ *                        globally by SetupGuideWidget in the private shell)
  *
  * Capability: MANAGE_SETTINGS (management capability — always accessible).
  * Accessible to: ADMIN, SUPERVISOR.
@@ -17,14 +18,13 @@ import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { BoxIcon, CreditCardIcon, PlusIcon, UsersIcon, ZapIcon } from 'lucide-react'
-import { GuidanceBanner, TutorialBannerList } from '@/components/guidance-banner'
+import { GuidanceBanner } from '@/components/guidance-banner'
 import { SetupChecklist } from '@/components/setup-checklist'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { orderCollection, productCollection, userCollection } from '@/db/collections'
 import { useHints } from '@/hooks/use-hints'
-import { useTutorialContext, useTutorials } from '@/hooks/use-tutorials'
-import { dismissTutorial } from '@/lib/tutorial/tutorial-store'
+import { useTutorialContext } from '@/hooks/use-tutorials'
 import { authStore } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/dashboard')({
@@ -33,7 +33,6 @@ export const Route = createFileRoute('/(private)/(dashboard)/dashboard')({
 
 function DashboardPage() {
   const user = useStore(authStore, state => state.user)
-  const tutorials = useTutorials('/dashboard')
   const tutorialContext = useTutorialContext()
   const { hint } = useHints('/dashboard')
 
@@ -111,11 +110,9 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* Tutorial corner banner */}
-      <TutorialBannerList tutorials={tutorials} onDismiss={dismissTutorial} />
-
-      {/* Hint corner banner — only shown when no tutorial is active */}
-      {tutorials.length === 0 && hint && <GuidanceBanner variant='hint' title={hint.title} body={hint.body} />}
+      {/* Hint corner banner — tutorial step banners are now handled globally
+          by SetupGuideWidget in the private shell, so only hints appear here */}
+      {hint && <GuidanceBanner variant='hint' title={hint.title} body={hint.body} />}
     </div>
   )
 }

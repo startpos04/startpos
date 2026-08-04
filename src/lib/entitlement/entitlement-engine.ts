@@ -201,6 +201,7 @@ export const EntitlementEngine = {
       trialEndsAt?: Date | null
       currentPeriodEnd?: Date | null
       billingModel?: import('./entitlement-types').BillingModelDomain | null
+      cancelledAt?: Date | null
     },
   ): {
     status: EntitlementContext['status']
@@ -210,6 +211,7 @@ export const EntitlementEngine = {
     trialEndsAt: string | null
     currentPeriodEnd: string | null
     billingModel: import('./entitlement-types').BillingModelDomain | null
+    cancelledAt: string | null
   } {
     const granted: CapabilityKey[] = []
 
@@ -228,6 +230,7 @@ export const EntitlementEngine = {
       trialEndsAt: meta?.trialEndsAt ? meta.trialEndsAt.toISOString() : null,
       currentPeriodEnd: meta?.currentPeriodEnd ? meta.currentPeriodEnd.toISOString() : null,
       billingModel: meta?.billingModel ?? null,
+      cancelledAt: meta?.cancelledAt ? meta.cancelledAt.toISOString() : null,
     }
   },
 

@@ -45,7 +45,8 @@ import { type BillingModel, type LifecycleThresholds, type StatusTransitionRecor
 // ---------------------------------------------------------------------------
 const VALID_TRANSITIONS: Readonly<Record<SubscriptionStatus, ReadonlySet<SubscriptionStatus>>> = {
   [SubscriptionStatus.TRIAL]: new Set([
-    SubscriptionStatus.ACTIVE, // Trial converted to paid subscription
+    SubscriptionStatus.ACTIVE, // Trial converted to paid subscription (free plan / direct)
+    SubscriptionStatus.GRACE_PERIOD, // Trial user subscribes via Stripe checkout (awaiting payment)
     SubscriptionStatus.EXPIRED, // Trial period ended without payment
     SubscriptionStatus.CANCELLED, // Business cancelled during trial
     SubscriptionStatus.SUSPENDED, // Admin action
@@ -76,7 +77,8 @@ const VALID_TRANSITIONS: Readonly<Record<SubscriptionStatus, ReadonlySet<Subscri
     SubscriptionStatus.CANCELLED, // Business cancels
   ]),
   [SubscriptionStatus.CANCELLED]: new Set([
-    SubscriptionStatus.ACTIVE, // Business resubscribes after cancellation
+    SubscriptionStatus.ACTIVE, // Business resubscribes after cancellation (free plan / direct activate)
+    SubscriptionStatus.GRACE_PERIOD, // Business resubscribes via Stripe checkout (awaiting payment)
   ]),
 }
 

@@ -35,10 +35,16 @@ import { prisma as rootPrisma } from '../prisma-client'
 // Loaded from environment variables — no hardcoded price IDs in source code.
 // ---------------------------------------------------------------------------
 
-function getStripePriceId(planName: string): string | null {
+function getStripePriceId(planName: string, interval: 'monthly' | 'annual' | 'credits' = 'monthly'): string | null {
   const normalised = planName.toLowerCase().replace(/\s+/g, '_')
-  const envKey = `STRIPE_PLAN_${normalised.toUpperCase()}_PRICE_ID`
-  return process.env[envKey] ?? null
+  const suffix = interval === 'annual' ? '_ANNUAL' : interval === 'credits' ? '_CREDITS' : ''
+  const envKey = `STRIPE_PLAN_${normalised.toUpperCase()}${suffix}_PRICE_ID`
+  // Fall back to monthly price if credits-specific price not set
+  const specific = process.env[envKey] ?? null
+  if (!specific && interval === 'credits') {
+    return process.env[`STRIPE_PLAN_${normalised.toUpperCase()}_PRICE_ID`] ?? null
+  }
+  return specific
 }
 
 // ---------------------------------------------------------------------------
@@ -48,6 +54,10 @@ function getStripePriceId(planName: string): string | null {
 const CreateSubscriptionInputSchema = z.object({
   /** The planId to subscribe to (Prisma SubscriptionPlan.id) */
   planId: z.string().min(1),
+  /** Billing interval — defaults to monthly */
+  billingInterval: z.enum(['monthly', 'annual']).default('monthly'),
+  /** Billing model override — defaults to MONTHLY_SUBSCRIPTION; use PREPAID_CREDITS for credits plan */
+  billingModel: z.enum(['MONTHLY_SUBSCRIPTION', 'YEARLY_SUBSCRIPTION', 'PREPAID_CREDITS']).optional(),
 })
 
 export type CreateSubscriptionInput = z.infer<typeof CreateSubscriptionInputSchema>
@@ -111,11 +121,12 @@ export const createSubscription = createServerFn({ method: 'POST' })
     }
 
     // Resolve the Stripe Price ID for this plan
-    const stripePriceId = getStripePriceId(targetPlan.name)
+    const priceInterval = data.billingModel === 'PREPAID_CREDITS' ? 'credits' : data.billingInterval
+    const stripePriceId = getStripePriceId(targetPlan.name, priceInterval)
     if (!stripePriceId) {
       return {
         success: false as const,
-        error: `Stripe Price ID not configured for plan "${targetPlan.name}". Set STRIPE_PLAN_${targetPlan.name.toUpperCase().replace(/\s+/g, '_')}_PRICE_ID.`,
+        error: `Stripe Price ID not configured for plan "${targetPlan.name}" (${priceInterval}). Set STRIPE_PLAN_${targetPlan.name.toUpperCase().replace(/\s+/g, '_')}${priceInterval === 'annual' ? '_ANNUAL' : priceInterval === 'credits' ? '_CREDITS' : ''}_PRICE_ID.`,
       }
     }
 
@@ -129,7 +140,18 @@ export const createSubscription = createServerFn({ method: 'POST' })
       email: userEmail,
     })
 
-    // Create the Stripe subscription
+    const appUrl = process.env['CANONICAL_URL'] ?? process.env['APP_URL'] ?? 'http://localhost:3000'
+
+    // Create the Stripe Checkout Session for the subscription.
+    // Stripe will redirect to successUrl after the user completes payment,
+    // and the webhooks (invoice.paid, customer.subscription.updated) will
+    // update the DB. The plan name is encoded in successUrl so the success
+    // page can display it without needing extra state.
+    const successUrl =
+      data.billingModel === 'PREPAID_CREDITS'
+        ? `${appUrl}/billing/credits?subscribed=1`
+        : `${appUrl}/billing/success?plan=${encodeURIComponent(targetPlan.name)}&billing=${data.billingInterval}`
+
     const providerResult = await adapter.createSubscription({
       externalCustomerId: customer.externalCustomerId,
       externalPriceId: stripePriceId,
@@ -138,13 +160,16 @@ export const createSubscription = createServerFn({ method: 'POST' })
         planId: data.planId,
         userId,
       },
+      successUrl,
+      cancelUrl: `${appUrl}/billing/plans`,
     })
 
     // Determine the target status:
-    // If checkoutUrl is null → subscription is active immediately (e.g. trial or auto-collect)
-    // If checkoutUrl is present → subscription is incomplete, waiting for payment confirmation
+    // With hosted checkout, the subscription isn't created until payment succeeds.
+    // Status stays as GRACE_PERIOD until the invoice.paid webhook fires.
+    // If checkoutUrl is null (e.g. free plan, no payment needed), activate immediately.
     const toStatus = providerResult.checkoutUrl
-      ? SubscriptionStatus.GRACE_PERIOD // Incomplete — not yet ACTIVE
+      ? SubscriptionStatus.GRACE_PERIOD // Awaiting payment — webhook will promote to ACTIVE
       : SubscriptionStatus.ACTIVE
 
     // Validate the transition
@@ -153,32 +178,32 @@ export const createSubscription = createServerFn({ method: 'POST' })
       toStatus,
     )
     if (!canTransition.ok) {
-      // Roll back by cancelling the just-created provider subscription immediately
-      try {
-        await adapter.cancelSubscription({
-          externalSubscriptionId: providerResult.externalSubscriptionId,
-          cancelImmediately: true,
-          reason: 'Subscription state machine rejected the transition during creation.',
-        })
-      } catch (_cancelErr) {
-        // Best-effort rollback — log but don't throw
-        console.error('[createSubscription] Provider subscription rollback failed', _cancelErr)
-      }
       return { success: false as const, error: canTransition.reason }
     }
 
-    // Atomically update the subscription record and write a history entry
+    // Atomically update the subscription record and write a history entry.
+    // externalId is intentionally NOT set here for hosted checkout flows —
+    // the real Stripe subscription ID arrives via the customer.subscription.updated
+    // webhook after payment, which writes externalId at that point.
     const now = new Date()
+    // Resolve billing model: use explicit override if provided, else map from interval
+    const resolvedBillingModel = data.billingModel ?? (data.billingInterval === 'annual' ? 'YEARLY_SUBSCRIPTION' : 'MONTHLY_SUBSCRIPTION')
+
     await rootPrisma.$transaction([
       rootPrisma.businessSubscription.update({
         where: { id: existingSubscription.id },
         data: {
           planId: data.planId,
+          billingModel: resolvedBillingModel as import('prisma/generated/prisma/enums').BillingModel,
           status: toStatus,
-          externalId: providerResult.externalSubscriptionId,
-          currentPeriodStart: providerResult.currentPeriodStart,
-          currentPeriodEnd: providerResult.currentPeriodEnd,
-          ...(toStatus === SubscriptionStatus.ACTIVE ? { activatedAt: now } : {}),
+          ...(toStatus === SubscriptionStatus.ACTIVE
+            ? {
+                externalId: providerResult.externalSubscriptionId,
+                currentPeriodStart: providerResult.currentPeriodStart,
+                currentPeriodEnd: providerResult.currentPeriodEnd,
+                activatedAt: now,
+              }
+            : {}),
           updatedAt: now,
         },
       }),
@@ -187,7 +212,7 @@ export const createSubscription = createServerFn({ method: 'POST' })
           subscriptionId: existingSubscription.id,
           fromStatus: existingSubscription.status,
           toStatus,
-          reason: `Subscription created with plan "${targetPlan.name}" via billing provider.`,
+          reason: `Subscription checkout initiated for plan "${targetPlan.name}". Awaiting payment confirmation.`,
           triggeredBy: userId,
         },
       }),

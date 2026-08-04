@@ -49,7 +49,10 @@ export function SubscriptionBanner() {
       <Banner variant='warning' icon={<AlertTriangleIcon className='h-4 w-4 shrink-0' />}>
         <span>
           <strong>Payment overdue.</strong> Your account is in the grace period — operational features are still active. Please{' '}
-          <BannerLink to='/billing'>update your payment method</BannerLink> to avoid service interruption.
+          <BannerLink to='/billing' variant='warning'>
+            update your payment method
+          </BannerLink>{' '}
+          to avoid service interruption.
         </span>
       </Banner>
     )
@@ -61,7 +64,10 @@ export function SubscriptionBanner() {
       <Banner variant='error' icon={<XCircleIcon className='h-4 w-4 shrink-0' />}>
         <span>
           <strong>Subscription expired.</strong> Operational features (POS, orders, inventory) are currently blocked.{' '}
-          <BannerLink to='/billing'>Reactivate your subscription</BannerLink> to restore access.
+          <BannerLink to='/billing' variant='error'>
+            Reactivate your subscription
+          </BannerLink>{' '}
+          to restore access.
         </span>
       </Banner>
     )
@@ -73,7 +79,10 @@ export function SubscriptionBanner() {
       <Banner variant='error' icon={<XCircleIcon className='h-4 w-4 shrink-0' />}>
         <span>
           <strong>Account inactive.</strong> Your account has been inactive for an extended period. All operational features are blocked.{' '}
-          <BannerLink to='/subscription/reactivate'>Reactivate your account</BannerLink> to continue.
+          <BannerLink to='/subscription/reactivate' variant='error'>
+            Reactivate your account
+          </BannerLink>{' '}
+          to continue.
         </span>
       </Banner>
     )
@@ -84,8 +93,11 @@ export function SubscriptionBanner() {
     return (
       <Banner variant='error' icon={<XCircleIcon className='h-4 w-4 shrink-0' />}>
         <span>
-          <strong>Subscription cancelled.</strong> Operational features are blocked. <BannerLink to='/billing'>Reactivate your subscription</BannerLink> to
-          restore access.
+          <strong>Subscription cancelled.</strong> Operational features are blocked.{' '}
+          <BannerLink to='/billing' variant='error'>
+            Reactivate your subscription
+          </BannerLink>{' '}
+          to restore access.
         </span>
       </Banner>
     )
@@ -104,11 +116,9 @@ export function SubscriptionBanner() {
 
   // --- TRIAL (last 7 days) ---
   if (status === SubscriptionStatus.TRIAL) {
-    // trialEndsAt is now a proper ISO string on EntitlementSummary (Phase 1).
     const trialEndsAt = entitlement.trialEndsAt ? new Date(entitlement.trialEndsAt) : null
     const daysLeft = SubscriptionPolicy.trialDaysRemaining(trialEndsAt, now)
 
-    // Only show if within the warning window
     const isInWarning = trialEndsAt === null || SubscriptionPolicy.isTrialInWarningWindow(trialEndsAt, TRIAL_WARNING_DAYS, now)
     if (!isInWarning) return null
 
@@ -118,7 +128,10 @@ export function SubscriptionBanner() {
       <Banner variant='info' icon={<ClockIcon className='h-4 w-4 shrink-0' />}>
         <span>
           {daysLeft === 0 ? <strong>Your trial expires today.</strong> : <strong>{dayLabel} left in your trial.</strong>}{' '}
-          <BannerLink to='/billing'>Choose a plan</BannerLink> to keep access after your trial ends.
+          <BannerLink to='/billing' variant='info'>
+            Choose a plan
+          </BannerLink>{' '}
+          to keep access after your trial ends.
         </span>
       </Banner>
     )
@@ -134,9 +147,9 @@ export function SubscriptionBanner() {
 type BannerVariant = 'warning' | 'error' | 'info'
 
 const VARIANT_CLASSES: Record<BannerVariant, string> = {
-  warning: 'bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200',
-  error: 'bg-red-50 border-red-200 text-red-900 dark:bg-red-950/30 dark:border-red-800 dark:text-red-200',
-  info: 'bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-200',
+  warning: 'bg-amber-100 border-amber-300 text-amber-900 dark:bg-amber-500/20 dark:border-amber-500/40 dark:text-amber-100',
+  error: 'bg-red-100 border-red-300 text-red-900 dark:bg-red-500/20 dark:border-red-500/40 dark:text-red-100',
+  info: 'bg-blue-100 border-blue-300 text-blue-900 dark:bg-blue-500/20 dark:border-blue-500/40 dark:text-blue-100',
 }
 
 const ICON_CLASSES: Record<BannerVariant, string> = {
@@ -145,18 +158,24 @@ const ICON_CLASSES: Record<BannerVariant, string> = {
   info: 'text-blue-600 dark:text-blue-400',
 }
 
+const LINK_CLASSES: Record<BannerVariant, string> = {
+  warning: 'font-semibold underline underline-offset-2 text-amber-900 dark:text-amber-300 hover:opacity-80',
+  error: 'font-semibold underline underline-offset-2 text-red-900 dark:text-red-300 hover:opacity-80',
+  info: 'font-semibold underline underline-offset-2 text-blue-900 dark:text-blue-300 hover:opacity-80',
+}
+
 function Banner({ variant, icon, children }: { variant: BannerVariant; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className={cn('flex items-center gap-2 border-b px-4 py-2 text-sm', VARIANT_CLASSES[variant])}>
-      <span className={ICON_CLASSES[variant]}>{icon}</span>
-      <div className='flex-1'>{children}</div>
+    <div className={cn('flex items-center gap-3 border-b px-4 py-2.5 text-sm leading-snug', VARIANT_CLASSES[variant])}>
+      <span className={cn('shrink-0 mt-px', ICON_CLASSES[variant])}>{icon}</span>
+      <div className='flex-1 min-w-0'>{children}</div>
     </div>
   )
 }
 
-function BannerLink({ to, children }: { to: string; children: React.ReactNode }) {
+function BannerLink({ to, variant, children }: { to: string; variant: BannerVariant; children: React.ReactNode }) {
   return (
-    <Link to={to} className='font-semibold underline underline-offset-2 hover:opacity-80'>
+    <Link to={to} className={LINK_CLASSES[variant]}>
       {children}
     </Link>
   )
