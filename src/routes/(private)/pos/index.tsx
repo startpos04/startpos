@@ -12,9 +12,11 @@ import { ThemeToggle } from '@/components/custom/theme/theme-toggle'
 import { useSubscriptionGate } from '@/components/feature-disabled'
 import { sequenceCounterCollection } from '@/db/collections'
 import { useAppForm } from '@/hooks/form'
+import { useCapability } from '@/hooks/use-capability'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import type { posItem } from '@/lib/conversion/pos-stock-engine'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager from '@/lib/mount-manager'
 import { createPosOrder } from '@/lib/queries/create-pos-order'
 import { createPosTransaction } from '@/lib/queries/create-pos-transaction'
@@ -62,6 +64,7 @@ function POSPage() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const user = useStore(authStore, state => state.user)
+  const canReconcile = useCapability(Capabilities.START_VENDOR_SESSION)
   const { orderId, search = '', page = 1, pageSize = 20 } = useSearch({ from: '/(private)/pos/' })
   const { data: activeOrders = [], isLoading: isFetchingActiveOrders } = fetchActiveOrders()
   const { data: posProducts = [], isLoading: isPosProductsLoading } = fetchPosProducts({ searchQuery: search, page, pageSize })
@@ -94,8 +97,19 @@ function POSPage() {
       return
     }
 
-    try {
-      if (user.systemConfigs.ENABLE_PRINT_RECEIPT) {
+    // Always show success and reset — print is a non-blocking side effect
+    MountManager.show(SuccessPrompt, {
+      title: 'Transaction Completed',
+      description: 'Payment processed and order logged.',
+      btnText: 'Next Customer',
+    })
+
+    form.reset()
+    navigate({ to: '.', search: (prev: Record<string, unknown>) => ({ ...prev, orderId: undefined }), replace: true })
+
+    // Attempt to print receipt — failure must never block or revert the completed sale
+    if (user.systemConfigs.ENABLE_PRINT_RECEIPT) {
+      try {
         const doc = <ReceiptPDF result={result} data={value} />
         const asBlob = await pdf(doc).toBlob()
         const url = URL.createObjectURL(asBlob)
@@ -113,18 +127,9 @@ function POSPage() {
             URL.revokeObjectURL(url)
           },
         })
+      } catch (error) {
+        console.error('Receipt print failed (sale was completed):', error)
       }
-
-      MountManager.show(SuccessPrompt, {
-        title: 'Transaction Completed',
-        description: 'Payment processed and order logged.',
-        btnText: 'Next Customer',
-      })
-
-      form.reset()
-      navigate({ to: '.', search: (prev: Record<string, unknown>) => ({ ...prev, orderId: undefined }), replace: true })
-    } catch (error) {
-      console.error('Sale failed', error)
     }
   }
 
@@ -187,13 +192,19 @@ function POSPage() {
     ...posFormOpts,
     defaultValues,
     onSubmit: async ({ value }) => {
-      if (user.vendorSession?.status !== SessionStatus.OPEN) return
+      // Only gate on vendor session when cash reconciliation is enabled.
+      // Businesses without the START_VENDOR_SESSION capability don't create
+      // sessions, so vendorSession is null — skipping this check for them.
+      if (canReconcile && user.vendorSession?.status !== SessionStatus.OPEN) return
       if (value.payments.length > 0) await handleConfirm(value, value.compliance)
       else await handlePayLater(value)
     },
   })
 
   useEffect(() => {
+    // Only enforce shift sessions when cash reconciliation is enabled
+    if (!canReconcile) return
+
     if (user.vendorSession?.status === SessionStatus.CLOSED && user.vendorSession.verifiedCash === null) {
       MountManager.show(AlertPrompt, {
         title: 'Unverified Shift',
@@ -205,9 +216,9 @@ function POSPage() {
         },
       })
     } else if (user.vendorSession?.status !== SessionStatus.OPEN) {
-      MountManager.show(OpenSessionDialog)
+      MountManager.show(OpenSessionDialog, { key: 'open-session-dialog' })
     }
-  }, [user, navigate])
+  }, [user, navigate, canReconcile])
 
   if (orderId && (isFetchingActiveOrders || isPosProductsLoading)) {
     return <Loading className='w-screen h-screen' />

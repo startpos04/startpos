@@ -1,5 +1,5 @@
 import { and, eq, gte, lte, not, toArray, useLiveQuery } from '@tanstack/react-db'
-import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate, useSearch } from '@tanstack/react-router'
 import { Download, PackageCheck } from 'lucide-react'
 import { type DateRange, DateRangeInput } from '@/components/custom/form/date-rage-input'
 import { Button } from '@/components/ui/button'
@@ -98,7 +98,16 @@ export const fetchInventoryReports = (from?: string | Date, to?: string | Date) 
 export type FetchInventoryReportsReturn = ReturnType<typeof fetchInventoryReports>
 export type InventoryData = NonNullable<FetchInventoryReportsReturn['data']>
 
+import { Capabilities } from '@/lib/entitlement/capability-keys'
+import { authStore } from '@/store/auth-store'
+
 export const Route = createFileRoute('/(private)/(dashboard)/(supervisor)/inventory-reports/')({
+  beforeLoad: () => {
+    const { user } = authStore.state
+    if (!user?.entitlement?.capabilities?.includes(Capabilities.MANAGE_INVENTORY)) {
+      throw redirect({ to: '/unauthorized' })
+    }
+  },
   validateSearch: (search: Record<string, unknown>): { from?: string; to?: string } => {
     const defaultFrom = dayjs().startOf('month').format('YYYY-MM-DD')
     const defaultTo = dayjs().endOf('month').format('YYYY-MM-DD')

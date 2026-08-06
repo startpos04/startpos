@@ -72,9 +72,16 @@ export const productCols = {
         const { selectedComponentIds = [], cartItems = [], orderItems = [] } = options || {}
         const product = info.row.original
         const primaryVariant = product.variants?.[0]
-        if (!primaryVariant) return <span className='text-muted-foreground text-xs'>—</span>
+        if (!primaryVariant) return <span className='text-muted-foreground text-xs text-center block'>—</span>
 
         const maxServings = PosStockEngine.calculateRemainingYield(product, primaryVariant, selectedComponentIds, cartItems, orderItems)
+
+        // Unlimited sentinel — product has no tracked stock (SERVICE or provisional)
+        // Show '—' so the column isn't misleading when inventory is enabled
+        if (maxServings >= 999) {
+          return <div className='text-xs text-center text-muted-foreground/40 font-mono'>—</div>
+        }
+
         const isLowStock = maxServings < 10
 
         return (

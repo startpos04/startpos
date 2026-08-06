@@ -1,92 +1,88 @@
 /**
- * entitlement-middleware.ts
+ * entitlement-middleware.ts — Server-side capability enforcement middleware
  *
- * Server-side entitlement middleware for TanStack Start server functions.
- *
- * Architecture Compliance — Phase 6 (Section 6.1, Deferred Item):
- *   Addresses the 🔴 Missing item: "Entitlement middleware for server functions —
- *   No per-action server-side capability check."
+ * Use this middleware on any createServerFn that requires a specific capability.
+ * It rebuilds the EntitlementContext from the DB on every call (not from the
+ * client session) so it cannot be spoofed.
  *
  * Usage:
- *   createServerFn({ method: 'POST' })
- *     .middleware([authMiddleware, entitlementMiddleware(Capabilities.COMPLETE_CHECKOUT)])
- *     .handler(async ({ context }) => { ... })
+ *   import { requireCapability } from '@/lib/better-auth/entitlement-middleware'
+ *   import { Capabilities } from '@/lib/entitlement/capability-keys'
+ *
+ *   export const createOrder = createServerFn({ method: 'POST' })
+ *     .middleware([authMiddleware, requireCapability(Capabilities.CREATE_ORDER)])
+ *     .handler(async ({ data, context }) => {
+ *       // context.entitlement is available here if needed
+ *       // If the capability is denied, this handler is never called —
+ *       // the middleware throws before reaching it.
+ *     })
  *
  * What it does:
- *   1. Reads the business's live subscription from rootPrisma (platform-level table,
- *      not tenant-scoped — same pattern as getAuthUser).
- *   2. Assembles a minimal EntitlementContext from the subscription record.
- *   3. Calls EntitlementEngine.check(capability, context).
- *   4. Throws an HTTP 403 if access is denied, propagating the EntitlementCode
- *      and human-readable reason to the caller.
- *   5. On success, passes the entitlement result through the middleware chain so
- *      handlers can read it without re-fetching.
+ *   1. Reads the business's active subscription from rootPrisma (authoritative)
+ *   2. Rebuilds EntitlementContext (same path as getAuthUser)
+ *   3. Calls EntitlementEngine.check(capability, context)
+ *   4. If denied: throws an error with the denial code + reason
+ *      (TanStack Start serializes this as a 403-equivalent response)
+ *   5. If granted: calls next() so the handler proceeds
  *
- * Architectural constraints:
- *   - Must come AFTER authMiddleware in the chain (requires context.user).
- *   - Does NOT import from collections — always reads live data from rootPrisma.
- *     Server functions run in the server process where collections are not available.
- *   - Does NOT re-implement authStore's entitlement summary — this is a fresh DB
- *     read so it is authoritative even if the client's authStore is stale.
- *   - EntitlementEngine is pure and has no infrastructure imports. This file is the
- *     sole infrastructure call site that feeds data into the engine.
+ * Why rebuild from DB (not from session):
+ *   The client session is a snapshot taken at login. A subscription could
+ *   expire between logins, or an admin could revoke a feature override.
+ *   For mutation server functions, the server must be the authority.
+ *   For read-only server functions (fetchCapabilityStates, etc.) the session
+ *   check in useCapability() is sufficient — no need for this middleware.
  *
- * Note on open-context fallback:
- *   If no BusinessSubscription exists (dev / seed mode), the middleware falls back to
- *   GRANTED so development workflows are not broken. The fallback is identical to
- *   getAuthUser's open-context fallback. Production businesses will always have a
- *   subscription record (auto-provisioned by getAuthUser at first login — Phase 0).
+ * Architecture:
+ *   - Composed with authMiddleware (must come after it so context.user exists)
+ *   - Pure middleware — no side effects beyond the capability check
+ *   - Uses rootPrisma for subscription reads (platform-level data)
  */
 
 import { createMiddleware } from '@tanstack/react-start'
+import { BillingModel } from '../billing/types'
 import type { CapabilityKey } from '../entitlement/capability-keys'
-import { Capabilities } from '../entitlement/capability-keys'
 import { EntitlementEngine } from '../entitlement/entitlement-engine'
-import { EntitlementCode, type EntitlementContext, type EntitlementOverrideDTO } from '../entitlement/entitlement-types'
+import type { EntitlementContext, EntitlementOverrideDTO } from '../entitlement/entitlement-types'
 import { prisma as rootPrisma } from '../prisma-client'
 
 // ---------------------------------------------------------------------------
-// Shared type injected into middleware context downstream
+// Entitlement error — thrown when the capability is denied
 // ---------------------------------------------------------------------------
 
-export type EntitlementMiddlewareContext = {
-  /** The capability that was checked */
-  checkedCapability: CapabilityKey
-  /** EntitlementCode.GRANTED — the middleware throws before reaching handlers on denial */
-  entitlementCode: typeof EntitlementCode.GRANTED
+export class EntitlementDeniedError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'EntitlementDeniedError'
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Factory — returns a configured middleware for the given capability
+// Middleware factory
 // ---------------------------------------------------------------------------
 
 /**
- * Creates a middleware that enforces the given capability before the handler runs.
+ * Creates a TanStack Start middleware that enforces a capability check.
+ * Compose after authMiddleware in the .middleware() array.
  *
- * @param capability  The CapabilityKey that must be granted for the handler to execute.
- *                    Use constants from `Capabilities`, e.g. `Capabilities.COMPLETE_CHECKOUT`.
- *
- * @example
- *   .middleware([authMiddleware, entitlementMiddleware(Capabilities.CREATE_TASK)])
+ * @param capability - The CapabilityKey that must be GRANTED for the handler to run
  */
-export function entitlementMiddleware(capability: CapabilityKey) {
+export function requireCapability(capability: CapabilityKey) {
   return createMiddleware().server(async ({ next, context }) => {
-    // authMiddleware must run first — context.user is required
-    const user = (context as unknown as { user?: { businessId?: string; branchId?: string } }).user
+    const user = (context as { user?: { businessId?: string } }).user
 
     if (!user?.businessId) {
-      throw new Error(`[entitlementMiddleware] Unauthorized — no session context for capability: ${capability}`)
+      throw new EntitlementDeniedError('UNAUTHENTICATED', 'You must be logged in to perform this action.')
     }
 
-    const { businessId } = user
+    const businessId = user.businessId
 
     // -----------------------------------------------------------------------
-    // 1. Fetch the live subscription + overrides in parallel.
-    //    Uses rootPrisma — subscription data is platform-level, not tenant-scoped.
-    //    Mirrors the fetch pattern in getAuthUser but is minimal: only fields
-    //    required to assemble EntitlementContext are fetched.
+    // Rebuild EntitlementContext from DB — not from the client session
     // -----------------------------------------------------------------------
-    const [businessSubscription, entitlementOverrides, openUsageCounter, latestCreditLedger] = await Promise.all([
+    const [subscription, overrides, openCounter, latestCredit] = await Promise.all([
       rootPrisma.businessSubscription.findUnique({
         where: { businessId },
         select: {
@@ -100,20 +96,15 @@ export function entitlementMiddleware(capability: CapabilityKey) {
           },
         },
       }),
-
       rootPrisma.entitlementOverride.findMany({
         where: { businessId },
         select: { featureKey: true, granted: true, expiresAt: true },
       }),
-
-      // Phase 2 — txRemaining from live UsageCounter (not the deprecated column)
       rootPrisma.usageCounter.findFirst({
         where: { businessId, isClosed: false },
         select: { txCount: true },
         orderBy: { billingPeriodStart: 'desc' },
       }),
-
-      // Phase 3 — credit balance from latest CreditLedger entry
       rootPrisma.creditLedger.findFirst({
         where: { businessId },
         select: { balanceAfter: true },
@@ -121,124 +112,64 @@ export function entitlementMiddleware(capability: CapabilityKey) {
       }),
     ])
 
-    // -----------------------------------------------------------------------
-    // 2. Open-context fallback — dev / seed mode safety.
-    //    If no subscription record exists, grant everything so existing
-    //    development workflows are not broken (mirrors getAuthUser fallback).
-    // -----------------------------------------------------------------------
-    if (!businessSubscription) {
-      const entitlementCtx: EntitlementMiddlewareContext = {
-        checkedCapability: capability,
-        entitlementCode: EntitlementCode.GRANTED,
+    // If no subscription exists yet, use open context (dev / first login)
+    let entitlementContext: EntitlementContext
+
+    if (!subscription) {
+      const allFeatures = await rootPrisma.planEntitlement.findMany({
+        select: { featureKey: true },
+      })
+      entitlementContext = EntitlementEngine.buildOpenContext(allFeatures.map(f => f.featureKey as CapabilityKey))
+    } else {
+      const status = subscription.status as EntitlementContext['status']
+      const planFeatures = subscription.plan.entitlements.map(e => e.featureKey as CapabilityKey)
+      const usageLimits: Partial<Record<CapabilityKey, number>> = {}
+      for (const e of subscription.plan.entitlements) {
+        if (e.usageLimit !== null) usageLimits[e.featureKey as CapabilityKey] = e.usageLimit
       }
-      return await next({ context: entitlementCtx })
-    }
 
-    // -----------------------------------------------------------------------
-    // 3. Assemble EntitlementContext from live subscription data.
-    // -----------------------------------------------------------------------
-    const status = businessSubscription.status as import('../entitlement/entitlement-types').SubscriptionStatus
-    const billingModel = businessSubscription.billingModel as import('../entitlement/entitlement-types').BillingModelDomain
+      const includedTx = subscription.plan.includedTxPerMonth
+      const txUsed = openCounter?.txCount ?? 0
+      const txRemaining = includedTx === -1 ? null : Math.max(0, includedTx - txUsed)
+      const creditBalance = subscription.billingModel === BillingModel.PREPAID_CREDITS ? (latestCredit?.balanceAfter ?? 0) : null
 
-    const planFeatures = businessSubscription.plan.entitlements.map((e: { featureKey: string }) => e.featureKey as CapabilityKey)
-
-    const usageLimits: Partial<Record<CapabilityKey, number>> = {}
-    for (const e of businessSubscription.plan.entitlements) {
-      if (e.usageLimit !== null) {
-        usageLimits[e.featureKey as CapabilityKey] = e.usageLimit
+      entitlementContext = {
+        status,
+        billingModel: subscription.billingModel as EntitlementContext['billingModel'],
+        planFeatures,
+        usageLimits,
+        currentUsage: {},
+        txRemaining,
+        overrides: overrides.map(
+          (o): EntitlementOverrideDTO => ({
+            featureKey: o.featureKey,
+            granted: o.granted,
+            expiresAt: o.expiresAt,
+          }),
+        ),
+        creditBalance,
       }
     }
 
-    const includedTx = businessSubscription.plan.includedTxPerMonth
-    const txUsed = openUsageCounter?.txCount ?? 0
-    const txRemaining = includedTx === -1 ? null : Math.max(0, includedTx - txUsed)
-
-    // Credit balance: only relevant for PREPAID_CREDITS; null for other models
-    const creditBalance = billingModel === 'PREPAID_CREDITS' ? (latestCreditLedger?.balanceAfter ?? 0) : null
-
-    const entitlementContext: EntitlementContext = {
-      status,
-      billingModel,
-      planFeatures,
-      usageLimits,
-      currentUsage: {},
-      txRemaining,
-      overrides: entitlementOverrides.map(
-        (o: { featureKey: string; granted: boolean; expiresAt: Date | null }): EntitlementOverrideDTO => ({
-          featureKey: o.featureKey,
-          granted: o.granted,
-          expiresAt: o.expiresAt,
-        }),
-      ),
-      creditBalance,
-    }
-
     // -----------------------------------------------------------------------
-    // 4. Run the entitlement check.
+    // Run the entitlement check
     // -----------------------------------------------------------------------
     const result = EntitlementEngine.check(capability, entitlementContext)
 
     if (!result.granted) {
-      // Throw a structured error that the caller can catch and inspect.
-      // The code and reason are included so error boundaries can show the
-      // appropriate message (upgrade prompt, expired banner, etc.).
-      throw new Error(
-        JSON.stringify({
-          type: 'EntitlementDenied',
-          capability,
-          code: result.code,
-          reason: result.reason,
-        }),
-      )
+      throw new EntitlementDeniedError(result.code, result.reason)
     }
 
     // -----------------------------------------------------------------------
-    // 5. Pass the result through to downstream handlers.
+    // Pass entitlement context to the handler (optional — handler can use it
+    // for remaining quota, etc.)
     // -----------------------------------------------------------------------
-    const entitlementCtx: EntitlementMiddlewareContext = {
-      checkedCapability: capability,
-      entitlementCode: EntitlementCode.GRANTED,
-    }
-
-    return await next({ context: entitlementCtx })
+    return next({
+      context: {
+        ...(context as object),
+        entitlement: entitlementContext,
+        capabilityGranted: capability,
+      },
+    })
   })
 }
-
-// ---------------------------------------------------------------------------
-// Helper — parse the structured error thrown by this middleware
-// ---------------------------------------------------------------------------
-
-export type EntitlementDeniedError = {
-  type: 'EntitlementDenied'
-  capability: CapabilityKey
-  code: Exclude<(typeof EntitlementCode)[keyof typeof EntitlementCode], typeof EntitlementCode.GRANTED>
-  reason: string
-}
-
-/**
- * Attempts to parse an error thrown by `entitlementMiddleware`.
- * Returns null if the error is not an EntitlementDenied error.
- *
- * @example
- *   try {
- *     await someServerFn(...)
- *   } catch (err) {
- *     const denied = parseEntitlementDeniedError(err)
- *     if (denied) toast.error(denied.reason)
- *   }
- */
-export function parseEntitlementDeniedError(err: unknown): EntitlementDeniedError | null {
-  if (!(err instanceof Error)) return null
-  try {
-    const parsed = JSON.parse(err.message)
-    if (parsed?.type === 'EntitlementDenied') return parsed as EntitlementDeniedError
-  } catch {
-    // not a JSON error
-  }
-  return null
-}
-
-// ---------------------------------------------------------------------------
-// Re-export Capabilities for convenience — callers only need one import
-// ---------------------------------------------------------------------------
-export { Capabilities }

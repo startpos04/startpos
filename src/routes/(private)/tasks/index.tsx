@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { Calendar, ClipboardList, Plus, Trash2 } from 'lucide-react'
 import { Role, TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
@@ -8,7 +8,6 @@ import { Dashboard } from '@/components/custom/dashboard'
 import { getColumns } from '@/components/custom/data-view'
 import { TableView } from '@/components/custom/data-view/table-view'
 import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
-import { FeatureDisabledPage } from '@/components/pages/feature-disabled-page'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { operationalTaskCollection } from '@/db/collections'
@@ -32,14 +31,15 @@ const TYPE_CONFIG: Record<string, string> = {
 }
 
 export const Route = createFileRoute('/(private)/tasks/')({
+  beforeLoad: () => {
+    const { user } = authStore.state
+    if (!user?.entitlement?.capabilities?.includes(Capabilities.CREATE_TASK)) {
+      throw redirect({ to: '/unauthorized' })
+    }
+  },
   component: () => {
     const user = useStore(authStore, state => state.user)
-    // F3: Gate through EntitlementEngine only. CREATE_TASK capability replaces
-    // the ENABLE_TASK SystemConfig dual-gate. Open-context fallback (no subscription)
-    // grants CREATE_TASK to all businesses, preserving backward compatibility.
-    if (!user.entitlement?.capabilities.includes(Capabilities.CREATE_TASK)) return <FeatureDisabledPage />
     if (user.role === Role.CASHIER) return <RouteComponent />
-
     return (
       <Dashboard>
         <RouteComponent />

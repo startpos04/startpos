@@ -244,6 +244,31 @@ const FEATURES: Array<{
     pricingCategory: 'INTEGRATION',
     sortOrder: 10,
   },
+  // Future capabilities — not yet built; seeded so BOS registry IDs resolve
+  {
+    key: Capabilities.LOYALTY_POINTS,
+    label: 'Loyalty Points',
+    description: 'Award and redeem loyalty points at checkout.',
+    isSelectableByCustomer: false,
+    pricingCategory: null,
+    sortOrder: 0,
+  },
+  {
+    key: Capabilities.KITCHEN_DISPLAY,
+    label: 'Kitchen Display System',
+    description: 'Display orders on a kitchen screen as they come in.',
+    isSelectableByCustomer: false,
+    pricingCategory: null,
+    sortOrder: 0,
+  },
+  {
+    key: Capabilities.DELIVERY_MANAGEMENT,
+    label: 'Delivery Management',
+    description: 'Manage delivery orders and track driver assignments.',
+    isSelectableByCustomer: false,
+    pricingCategory: null,
+    sortOrder: 0,
+  },
 ]
 
 // ---------------------------------------------------------------------------

@@ -1,19 +1,27 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useCallback, useMemo, useState } from 'react'
 import { getColumns } from '@/components/custom/data-view'
 import { MultiView } from '@/components/custom/data-view/multi-view'
 import { Badge } from '@/components/ui/badge'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager from '@/lib/mount-manager'
 import { type fePurchase, fetchPurchases } from '@/lib/queries/fetch-purchases'
 import { getPurchaseStatusUIMetadata } from '@/lib/queries/purchase-workflow'
+import { authStore } from '@/store/auth-store'
 import { closePurchaseSidebar, PURCHASE_ASIDE_ID, showPurchaseSidebar } from './-components/purchase-sidebar'
 import { PurchaseDetailsSidebar } from './$purchaseId'
 import { CreatePurchaseSidebar } from './create/-index'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/purchases/')({
   component: RouteComponent,
+  beforeLoad: () => {
+    const { user } = authStore.state
+    if (!user?.entitlement?.capabilities?.includes(Capabilities.CREATE_PURCHASE)) {
+      throw redirect({ to: '/unauthorized' })
+    }
+  },
 })
 
 function RouteComponent() {

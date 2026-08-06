@@ -1,12 +1,14 @@
-import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate, useSearch } from '@tanstack/react-router'
 import { Download, PackageCheck } from 'lucide-react'
 import { useMemo } from 'react'
 import { type DateRange, DateRangeInput } from '@/components/custom/form/date-rage-input'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import dayjs from '@/lib/dayjs'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { downloadTransactionsCSV } from '@/lib/server-fn/download-tranasctions'
 import { downloadCsv } from '@/lib/utils/download-csv'
+import { authStore } from '@/store/auth-store'
 import { AverageOrderSize } from './-components/average-order-size'
 import { GrossProfit } from './-components/gross-profit'
 import { RevenueVsCostTrend } from './-components/revenue-vs-cost-trend'
@@ -19,6 +21,12 @@ import { calculateStats } from './-utils/calculate-stats'
 import { fetchTransactionReport } from './-utils/fetch-transaction-reports'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(supervisor)/sales-reports/')({
+  beforeLoad: () => {
+    const { user } = authStore.state
+    if (!user?.entitlement?.capabilities?.includes(Capabilities.VIEW_SALES_REPORTS)) {
+      throw redirect({ to: '/unauthorized' })
+    }
+  },
   validateSearch: (search: Record<string, unknown>): { from?: string; to?: string } => {
     const defaultFrom = dayjs().startOf('month').format('YYYY-MM-DD')
     const defaultTo = dayjs().endOf('month').format('YYYY-MM-DD')

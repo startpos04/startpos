@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate, useSearch } from '@tanstack/react-router'
 import { Download, Receipt } from 'lucide-react'
 import type { PaymentMethod, TransactionType } from 'prisma/generated/prisma/enums'
 import { useCallback, useMemo, useState } from 'react'
@@ -37,7 +37,16 @@ const TYPE_VARIANTS: Record<TransactionType, 'default' | 'destructive' | 'second
   ADJUSTMENT: 'secondary',
 }
 
+import { Capabilities } from '@/lib/entitlement/capability-keys'
+import { authStore } from '@/store/auth-store'
+
 export const Route = createFileRoute('/(private)/(dashboard)/(supervisor)/transactions/')({
+  beforeLoad: () => {
+    const { user } = authStore.state
+    if (!user?.entitlement?.capabilities?.includes(Capabilities.VIEW_TRANSACTION_HISTORY)) {
+      throw redirect({ to: '/unauthorized' })
+    }
+  },
   validateSearch: (search: Record<string, unknown>) => ({
     from: (search['from'] as string) || dayjs().startOf('month').format('YYYY-MM-DD'),
     to: (search['to'] as string) || dayjs().endOf('month').format('YYYY-MM-DD'),

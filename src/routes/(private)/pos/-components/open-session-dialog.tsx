@@ -46,8 +46,24 @@ export function OpenSessionDialog({ open, onClose }: MountProps) {
       onChange: createSessionSchema,
     },
     onSubmit: async ({ value }) => {
+      const taskId = crypto.randomUUID()
+      const session = {
+        id: crypto.randomUUID(),
+        userId: user.id,
+        startTime: new Date(),
+        openingCash: Number(value.openingCash),
+        status: SessionStatus.OPEN,
+        notes: value.notes || null,
+        endTime: null,
+        closingCash: null,
+        expectedCash: null,
+        verifiedCash: null,
+        operationalTaskId: taskId,
+        businessId: user.business.id,
+        branchId: user.branch.id,
+      }
+
       const result = await dbTransaction(() => {
-        const taskId = crypto.randomUUID()
         operationalTaskCollection.insert({
           id: taskId,
           type: TaskType.CASH_RECONCILIATION,
@@ -75,38 +91,24 @@ export function OpenSessionDialog({ open, onClose }: MountProps) {
           updatedAt: new Date(),
         })
 
-        const session = {
-          id: crypto.randomUUID(),
-          userId: user.id,
-          startTime: new Date(),
-          openingCash: Number(value.openingCash),
-          status: SessionStatus.OPEN,
-          notes: value.notes || null,
-          endTime: null,
-          closingCash: null,
-          expectedCash: null,
-          verifiedCash: null,
-          operationalTaskId: taskId,
-          businessId: user.business.id,
-          branchId: user.branch.id,
-        }
-
         vendorSessionCollection.insert(session)
-
-        toast.success('Session started successfully')
-        authStore.setState(state => {
-          state.user.vendorSession = session
-
-          return state
-        })
       })
 
       if (result.isErr()) {
         console.error('Transaction failed:', result.error.message)
-        toast.error('Failed to add Product. Please try again.')
+        toast.error('Failed to start shift. Please try again.')
         return
       }
 
+      // Update auth store AFTER the transaction confirms — moving this inside
+      // the dbTransaction callback fired it prematurely, causing the POS guard
+      // useEffect to re-run with a stale user reference and re-show the dialog.
+      authStore.setState(state => {
+        state.user.vendorSession = session
+        return state
+      })
+
+      toast.success('Session started successfully')
       onClose()
     },
   })

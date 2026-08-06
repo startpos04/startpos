@@ -3,25 +3,20 @@
  *
  * Integration tests for the public registration pages.
  *
- * Strategy:
- *  - Register page: assert fields, OAuth buttons, and sign-in link render.
- *    Do NOT test submit handler (covered by completeRegistration Pattern B test).
- *  - BusinessSetup page: assert form fields and redirect guard render.
- *  - Both pages rendered via buildRouter.
+ * Updated for Phase BOS UI: business type selector replaced by adaptive survey.
+ * Step 1 of registration now collects account details only; survey is step 2.
  *
- * Coverage targets (Task 41):
+ * Coverage:
  *  ✅ Register renders "Create your account" heading
  *  ✅ Register renders Full name, Email, Password, Business name fields
- *  ✅ Register renders 3 business type buttons (Restaurant, Grocery, Retail)
  *  ✅ Register renders "Continue with Google" OAuth button
  *  ✅ Register renders "Continue with Facebook" OAuth button
  *  ✅ Register renders "Or register with email" divider
- *  ✅ Register renders "Create account" submit button
+ *  ✅ Register renders "Continue →" submit button (replaces "Create account")
  *  ✅ Register renders "Sign in" link
  *  ✅ BusinessSetup renders "One last thing" heading
  *  ✅ BusinessSetup renders Business name input
- *  ✅ BusinessSetup renders business type selector (Restaurant, Grocery, Retail)
- *  ✅ BusinessSetup renders "Let's go →" submit button
+ *  ✅ BusinessSetup renders "Continue →" submit button
  *
  * Run with: pnpm test register
  */
@@ -111,7 +106,6 @@ import { Route as BusinessSetupRoute } from '@/routes/(public)/register/business
 
 beforeEach(() => {
   vi.clearAllMocks()
-  // BusinessSetup checks authStore for existing business — seed with no business
   seedMockUser({ business: { id: '', name: '' } } as any)
 })
 
@@ -121,7 +115,7 @@ afterEach(() => {
 })
 
 // ---------------------------------------------------------------------------
-// Register page
+// Register page — Step 1 (account details)
 // ---------------------------------------------------------------------------
 
 describe('Register page', () => {
@@ -132,100 +126,71 @@ describe('Register page', () => {
 
   it('renders "Create your account" heading', async () => {
     renderRegister()
-    await waitFor(() => {
-      expect(screen.getByText('Create your account')).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText('Create your account')).toBeInTheDocument() })
   })
 
   it('renders free trial tagline', async () => {
     renderRegister()
-    await waitFor(() => {
-      expect(screen.getByText(/50 free transactions/i)).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText(/50 free transactions/i)).toBeInTheDocument() })
   })
 
   it('renders Google OAuth button', async () => {
     renderRegister()
-    await waitFor(() => {
-      expect(screen.getByText('Continue with Google')).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText('Continue with Google')).toBeInTheDocument() })
   })
 
   it('renders Facebook OAuth button', async () => {
     renderRegister()
-    await waitFor(() => {
-      expect(screen.getByText('Continue with Facebook')).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText('Continue with Facebook')).toBeInTheDocument() })
   })
 
   it('renders "Or register with email" divider', async () => {
     renderRegister()
-    await waitFor(() => {
-      expect(screen.getByText(/or register with email/i)).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText(/or register with email/i)).toBeInTheDocument() })
   })
 
   it('renders Full name input field', async () => {
     renderRegister()
-    await waitFor(() => {
-      expect(screen.getByText('Full name')).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText('Full name')).toBeInTheDocument() })
   })
 
   it('renders Email input field', async () => {
     renderRegister()
-    await waitFor(() => {
-      expect(screen.getByText('Email')).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText('Email')).toBeInTheDocument() })
   })
 
   it('renders Password input field', async () => {
     renderRegister()
-    await waitFor(() => {
-      expect(screen.getByText('Password')).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText('Password')).toBeInTheDocument() })
   })
 
   it('renders Business name input field', async () => {
     renderRegister()
-    await waitFor(() => {
-      expect(screen.getByText('Business name')).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText('Business name')).toBeInTheDocument() })
   })
 
-  it('renders 3 business type buttons (Restaurant, Grocery, Retail)', async () => {
+  it('renders "Continue →" submit button (survey is step 2)', async () => {
     renderRegister()
-    await waitFor(() => {
-      expect(screen.getByText('Restaurant')).toBeInTheDocument()
-      expect(screen.getByText('Grocery')).toBeInTheDocument()
-      expect(screen.getByText('Retail')).toBeInTheDocument()
-    })
-  })
-
-  it('renders "Create account" submit button', async () => {
-    renderRegister()
-    await waitFor(() => {
-      expect(screen.getByText('Create account')).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText('Continue →')).toBeInTheDocument() })
   })
 
   it('renders "Sign in" link to /login', async () => {
     renderRegister()
-    await waitFor(() => {
-      expect(screen.getByText('Sign in')).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText('Sign in')).toBeInTheDocument() })
   })
 
-  it('renders "Business type" label', async () => {
+  it('does NOT render business type selector on step 1', async () => {
     renderRegister()
     await waitFor(() => {
-      expect(screen.getByText('Business type')).toBeInTheDocument()
+      expect(screen.getByText('Business name')).toBeInTheDocument()
+      expect(screen.queryByText('Restaurant')).toBeNull()
+      expect(screen.queryByText('Business type')).toBeNull()
     })
   })
 })
 
 // ---------------------------------------------------------------------------
-// BusinessSetup page
+// BusinessSetup page (OAuth interstitial)
 // ---------------------------------------------------------------------------
 
 describe('BusinessSetup page', () => {
@@ -239,45 +204,31 @@ describe('BusinessSetup page', () => {
 
   it('renders "One last thing" heading', async () => {
     renderBusinessSetup()
-    await waitFor(() => {
-      expect(screen.getByText('One last thing')).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText('One last thing')).toBeInTheDocument() })
   })
 
-  it('renders setup description', async () => {
+  it('renders description asking for business name', async () => {
     renderBusinessSetup()
     await waitFor(() => {
-      expect(screen.getByText(/tell us about your business/i)).toBeInTheDocument()
+      expect(screen.getByText(/what.*s your business called/i)).toBeInTheDocument()
     })
   })
 
   it('renders Business name input', async () => {
     renderBusinessSetup()
-    await waitFor(() => {
-      expect(screen.getByText('Business name')).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByLabelText('Business name')).toBeInTheDocument() })
   })
 
-  it('renders Business type label', async () => {
+  it('renders "Continue →" submit button', async () => {
     renderBusinessSetup()
-    await waitFor(() => {
-      expect(screen.getByText('Business type')).toBeInTheDocument()
-    })
+    await waitFor(() => { expect(screen.getByText('Continue →')).toBeInTheDocument() })
   })
 
-  it('renders 3 business type options (Restaurant, Grocery, Retail)', async () => {
+  it('does NOT render business type selector (replaced by survey in step 2)', async () => {
     renderBusinessSetup()
     await waitFor(() => {
-      expect(screen.getByText('Restaurant')).toBeInTheDocument()
-      expect(screen.getByText('Grocery')).toBeInTheDocument()
-      expect(screen.getByText('Retail')).toBeInTheDocument()
-    })
-  })
-
-  it("renders \"Let's go →\" submit button", async () => {
-    renderBusinessSetup()
-    await waitFor(() => {
-      expect(screen.getByText("Let's go →")).toBeInTheDocument()
+      expect(screen.queryByText('Restaurant')).toBeNull()
+      expect(screen.queryByText('Business type')).toBeNull()
     })
   })
 })

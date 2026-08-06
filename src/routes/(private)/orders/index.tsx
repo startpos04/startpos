@@ -1,12 +1,10 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { Ban, CheckCheck, ChevronDown, Clock, CreditCard, DollarSign, Play, SquarePen, Undo2, User } from 'lucide-react'
 import { OrderStatus } from 'prisma/generated/prisma/browser'
 import { toast } from 'sonner'
 import { GridView } from '@/components/custom/data-view/grid-view'
 import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
 import { useSubscriptionGate } from '@/components/feature-disabled'
-import { FeatureDisabledPage } from '@/components/pages/feature-disabled-page'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,6 +20,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { orderCollection } from '@/db/collections'
 import { PriceEngine } from '@/lib/conversion/price-engine'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager, { type MountProps } from '@/lib/mount-manager'
 import { createPosRefund } from '@/lib/queries/create-pos-refund'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
@@ -43,15 +42,17 @@ interface RouteComponentProps {
 
 export const Route = createFileRoute('/(private)/orders/')({
   component: OrdersPageGate,
+  beforeLoad: () => {
+    const { user } = authStore.state
+    if (!user?.entitlement?.capabilities?.includes(Capabilities.CREATE_ORDER)) {
+      throw redirect({ to: '/unauthorized' })
+    }
+  },
 })
 
 function OrdersPageGate() {
   const gate = useSubscriptionGate()
   if (gate) return gate
-
-  // biome-ignore lint/correctness/useHookAtTopLevel: fix later
-  const user = useStore(authStore, state => state.user)
-  if (!user.systemConfigs.ENABLE_ORDER) return <FeatureDisabledPage />
 
   return (
     <div className='py-6 space-y-6'>

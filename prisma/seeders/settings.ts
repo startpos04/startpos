@@ -82,19 +82,23 @@ export async function Settings(prisma: PrismaClient, options: { folder: string }
 
   console.info(`📏 Syncing metric unit definitions (${runtimeUnits.length})...`)
   for (const unit of runtimeUnits) {
-    await prisma.unit.upsert({
-      // 💡 Match using your business schema's cross-tenant unique compound constraint if available
-      // fallback to unique abbreviation safely without duplicating entries
-      where: { abbreviation: unit.abbreviation },
-      update: {
-        name: unit.name,
-        type: unit.type,
-        conversionFactor: unit.conversionFactor,
-        isBaseUnit: unit.isBaseUnit,
-        deletedAt: null,
-      },
-      create: { ...unit, businessId },
+    const existing = await prisma.unit.findFirst({
+      where: { abbreviation: unit.abbreviation, businessId },
     })
+    if (existing) {
+      await prisma.unit.update({
+        where: { id: existing.id },
+        data: {
+          name: unit.name,
+          type: unit.type,
+          conversionFactor: unit.conversionFactor,
+          isBaseUnit: unit.isBaseUnit,
+          deletedAt: null,
+        },
+      })
+    } else {
+      await prisma.unit.create({ data: { ...unit, businessId } })
+    }
   }
 
   console.info(`📍 Syncing internal tracking locations (${runtimeLocations.length})...`)

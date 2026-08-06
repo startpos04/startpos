@@ -89,6 +89,7 @@ vi.mock('@/routes/(private)/pos/-components/reconcile-later', () => ({
 // ---------------------------------------------------------------------------
 
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { OpenSessionDialog } from '@/routes/(private)/pos/-components/open-session-dialog'
 import { CloseSessionDialog } from '@/routes/(private)/pos/-components/close-session-dialog'
 
@@ -171,28 +172,31 @@ describe('CloseSessionDialog', () => {
     expect(screen.getByText('End Shift')).toBeInTheDocument()
   })
 
-  it('renders "Reconcile Now" tab (or sentinel) always', () => {
+  it('renders "Reconcile Now" tab option always', () => {
+    // CREATE_TASK granted — two-tab layout, Reconcile Now is the second tab
+    seedMockUser({ role: Role.CASHIER, entitlement: { capabilities: [Capabilities.CREATE_TASK], status: 'TRIAL', txRemaining: null, creditBalance: 50, trialEndsAt: null, currentPeriodEnd: null, billingModel: null, cancelledAt: null } } as any)
     render(<CloseSessionDialog open={true} onClose={vi.fn()} />)
-    // With 1 tab, Tab component renders content directly (no TabsList).
-    // With 2 tabs, both labels are in TabsList. Either way the sentinel is present.
-    expect(screen.getByTestId('reconcile-now')).toBeInTheDocument()
+    // The tab label is always present in the TabsList
+    expect(document.body.textContent).toContain('Reconcile Now')
   })
 
-  it('renders "Create a Task" tab label when ENABLE_CASH_RECONCILIATION=true', () => {
-    seedMockUser({ role: Role.CASHIER, systemConfigs: { ENABLE_CASH_RECONCILIATION: true } } as any)
+  it('renders "Create a Task" tab label when CREATE_TASK capability is granted', () => {
+    seedMockUser({ role: Role.CASHIER, entitlement: { capabilities: [Capabilities.CREATE_TASK], status: 'TRIAL', txRemaining: null, creditBalance: 50, trialEndsAt: null, currentPeriodEnd: null, billingModel: null, cancelledAt: null } } as any)
     render(<CloseSessionDialog open={true} onClose={vi.fn()} />)
-    // With 2 tabs, the TabsList renders both labels
     expect(document.body.textContent).toContain('Create a Task')
   })
 
-  it('hides "Create a Task" tab when ENABLE_CASH_RECONCILIATION=false', () => {
-    seedMockUser({ role: Role.CASHIER, systemConfigs: { ENABLE_CASH_RECONCILIATION: false } } as any)
+  it('hides "Create a Task" tab when CREATE_TASK capability is not granted', () => {
+    seedMockUser({ role: Role.CASHIER, entitlement: { capabilities: [], status: 'TRIAL', txRemaining: null, creditBalance: 50, trialEndsAt: null, currentPeriodEnd: null, billingModel: null, cancelledAt: null } } as any)
     render(<CloseSessionDialog open={true} onClose={vi.fn()} />)
     expect(document.body.textContent).not.toContain('Create a Task')
   })
 
-  it('renders ReconcileNow sentinel inside the tab', () => {
+  it('renders ReconcileNow component when Reconcile Now tab is active', () => {
+    // No CREATE_TASK — single tab, ReconcileNow renders immediately
+    seedMockUser({ role: Role.CASHIER, entitlement: { capabilities: [], status: 'TRIAL', txRemaining: null, creditBalance: 50, trialEndsAt: null, currentPeriodEnd: null, billingModel: null, cancelledAt: null } } as any)
     render(<CloseSessionDialog open={true} onClose={vi.fn()} />)
+    // Single-tab layout — content renders directly without a TabsList
     expect(screen.getByTestId('reconcile-now')).toBeInTheDocument()
   })
 

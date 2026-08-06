@@ -29,6 +29,9 @@ export function ProductCard({ cartItems, product, onAdd }: ProductCardProps) {
     [product, variant, cartItems, orderItems],
   )
 
+  // SERVICE type or provisional products have no real stock count to show
+  const isUnlimited = maxAvailable >= 999
+
   const handleOpenConfig = () => {
     if (maxAvailable <= 0) return
 
@@ -55,7 +58,7 @@ export function ProductCard({ cartItems, product, onAdd }: ProductCardProps) {
             maxAvailable <= 0 ? 'bg-destructive text-destructive-foreground border-destructive/20' : 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
           )}
         >
-          {maxAvailable > 0 ? `${maxAvailable} available` : 'Out of Stock'}
+          {maxAvailable <= 0 ? 'Out of Stock' : isUnlimited ? 'Available' : `${maxAvailable} available`}
         </div>
 
         <Avatar className='w-full h-full [&>img]:rounded-none [&>span]:rounded-none [&:after]:border-none'>

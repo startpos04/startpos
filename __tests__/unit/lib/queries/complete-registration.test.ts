@@ -1,28 +1,35 @@
 /**
  * complete-registration.test.ts
  *
- * Tests for the completeRegistration server function handler.
+ * Tests for the completeRegistration server function handler (v2 path only).
+ *
+ * Phase 6 (ADR-004): The v1 businessType-only path was removed. All tests
+ * now use the v2 adaptive survey path. Tests that asserted on v1
+ * business-type-specific config keys have been replaced with v2 assertions:
+ *   - Global configs (LOCALE, CURRENCY, VAT_RATE) always present
+ *   - Global branch configs (BUFFER_RATE, LOW_STOCK_THRESHOLD) always present
+ *   - BusinessCapabilityState rows written for ENABLED and RECOMMENDED capabilities
+ *   - enabledAt / recommendedAt analytics timestamps are stamped at registration
  *
  * Strategy:
- *   completeRegistration is a createServerFn that wraps a handler. We test
- *   the handler logic by:
+ *   completeRegistration is a createServerFn. We test the handler logic by:
  *     1. Mocking rootPrisma so no real DB connection is required.
  *     2. Mocking authMiddleware so context.user is controlled.
  *     3. Mocking createServerFn to expose the handler callback directly.
  *
  * Coverage:
- *  - Happy path: atomically creates all 7 records in correct order
+ *  - Happy path: all 8 steps execute atomically in $transaction
  *  - Happy path: subscription is provisioned as TRIAL with PREPAID_CREDITS
  *  - Happy path: 50 complimentary credits are granted
- *  - Happy path: business-type-specific SystemConfig defaults are applied
- *  - Happy path: global LOCALE/CURRENCY/VAT_RATE configs always included
+ *  - Happy path: global configs always written (LOCALE, CURRENCY, VAT_RATE, branch)
+ *  - Happy path: BusinessCapabilityState rows written with analytics timestamps
  *  - Happy path: user role is promoted to ADMIN
  *  - Idempotency: P2002 unique violation returns existing businessId/branchId
  *  - Error path: missing Trial subscription plan returns success:false
- *  - Error path: unauthenticated user (no context.user) returns success:false
+ *  - Error path: unauthenticated user returns success:false
  *  - Error path: unexpected DB error returns success:false
- *  - Slug generation: slug is derived from businessName
- *  - Slug generation: slug collision appends a numeric suffix
+ *  - Slug generation: slug derived from businessName
+ *  - Slug generation: collision appends numeric suffix
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -30,7 +37,7 @@ import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
 import { BillingModel, TransitionTrigger } from '@/lib/billing/types'
 
 // ---------------------------------------------------------------------------
-// Mock: createServerFn — returns a fake builder; captures handler via .handler()
+// Mock: createServerFn
 // ---------------------------------------------------------------------------
 
 let capturedHandler: ((opts: { data: unknown; context: unknown }) => unknown) | null = null
@@ -46,10 +53,6 @@ vi.mock('@tanstack/react-start', () => ({
   })),
 }))
 
-// ---------------------------------------------------------------------------
-// Mock: authMiddleware — noop, context is injected directly in tests
-// ---------------------------------------------------------------------------
-
 vi.mock('@/lib/better-auth/auth-middleware', () => ({
   authMiddleware: {},
 }))
@@ -64,22 +67,16 @@ const mockTx = {
   membership: { create: vi.fn() },
   user: { update: vi.fn() },
   systemConfig: { create: vi.fn() },
+  businessCapabilityState: { create: vi.fn() },
   businessSubscription: { create: vi.fn() },
   subscriptionStatusHistory: { create: vi.fn() },
   creditLedger: { create: vi.fn() },
 }
 
 const mockPrisma = {
-  subscriptionPlan: {
-    findFirst: vi.fn(),
-  },
-  business: {
-    findFirst: vi.fn(),
-    count: vi.fn(),
-  },
-  membership: {
-    findFirst: vi.fn(),
-  },
+  subscriptionPlan: { findFirst: vi.fn() },
+  business: { findFirst: vi.fn(), count: vi.fn() },
+  membership: { findFirst: vi.fn() },
   $transaction: vi.fn(),
 }
 
@@ -88,22 +85,35 @@ vi.mock('@/lib/prisma-client', () => ({
 }))
 
 // ---------------------------------------------------------------------------
-// Import the module under test AFTER all mocks are declared
+// Import target after mocks
 // ---------------------------------------------------------------------------
 
-// We import to trigger the side-effectful createServerFn call that registers
-// the handler. The exported symbol is unused — we call `capturedHandler` directly.
 await import('@/lib/queries/complete-registration')
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Minimal valid v2 survey answers.
+ * q1_business_type = 'retail' → RETAIL profile → gives a deterministic
+ * ConfigurationEngine output with known ENABLED capabilities.
+ */
+const MINIMAL_SURVEY_ANSWERS = {
+  q1_business_type: ['retail'],
+  q2_team_size: 'solo',
+  q3_payment_timing: 'immediate',
+  q4_inventory_tracking: 'no',
+  q5_role_separation: 'no',
+  q6_vat_registered: 'no',
+}
+
 type HandlerOpts = {
   data: {
     displayName: string
     businessName: string
-    businessType: 'RESTAURANT' | 'GROCERY' | 'RETAIL'
+    surveyAnswers: Record<string, string | string[]>
+    businessType?: 'RESTAURANT' | 'GROCERY' | 'RETAIL'
   }
   context: { user?: { id: string } } | null
 }
@@ -112,7 +122,7 @@ function validInput(overrides: Partial<HandlerOpts['data']> = {}): HandlerOpts['
   return {
     displayName: 'Test Owner',
     businessName: 'Test Biz',
-    businessType: 'RETAIL',
+    surveyAnswers: MINIMAL_SURVEY_ANSWERS,
     ...overrides,
   }
 }
@@ -127,28 +137,23 @@ async function runHandler(opts: HandlerOpts) {
 }
 
 // ---------------------------------------------------------------------------
-// Setup: configure mock return values before each test
+// Setup
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
   vi.clearAllMocks()
 
-  // Default: Trial plan exists
   mockPrisma.subscriptionPlan.findFirst.mockResolvedValue({ id: 'plan-trial-001' })
-
-  // Default: No existing slug collision
   mockPrisma.business.findFirst.mockResolvedValue(null)
   mockPrisma.business.count.mockResolvedValue(0)
-
-  // Default: $transaction executes the callback and returns its result
   mockPrisma.$transaction.mockImplementation(async (cb: (tx: typeof mockTx) => Promise<unknown>) => cb(mockTx))
 
-  // Default tx mock return values
   mockTx.business.create.mockResolvedValue({ id: 'biz-new-001' })
   mockTx.branch.create.mockResolvedValue({ id: 'branch-new-001' })
   mockTx.membership.create.mockResolvedValue({})
   mockTx.user.update.mockResolvedValue({})
   mockTx.systemConfig.create.mockResolvedValue({})
+  mockTx.businessCapabilityState.create.mockResolvedValue({})
   mockTx.businessSubscription.create.mockResolvedValue({ id: 'sub-new-001' })
   mockTx.subscriptionStatusHistory.create.mockResolvedValue({})
   mockTx.creditLedger.create.mockResolvedValue({})
@@ -175,18 +180,26 @@ describe('completeRegistration — happy path', () => {
     expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1)
   })
 
-  it('creates the Business with the derived slug and businessType', async () => {
-    await runHandler({ data: validInput({ businessName: 'My Shop', businessType: 'GROCERY' }), context: authedContext() })
+  it('creates the Business with the derived slug and survey answers stored', async () => {
+    await runHandler({ data: validInput({ businessName: 'My Shop' }), context: authedContext() })
 
     expect(mockTx.business.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           name: 'My Shop',
           slug: 'my-shop',
-          businessType: 'GROCERY',
+          onboardingSurveyAnswers: MINIMAL_SURVEY_ANSWERS,
         }),
       }),
     )
+  })
+
+  it('stores onboardingProfile and currentProfile on the Business', async () => {
+    await runHandler({ data: validInput(), context: authedContext() })
+
+    const call = mockTx.business.create.mock.calls[0]?.[0]
+    expect(typeof call.data.onboardingProfile).toBe('string')
+    expect(call.data.currentProfile).toBe(call.data.onboardingProfile)
   })
 
   it('creates the Branch as "Main Branch" for the new business', async () => {
@@ -287,76 +300,81 @@ describe('completeRegistration — happy path', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Business-type SystemConfig defaults
+// SystemConfig defaults (v2 path)
 // ---------------------------------------------------------------------------
 
-describe('completeRegistration — SystemConfig defaults', () => {
-  it('creates RESTAURANT-specific configs (INCLUSIVE pricing, VAT registered)', async () => {
-    await runHandler({ data: validInput({ businessType: 'RESTAURANT' }), context: authedContext() })
+describe('completeRegistration — SystemConfig defaults (v2 path)', () => {
+  it('always includes global LOCALE, CURRENCY, and VAT_RATE configs', async () => {
+    await runHandler({ data: validInput(), context: authedContext() })
 
-    const configCalls = mockTx.systemConfig.create.mock.calls.map((c: unknown[]) => (c[0] as { data: { key: string; value: string } }).data)
-    const priceConfig = configCalls.find((c: { key: string; value: string }) => c.key === 'PRICE_CONFIGURATION')
-    const vatConfig = configCalls.find((c: { key: string; value: string }) => c.key === 'IS_VAT_REGISTERED')
-    const orderTab = configCalls.find((c: { key: string; value: string }) => c.key === 'ENABLE_ORDER_TAB')
+    const configCalls = mockTx.systemConfig.create.mock.calls
+      .map((c: unknown[]) => (c[0] as { data: { key: string; value: string; scope: string } }).data)
+      .filter((c: { scope: string }) => c.scope === 'BUSINESS')
 
-    expect(priceConfig?.value).toBe('INCLUSIVE')
-    expect(vatConfig?.value).toBe('true')
-    expect(orderTab?.value).toBe('true')
-  })
-
-  it('creates GROCERY-specific configs (EXCLUSIVE pricing, no order tab)', async () => {
-    await runHandler({ data: validInput({ businessType: 'GROCERY' }), context: authedContext() })
-
-    const configCalls = mockTx.systemConfig.create.mock.calls.map((c: unknown[]) => (c[0] as { data: { key: string; value: string } }).data)
-    const priceConfig = configCalls.find((c: { key: string; value: string }) => c.key === 'PRICE_CONFIGURATION')
-    const orderTab = configCalls.find((c: { key: string; value: string }) => c.key === 'ENABLE_ORDER_TAB')
-
-    expect(priceConfig?.value).toBe('EXCLUSIVE')
-    expect(orderTab?.value).toBe('false')
-  })
-
-  it('creates RETAIL-specific configs (EXCLUSIVE pricing, not VAT registered)', async () => {
-    await runHandler({ data: validInput({ businessType: 'RETAIL' }), context: authedContext() })
-
-    const configCalls = mockTx.systemConfig.create.mock.calls.map((c: unknown[]) => (c[0] as { data: { key: string; value: string } }).data)
-    const vatConfig = configCalls.find((c: { key: string; value: string }) => c.key === 'IS_VAT_REGISTERED')
-
-    expect(vatConfig?.value).toBe('false')
-  })
-
-  it('always includes global LOCALE, CURRENCY, and VAT_RATE configs regardless of business type', async () => {
-    for (const businessType of ['RESTAURANT', 'GROCERY', 'RETAIL'] as const) {
-      vi.clearAllMocks()
-      mockPrisma.subscriptionPlan.findFirst.mockResolvedValue({ id: 'plan-trial-001' })
-      mockPrisma.business.findFirst.mockResolvedValue(null)
-      mockPrisma.business.count.mockResolvedValue(0)
-      mockPrisma.$transaction.mockImplementation(async (cb: (tx: typeof mockTx) => Promise<unknown>) => cb(mockTx))
-      mockTx.business.create.mockResolvedValue({ id: 'biz-new-001' })
-      mockTx.branch.create.mockResolvedValue({ id: 'branch-new-001' })
-      mockTx.membership.create.mockResolvedValue({})
-      mockTx.user.update.mockResolvedValue({})
-      mockTx.systemConfig.create.mockResolvedValue({})
-      mockTx.businessSubscription.create.mockResolvedValue({ id: 'sub-new-001' })
-      mockTx.subscriptionStatusHistory.create.mockResolvedValue({})
-      mockTx.creditLedger.create.mockResolvedValue({})
-
-      await runHandler({ data: validInput({ businessType }), context: authedContext() })
-
-      const configCalls = mockTx.systemConfig.create.mock.calls.map((c: unknown[]) => (c[0] as { data: { key: string; value: string } }).data)
-      const keys = configCalls.map((c: { key: string }) => c.key)
-      expect(keys).toContain('LOCALE')
-      expect(keys).toContain('CURRENCY')
-      expect(keys).toContain('VAT_RATE')
-    }
+    const keys = configCalls.map((c: { key: string }) => c.key)
+    expect(keys).toContain('LOCALE')
+    expect(keys).toContain('CURRENCY')
+    expect(keys).toContain('VAT_RATE')
   })
 
   it('always includes global branch configs (BUFFER_RATE, LOW_STOCK_THRESHOLD)', async () => {
     await runHandler({ data: validInput(), context: authedContext() })
 
-    const configCalls = mockTx.systemConfig.create.mock.calls.map((c: unknown[]) => (c[0] as { data: { key: string; value: string } }).data)
-    const keys = configCalls.map((c: { key: string }) => c.key)
+    const branchCalls = mockTx.systemConfig.create.mock.calls
+      .map((c: unknown[]) => (c[0] as { data: { key: string; scope: string } }).data)
+      .filter((c: { scope: string }) => c.scope === 'BRANCH')
+
+    const keys = branchCalls.map((c: { key: string }) => c.key)
     expect(keys).toContain('BUFFER_RATE')
     expect(keys).toContain('LOW_STOCK_THRESHOLD')
+  })
+
+  it('writes at least one BUSINESS-scoped SystemConfig from the ConfigurationEngine', async () => {
+    await runHandler({ data: validInput(), context: authedContext() })
+
+    const businessConfigs = mockTx.systemConfig.create.mock.calls
+      .map((c: unknown[]) => (c[0] as { data: { scope: string } }).data)
+      .filter((c: { scope: string }) => c.scope === 'BUSINESS')
+
+    expect(businessConfigs.length).toBeGreaterThan(3) // at least the 3 globals + capability configs
+  })
+})
+
+// ---------------------------------------------------------------------------
+// BusinessCapabilityState — analytics timestamps (Phase 6)
+// ---------------------------------------------------------------------------
+
+describe('completeRegistration — BusinessCapabilityState (v2 path)', () => {
+  it('creates BusinessCapabilityState rows at registration', async () => {
+    await runHandler({ data: validInput(), context: authedContext() })
+    // The v2 config always creates at least some ENABLED capability states
+    expect(mockTx.businessCapabilityState.create).toHaveBeenCalled()
+  })
+
+  it('stamps enabledAt on ENABLED capability states', async () => {
+    await runHandler({ data: validInput(), context: authedContext() })
+
+    const enabledCalls = mockTx.businessCapabilityState.create.mock.calls
+      .map((c: unknown[]) => (c[0] as { data: { state: string; enabledAt?: Date; recommendedAt?: Date } }).data)
+      .filter((d: { state: string }) => d.state === 'ENABLED')
+
+    expect(enabledCalls.length).toBeGreaterThan(0)
+    for (const call of enabledCalls) {
+      expect(call.enabledAt).toBeInstanceOf(Date)
+    }
+  })
+
+  it('stamps recommendedAt on RECOMMENDED capability states', async () => {
+    await runHandler({ data: validInput(), context: authedContext() })
+
+    const recommendedCalls = mockTx.businessCapabilityState.create.mock.calls
+      .map((c: unknown[]) => (c[0] as { data: { state: string; enabledAt?: Date; recommendedAt?: Date } }).data)
+      .filter((d: { state: string }) => d.state === 'RECOMMENDED')
+
+    // Not all survey profiles produce RECOMMENDED states, but if any exist, they must have timestamps
+    for (const call of recommendedCalls) {
+      expect(call.recommendedAt).toBeInstanceOf(Date)
+    }
   })
 })
 
@@ -376,14 +394,13 @@ describe('completeRegistration — slug generation', () => {
   })
 
   it('strips special characters from the slug', async () => {
-    await runHandler({ data: validInput({ businessName: 'María\'s Bakery & Co.' }), context: authedContext() })
+    await runHandler({ data: validInput({ businessName: "María's Bakery & Co." }), context: authedContext() })
 
     const call = mockTx.business.create.mock.calls[0]?.[0]
     expect(call.data.slug).not.toMatch(/[^a-z0-9-]/)
   })
 
   it('appends a numeric suffix when the base slug already exists', async () => {
-    // Simulate 1 existing slug with the same base
     mockPrisma.business.findFirst.mockResolvedValue({ slug: 'test-biz' })
     mockPrisma.business.count.mockResolvedValue(1)
 
@@ -435,7 +452,7 @@ describe('completeRegistration — error paths', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Idempotency (P2002 unique violation)
+// Idempotency
 // ---------------------------------------------------------------------------
 
 describe('completeRegistration — idempotency', () => {

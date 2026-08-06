@@ -2,15 +2,19 @@ import { useStore } from '@tanstack/react-form'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import _ from 'lodash'
+import { PackagePlus, PackageSearch, Plus, ShoppingCart } from 'lucide-react'
 import { useMemo } from 'react'
 import { getColumns } from '@/components/custom/data-view'
 import { MultiView } from '@/components/custom/data-view/multi-view'
+import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { withForm } from '@/hooks/form'
+import { useCapability } from '@/hooks/use-capability'
 import { usePOS } from '@/hooks/use-pos'
 import { productCols } from '@/lib/columns/product-columns'
 import { tableCols } from '@/lib/columns/table-columns'
 import { PosStockEngine, type posItem } from '@/lib/conversion/pos-stock-engine'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager, { type MountProps } from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { SearchInput } from '../../orders/-components/search-input'
@@ -18,6 +22,7 @@ import { posFormOpts } from '..'
 import { PosHeader } from './header'
 import { ProductCard } from './product-card'
 import { ProductDialog } from './product-dialog'
+import { QuickAddDialog } from './quick-add-dialog'
 
 export const ProductItemsModal = withForm({
   ...posFormOpts,
@@ -58,6 +63,7 @@ export const Products = withForm({
     const cartItems = useStore(form.store, s => s.values.items)
     const { posProducts, totalItemsPosProducts, orderItems, isLoading } = usePOS({ searchQuery: search, page, pageSize })
     const navigate = useNavigate({ from: '/pos/' })
+    const hasInventory = useCapability(Capabilities.MANAGE_INVENTORY)
 
     const columns = useMemo(
       () =>
@@ -70,13 +76,14 @@ export const Products = withForm({
               productCols.sku(h),
               productCols.category(h),
               productCols.unit(h),
-              productCols.servings(h, { orderItems, cartItems }),
+              // Only show stock column when inventory tracking is enabled
+              hasInventory ? productCols.servings(h, { orderItems, cartItems }) : null,
               productCols.price(h),
 
               // biome-ignore lint/suspicious/noExplicitAny: TODO: fix any
-            ] as ColumnDef<posProduct, any>[],
+            ].filter(Boolean) as ColumnDef<posProduct, any>[],
         ),
-      [orderItems, cartItems],
+      [orderItems, cartItems, hasInventory],
     )
 
     const handleAddToCart = (newItem: posItem) => {
@@ -111,10 +118,83 @@ export const Products = withForm({
       })
     }
 
+    // ── Empty catalog (no search active, no products at all) ──────────────────
+    if (!isLoading && posProducts.length === 0 && !search) {
+      return (
+        <div className='flex flex-col items-center justify-center flex-1 gap-6 py-16 px-6 text-center'>
+          <div className='w-14 h-14 rounded-2xl bg-muted flex items-center justify-center'>
+            <ShoppingCart className='w-7 h-7 text-muted-foreground/50' />
+          </div>
+          <div className='space-y-1.5 max-w-sm'>
+            <p className='text-base font-semibold text-foreground'>No products yet</p>
+            <p className='text-sm text-muted-foreground leading-snug'>
+              You can sell an item right now without setting up a catalog first, or create your products upfront.
+            </p>
+          </div>
+          <div className='flex flex-col sm:flex-row gap-2 items-center'>
+            <Button
+              variant='default'
+              size='sm'
+              className='gap-2'
+              onClick={() => {
+                MountManager.show(QuickAddDialog, { searchQuery: '', onConfirm: handleAddToCart })
+              }}
+            >
+              <PackagePlus className='w-4 h-4' />
+              Quick Add an item
+            </Button>
+            <Button variant='outline' size='sm' className='gap-2' onClick={() => navigate({ to: '/products/create' })}>
+              <Plus className='w-4 h-4' />
+              Set up catalog
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
+    // ── Search with no results — Quick Add entry point ────────────────────────
+    if (!isLoading && posProducts.length === 0 && search) {
+      return (
+        <div className='flex flex-col items-center justify-center flex-1 gap-5 py-16 px-6 text-center'>
+          <div className='w-14 h-14 rounded-2xl bg-muted flex items-center justify-center'>
+            <PackageSearch className='w-7 h-7 text-muted-foreground/50' />
+          </div>
+          <div className='space-y-1.5 max-w-sm'>
+            <p className='text-base font-semibold text-foreground'>No results for "{search}"</p>
+            <p className='text-sm text-muted-foreground leading-snug'>
+              This product isn't in your catalog yet. Quick Add it to sell now — you can complete its details later.
+            </p>
+          </div>
+          <Button
+            size='sm'
+            className='gap-2'
+            onClick={() => {
+              MountManager.show(QuickAddDialog, { searchQuery: search, onConfirm: handleAddToCart })
+            }}
+          >
+            <PackagePlus className='w-4 h-4' />
+            Quick Add "{search}"
+          </Button>
+        </div>
+      )
+    }
+
     return (
       <MultiView<posProduct>
         data={posProducts}
         isFetching={isLoading}
+        actions={
+          <Button
+            type='button'
+            size='sm'
+            variant='outline'
+            className='gap-1.5 border-dashed'
+            onClick={() => MountManager.show(QuickAddDialog, { searchQuery: '', onConfirm: handleAddToCart })}
+          >
+            <PackagePlus className='w-4 h-4' />
+            Quick Add
+          </Button>
+        }
         paginable={{
           pageSize,
           pageIndex: page - 1,

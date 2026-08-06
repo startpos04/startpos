@@ -28,6 +28,7 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
+import { useCapabilities } from '@/hooks/use-capability'
 import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
 import { APP_NAME } from '@/lib/constants'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
@@ -51,6 +52,16 @@ interface Items {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = useStore(authStore, state => state.user)
   const location = useLocation()
+
+  // Capability checks — drives sidebar item visibility
+  const caps = useCapabilities([
+    Capabilities.CREATE_TASK,
+    Capabilities.CREATE_PURCHASE,
+    Capabilities.VIEW_SALES_REPORTS,
+    Capabilities.MANAGE_INVENTORY,
+    Capabilities.VIEW_TRANSACTION_HISTORY,
+    Capabilities.VIEW_ORDER_HISTORY,
+  ])
 
   // Helper to determine if a route is a match or a sub-path of the current location
   const isRouteActive = React.useCallback(
@@ -91,7 +102,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           items: [
             { title: 'Employees', url: '/employees' },
             { title: 'Products', url: '/products' },
-            { title: 'Purchases', url: '/purchases' },
+            caps.CREATE_PURCHASE ? { title: 'Purchases', url: '/purchases' } : null,
             user.business?.businessType === BusinessType.RESTAURANT ? { title: 'Ingredients', url: '/ingredients' } : null,
           ].filter(Boolean),
         },
@@ -101,15 +112,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           icon: <BotIcon />,
           allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
           items: [
-            { title: 'Sales Report', url: '/sales-reports' },
-            { title: 'Inventory Reports', url: '/inventory-reports' },
-            { title: 'Transactions', url: '/transactions' },
-            { title: 'Order History', url: '/order-history' },
-          ],
+            caps.VIEW_SALES_REPORTS ? { title: 'Sales Report', url: '/sales-reports' } : null,
+            caps.MANAGE_INVENTORY ? { title: 'Inventory Reports', url: '/inventory-reports' } : null,
+            caps.VIEW_TRANSACTION_HISTORY ? { title: 'Transactions', url: '/transactions' } : null,
+            caps.VIEW_ORDER_HISTORY ? { title: 'Order History', url: '/order-history' } : null,
+          ].filter(Boolean),
         },
-        // F3: Gate Tasks sidebar item through EntitlementEngine (CREATE_TASK capability).
-        // Replaces the ENABLE_TASK SystemConfig dual-gate.
-        user.entitlement?.capabilities.includes(Capabilities.CREATE_TASK)
+        caps.CREATE_TASK
           ? {
               title: 'Tasks',
               url: '/tasks',
@@ -129,8 +138,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           icon: <SettingsIcon />,
           allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
         },
-        // Billing — always accessible to ADMIN regardless of subscription status.
-        // This is the escape hatch: even EXPIRED admins must be able to reach /billing.
         {
           title: 'Billing',
           url: '/billing',
@@ -160,7 +167,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       })
 
     return data
-  }, [isRouteActive, user])
+  }, [isRouteActive, user, caps])
 
   return (
     <Sidebar collapsible='icon' {...props}>

@@ -6,28 +6,30 @@
  *   - OAuth /register/business-setup interstitial submits.
  *
  * Atomically creates the complete tenant record in a single $transaction:
- *   1. Business
+ *   1. Business (with BOS onboarding fields from adaptive survey)
  *   2. Branch (Main Branch)
  *   3. Membership (userId ↔ businessId ↔ branchId, role = ADMIN)
- *   4. SystemConfig defaults (business-type specific)
+ *   3b. User.role promoted to ADMIN
+ *   4. SystemConfig defaults (from ConfigurationEngine — capability-derived)
  *   5. BusinessSubscription (TRIAL via SubscriptionEngine.buildInitialSubscription)
  *   6. SubscriptionStatusHistory (initial TRIAL record)
  *   7. CreditLedger (50 complimentary PROMOTIONAL transactions)
+ *   8. BusinessCapabilityState rows (ENABLED + RECOMMENDED capabilities)
  *
  * Idempotency: Membership has @@unique([userId, businessId]). A double-submit
  * triggers a DB constraint conflict on step 3. The handler catches this and
  * returns the existing businessId/branchId.
- *
- * Session refresh: better-auth's databaseHooks.session.create.before already
- * reads Membership and injects businessId/branchId into new sessions.
- * After this function returns, the caller must trigger a session refresh so
- * the next getAuthUser() call returns a complete ServerUser.
  *
  * Architecture:
  *   - Server function — never runs in the browser bundle.
  *   - Uses rootPrisma for platform-level writes (Business, Branch, etc.).
  *   - SubscriptionEngine and CreditEngine are pure — called for their DTOs.
  *   - No infrastructure imports inside the engines.
+ *
+ * Shadow-running retired (ADR-004):
+ *   The v1 BUSINESS_TYPE_CONFIGS path and ONBOARDING_V2_SHADOW flag have been
+ *   removed. All new registrations use the v2 adaptive survey path exclusively.
+ *   See docs/decisions/ADR-004-remove-v1-onboarding-path.md.
  */
 
 import { createServerFn } from '@tanstack/react-start'
@@ -36,57 +38,43 @@ import { authMiddleware } from '../better-auth/auth-middleware'
 import { CreditEventType } from '../billing/credit-engine'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 import { BillingModel, type LifecycleThresholds } from '../billing/types'
+import { CAPABILITY_REGISTRY } from '../onboarding/capability-registry'
+import { resolveCapabilities } from '../onboarding/capability-resolver'
+import { buildConfiguration } from '../onboarding/configuration-engine'
+import { suggestPlan } from '../onboarding/plan-advisor'
+import { classifyProfile } from '../onboarding/profile-classifier'
+import { interpretSurvey } from '../onboarding/survey-interpreter'
+import type { SurveyAnswers } from '../onboarding/types'
 import { prisma as rootPrisma } from '../prisma-client'
 
 // ---------------------------------------------------------------------------
-// Input schema
+// Input schema — v2 only (adaptive survey path)
+// Phase 6: v1 businessType-only path removed (ADR-004).
 // ---------------------------------------------------------------------------
 
+/**
+ * v2 input schema — adaptive survey path.
+ * Q1 (business type) is required; all other answers are optional.
+ * businessType is accepted but unused — kept for graceful handling of
+ * any legacy clients still sending the field during the rollout window.
+ * The businessType column on Business is deprecated (do not use for logic).
+ */
 const CompleteRegistrationInputSchema = z.object({
   displayName: z.string().min(1, 'Name is required'),
   businessName: z.string().min(1, 'Business name is required').max(100),
-  businessType: z.enum(['RESTAURANT', 'GROCERY', 'RETAIL']),
+  /** Deprecated — kept for backward-compat with legacy clients. Not used for config. */
+  businessType: z.enum(['RESTAURANT', 'GROCERY', 'RETAIL']).optional(),
+  surveyAnswers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
 })
 
 export type CompleteRegistrationInput = z.infer<typeof CompleteRegistrationInputSchema>
 
 // ---------------------------------------------------------------------------
-// SystemConfig defaults by BusinessType (plan §8.3)
+// Global SystemConfig defaults applied to every new business
 // ---------------------------------------------------------------------------
 
 type ConfigDefault = { key: string; value: string }
 
-const BUSINESS_TYPE_CONFIGS: Record<string, ConfigDefault[]> = {
-  RESTAURANT: [
-    { key: 'PRICE_CONFIGURATION', value: 'INCLUSIVE' },
-    { key: 'IS_VAT_REGISTERED', value: 'true' },
-    { key: 'ENABLE_ORDER_TAB', value: 'true' },
-    { key: 'ENABLE_ORDER', value: 'true' },
-    { key: 'ENABLE_CASH_RECONCILIATION', value: 'true' },
-    { key: 'ENABLE_TASK', value: 'true' },
-    { key: 'ENABLE_PRINT_RECEIPT', value: 'true' },
-  ],
-  GROCERY: [
-    { key: 'PRICE_CONFIGURATION', value: 'EXCLUSIVE' },
-    { key: 'IS_VAT_REGISTERED', value: 'true' },
-    { key: 'ENABLE_ORDER_TAB', value: 'false' },
-    { key: 'ENABLE_ORDER', value: 'false' },
-    { key: 'ENABLE_CASH_RECONCILIATION', value: 'true' },
-    { key: 'ENABLE_TASK', value: 'true' },
-    { key: 'ENABLE_PRINT_RECEIPT', value: 'true' },
-  ],
-  RETAIL: [
-    { key: 'PRICE_CONFIGURATION', value: 'EXCLUSIVE' },
-    { key: 'IS_VAT_REGISTERED', value: 'false' },
-    { key: 'ENABLE_ORDER_TAB', value: 'false' },
-    { key: 'ENABLE_ORDER', value: 'true' },
-    { key: 'ENABLE_CASH_RECONCILIATION', value: 'true' },
-    { key: 'ENABLE_TASK', value: 'true' },
-    { key: 'ENABLE_PRINT_RECEIPT', value: 'true' },
-  ],
-}
-
-// Global defaults applied to every new business regardless of type.
 // These mirror the canonical values in prisma/seeders/configs.ts.
 const GLOBAL_BUSINESS_CONFIGS: ConfigDefault[] = [
   { key: 'LOCALE', value: 'en-PH' },
@@ -121,7 +109,6 @@ async function generateUniqueSlug(baseName: string): Promise<string> {
 
   if (!existing) return base
 
-  // Count existing slugs that match base or base-N pattern
   const slugCount = await rootPrisma.business.count({
     where: { slug: { startsWith: base } },
   })
@@ -143,8 +130,7 @@ export const completeRegistration = createServerFn({ method: 'POST' })
 
     const userId = context.user.id
 
-    // Fetch the Premium plan — new registrants get Premium entitlements
-    // on their 50 complimentary credits (Trial mirrors Premium capabilities).
+    // Fetch the Trial plan — new registrants start on Trial with PREPAID_CREDITS billing
     const trialPlan = await rootPrisma.subscriptionPlan.findFirst({
       where: { name: 'Trial', isActive: true },
       select: { id: true },
@@ -154,7 +140,6 @@ export const completeRegistration = createServerFn({ method: 'POST' })
       return { success: false as const, error: 'Subscription plans not seeded. Run the database seeder first.' }
     }
 
-    // Default lifecycle thresholds (plan uses 30-day trial)
     const thresholds: LifecycleThresholds = {
       trialDurationDays: 30,
       gracePeriodDays: 7,
@@ -163,18 +148,41 @@ export const completeRegistration = createServerFn({ method: 'POST' })
 
     const now = new Date()
 
+    // -----------------------------------------------------------------------
+    // Resolve v2 configuration from survey answers (pure functions — no IO)
+    // -----------------------------------------------------------------------
+    const rawAnswers = data.surveyAnswers as SurveyAnswers
+    const characteristics = interpretSurvey(rawAnswers)
+    const resolved = resolveCapabilities(characteristics, CAPABILITY_REGISTRY)
+    const profile = classifyProfile(characteristics, resolved)
+    const v2Config = buildConfiguration(characteristics, resolved, profile)
+
+    // Log the suggested plan (informational — not enforced at registration)
+    const _suggestedPlan = suggestPlan(characteristics, profile)
+
     try {
       const slug = await generateUniqueSlug(data.businessName)
 
       const result = await rootPrisma.$transaction(async tx => {
         // ------------------------------------------------------------------
         // Step 1: Create Business
+        // Store survey answers and BOS profile in the onboarding columns.
+        // businessType is written for backward-compat with existing queries
+        // that still read it — defaulting to 'RETAIL' if not supplied.
+        // The column is deprecated; do not use it for any new logic.
         // ------------------------------------------------------------------
+        const legacyBusinessType = data.businessType ?? 'RETAIL'
         const business = await tx.business.create({
           data: {
             name: data.businessName,
             slug,
-            businessType: data.businessType as import('prisma/generated/prisma/enums').BusinessType,
+            // Deprecated column — kept for query compat. Phase 7 may drop it.
+            businessType: legacyBusinessType as import('prisma/generated/prisma/enums').BusinessType,
+            onboardingSurveyAnswers: data.surveyAnswers as Record<string, unknown>,
+            onboardingProfile: v2Config.operationalProfile,
+            currentProfile: v2Config.operationalProfile,
+            onboardingCompletedAt: now,
+            deferredCapabilities: v2Config.deferredCapabilities,
           },
           select: { id: true },
         })
@@ -210,9 +218,7 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         // ------------------------------------------------------------------
         // Step 3b: Promote the User record to ADMIN.
         // User.role defaults to CASHIER at sign-up (auth.ts additionalFields).
-        // getAuthUser reads userData.role from the User table, not Membership,
-        // so we must update it here to get the correct landing page and
-        // capability set.
+        // getAuthUser reads userData.role from the User table, not Membership.
         // ------------------------------------------------------------------
         await tx.user.update({
           where: { id: userId },
@@ -220,11 +226,13 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         })
 
         // ------------------------------------------------------------------
-        // Step 4: Create SystemConfig defaults (business-type specific + global)
+        // Step 4: Create SystemConfig defaults from ConfigurationEngine outputs
         // ------------------------------------------------------------------
-        const configs: ConfigDefault[] = BUSINESS_TYPE_CONFIGS[data.businessType] ?? BUSINESS_TYPE_CONFIGS['RETAIL'] ?? []
+        const configs: ConfigDefault[] = v2Config.systemConfigs.map(c => ({
+          key: c.key,
+          value: c.value,
+        }))
 
-        // Business-scoped: type-specific keys + global business keys (LOCALE, CURRENCY, VAT_RATE)
         for (const cfg of [...configs, ...GLOBAL_BUSINESS_CONFIGS]) {
           await tx.systemConfig.create({
             data: {
@@ -236,7 +244,6 @@ export const completeRegistration = createServerFn({ method: 'POST' })
           })
         }
 
-        // Branch-scoped: global branch keys (BUFFER_RATE, LOW_STOCK_THRESHOLD)
         for (const cfg of GLOBAL_BRANCH_CONFIGS) {
           await tx.systemConfig.create({
             data: {
@@ -252,13 +259,7 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         // ------------------------------------------------------------------
         // Step 5 + 6: Provision BusinessSubscription (TRIAL) + status history
         // ------------------------------------------------------------------
-        const initialData = SubscriptionEngine.buildInitialSubscription(
-          business.id,
-          trialPlan.id,
-          BillingModel.PREPAID_CREDITS, // New registrations start on PREPAID_CREDITS
-          thresholds,
-          now,
-        )
+        const initialData = SubscriptionEngine.buildInitialSubscription(business.id, trialPlan.id, BillingModel.PREPAID_CREDITS, thresholds, now)
 
         const subscription = await tx.businessSubscription.create({
           data: {
@@ -295,6 +296,76 @@ export const completeRegistration = createServerFn({ method: 'POST' })
             actorId: userId,
           },
         })
+
+        // ------------------------------------------------------------------
+        // Step 8: Write BusinessCapabilityState rows
+        // ENABLED capabilities → state='ENABLED'  (analytics: stamp enabledAt)
+        // RECOMMENDED capabilities → state='RECOMMENDED' (analytics: stamp recommendedAt)
+        // ------------------------------------------------------------------
+        for (const capId of v2Config.enabledCapabilities) {
+          await tx.businessCapabilityState.create({
+            data: {
+              businessId: business.id,
+              capabilityId: capId,
+              state: 'ENABLED',
+              confidence: 1,
+              enteredBy: 'system',
+              enabledAt: now,
+            },
+          })
+        }
+        for (const capId of v2Config.deferredCapabilities) {
+          await tx.businessCapabilityState.create({
+            data: {
+              businessId: business.id,
+              capabilityId: capId,
+              state: 'RECOMMENDED',
+              confidence: 0.5,
+              enteredBy: 'system',
+              recommendedAt: now,
+            },
+          })
+        }
+
+        // ------------------------------------------------------------------
+        // Step 9: Seed default catalog scaffolding
+        //
+        // Every business gets:
+        //   - One "General" category     — used by Quick Add as the fallback
+        //   - Four common units          — pcs, kg, L, hr
+        //     (Quick Add uses pcs; the rest cover the most common physical and
+        //      service-based businesses without forcing manual setup upfront)
+        //
+        // These are the minimum required so a cashier can Quick Add a product
+        // on day one without hitting a FK constraint error. They can be renamed
+        // or supplemented later from Settings → Categories / Units.
+        // ------------------------------------------------------------------
+        await tx.category.create({
+          data: {
+            name: 'General',
+            businessId: business.id,
+          },
+        })
+
+        const DEFAULT_UNITS = [
+          { name: 'pcs', abbreviation: 'pcs', type: 'COUNT', isBaseUnit: true },
+          { name: 'kg', abbreviation: 'kg', type: 'WEIGHT', isBaseUnit: true },
+          { name: 'L', abbreviation: 'L', type: 'VOLUME', isBaseUnit: true },
+          { name: 'hr', abbreviation: 'hr', type: 'TIME', isBaseUnit: false },
+        ] as const
+
+        for (const unit of DEFAULT_UNITS) {
+          await tx.unit.create({
+            data: {
+              name: unit.name,
+              abbreviation: unit.abbreviation,
+              type: unit.type as import('prisma/generated/prisma/enums').UnitType,
+              conversionFactor: 1,
+              isBaseUnit: unit.isBaseUnit,
+              businessId: business.id,
+            },
+          })
+        }
 
         return { businessId: business.id, branchId: branch.id }
       })

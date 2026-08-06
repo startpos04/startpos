@@ -1,8 +1,27 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: fix later */
 import { createTransaction, type Transaction } from '@tanstack/db'
 import { ResultAsync } from 'neverthrow'
+import type { BusinessEvent } from '@/lib/evolution/business-event-bus'
 import type { DBPayload } from '@/lib/prisma-client/crud-api'
 import { transactionAPI } from '@/lib/prisma-client/transaction-api'
+
+// ---------------------------------------------------------------------------
+// Event emission extension (ADR-002 / Phase 2)
+// ---------------------------------------------------------------------------
+//
+// dbTransaction accepts an optional `events` array. Each entry is emitted to
+// BusinessEventBus AFTER the DB commit succeeds — never on failure or offline.
+//
+// The EventBus import is lazy (dynamic) to avoid loading the full subscriber
+// chain at module-load time (Principal Architect Review R3 requirement).
+// A broken subscriber definition must not affect the dbTransaction module.
+//
+// Offline mode: events are NOT emitted when the transaction applies locally.
+// The server will emit them when the pending transaction syncs on reconnect.
+// (Full offline-event reconciliation is a Phase 5+ concern.)
+//
+// Error handling: emit errors are caught and logged — they must never cause
+// the dbTransaction call-site to throw after a successful DB commit.
 
 type CollectionWriteUtils = {
   writeInsert?: (data: unknown) => void
@@ -119,7 +138,7 @@ async function applyLocalTransaction(transaction: Transaction<any>): Promise<unk
   return results
 }
 
-export const dbTransaction = <T>(callback: () => T): ResultAsync<T, Error> => {
+export const dbTransaction = <T>(callback: () => T, events?: BusinessEvent[]): ResultAsync<T, Error> => {
   return ResultAsync.fromPromise(
     (async () => {
       const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
@@ -130,6 +149,7 @@ export const dbTransaction = <T>(callback: () => T): ResultAsync<T, Error> => {
         mutationFn: async ({ transaction }) => {
           if (isOffline) {
             const results = await applyLocalTransaction(transaction)
+            // Do not emit events in offline mode — the server hasn't committed yet
             return results
           }
 
@@ -142,6 +162,11 @@ export const dbTransaction = <T>(callback: () => T): ResultAsync<T, Error> => {
           // Apply server rows directly to the local sync store (no extra findMany calls).
           // Falls back to collection refetch only if targeted writes fail.
           await syncCollectionsAfterManualTransaction(transaction, result.value)
+
+          // Emit events after successful DB commit (R3: lazy import, error-swallowed)
+          if (events && events.length > 0) {
+            emitEventsAfterCommit(events)
+          }
 
           return result.value
         },
@@ -156,4 +181,31 @@ export const dbTransaction = <T>(callback: () => T): ResultAsync<T, Error> => {
     })(),
     error => (error instanceof Error ? error : new Error(String(error))),
   )
+}
+
+// ---------------------------------------------------------------------------
+// Internal: lazy event emission
+// ---------------------------------------------------------------------------
+
+/**
+ * Emits events to BusinessEventBus after a successful DB commit.
+ * Uses a dynamic import so the event bus module (and its subscribers) are not
+ * loaded at module initialisation time — R3 compliance.
+ *
+ * Errors are caught and logged: a broken subscriber must not propagate
+ * back to the route component that called dbTransaction.
+ */
+function emitEventsAfterCommit(events: BusinessEvent[]): void {
+  // Fire-and-forget: we intentionally do not await this.
+  // The route component already has its result; emission is a side-effect.
+  ;(async () => {
+    try {
+      const { BusinessEventBus } = await import('@/lib/evolution/business-event-bus')
+      for (const event of events) {
+        await BusinessEventBus.emit(event)
+      }
+    } catch (err) {
+      console.error('[dbTransaction] Event emission failed after commit:', err)
+    }
+  })()
 }

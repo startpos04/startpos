@@ -98,7 +98,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                 remainingYield > 0 ? 'bg-emerald-500/90 text-white' : 'bg-destructive/90 text-white',
               )}
             >
-              {remainingYield > 0 ? `${remainingYield} units left` : 'Out of Stock'}
+              {remainingYield <= 0 ? 'Out of Stock' : remainingYield >= 999 ? 'Available' : `${remainingYield} units left`}
             </Badge>
           </div>
 
@@ -236,7 +236,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                       variant='ghost'
                       size='icon'
                       className='rounded-xl w-9 h-9 hover:bg-background text-foreground'
-                      disabled={field.state.value >= remainingYield}
+                      disabled={remainingYield < 999 && field.state.value >= remainingYield}
                       onClick={() => field.handleChange(field.state.value + 1)}
                     >
                       <Plus className='size-4' />
@@ -249,7 +249,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                 {([canSubmit, isSubmitting, qty]) => (
                   <Button
                     type='submit'
-                    disabled={!canSubmit || Number(qty) > remainingYield || remainingYield === 0}
+                    disabled={!canSubmit || (remainingYield < 999 && Number(qty) > remainingYield) || remainingYield === 0}
                     className='rounded-2xl h-11 px-6 font-bold shadow-sm transition-all active:scale-[0.98] flex items-center gap-2 justify-between min-w-[160px]'
                   >
                     <span>{isSubmitting ? 'Processing...' : remainingYield === 0 ? 'Sold Out' : 'Add to Order'}</span>

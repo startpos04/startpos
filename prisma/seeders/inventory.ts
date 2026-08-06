@@ -71,7 +71,7 @@ export async function Inventory(prisma: PrismaClient, options: { folder: string 
     console.info(`📈 Hydrating inventory from csv/${targetFolder}/inventory.csv (${csvRows.length} rows)...`)
 
     for (const row of csvRows) {
-      const unit = await prisma.unit.findUnique({ where: { abbreviation: row.unitAbbreviation } })
+      const unit = await prisma.unit.findFirst({ where: { abbreviation: row.unitAbbreviation, businessId: accounts.business.id } })
       if (!unit) {
         console.warn(`  ⚠️  Skipping inventory row ${row.id}: unit "${row.unitAbbreviation}" not found.`)
         continue
@@ -139,8 +139,8 @@ export async function Inventory(prisma: PrismaClient, options: { folder: string 
     include: { product: { include: { baseUnit: true } } },
   })
 
-  const kgUnit = await prisma.unit.findFirst({ where: { abbreviation: 'kg' } })
-  const literUnit = await prisma.unit.findFirst({ where: { abbreviation: 'L' } })
+  const kgUnit = await prisma.unit.findFirst({ where: { abbreviation: 'kg', businessId: accounts.business.id } })
+  const literUnit = await prisma.unit.findFirst({ where: { abbreviation: 'L', businessId: accounts.business.id } })
 
   const seededSummary: Array<{ name: string; sku: string; qty: number; unit: string; cost: number }> = []
 

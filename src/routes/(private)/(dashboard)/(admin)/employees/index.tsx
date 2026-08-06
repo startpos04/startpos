@@ -1,5 +1,5 @@
 import { useLiveQuery } from '@tanstack/react-db'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Plus, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -9,13 +9,21 @@ import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { userCollection } from '@/db/collections'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager from '@/lib/mount-manager'
+import { authStore } from '@/store/auth-store'
 import { closeEmployeeSidebar, EMPLOYEE_ASIDE_ID, showEmployeeSidebar } from './-components/employee-sidebar'
 import { EmployeeDetailsSidebar } from './$employeeId'
 import { CreateEmployeeSidebar } from './create'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/')({
   component: RouteComponent,
+  beforeLoad: () => {
+    const { user } = authStore.state
+    if (!user?.entitlement?.capabilities?.includes(Capabilities.MANAGE_EMPLOYEES)) {
+      throw redirect({ to: '/unauthorized' })
+    }
+  },
 })
 
 function RouteComponent() {

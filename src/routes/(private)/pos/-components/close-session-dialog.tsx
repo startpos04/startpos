@@ -1,13 +1,13 @@
-import { useStore } from '@tanstack/react-store'
 import Tab from '@/components/custom/tab'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useCapability } from '@/hooks/use-capability'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import type { MountProps } from '@/lib/mount-manager'
-import { authStore } from '@/store/auth-store'
 import { ReconcileLater } from './reconcile-later'
 import { ReconcileNow } from './reconcile-now'
 
 export function CloseSessionDialog({ open, onClose }: MountProps) {
-  const user = useStore(authStore, state => state.user)
+  const canCreateTask = useCapability(Capabilities.CREATE_TASK)
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -25,7 +25,7 @@ export function CloseSessionDialog({ open, onClose }: MountProps) {
           containerClass='px-4'
           tabClass='px-4'
           tabs={[
-            user.systemConfigs.ENABLE_CASH_RECONCILIATION ? { label: 'Create a Task', Component: ReconcileLater, onClose } : null,
+            canCreateTask ? { label: 'Create a Task', Component: ReconcileLater, onClose } : null,
             { label: 'Reconcile Now', Component: ReconcileNow, onClose },
           ].filter((tab): tab is NonNullable<typeof tab> => !!tab)}
         />

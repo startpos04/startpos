@@ -130,6 +130,11 @@ model Business {
   name         String
   slug         String       @unique
   logo         String?
+  // DEPRECATED (Phase 6 — ADR-004): businessType was used by the v1 onboarding
+  // path (BUSINESS_TYPE_CONFIGS). The v2 adaptive survey path is now the only
+  // registration path. This column is kept for query compatibility and will be
+  // dropped in a future migration after all consumers are confirmed to use
+  // onboardingProfile / currentProfile instead. Do not use for new logic.
   businessType BusinessType
 
   members              Membership[]
@@ -169,6 +174,43 @@ model Business {
   usageCounters   UsageCounter[]
   billingInvoices BillingInvoice[]
   creditLedger    CreditLedger[]
+
+  // ---------------------------------------------------------------------------
+  // BOS (Business Operating System) — Phase 1 onboarding fields
+  // All columns are nullable and additive — existing businesses are unaffected.
+  // ---------------------------------------------------------------------------
+
+  // Survey answers persisted as JSON for analytics and shadow-running comparison
+  onboardingSurveyAnswers Json?
+  // Profile assigned at registration (never changes — for analytics comparison)
+  onboardingProfile       String?
+  // ISO timestamp of when the onboarding survey was completed
+  onboardingCompletedAt   DateTime?
+  // A/B test variant ID (for future survey experiment tracking)
+  onboardingVariantId     String?
+  // Current operational profile (updated on every recalculation in Phase 2+)
+  currentProfile          String?
+
+  // Living characteristics (Phase 2+) — JSON blob of SourcedValue<T> fields
+  livingCharacteristics     Json?
+  // Monotonically increasing version counter; bumped on each recalculation
+  characteristicsVersion    Int       @default(0)
+  // Timestamp of the most recent characteristics recalculation
+  characteristicsComputedAt DateTime?
+  // Business health stage (Phase 4+)
+  healthStage               String?
+  // Timestamp of the last event that triggered a recalculation
+  lastCharacteristicsEvent  DateTime?
+  // IDs of capabilities in the DEFERRED state waiting for progressive activation
+  deferredCapabilities      String[]  @default([])
+
+  // Relations added in Phase 1
+  capabilityStates   BusinessCapabilityState[]
+  eventLog           BusinessEventLog[]
+  recalculationQueue CharacteristicsRecalculationQueue[]
+
+  // Relations added in Phase 2
+  usageSummaries BusinessUsageSummary[]
 
   @@index([deletedAt])
   @@map("businesses")
@@ -348,7 +390,7 @@ enum VariantAttributeType {
 
 model Category {
   id         String @id @default(cuid())
-  name       String @unique
+  name       String
   businessId String
 
   products Product[]
@@ -358,6 +400,7 @@ model Category {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  @@unique([name, businessId])
   @@index([deletedAt])
   @@map("categories")
 }
@@ -469,8 +512,8 @@ enum UnitType {
 
 model Unit {
   id           String   @id @default(cuid())
-  name         String   @unique
-  abbreviation String   @unique
+  name         String
+  abbreviation String
   type         UnitType
 
   conversionFactor Float   @default(1)
@@ -492,6 +535,8 @@ model Unit {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  @@unique([name, businessId])
+  @@unique([abbreviation, businessId])
   @@index([deletedAt])
   @@map("units")
 }
@@ -1087,6 +1132,7 @@ enum NotificationType {
   COMPLIANCE_REMINDER
   PURCHASE_PENDING_APPROVAL // D7: A purchase above threshold requires management sign-off
   CREDIT_LOW_BALANCE // Phase 3: fired when prepaid credit balance drops below CREDIT_LOW_BALANCE_THRESHOLD
+  GROWTH_MILESTONE // Phase 5: fired when the business crosses a meaningful growth threshold
 }
 
 model Notification {
@@ -1997,4 +2043,157 @@ model PricingQuoteItem {
 
   @@index([quoteId])
   @@map("pricing_quote_items")
+}
+
+// =============================================================================
+// BUSINESS OPERATING SYSTEM — Phase 2 (Migration: bos-phase2)
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// BusinessUsageSummary — Phase 2
+// Aggregated usage counts written by the weekly summary job.
+// One row per (businessId, periodEnd) — the most recent row is current.
+//
+// Design: counts stored as data Json (not typed columns) so new observation
+// rules can add new counts without a schema migration. The aggregation job
+// writes whatever counts the current OBSERVATION_RULES need.
+//
+// periodEnd: ISO date of the last day of the period this summary covers.
+// ---------------------------------------------------------------------------
+model BusinessUsageSummary {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // ISO date string of the period end (e.g. "2026-08-03")
+  periodEnd DateTime
+
+  // Aggregated counts — shape defined by BusinessUsageSummaryData in evolution/types.ts
+  data Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([businessId, periodEnd])
+  @@index([businessId, periodEnd])
+  @@map("business_usage_summaries")
+}
+
+// =============================================================================
+// BUSINESS OPERATING SYSTEM — Phase 1 (Migration: bos-phase1)
+// New tables for capability lifecycle, event log, and recalculation queue.
+// All additive — no existing tables modified beyond the Business model above.
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// BusinessCapabilityState
+// Tracks the lifecycle state of each capability per business.
+// Populated at registration (ENABLED vs DEFERRED based on CapabilityResolver).
+// Updated by CapabilityControl (Phase 3a) and RecommendationEngine (Phase 2+).
+// ---------------------------------------------------------------------------
+model BusinessCapabilityState {
+  id           String   @id @default(cuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  capabilityId String
+
+  // CapabilityLifecycleState: HIDDEN | RECOMMENDED | ENABLED | CONFIGURED | PAUSED | DEPRECATED
+  state      String
+  confidence Float    @default(0)
+  enteredAt  DateTime @default(now())
+  // userId of the actor, or 'system' for automated transitions
+  enteredBy  String?
+
+  // Recommendation metadata (populated by RecommendationEngine in Phase 2+)
+  recommendationReason String?
+  recommendationScore  Float?
+
+  // Analytics timestamps (Phase 6)
+  // recommendedAt: when this capability first entered RECOMMENDED state
+  // enabledAt: when this capability first entered ENABLED state
+  // Used to compute time-to-enable and acceptance rate in recommendation analytics.
+  recommendedAt DateTime?
+  enabledAt     DateTime?
+
+  // Dismiss / ignore tracking (used by CapabilityControl in Phase 3a)
+  dismissedAt        DateTime?
+  dismissalCount     Int       @default(0)
+  permanentlyIgnored Boolean   @default(false)
+
+  // Audit trail — immutable append-only JSON array of state transitions
+  // Each entry: { state, changedAt, changedBy, reason }
+  previousState String?
+  stateHistory  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([businessId, capabilityId])
+  @@index([businessId, state])
+  @@map("business_capability_states")
+}
+
+// ---------------------------------------------------------------------------
+// BusinessEventLog
+// Persists all significant business events for observation and replay.
+// Consumed by CharacteristicsEngine (Phase 2+) to update living characteristics.
+//
+// Emit via BusinessEventBus.emit() — never write directly to this table
+// from a server function. Phase 2 adds Prisma middleware for automatic emission.
+//
+// Index strategy:
+//   [businessId, occurredAt] — time-range queries per business
+//   [type, businessId]       — event-type queries (observation rules)
+// ---------------------------------------------------------------------------
+model BusinessEventLog {
+  id         String   @id @default(cuid())
+  // BusinessEventType enum value
+  type       String
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String?
+  actorId    String?
+  occurredAt DateTime @default(now())
+  // Arbitrary event-specific data (e.g. { supplierId, supplierName })
+  payload    Json     @default("{}")
+
+  @@index([businessId, occurredAt])
+  @@index([type, businessId])
+  @@map("business_event_log")
+}
+
+// ---------------------------------------------------------------------------
+// CharacteristicsRecalculationQueue — R1 (DB-backed, replaces in-memory map)
+//
+// One row per businessId (UNIQUE constraint). The scheduler upserts; the job
+// runner queries WHERE processedAt IS NULL.
+//
+// On server restart: pending rows survive — nothing is silently lost.
+// Multi-instance: use SELECT FOR UPDATE SKIP LOCKED in the job runner.
+//
+// Priority: higher number = processed first.
+//   0   = background decay sweep
+//   10  = deferred event batch (supplier added, product created)
+//   100 = immediate (branch created, config changed, subscription upgraded)
+// ---------------------------------------------------------------------------
+model CharacteristicsRecalculationQueue {
+  id         String   @id @default(cuid())
+  businessId String   @unique @map("business_id") // One pending entry per business (deduplication)
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Higher number = higher priority
+  priority    Int       @default(0)
+  scheduledAt DateTime  @default(now()) @map("scheduled_at")
+  // null = pending; set by job runner when processing begins
+  processedAt DateTime? @map("processed_at")
+
+  // Retry tracking
+  attempts  Int     @default(0)
+  lastError String? @map("last_error")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([processedAt, priority])
+  @@map("characteristics_recalculation_queue")
 }

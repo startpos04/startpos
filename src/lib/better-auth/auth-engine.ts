@@ -136,17 +136,18 @@ export const AuthEngine = {
   async logout(params: { onSuccess: () => void }): Promise<void> {
     authStore.setState(state => ({ ...state, isLoggingOut: true }))
     MountManager.clear()
-    resetAuth()
 
     try {
       if (typeof navigator !== 'undefined' && navigator.onLine) {
-        // Strip the callbacks — we call onSuccess ourselves below so it fires exactly once.
         await authClient.signOut({})
       }
     } catch (error) {
       console.error('AuthEngine: Server signOut failed', error)
     }
 
+    // Reset auth AFTER signOut so in-flight route guards reading authStore
+    // don't see a cleared user mid-navigation.
+    resetAuth()
     params.onSuccess()
   },
 

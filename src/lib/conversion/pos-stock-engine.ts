@@ -33,6 +33,10 @@ export const PosStockEngine = {
 
     allItems.forEach(item => {
       const activeVariant = item.variant
+
+      // SERVICE type has no physical stock — skip reservation tracking entirely
+      if (item.product.type === 'SERVICE') return
+
       if (!activeVariant.components) return
 
       activeVariant.components.forEach(comp => {
@@ -43,9 +47,13 @@ export const PosStockEngine = {
         }
       })
 
-      // If it's a direct sale (no components), track the variant ID
+      // If it's a direct sale (no components), track the variant ID —
+      // but only when the variant actually has inventory to deplete
       if (activeVariant.components.length === 0) {
-        reserved[activeVariant.id] = (reserved[activeVariant.id] || 0) + item.quantity
+        const hasInventory = activeVariant.inventory && activeVariant.inventory.length > 0
+        if (hasInventory) {
+          reserved[activeVariant.id] = (reserved[activeVariant.id] || 0) + item.quantity
+        }
       }
     })
 
@@ -76,6 +84,11 @@ export const PosStockEngine = {
   /**
    * VALIDATION LAYER: Standard signature preserved.
    * When calling this, pass [...localCart, ...dbOrders] to the cartItems param.
+   *
+   * Returns a large sentinel (999) when the product has no inventory to track:
+   *   - ResourceType.SERVICE — services are unlimited by definition
+   *   - No components AND no inventory records — provisional Quick Add products
+   *     created before stock is entered; treat as unlimited until owner adds stock
    */
   calculateRemainingYield: (
     product: posProduct,
@@ -84,6 +97,16 @@ export const PosStockEngine = {
     cartItems: posItem[],
     orderItems?: posItem[],
   ) => {
+    const UNLIMITED = 999
+
+    // SERVICE type — no physical stock, always available
+    if (product.type === 'SERVICE') return UNLIMITED
+
+    // No components + no inventory records → provisional product, treat as unlimited
+    const hasComponents = variant.components && variant.components.length > 0
+    const hasInventory = variant.inventory && variant.inventory.length > 0
+    if (!hasComponents && !hasInventory) return UNLIMITED
+
     const reserved = PosStockEngine.getReservedMap(cartItems, orderItems)
     const unitReqs = PosStockEngine.getUnitRequirements(variant, selectedComponentIds)
 
@@ -94,7 +117,7 @@ export const PosStockEngine = {
       return Math.floor(Math.max(0, availableTotal) / amountPerUnit)
     })
 
-    return yields.length > 0 ? Math.min(...yields) : 0
+    return yields.length > 0 ? Math.min(...yields) : UNLIMITED
   },
 
   /**

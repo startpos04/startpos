@@ -71,6 +71,13 @@ export const Capabilities = {
 
   // API access (enterprise tier)
   ACCESS_API: 'ACCESS_API',
+
+  // ---------------------------------------------------------------------------
+  // Future capabilities — not yet built; seeded so registry IDs resolve
+  // ---------------------------------------------------------------------------
+  LOYALTY_POINTS: 'LOYALTY_POINTS',
+  KITCHEN_DISPLAY: 'KITCHEN_DISPLAY',
+  DELIVERY_MANAGEMENT: 'DELIVERY_MANAGEMENT',
 } as const
 
 /**

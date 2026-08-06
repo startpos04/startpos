@@ -1,5 +1,6 @@
 import { Store } from '@tanstack/react-store'
 import type { ServerUser } from '@/lib/better-auth/auth-server'
+import { getAuthUser } from '@/lib/better-auth/auth-server'
 import type { Prettify } from '@/lib/types'
 
 const defaultValue = {
@@ -37,6 +38,25 @@ export const refreshUser = (user: ServerUser) => {
 
 export const resetAuth = () => {
   authStore.setState(defaultValue)
+}
+
+/**
+ * refreshAuthUser — re-fetches the full user from the server and writes it
+ * into authStore. Call this after any server-side change that affects what
+ * the user can see or do: capability enable/pause/restore, subscription
+ * changes, system config updates.
+ *
+ * This makes useCapability() and useStore(authStore, ...) reactive to
+ * server-side state changes without requiring a page reload.
+ */
+export const refreshAuthUser = async (): Promise<void> => {
+  try {
+    const freshUser = await getAuthUser()
+    if (freshUser) refreshUser(freshUser)
+  } catch (err) {
+    // Non-fatal — the user session is still valid, just stale
+    console.warn('[authStore] refreshAuthUser failed:', err)
+  }
 }
 
 if (typeof window !== 'undefined') {

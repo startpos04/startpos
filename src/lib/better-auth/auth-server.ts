@@ -44,7 +44,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
     const { businessId, branchId, id: userId } = context.user
     const prisma = getTenantPrisma(businessId, branchId)
 
-    const [userData, businessData, branchData, vendorSession, localOverrides] = await Promise.all([
+    const [userData, businessData, branchData, vendorSession, localOverrides, bosData] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
         select: { id: true, name: true, email: true, image: true, role: true, systemConfigs: true },
@@ -72,6 +72,13 @@ export const getAuthUser = createServerFn({ method: 'GET' })
         },
         select: { id: true, name: true, email: true, role: true, accounts: { where: { providerId: { equals: 'credential' } }, select: { password: true } } },
       }) as Promise<DBLocalOverrides[] | null>,
+
+      // BOS fields — deferredCapabilities drives survey-aware tutorial definitions;
+      // onboardingCompletedAt drives the first-login welcome modal.
+      rootPrisma.business.findUnique({
+        where: { id: businessId },
+        select: { deferredCapabilities: true, onboardingCompletedAt: true, currentProfile: true },
+      }),
     ])
 
     if (!userData || !businessData || !branchData) {
@@ -118,7 +125,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       longTermInactiveDays: typeof rawInactiveDays === 'number' ? rawInactiveDays : 90,
     }
 
-    const [businessSubscription, entitlementOverrides, openUsageCounter, latestCreditLedger] = await Promise.all([
+    const [businessSubscription, entitlementOverrides, openUsageCounter, latestCreditLedger, capabilityStates] = await Promise.all([
       // Fetch the business's active subscription and its plan's entitlements.
       rootPrisma.businessSubscription.findUnique({
         where: { businessId },
@@ -167,6 +174,14 @@ export const getAuthUser = createServerFn({ method: 'GET' })
         where: { businessId },
         select: { balanceAfter: true },
         orderBy: { createdAt: 'desc' },
+      }),
+
+      // Capability lifecycle gate — BusinessCapabilityState rows for this business.
+      // Used to strip PAUSED, HIDDEN, and DEPRECATED capabilities from planFeatures
+      // so useCapability() correctly returns false when a capability is turned off.
+      rootPrisma.businessCapabilityState.findMany({
+        where: { businessId },
+        select: { capabilityId: true, state: true },
       }),
     ])
 
@@ -378,31 +393,95 @@ export const getAuthUser = createServerFn({ method: 'GET' })
         }
       : undefined
 
-    const entitlement = EntitlementEngine.buildSummary(allCapabilities, entitlementContext, subscriptionMeta)
+    // -------------------------------------------------------------------------
+    // Survey gate — prune plan features that the business opted out of during
+    // onboarding. The capability-registry writes ENABLE_TASK and
+    // ENABLE_CASH_RECONCILIATION into SystemConfig based on survey answers.
+    // Parse systemConfigs to get typed booleans, then filter planFeatures so
+    // EntitlementEngine.check() returns FEATURE_NOT_IN_PLAN and
+    // useCapability() returns false in the UI.
+    // -------------------------------------------------------------------------
+    const parsedSystemConfigs = (ConfigKeySchema.safeParse(mergedSystemConfigs).data ??
+      ConfigKeySchema.parse({
+        ...{
+          LOW_STOCK_THRESHOLD: 20,
+          VAT_RATE: 12,
+          BUFFER_RATE: 20,
+          LOCALE: 'en-PH',
+          CURRENCY: 'PHP',
+          IS_VAT_REGISTERED: false,
+          PRICE_CONFIGURATION: 'EXCLUSIVE',
+          ENABLE_PRINT_RECEIPT: true,
+          ENABLE_ORDER_TAB: false,
+          ENABLE_CASH_RECONCILIATION: false, // Survey gate: only enabled when reconcilesCash = true
+          ENABLE_TASK: false, // Survey gate: only enabled when usesOperationalTasks = true
+          ENABLE_ORDER: true,
+        },
+        ...mergedSystemConfigs,
+      })) as ConfigKeyTypes
 
+    if (!parsedSystemConfigs.ENABLE_TASK) {
+      entitlementContext = {
+        ...entitlementContext,
+        planFeatures: entitlementContext.planFeatures.filter(f => f !== Capabilities.CREATE_TASK),
+      }
+    }
+
+    if (!parsedSystemConfigs.ENABLE_CASH_RECONCILIATION) {
+      entitlementContext = {
+        ...entitlementContext,
+        planFeatures: entitlementContext.planFeatures.filter(f => f !== Capabilities.START_VENDOR_SESSION),
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Capability lifecycle gate — strip capabilities whose lifecycle state
+    // indicates they are not active for this business.
+    //
+    // Only ENABLED and CONFIGURED are active. All other states mean the
+    // capability is not turned on for this business:
+    //
+    //   HIDDEN      → in plan but not activated (survey didn't surface it,
+    //                 and the admin hasn't manually enabled it yet)
+    //   RECOMMENDED → system suggested it but user hasn't acted yet
+    //   PAUSED      → user explicitly turned it off via Settings → Capabilities
+    //   DEPRECATED  → platform-retired
+    //
+    // Always-on capabilities (checkout, products, settings, etc.) are written
+    // as ENABLED at registration by completeRegistration — they are never
+    // HIDDEN or PAUSED, so this gate never strips them.
+    //
+    // Capabilities with no BusinessCapabilityState row at all (very old accounts
+    // or capabilities added to the plan after registration) are treated as HIDDEN
+    // — not accessible until the admin explicitly enables them.
+    // -------------------------------------------------------------------------
+    const capabilityStateMap = new Map(capabilityStates.map((c: { capabilityId: string; state: string }) => [c.capabilityId, c.state]))
+
+    // Build the set of IDs that are explicitly in a non-active state.
+    // Also collect IDs in planFeatures that have no row at all — treat as HIDDEN.
+    const activeStates = new Set(['ENABLED', 'CONFIGURED'])
+
+    entitlementContext = {
+      ...entitlementContext,
+      planFeatures: entitlementContext.planFeatures.filter(f => {
+        const state = capabilityStateMap.get(f)
+        if (!state) {
+          // No row → never activated → block (treat as HIDDEN)
+          // Exception: if capabilityStates is empty (old account with no rows),
+          // allow everything to avoid locking out existing businesses.
+          return capabilityStates.length === 0
+        }
+        return activeStates.has(state)
+      }),
+    }
+
+    const entitlement = EntitlementEngine.buildSummary(allCapabilities, entitlementContext, subscriptionMeta)
     return {
       ...user,
       business,
       branch,
       vendorSession,
-      systemConfigs: (ConfigKeySchema.safeParse(mergedSystemConfigs).data ??
-        ConfigKeySchema.parse({
-          ...{
-            LOW_STOCK_THRESHOLD: 20,
-            VAT_RATE: 12,
-            BUFFER_RATE: 20,
-            LOCALE: 'en-PH',
-            CURRENCY: 'PHP',
-            IS_VAT_REGISTERED: false,
-            PRICE_CONFIGURATION: 'EXCLUSIVE',
-            ENABLE_PRINT_RECEIPT: true,
-            ENABLE_ORDER_TAB: false,
-            ENABLE_CASH_RECONCILIATION: true,
-            ENABLE_TASK: true,
-            ENABLE_ORDER: true,
-          },
-          ...mergedSystemConfigs,
-        })) as ConfigKeyTypes,
+      systemConfigs: parsedSystemConfigs,
       complianceRegistry: (ComplianceKeySchema.safeParse(mergedComplianceRegistry).data ??
         ComplianceKeySchema.parse({
           BIR_TIN: '',
@@ -413,6 +492,10 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       landingPage: RoleLandingPages[userData.role] ?? '/',
       localOverrides: localOverrides || [],
       entitlement,
+      // BOS fields — used by welcome modal, survey-aware tutorials, and setup guide
+      deferredCapabilities: (bosData?.deferredCapabilities ?? []) as string[],
+      onboardingCompletedAt: bosData?.onboardingCompletedAt ?? null,
+      currentProfile: bosData?.currentProfile ?? null,
     }
   })
 

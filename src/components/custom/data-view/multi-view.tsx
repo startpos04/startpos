@@ -32,6 +32,8 @@ interface MultiViewProps<T> extends DataViewProps<T> {
     href: string
     onAdd: (e: React.MouseEvent<HTMLAnchorElement>) => void
   }
+  /** Extra content rendered beside the table/grid toggle buttons */
+  actions?: React.ReactNode
 }
 
 const VIEWS = {
@@ -39,7 +41,7 @@ const VIEWS = {
   grid: { label: 'Grid', Component: GridView, Icon: Grid3X3 },
 } as const
 
-export function MultiView<T>({ views, creatable, searchable, label, description, ...props }: MultiViewProps<T>) {
+export function MultiView<T>({ views, creatable, searchable, label, description, actions, ...props }: MultiViewProps<T>) {
   views.selectedView = views.selectedView || views.list[0]?.type || 'table'
   const SearchComponent = searchable ? searchable.Component : null
 
@@ -77,6 +79,7 @@ export function MultiView<T>({ views, creatable, searchable, label, description,
           </div>
 
           <div className='flex items-center gap-2 justify-end'>
+            {actions}
             {views.list.length > 1 ? (
               <ButtonGroup>
                 {views.list.map(({ type }) => {

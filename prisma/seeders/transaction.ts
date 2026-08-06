@@ -114,7 +114,7 @@ export async function seedHistoricalTransactions(prisma: PrismaClient, options: 
   if (orderItemRows) {
     console.info(`  🛒 Seeding ${orderItemRows.length} order items...`)
     for (const row of orderItemRows) {
-      const unit = await prisma.unit.findUnique({ where: { abbreviation: row.unitAbbreviation.trim() } })
+      const unit = await prisma.unit.findFirst({ where: { abbreviation: row.unitAbbreviation.trim(), businessId: B1 } })
       if (!unit) {
         console.warn(`  ⚠️  Skipping order-item ${row.id}: unit "${row.unitAbbreviation}" not found.`)
         continue

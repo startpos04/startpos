@@ -48,7 +48,20 @@ export interface CreateSaleInput {
 export const createPosTransaction = async (data: CreateSaleInput, posOrders: posProduct[]) => {
   const { user } = authStore.state
   const productIds = data.items.map(item => item.product.id)
-  const dbProducts = posOrders.filter(p => productIds.includes(p.id)) as posProduct[]
+
+  // Prefer posOrders (already fetched) but fall back to the item's own product
+  // for any product not found there — covers Quick Add products that were just
+  // created and may not yet be in the posOrders snapshot passed from the parent.
+  const dbProducts = productIds
+    .map(id => {
+      const fromQuery = posOrders.find(p => p.id === id)
+      if (fromQuery) return fromQuery
+      // Fall back to the item itself — it was just created and carries all the
+      // shape needed for validation (type, variants with inventory: [], components: [])
+      const fromCart = data.items.find(i => i.product.id === id)
+      return fromCart?.product ?? null
+    })
+    .filter(Boolean) as posProduct[]
 
   const result = await dbTransaction(() => {
     // --- 1. VALIDATION & STOCK GUARD ---
@@ -149,7 +162,10 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
         selectedAddons: [],
       }
 
-      orderItemCollection.insert(newItem)
+      // selectedAddons is a client-side join field — strip it before persisting
+      // to the collection so transactionAPI never sends it to Prisma.
+      const { selectedAddons: _sa, ...itemForCollection } = newItem
+      orderItemCollection.insert(itemForCollection as OrderItem)
 
       if (item.addons.length > 0) {
         newItem.selectedAddons = item.addons.map(a => {
@@ -277,12 +293,19 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
 
     if (billingModel === BillingModel.PREPAID_CREDITS) {
       // Read the latest CreditLedger entry from the on-demand collection.
-      // If the collection is empty (not yet synced), the balance is treated as
-      // zero (deduction is blocked). The user must top up or wait for sync.
+      // Fall back to the authStore entitlement balance when the collection
+      // hasn't been synced yet (on-demand collections don't load until
+      // explicitly queried, so the first checkout of a session always hits
+      // this path). authStore.creditBalance is loaded from the server at
+      // login and is authoritative for the current session.
       const ledgerEntries = [...creditLedgerCollection.values()]
         .filter(e => e.businessId === businessId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      const latestEntry = ledgerEntries[0] ?? null
+
+      // Prefer the local collection (tracks in-session deductions accurately);
+      // fall back to the server-loaded balance from authStore.
+      const latestEntry: { balanceAfter: number } | null =
+        ledgerEntries[0] ?? (subscription?.creditBalance != null ? { balanceAfter: subscription.creditBalance } : null)
 
       // Read the low-balance threshold from systemConfigs (already loaded).
       const rawThreshold = (user.systemConfigs as Record<string, unknown>)['CREDIT_LOW_BALANCE_THRESHOLD']

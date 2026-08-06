@@ -105,11 +105,12 @@ export const createPosRefund = async (originalTransactionId: string) => {
 
     if (billingModel === BillingModel.PREPAID_CREDITS) {
       const businessId = user.business.id
-      // Read the latest ledger entry from the on-demand collection (O(1) balance read).
+      // Read the latest ledger entry — prefer local collection, fall back to authStore.
       const ledgerEntries = [...creditLedgerCollection.values()]
         .filter(e => e.businessId === businessId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      const latestEntry = ledgerEntries[0] ?? null
+      const latestEntry: { balanceAfter: number } | null =
+        ledgerEntries[0] ?? (subscription?.creditBalance != null ? { balanceAfter: subscription.creditBalance } : null)
 
       const restoreResult = CreditEngine.restore(businessId, latestEntry ? { balanceAfter: latestEntry.balanceAfter } : null, transactionId)
 

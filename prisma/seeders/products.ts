@@ -155,7 +155,7 @@ export async function Products(prisma: PrismaClient, options: { folder: string }
 
   for (const cat of runtimeCategories) {
     const category = await prisma.category.upsert({
-      where: { name: cat.name },
+      where: { name_businessId: { name: cat.name, businessId: accounts.business.id } },
       update: { deletedAt: null },
       create: {
         name: cat.name,
@@ -176,8 +176,8 @@ export async function Products(prisma: PrismaClient, options: { folder: string }
       continue
     }
 
-    const targetUnit = await prisma.unit.findUnique({
-      where: { abbreviation: item.baseUnitAbbreviation },
+    const targetUnit = await prisma.unit.findFirst({
+      where: { abbreviation: item.baseUnitAbbreviation, businessId: accounts.business.id },
     })
 
     if (!targetUnit) {
@@ -264,8 +264,8 @@ export async function Products(prisma: PrismaClient, options: { folder: string }
   // =======================================================
   console.info('🍳 Syncing relational variant raw recipes and modifier sub-components...')
   for (const recipe of runtimeRecipes) {
-    const targetUnit = await prisma.unit.findUnique({
-      where: { abbreviation: recipe.unitAbbreviation },
+    const targetUnit = await prisma.unit.findFirst({
+      where: { abbreviation: recipe.unitAbbreviation, businessId: accounts.business.id },
     })
 
     if (!targetUnit) {

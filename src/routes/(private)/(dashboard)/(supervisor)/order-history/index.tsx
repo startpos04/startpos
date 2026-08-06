@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate, useSearch } from '@tanstack/react-router'
 import { ClipboardList } from 'lucide-react'
 import { OrderStatus, type OrderType } from 'prisma/generated/prisma/enums'
 import { useCallback, useMemo, useState } from 'react'
@@ -28,7 +28,16 @@ const ORDER_TYPE_LABELS: Record<OrderType, string> = {
   DELIVERY: 'Delivery',
 }
 
+import { Capabilities } from '@/lib/entitlement/capability-keys'
+import { authStore } from '@/store/auth-store'
+
 export const Route = createFileRoute('/(private)/(dashboard)/(supervisor)/order-history/')({
+  beforeLoad: () => {
+    const { user } = authStore.state
+    if (!user?.entitlement?.capabilities?.includes(Capabilities.VIEW_ORDER_HISTORY)) {
+      throw redirect({ to: '/unauthorized' })
+    }
+  },
   validateSearch: (search: Record<string, unknown>) => ({
     from: (search['from'] as string) || dayjs().startOf('month').format('YYYY-MM-DD'),
     to: (search['to'] as string) || dayjs().endOf('month').format('YYYY-MM-DD'),

@@ -1,9 +1,9 @@
 import { createFileRoute, useSearch } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Coffee, Database, Info, Layers, Sparkles, Trash2 } from 'lucide-react'
+import { AlertCircle, Coffee, Database, Info, Layers, Sparkles, Trash2 } from 'lucide-react'
 import numeral from 'numeral'
-import { BusinessType } from 'prisma/generated/prisma/enums'
+import { ResourceType } from 'prisma/generated/prisma/enums'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getColumns } from '@/components/custom/data-view'
@@ -16,11 +16,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { productCollection } from '@/db/collections'
+import { useCapability } from '@/hooks/use-capability'
 import { usePOS } from '@/hooks/use-pos'
 import { productCols } from '@/lib/columns/product-columns'
 import { tableCols } from '@/lib/columns/table-columns'
 import { PosStockEngine } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { cn } from '@/lib/utils'
@@ -36,17 +38,41 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/products/')
       search: search['search'] as string | undefined,
       page: search['page'] as number | undefined,
       pageSize: search['page-size'] as number | undefined,
+      // Coerce string 'true'/'false' from URL to boolean
+      provisional: search['provisional'] === true || search['provisional'] === 'true' ? true : undefined,
     }
   },
   component: RouteComponent,
 })
 
+// ---------------------------------------------------------------------------
+// A product is "provisional" (created via Quick Add at the POS) when it has:
+//   - type === SERVICE (Quick Add always uses SERVICE until owner changes it)
+//   - no SKU on the primary variant
+//   - costPrice === 0 on the primary variant
+// This matches exactly what QuickAddDialog inserts.
+// ---------------------------------------------------------------------------
+function isProvisionalProduct(product: posProduct): boolean {
+  if (product.type !== ResourceType.SERVICE) return false
+  const primary = product.variants?.[0]
+  if (!primary) return false
+  return !primary.sku && Number(primary.costPrice) === 0
+}
+
 function RouteComponent() {
-  const { view = 'table', search = '', page = 1, pageSize = 20 } = useSearch({ from: '/(private)/(dashboard)/(admin)/products/' })
+  const { view = 'table', search = '', page = 1, pageSize = 20, provisional = false } = useSearch({ from: '/(private)/(dashboard)/(admin)/products/' })
   const user = useStore(authStore, state => state.user)
   const { orderItems, posProducts, totalItemsPosProducts, isLoading } = usePOS({ page, pageSize, searchQuery: search, all: true })
   const navigate = Route.useNavigate()
   const [selectedId, setSelectedId] = useState<string>('')
+  const hasInventory = useCapability(Capabilities.MANAGE_INVENTORY)
+
+  // Provisional products — always computed from the full list, not the paginated slice
+  const provisionalProducts = useMemo(() => posProducts.filter(isProvisionalProduct), [posProducts])
+  const provisionalCount = provisionalProducts.length
+
+  // When the provisional filter is active, show only provisional products
+  const displayedProducts = useMemo(() => (provisional ? posProducts.filter(isProvisionalProduct) : posProducts), [posProducts, provisional])
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
@@ -102,7 +128,27 @@ function RouteComponent() {
           [
             tableCols.number(h),
             productCols.image(h),
-            productCols.name(h),
+            // Name column with provisional badge injected
+            h.accessor('name', {
+              header: 'Product Name',
+              cell: info => {
+                const product = info.row.original
+                const provisional = isProvisionalProduct(product)
+                return (
+                  <div className='flex items-center gap-2'>
+                    <span className='font-semibold text-foreground'>{info.getValue()}</span>
+                    {provisional && (
+                      <Badge
+                        variant='outline'
+                        className='text-[9px] uppercase font-bold py-0 h-4 border-amber-400/60 text-amber-600 bg-amber-50/50 dark:bg-amber-950/30 shrink-0'
+                      >
+                        Needs review
+                      </Badge>
+                    )}
+                  </div>
+                )
+              },
+            }),
             productCols.sku(h),
             productCols.category(h),
             productCols.unit(h),
@@ -114,9 +160,7 @@ function RouteComponent() {
             productCols.netMargin(h),
             productCols.totalValue(h),
 
-            ...(user.business.businessType === BusinessType.RESTAURANT
-              ? [productCols.servings(h, { orderItems })]
-              : [productCols.stockStatus(h), productCols.stockTotal(h)]),
+            ...(hasInventory ? [productCols.stockStatus(h), productCols.stockTotal(h)] : []),
 
             productCols.showInPOS(h),
 
@@ -157,16 +201,57 @@ function RouteComponent() {
   return (
     <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
       <div className='flex-1 min-w-0 h-full p-4 pt-0 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
+        {/* ── Provisional products review banner ─────────────────────────── */}
+        {provisionalCount > 0 && !provisional && (
+          <div className='flex items-center justify-between gap-3 rounded-lg border border-amber-400/40 bg-amber-50/60 dark:bg-amber-950/20 px-4 py-2.5 shrink-0'>
+            <div className='flex items-center gap-2.5 min-w-0'>
+              <AlertCircle className='w-4 h-4 text-amber-600 shrink-0' />
+              <p className='text-sm font-medium text-amber-800 dark:text-amber-300 leading-snug'>
+                <span className='font-bold'>
+                  {provisionalCount} {provisionalCount === 1 ? 'product needs' : 'products need'} review
+                </span>{' '}
+                — added at the POS without full details. Add a cost price, category, or SKU to complete them.
+              </p>
+            </div>
+            <Button
+              variant='outline'
+              size='sm'
+              className='shrink-0 border-amber-400/60 text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-950/40 h-7 text-xs font-bold'
+              onClick={() => navigate({ search: prev => ({ ...prev, provisional: true }), replace: true })}
+            >
+              Review now
+            </Button>
+          </div>
+        )}
+
+        {/* ── Active provisional filter indicator ────────────────────────── */}
+        {provisional && (
+          <div className='flex items-center gap-2 shrink-0'>
+            <Badge variant='outline' className='border-amber-400/60 text-amber-600 bg-amber-50/50 gap-1.5 px-2.5 py-1'>
+              <AlertCircle className='w-3 h-3' />
+              Showing {provisionalCount} products needing review
+            </Badge>
+            <Button
+              variant='ghost'
+              size='sm'
+              className='h-7 text-xs text-muted-foreground'
+              onClick={() => navigate({ search: prev => ({ ...prev, provisional: undefined }), replace: true })}
+            >
+              Show all
+            </Button>
+          </div>
+        )}
+
         <MultiView<posProduct>
           label='Products'
           description='Manage variants, recipes, and profitability.'
-          data={posProducts}
+          data={displayedProducts}
           isFetching={isLoading}
           creatable={{ label: 'Add Product', href: '/products/create', onAdd: handleAdd }}
           paginable={{
             pageSize,
             pageIndex: page - 1,
-            totalItems: totalItemsPosProducts,
+            totalItems: provisional ? provisionalCount : totalItemsPosProducts,
             onPaginationChange: next => {
               navigate({ search: prev => ({ ...prev, page: next.pageIndex + 1, 'page-size': next.pageSize }), replace: true })
             },
@@ -191,6 +276,7 @@ function RouteComponent() {
                   const primaryVariant = product.variants?.[0]
                   if (!primaryVariant) return null
 
+                  const isProvisional = isProvisionalProduct(product)
                   const maxServings = PosStockEngine.calculateRemainingYield(product, primaryVariant, [], [], orderItems)
                   const recipeComponents = primaryVariant.components?.filter(c => !c.isAddon) || []
                   const addonComponents = primaryVariant.components?.filter(c => c.isAddon) || []
@@ -229,7 +315,12 @@ function RouteComponent() {
                   const isLowStock = maxServings < primaryVariant.lowStockThreshold! || user.systemConfigs.LOW_STOCK_THRESHOLD
 
                   return (
-                    <Card className='border-border shadow-sm rounded-4xl overflow-hidden bg-card/50 backdrop-blur-md h-full flex flex-col transition-all hover:shadow-md group pt-0'>
+                    <Card
+                      className={cn(
+                        'border-border shadow-sm rounded-4xl overflow-hidden bg-card/50 backdrop-blur-md h-full flex flex-col transition-all hover:shadow-md group pt-0',
+                        isProvisional && 'border-amber-400/40',
+                      )}
+                    >
                       <div className='relative aspect-video w-full overflow-hidden border-b border-border bg-muted'>
                         <Avatar className='w-full h-full [&>img]:rounded-none [&>span]:rounded-none [&:after]:border-none'>
                           <AvatarImage
@@ -243,12 +334,16 @@ function RouteComponent() {
                         </Avatar>
 
                         <div className='absolute top-4 left-4 flex flex-col gap-2'>
-                          <Badge
-                            variant={maxServings === 0 ? 'destructive' : isLowStock ? 'warning' : 'secondary'}
-                            className='rounded-full px-3 shadow-sm backdrop-blur-md bg-background/80 dark:bg-card/80'
-                          >
-                            {maxServings === 0 ? 'Out of Stock' : `${numeral(maxServings).format('0,0')} Servings Left`}
-                          </Badge>
+                          {isProvisional ? (
+                            <Badge className='rounded-full px-3 shadow-sm backdrop-blur-md bg-amber-500/90 text-white border-none'>Needs review</Badge>
+                          ) : hasInventory ? (
+                            <Badge
+                              variant={maxServings === 0 ? 'destructive' : isLowStock ? 'warning' : 'secondary'}
+                              className='rounded-full px-3 shadow-sm backdrop-blur-md bg-background/80 dark:bg-card/80'
+                            >
+                              {maxServings === 0 ? 'Out of Stock' : `${numeral(maxServings).format('0,0')} in stock`}
+                            </Badge>
+                          ) : null}
                         </div>
                       </div>
 
@@ -268,20 +363,35 @@ function RouteComponent() {
                       </CardHeader>
 
                       <CardContent className='space-y-4 flex-1 flex flex-col'>
-                        {/* Availability Bar */}
-                        <div className='space-y-1.5'>
-                          <div className='flex justify-between text-[10px] font-bold uppercase tracking-tight'>
-                            <span className='text-muted-foreground'>Stock Availability</span>
-                            <span className={cn(isLowStock ? 'text-destructive' : 'text-primary')}>{maxServings} units</span>
+                        {/* Provisional product nudge */}
+                        {isProvisional && (
+                          <div className='rounded-xl border border-amber-400/30 bg-amber-50/40 dark:bg-amber-950/20 px-3 py-2.5 space-y-1.5'>
+                            <p className='text-xs font-semibold text-amber-700 dark:text-amber-400'>Complete this product</p>
+                            <ul className='text-[11px] text-amber-600/80 dark:text-amber-500/80 space-y-0.5'>
+                              {!primaryVariant.sku && <li>• Add a SKU</li>}
+                              {Number(primaryVariant.costPrice) === 0 && <li>• Set a cost price</li>}
+                              {product.type === ResourceType.SERVICE && <li>• Update product type if needed</li>}
+                              {!product.image && <li>• Add a product image</li>}
+                            </ul>
                           </div>
-                          <Progress
-                            value={stockPercentage}
-                            className={cn(
-                              'h-1.5 bg-secondary',
-                              maxServings === 0 ? '[&>div]:bg-destructive' : isLowStock ? '[&>div]:bg-orange-500' : '[&>div]:bg-primary',
-                            )}
-                          />
-                        </div>
+                        )}
+
+                        {/* Availability Bar — only when inventory tracking is enabled */}
+                        {!isProvisional && hasInventory && (
+                          <div className='space-y-1.5'>
+                            <div className='flex justify-between text-[10px] font-bold uppercase tracking-tight'>
+                              <span className='text-muted-foreground'>Stock Availability</span>
+                              <span className={cn(isLowStock ? 'text-destructive' : 'text-primary')}>{maxServings} units</span>
+                            </div>
+                            <Progress
+                              value={stockPercentage}
+                              className={cn(
+                                'h-1.5 bg-secondary',
+                                maxServings === 0 ? '[&>div]:bg-destructive' : isLowStock ? '[&>div]:bg-orange-500' : '[&>div]:bg-primary',
+                              )}
+                            />
+                          </div>
+                        )}
 
                         {/* Profitability Panel */}
                         <div className='p-3.5 rounded-2xl border border-border bg-muted/30 space-y-3'>
@@ -381,12 +491,12 @@ function RouteComponent() {
                         {/* Action Buttons */}
                         <div className='pt-4 mt-auto border-t border-border flex gap-2'>
                           <Button
-                            variant='outline'
+                            variant={isProvisional ? 'default' : 'outline'}
                             size='sm'
                             className='flex-1 rounded-xl font-bold bg-transparent hover:bg-accent'
                             onClick={() => handleSelectRow(product)}
                           >
-                            View Details
+                            {isProvisional ? 'Complete setup' : 'View Details'}
                           </Button>
                           <Button
                             type='button'

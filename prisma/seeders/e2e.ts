@@ -148,7 +148,7 @@ async function seedInventory(prisma: PrismaClient, B1: string, BR1: string) {
 
   for (const row of rows) {
     const unitAbbr = row.unitAbbreviation.trim()
-    const unit = await prisma.unit.findUnique({ where: { abbreviation: unitAbbr } })
+    const unit = await prisma.unit.findFirst({ where: { abbreviation: unitAbbr, businessId: B1 } })
     if (!unit) {
       console.warn(`  ⚠️  Skipping inventory row ${row.id}: unit "${unitAbbr}" not found.`)
       continue
@@ -333,7 +333,7 @@ async function seedOrderItems(prisma: PrismaClient, B1: string, BR1: string) {
   const rows = parseCsv('order-items.csv', ['id', 'orderId', 'variantId', 'quantity', 'unitPrice', 'unitCost', 'unitAbbreviation'])
 
   for (const row of rows) {
-    const unit = await prisma.unit.findUnique({ where: { abbreviation: row.unitAbbreviation.trim() } })
+    const unit = await prisma.unit.findFirst({ where: { abbreviation: row.unitAbbreviation.trim(), businessId: B1 } })
     if (!unit) {
       console.warn(`  ⚠️  Skipping order-item ${row.id}: unit "${row.unitAbbreviation}" not found.`)
       continue
@@ -545,7 +545,7 @@ async function seedPurchases(prisma: PrismaClient, B1: string, BR1: string) {
   const itemRows = parseCsv('purchase-items.csv', ['id', 'purchaseId', 'variantId', 'quantity', 'unitAbbreviation', 'unitCost'])
 
   for (const row of itemRows) {
-    const unit = await prisma.unit.findUnique({ where: { abbreviation: row.unitAbbreviation.trim() } })
+    const unit = await prisma.unit.findFirst({ where: { abbreviation: row.unitAbbreviation.trim(), businessId: B1 } })
     if (!unit) {
       console.warn(`  ⚠️  Skipping purchase-item ${row.id}: unit "${row.unitAbbreviation}" not found.`)
       continue
