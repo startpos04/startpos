@@ -177,7 +177,7 @@ function BillingDashboard() {
   const isInWarning = status === SubscriptionStatus.GRACE_PERIOD
 
   return (
-    <div className='flex flex-col gap-4 p-4 pt-0'>
+    <div className='flex flex-col gap-4 px-4'>
       {/* Page header */}
       <div>
         <h1 className='text-2xl font-bold tracking-tight text-foreground'>Billing &amp; Subscription</h1>

@@ -73,6 +73,7 @@
     "react-dropzone": "^15.0.0",
     "react-easy-crop": "^5.5.6",
     "recharts": "^3.8.0",
+    "resend": "^6.18.1",
     "shadcn": "^3.8.4",
     "sonner": "^2.0.7",
     "stripe": "22.4.0",

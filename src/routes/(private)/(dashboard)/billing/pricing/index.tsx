@@ -202,7 +202,7 @@ function PricingCalculatorPage() {
   const selectableCount = selectedKeys.size - SELECTABLE_FEATURES.filter(f => f.isIncludedInBase).length
 
   return (
-    <div className='flex flex-col gap-6 p-4 pt-0 max-w-5xl'>
+    <div className='flex flex-col gap-6 px-4 max-w-5xl'>
       {/* Header */}
       <div className='flex items-center gap-3'>
         <Button variant='ghost' size='icon' asChild>

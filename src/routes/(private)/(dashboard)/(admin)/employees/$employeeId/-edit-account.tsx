@@ -2,7 +2,9 @@ import { ArrowLeft, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { userCollection } from '@/db/collections'
+import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import type { MountProps } from '@/lib/mount-manager'
+import { writeAudit } from '@/lib/queries/write-audit'
 import { closeEmployeeSidebar } from '../-components/employee-sidebar'
 import { CreateAccount, type CreateAccountFormData } from '../create/-create-account'
 
@@ -15,12 +17,38 @@ interface EditEmployeeSidebarProps extends MountProps {
 export function EditEmployeeSidebar({ employeeId, defaultValues, open: _open, onClose, onBack }: EditEmployeeSidebarProps) {
   const handleSubmit = async ({ value }: { value: CreateAccountFormData }) => {
     try {
+      const before = { name: defaultValues.name, email: defaultValues.email, role: defaultValues.role }
       userCollection.update(employeeId, draft => {
         Object.assign(draft, value)
         draft.image = value.image || null
       })
 
       toast.success('Employee successfully updated')
+
+      // Audit role changes specifically — role escalation is a privilege-elevating action.
+      if (value.role !== defaultValues.role) {
+        writeAudit({
+          data: {
+            action: AuditAction.EMPLOYEE_ROLE_CHANGED,
+            targetType: AuditTargetType.User,
+            targetId: employeeId,
+            before,
+            after: { name: value.name, email: value.email, role: value.role },
+          },
+        }).catch(err => console.error('[audit] EMPLOYEE_ROLE_CHANGED write failed:', err))
+      } else {
+        // Non-role profile update — still auditable but lower severity
+        writeAudit({
+          data: {
+            action: AuditAction.EMPLOYEE_UPDATED,
+            targetType: AuditTargetType.User,
+            targetId: employeeId,
+            before,
+            after: { name: value.name, email: value.email, role: value.role },
+          },
+        }).catch(err => console.error('[audit] EMPLOYEE_UPDATED write failed:', err))
+      }
+
       if (onBack) onBack()
       else if (onClose) onClose()
       else closeEmployeeSidebar()

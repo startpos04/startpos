@@ -2,6 +2,7 @@ import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { AppWrapper } from '@/components/custom/app-wrapper'
+import { LegalFooter } from '@/components/custom/legal-footer'
 import { localAuthCollection } from '@/db/local-auth'
 import { useIsOnline } from '@/hooks/use-is-online'
 import { authStore } from '@/store/auth-store'
@@ -30,5 +31,12 @@ function RouteComponent() {
     }
   }, [localAuths.isReady, navigate])
 
-  return <Outlet />
+  return (
+    <div className='h-screen flex flex-col overflow-hidden'>
+      <div className='flex-1 overflow-y-auto min-h-0'>
+        <Outlet />
+      </div>
+      <LegalFooter />
+    </div>
+  )
 }

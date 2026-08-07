@@ -3,11 +3,13 @@ import { z } from 'zod'
 import Tab from '@/components/custom/tab'
 import { RequireCapability } from '@/components/require-capability'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
+import { AccountPage } from './-account'
 import { BusinessProfilePage } from './-business-profile'
 import { CapabilitiesPage } from './-capabilities'
 import { CategoriesPage } from './-categories'
 import { CustomersPage } from './-customers'
 import { LocationsPage } from './-locations'
+import { SecurityPage } from './-security'
 import { SuppliersPage } from './-suppliers'
 import { UnitsPage } from './-units'
 
@@ -42,6 +44,8 @@ const TABS = [
   },
   { label: 'Capabilities', Component: CapabilitiesPage },
   { label: 'Business Profile', Component: BusinessProfilePage },
+  { label: 'Security', Component: SecurityPage },
+  { label: 'Account', Component: AccountPage },
 ] as const
 
 const VALID_TABS = new Set(TABS.map(t => t.label))

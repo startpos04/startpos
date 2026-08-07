@@ -116,7 +116,7 @@ function RouteComponent() {
 
   return (
     <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
-      <div className='flex-1 min-w-0 h-full p-4 pt-0 flex flex-col overflow-hidden bg-background/50 space-y-2'>
+      <div className='flex-1 min-w-0 h-full px-4 flex flex-col overflow-hidden bg-background/50 space-y-2'>
         <MultiView<fePurchase>
           label='Purchases'
           description='Track supplier purchases and inventory receipts.'

@@ -10,11 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as publicRouteRouteImport } from './routes/(public)/route'
 import { Route as privateRouteRouteImport } from './routes/(private)/route'
 import { Route as publicIndexRouteImport } from './routes/(public)/index'
 import { Route as publicRegisterRouteImport } from './routes/(public)/register'
 import { Route as publicLoginRouteImport } from './routes/(public)/login'
+import { Route as publicForgotPasswordRouteImport } from './routes/(public)/forgot-password'
 import { Route as privatedashboardRouteRouteImport } from './routes/(private)/(dashboard)/route'
 import { Route as SubscriptionReactivateIndexRouteImport } from './routes/subscription/reactivate/index'
 import { Route as privateTasksIndexRouteImport } from './routes/(private)/tasks/index'
@@ -24,6 +27,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as publicRegisterBusinessSetupRouteImport } from './routes/(public)/register/business-setup'
 import { Route as privatedashboardNotificationsRouteImport } from './routes/(private)/(dashboard)/notifications'
 import { Route as privatedashboardDashboardRouteImport } from './routes/(private)/(dashboard)/dashboard'
+import { Route as privatedashboardContactUsRouteImport } from './routes/(private)/(dashboard)/contact-us'
 import { Route as privatedashboardSettingsRouteRouteImport } from './routes/(private)/(dashboard)/settings/route'
 import { Route as privatedashboardBillingRouteRouteImport } from './routes/(private)/(dashboard)/billing/route'
 import { Route as privatedashboardsupervisorRouteRouteImport } from './routes/(private)/(dashboard)/(supervisor)/route'
@@ -63,6 +67,16 @@ const UnauthorizedRoute = UnauthorizedRouteImport.update({
   path: '/unauthorized',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const publicRouteRoute = publicRouteRouteImport.update({
   id: '/(public)',
   getParentRoute: () => rootRouteImport,
@@ -84,6 +98,11 @@ const publicRegisterRoute = publicRegisterRouteImport.update({
 const publicLoginRoute = publicLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => publicRouteRoute,
+} as any)
+const publicForgotPasswordRoute = publicForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => publicRouteRoute,
 } as any)
 const privatedashboardRouteRoute = privatedashboardRouteRouteImport.update({
@@ -132,6 +151,12 @@ const privatedashboardDashboardRoute =
   privatedashboardDashboardRouteImport.update({
     id: '/dashboard',
     path: '/dashboard',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardContactUsRoute =
+  privatedashboardContactUsRouteImport.update({
+    id: '/contact-us',
+    path: '/contact-us',
     getParentRoute: () => privatedashboardRouteRoute,
   } as any)
 const privatedashboardSettingsRouteRoute =
@@ -329,12 +354,16 @@ const privatedashboardadminEmployeesEmployeeIdIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/forgot-password': typeof publicForgotPasswordRoute
   '/login': typeof publicLoginRoute
   '/register': typeof publicRegisterRouteWithChildren
   '/': typeof publicIndexRoute
   '/billing': typeof privatedashboardBillingRouteRouteWithChildren
   '/settings': typeof privatedashboardSettingsRouteRouteWithChildren
+  '/contact-us': typeof privatedashboardContactUsRoute
   '/dashboard': typeof privatedashboardDashboardRoute
   '/notifications': typeof privatedashboardNotificationsRoute
   '/register/business-setup': typeof publicRegisterBusinessSetupRoute
@@ -374,10 +403,14 @@ export interface FileRoutesByFullPath {
   '/billing/quotes/$quoteId/': typeof privatedashboardBillingQuotesQuoteIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/forgot-password': typeof publicForgotPasswordRoute
   '/login': typeof publicLoginRoute
   '/register': typeof publicRegisterRouteWithChildren
   '/': typeof publicIndexRoute
+  '/contact-us': typeof privatedashboardContactUsRoute
   '/dashboard': typeof privatedashboardDashboardRoute
   '/notifications': typeof privatedashboardNotificationsRoute
   '/register/business-setup': typeof publicRegisterBusinessSetupRoute
@@ -420,8 +453,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(private)': typeof privateRouteRouteWithChildren
   '/(public)': typeof publicRouteRouteWithChildren
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/unauthorized': typeof UnauthorizedRoute
   '/(private)/(dashboard)': typeof privatedashboardRouteRouteWithChildren
+  '/(public)/forgot-password': typeof publicForgotPasswordRoute
   '/(public)/login': typeof publicLoginRoute
   '/(public)/register': typeof publicRegisterRouteWithChildren
   '/(public)/': typeof publicIndexRoute
@@ -429,6 +465,7 @@ export interface FileRoutesById {
   '/(private)/(dashboard)/(supervisor)': typeof privatedashboardsupervisorRouteRouteWithChildren
   '/(private)/(dashboard)/billing': typeof privatedashboardBillingRouteRouteWithChildren
   '/(private)/(dashboard)/settings': typeof privatedashboardSettingsRouteRouteWithChildren
+  '/(private)/(dashboard)/contact-us': typeof privatedashboardContactUsRoute
   '/(private)/(dashboard)/dashboard': typeof privatedashboardDashboardRoute
   '/(private)/(dashboard)/notifications': typeof privatedashboardNotificationsRoute
   '/(public)/register/business-setup': typeof publicRegisterBusinessSetupRoute
@@ -470,12 +507,16 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/privacy'
+    | '/terms'
     | '/unauthorized'
+    | '/forgot-password'
     | '/login'
     | '/register'
     | '/'
     | '/billing'
     | '/settings'
+    | '/contact-us'
     | '/dashboard'
     | '/notifications'
     | '/register/business-setup'
@@ -515,10 +556,14 @@ export interface FileRouteTypes {
     | '/billing/quotes/$quoteId/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/privacy'
+    | '/terms'
     | '/unauthorized'
+    | '/forgot-password'
     | '/login'
     | '/register'
     | '/'
+    | '/contact-us'
     | '/dashboard'
     | '/notifications'
     | '/register/business-setup'
@@ -560,8 +605,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/(private)'
     | '/(public)'
+    | '/privacy'
+    | '/terms'
     | '/unauthorized'
     | '/(private)/(dashboard)'
+    | '/(public)/forgot-password'
     | '/(public)/login'
     | '/(public)/register'
     | '/(public)/'
@@ -569,6 +617,7 @@ export interface FileRouteTypes {
     | '/(private)/(dashboard)/(supervisor)'
     | '/(private)/(dashboard)/billing'
     | '/(private)/(dashboard)/settings'
+    | '/(private)/(dashboard)/contact-us'
     | '/(private)/(dashboard)/dashboard'
     | '/(private)/(dashboard)/notifications'
     | '/(public)/register/business-setup'
@@ -611,6 +660,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   privateRouteRoute: typeof privateRouteRouteWithChildren
   publicRouteRoute: typeof publicRouteRouteWithChildren
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   SubscriptionReactivateIndexRoute: typeof SubscriptionReactivateIndexRoute
@@ -624,6 +675,20 @@ declare module '@tanstack/react-router' {
       path: '/unauthorized'
       fullPath: '/unauthorized'
       preLoaderRoute: typeof UnauthorizedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(public)': {
@@ -659,6 +724,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof publicLoginRouteImport
+      parentRoute: typeof publicRouteRoute
+    }
+    '/(public)/forgot-password': {
+      id: '/(public)/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof publicForgotPasswordRouteImport
       parentRoute: typeof publicRouteRoute
     }
     '/(private)/(dashboard)': {
@@ -722,6 +794,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof privatedashboardDashboardRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/contact-us': {
+      id: '/(private)/(dashboard)/contact-us'
+      path: '/contact-us'
+      fullPath: '/contact-us'
+      preLoaderRoute: typeof privatedashboardContactUsRouteImport
       parentRoute: typeof privatedashboardRouteRoute
     }
     '/(private)/(dashboard)/settings': {
@@ -1087,6 +1166,7 @@ interface privatedashboardRouteRouteChildren {
   privatedashboardsupervisorRouteRoute: typeof privatedashboardsupervisorRouteRouteWithChildren
   privatedashboardBillingRouteRoute: typeof privatedashboardBillingRouteRouteWithChildren
   privatedashboardSettingsRouteRoute: typeof privatedashboardSettingsRouteRouteWithChildren
+  privatedashboardContactUsRoute: typeof privatedashboardContactUsRoute
   privatedashboardDashboardRoute: typeof privatedashboardDashboardRoute
   privatedashboardNotificationsRoute: typeof privatedashboardNotificationsRoute
 }
@@ -1099,6 +1179,7 @@ const privatedashboardRouteRouteChildren: privatedashboardRouteRouteChildren = {
     privatedashboardBillingRouteRouteWithChildren,
   privatedashboardSettingsRouteRoute:
     privatedashboardSettingsRouteRouteWithChildren,
+  privatedashboardContactUsRoute: privatedashboardContactUsRoute,
   privatedashboardDashboardRoute: privatedashboardDashboardRoute,
   privatedashboardNotificationsRoute: privatedashboardNotificationsRoute,
 }
@@ -1143,12 +1224,14 @@ const publicRegisterRouteWithChildren = publicRegisterRoute._addFileChildren(
 )
 
 interface publicRouteRouteChildren {
+  publicForgotPasswordRoute: typeof publicForgotPasswordRoute
   publicLoginRoute: typeof publicLoginRoute
   publicRegisterRoute: typeof publicRegisterRouteWithChildren
   publicIndexRoute: typeof publicIndexRoute
 }
 
 const publicRouteRouteChildren: publicRouteRouteChildren = {
+  publicForgotPasswordRoute: publicForgotPasswordRoute,
   publicLoginRoute: publicLoginRoute,
   publicRegisterRoute: publicRegisterRouteWithChildren,
   publicIndexRoute: publicIndexRoute,
@@ -1161,6 +1244,8 @@ const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   privateRouteRoute: privateRouteRouteWithChildren,
   publicRouteRoute: publicRouteRouteWithChildren,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   UnauthorizedRoute: UnauthorizedRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   SubscriptionReactivateIndexRoute: SubscriptionReactivateIndexRoute,

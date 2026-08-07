@@ -8,6 +8,7 @@ import {
   CreditCardIcon,
   GalleryVerticalEndIcon,
   LayoutDashboardIcon,
+  LifeBuoyIcon,
   SettingsIcon,
   TerminalSquareIcon,
 } from 'lucide-react'
@@ -137,6 +138,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: '/settings',
           icon: <SettingsIcon />,
           allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+        },
+        {
+          title: 'Contact us',
+          url: '/contact-us',
+          icon: <LifeBuoyIcon />,
+          allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER, Role.SERVICE_PROVIDER],
         },
         {
           title: 'Billing',

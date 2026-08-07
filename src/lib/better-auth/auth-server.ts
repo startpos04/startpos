@@ -25,7 +25,20 @@ function transformKvPairs<K extends string, T extends { key: K; value: string }>
 }
 
 // Derive core entity payloads directly from Prisma Client models
-type DBUser = Prisma.UserGetPayload<{ select: { id: true; name: true; email: true; image: true; role: true }; include: { systemConfigs: true } }>
+type DBUser = Prisma.UserGetPayload<{
+  select: {
+    id: true
+    name: true
+    email: true
+    image: true
+    role: true
+    termsAcceptedAt: true
+    termsVersion: true
+    privacyAcceptedAt: true
+    privacyVersion: true
+  }
+  include: { systemConfigs: true }
+}>
 type DBBusiness = Prisma.BusinessGetPayload<{ include: { complianceRegistry: true; systemConfigs: true } }>
 type DBBranch = Prisma.BranchGetPayload<{ include: { complianceRegistry: true; systemConfigs: true } }>
 type DBVendorSession = Prisma.VendorSessionGetPayload<object>
@@ -47,7 +60,19 @@ export const getAuthUser = createServerFn({ method: 'GET' })
     const [userData, businessData, branchData, vendorSession, localOverrides, bosData] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, name: true, email: true, image: true, role: true, systemConfigs: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+          systemConfigs: true,
+          // Phase 0 legal consent fields — surfaced in Settings → Account tab
+          termsAcceptedAt: true,
+          termsVersion: true,
+          privacyAcceptedAt: true,
+          privacyVersion: true,
+        },
       }) as Promise<DBUser | null>,
 
       prisma.business.findUnique({

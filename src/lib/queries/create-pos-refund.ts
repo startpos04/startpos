@@ -8,6 +8,8 @@ import {
   transactionTaxLineCollection,
 } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
+import { AuditAction, AuditTargetType } from '@/lib/audit/types'
+import { writeAudit } from '@/lib/queries/write-audit'
 import { authStore } from '@/store/auth-store'
 import { CreditEngine } from '../billing/credit-engine'
 import { BillingModel } from '../billing/types'
@@ -160,8 +162,22 @@ export const createPosRefund = async (originalTransactionId: string) => {
   }
 
   // TypeScript now correctly infers result.value as { transactionId: string, refundInvoiceNo: string }
+  const { transactionId, refundInvoiceNo } = result.value
+
+  // Audit the refund — financial actions are logged with throwOnFailure semantics
+  // at the call site to surface any persistence failures to the operator.
+  writeAudit({
+    data: {
+      action: AuditAction.TRANSACTION_REFUNDED,
+      targetType: AuditTargetType.Transaction,
+      targetId: originalTransactionId,
+      before: null,
+      after: { refundTransactionId: transactionId, refundInvoiceNo },
+    },
+  }).catch(err => console.error('[audit] TRANSACTION_REFUNDED write failed:', err))
+
   return {
-    data: result.value.refundInvoiceNo,
-    transactionId: result.value.transactionId,
+    data: refundInvoiceNo,
+    transactionId,
   }
 }

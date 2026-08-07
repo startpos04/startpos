@@ -9,8 +9,10 @@ import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { userCollection } from '@/db/collections'
+import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager from '@/lib/mount-manager'
+import { writeAudit } from '@/lib/queries/write-audit'
 import { authStore } from '@/store/auth-store'
 import { closeEmployeeSidebar, EMPLOYEE_ASIDE_ID, showEmployeeSidebar } from './-components/employee-sidebar'
 import { EmployeeDetailsSidebar } from './$employeeId'
@@ -90,10 +92,21 @@ function RouteComponent() {
                 description: 'Are you sure you want to delete this employee? This will affect their access to the system.',
                 onConfirm: async () => {
                   try {
+                    const before = { id: row.original.id, name: row.original.name, role: row.original.role, email: row.original.email }
                     userCollection.update(row.original.id, draft => {
                       draft.deletedAt = new Date()
                     })
                     toast.success('Employee archived successfully')
+                    // Fire-and-forget audit write — does not block the success path
+                    writeAudit({
+                      data: {
+                        action: AuditAction.EMPLOYEE_DISABLED,
+                        targetType: AuditTargetType.User,
+                        targetId: row.original.id,
+                        before,
+                        after: null,
+                      },
+                    }).catch(err => console.error('[audit] EMPLOYEE_DISABLED write failed:', err))
                     return true
                   } catch (error) {
                     console.error('Transaction failed:', error)
@@ -127,7 +140,7 @@ function RouteComponent() {
 
   return (
     <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
-      <div className='flex-1 min-w-0 h-full p-4 pt-0 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
+      <div className='flex-1 min-w-0 h-full px-4 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
         <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
           <div>
             <h1 className='text-3xl font-bold tracking-tight text-foreground'>Employees</h1>

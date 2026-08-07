@@ -39,7 +39,7 @@ function RouteComponent() {
   })
 
   return (
-    <div className='flex flex-col items-center justify-center min-h-screen overflow-y-auto p-4'>
+    <div className='flex flex-col items-center justify-center h-full p-4'>
       <Card className='w-full max-w-md'>
         <CardHeader>
           <div className='flex justify-between items-center'>
@@ -63,12 +63,17 @@ function RouteComponent() {
                 </Button>
               )}
             />
-            <p className='text-sm text-muted-foreground text-center'>
-              Don't have an account?{' '}
-              <Link to='/register' className='font-medium text-primary underline-offset-4 hover:underline'>
-                Create one free
+            <div className='flex flex-col items-center gap-1'>
+              <Link to='/forgot-password' className='text-sm font-medium text-primary underline-offset-4 hover:underline'>
+                Forgot your password?
               </Link>
-            </p>
+              <p className='text-sm text-muted-foreground text-center'>
+                Don't have an account?{' '}
+                <Link to='/register' className='font-medium text-primary underline-offset-4 hover:underline'>
+                  Create one free
+                </Link>
+              </p>
+            </div>
           </CardFooter>
         </Form>
       </Card>

@@ -59,12 +59,25 @@ import { prisma as rootPrisma } from '../prisma-client'
  * any legacy clients still sending the field during the rollout window.
  * The businessType column on Business is deprecated (do not use for logic).
  */
+// ---------------------------------------------------------------------------
+// Legal consent versioning — Phase 0
+// Bump these strings whenever the ToS or Privacy Policy is materially changed.
+// "Material change" means: new data categories, changed retention periods,
+// altered merchant obligations, or changed billing terms.
+// Keep old versions in git history; they establish what each user agreed to.
+// ---------------------------------------------------------------------------
+export const CURRENT_TERMS_VERSION = '2026-08-01'
+export const CURRENT_PRIVACY_VERSION = '2026-08-01'
+
 const CompleteRegistrationInputSchema = z.object({
   displayName: z.string().min(1, 'Name is required'),
   businessName: z.string().min(1, 'Business name is required').max(100),
+  contactNumber: z.string().optional(),
   /** Deprecated — kept for backward-compat with legacy clients. Not used for config. */
   businessType: z.enum(['RESTAURANT', 'GROCERY', 'RETAIL']).optional(),
   surveyAnswers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
+  /** ISO timestamp of when the user checked the ToS/Privacy checkbox. */
+  termsAcceptedAt: z.string().datetime().optional(),
 })
 
 export type CompleteRegistrationInput = z.infer<typeof CompleteRegistrationInputSchema>
@@ -219,10 +232,24 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         // Step 3b: Promote the User record to ADMIN.
         // User.role defaults to CASHIER at sign-up (auth.ts additionalFields).
         // getAuthUser reads userData.role from the User table, not Membership.
+        // Also saves contactNumber and legal consent timestamps if provided.
         // ------------------------------------------------------------------
         await tx.user.update({
           where: { id: userId },
-          data: { role: 'ADMIN' as import('prisma/generated/prisma/enums').Role },
+          data: {
+            role: 'ADMIN' as import('prisma/generated/prisma/enums').Role,
+            ...(data.contactNumber ? { contactNumber: data.contactNumber } : {}),
+            // Legal consent — record the version and timestamp so we have
+            // a per-user audit trail of exactly what they agreed to and when.
+            ...(data.termsAcceptedAt
+              ? {
+                  termsAcceptedAt: new Date(data.termsAcceptedAt),
+                  termsVersion: CURRENT_TERMS_VERSION,
+                  privacyAcceptedAt: new Date(data.termsAcceptedAt),
+                  privacyVersion: CURRENT_PRIVACY_VERSION,
+                }
+              : {}),
+          },
         })
 
         // ------------------------------------------------------------------

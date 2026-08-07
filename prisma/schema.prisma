@@ -211,6 +211,7 @@ model Business {
 
   // Relations added in Phase 2
   usageSummaries BusinessUsageSummary[]
+  auditLogs      AuditLog[]
 
   @@index([deletedAt])
   @@map("businesses")
@@ -295,6 +296,7 @@ model User {
   email         String  @unique
   emailVerified Boolean
   image         String?
+  contactNumber String?
   role          Role    @default(CASHIER)
 
   sessions           Session[]
@@ -313,6 +315,14 @@ model User {
   receivedGoods      GoodsReceipt[]      @relation("GoodsReceiptReceiver")
   systemConfigs      SystemConfig[]
 
+  // Legal consent recording — Phase 0
+  // Stores the exact version and timestamp when the user accepted the ToS/Privacy Policy.
+  // Required for enforcement and audit under RA 10173 and standard SaaS contract law.
+  termsAcceptedAt   DateTime?
+  termsVersion      String? // e.g. "2026-08-01"
+  privacyAcceptedAt DateTime?
+  privacyVersion    String? // e.g. "2026-08-01"
+
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   deletedAt     DateTime?
@@ -320,6 +330,38 @@ model User {
 
   @@index([deletedAt])
   @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// AuditLog — immutable append-only record of destructive and privilege-
+// elevating admin actions. Phase 1 of the Legal Compliance Master Plan.
+//
+// Design decisions:
+//   - businessId is the primary partition key (all tenant queries scoped to it).
+//   - actorId is the userId who performed the action (not cascade-deleted on
+//     user removal — intentionally kept for forensic purposes).
+//   - before/after are nullable JSON snapshots. Sensitive fields (passwords,
+//     tokens) are stripped by AuditEngine.stripSensitive() before storage.
+//   - No onDelete: Cascade — audit records must outlive the entities they
+//     describe. BIR 10-year retention applies to financial audit rows.
+// ---------------------------------------------------------------------------
+model AuditLog {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  actorId    String
+  action     String // AuditAction constant — e.g. "EMPLOYEE_DISABLED"
+  targetType String // AuditTargetType constant — e.g. "User"
+  targetId   String
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([actorId])
+  @@index([action, businessId])
+  @@map("audit_logs")
 }
 
 // --- AUTH SYSTEM ---

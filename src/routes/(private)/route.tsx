@@ -2,6 +2,7 @@ import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { AppWrapper } from '@/components/custom/app-wrapper'
+import { TermsUpdateModal } from '@/components/custom/legal/terms-update-modal'
 import Loading from '@/components/custom/loading'
 import { WelcomeModal } from '@/components/custom/onboarding/welcome-modal'
 import { localAuthCollection } from '@/db/local-auth'
@@ -56,6 +57,8 @@ function RouteComponent() {
       <div className='flex-1 flex flex-col min-h-0'>
         <Outlet />
       </div>
+      {/* Terms re-acceptance gate — shown when CURRENT_TERMS_VERSION > user.termsVersion */}
+      <TermsUpdateModal />
       {/* Welcome modal — fires once on first login after registration */}
       <WelcomeModal />
     </div>

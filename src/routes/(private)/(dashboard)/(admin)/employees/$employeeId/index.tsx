@@ -17,8 +17,10 @@ import {
   transactionCollection,
   userCollection,
 } from '@/db/collections'
+import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import dayjs from '@/lib/dayjs'
 import type { MountProps } from '@/lib/mount-manager'
+import { writeAudit } from '@/lib/queries/write-audit'
 import { cn } from '@/lib/utils'
 import { closeEmployeeSidebar, showEmployeeSidebar } from '../-components/employee-sidebar'
 import { EditEmployeeSidebar } from './-edit-account'
@@ -270,9 +272,19 @@ function RouteComponent({ employeeId: propId, onClose }: RouteComponentProps) {
       }
     }
     toast.success('All sessions revoked. User will be logged out.')
+    writeAudit({
+      data: {
+        action: AuditAction.EMPLOYEE_SESSION_REVOKED,
+        targetType: AuditTargetType.Session,
+        targetId: employeeId, // actor revoked all sessions for this user
+        before: null,
+        after: null,
+      },
+    }).catch(err => console.error('[audit] EMPLOYEE_SESSION_REVOKED write failed:', err))
   }
 
   const handleDisable = async () => {
+    const before = employee ? { id: employee.id, name: employee.name, role: employee.role, email: employee.email } : null
     const result = await userCollection.update(employeeId, draft => {
       draft.deletedAt = new Date()
     })
@@ -281,6 +293,15 @@ function RouteComponent({ employeeId: propId, onClose }: RouteComponentProps) {
       return
     }
     toast.success('Account disabled. The employee can no longer log in.')
+    writeAudit({
+      data: {
+        action: AuditAction.EMPLOYEE_DISABLED,
+        targetType: AuditTargetType.User,
+        targetId: employeeId,
+        before,
+        after: null,
+      },
+    }).catch(err => console.error('[audit] EMPLOYEE_DISABLED write failed:', err))
   }
 
   const handleClose = () => {

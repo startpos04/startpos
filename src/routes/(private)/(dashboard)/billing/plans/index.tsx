@@ -156,7 +156,7 @@ function PlansPage() {
   const isPending = subscriptionMutation.isPending
 
   return (
-    <div className='flex flex-col gap-6 p-4 pt-0 max-w-5xl'>
+    <div className='flex flex-col gap-6 px-4 max-w-5xl'>
       {/* Header */}
       <div className='flex items-center gap-3'>
         <Button variant='ghost' size='icon' asChild className='shrink-0'>

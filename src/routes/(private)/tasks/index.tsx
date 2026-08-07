@@ -285,7 +285,7 @@ function RouteComponent() {
 
   return (
     <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
-      <div className='flex-1 min-w-0 h-full p-4 pt-0 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
+      <div className='flex-1 min-w-0 h-full px-4 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
         <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4'>
           <div>
             <h1 className='text-3xl font-bold tracking-tight text-foreground'>Operational Tasks</h1>
