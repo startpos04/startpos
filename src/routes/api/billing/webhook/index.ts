@@ -290,6 +290,15 @@ async function handleSubscriptionDeleted(event: WebhookEvent): Promise<WebhookPr
     return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: 'No subscription payload' }
   }
 
+  // Route addon subscription cancellations before plan subscription lookup.
+  const addonRow = await rootPrisma.businessSubscriptionAddon.findFirst({
+    where: { externalSubscriptionId: sub.externalSubscriptionId },
+    select: { id: true, businessId: true, addonType: true },
+  })
+  if (addonRow) {
+    return handleAddonSubscriptionCancelled(event, sub, addonRow)
+  }
+
   const subscription = await rootPrisma.businessSubscription.findFirst({
     where: { externalId: sub.externalSubscriptionId },
     select: { id: true, status: true, businessId: true },
@@ -343,11 +352,27 @@ async function handleSubscriptionDeleted(event: WebhookEvent): Promise<WebhookPr
 // Stripe creates the real subscription and fires this event. At that point
 // BusinessSubscription.externalId is still null, so we look up by businessId
 // from the subscription metadata and write externalId for the first time.
+// Routes addon subscription events to handleAddonSubscriptionActivated.
 // ---------------------------------------------------------------------------
 async function handleSubscriptionUpdated(event: WebhookEvent): Promise<WebhookProcessingResult> {
   const sub = event.subscription
   if (!sub) {
     return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: 'No subscription payload' }
+  }
+
+  // Check if this is an addon subscription before doing plan subscription lookup.
+  const addonRow = await rootPrisma.businessSubscriptionAddon.findFirst({
+    where: { externalSubscriptionId: sub.externalSubscriptionId },
+    select: { id: true, businessId: true, addonType: true, quantity: true },
+  })
+  if (addonRow) {
+    return handleAddonSubscriptionUpdated(event, sub, addonRow)
+  }
+
+  // Check if metadata identifies this as a new addon activation (first time —
+  // externalSubscriptionId not yet written to BusinessSubscriptionAddon).
+  if (sub.metadata['source'] === 'addon_subscription') {
+    return handleAddonSubscriptionUpdated(event, sub, null)
   }
 
   // Primary lookup: find by the real Stripe subscription ID
@@ -462,7 +487,9 @@ async function handleSubscriptionUpdated(event: WebhookEvent): Promise<WebhookPr
 
 // ---------------------------------------------------------------------------
 // handleCheckoutSessionCompleted
-// Inserts a CreditLedger PURCHASE entry when a credit package checkout succeeds.
+// Routes on metadata.source:
+//   'credit_purchase'   → insert CreditLedger PURCHASE entry
+//   'tx_addon_purchase' → insert BusinessSubscriptionAddon TX_TOPUP row
 // ---------------------------------------------------------------------------
 async function handleCheckoutSessionCompleted(event: WebhookEvent): Promise<WebhookProcessingResult> {
   const session = event.checkoutSession
@@ -470,14 +497,20 @@ async function handleCheckoutSessionCompleted(event: WebhookEvent): Promise<Webh
     return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: 'No checkout session payload' }
   }
 
-  // Only handle credit purchase sessions (identified by metadata.source)
   const metaSource = session.metadata['source']
+
+  // ---- TX addon branch -------------------------------------------------------
+  if (metaSource === 'tx_addon_purchase') {
+    return handleTxAddonPurchase(event, session)
+  }
+
+  // ---- Credit purchase branch ------------------------------------------------
   if (metaSource !== 'credit_purchase') {
     return {
       eventId: event.id,
       eventType: event.type,
       outcome: WebhookOutcome.SKIPPED,
-      message: 'Not a credit purchase session.',
+      message: 'Not a handled checkout session source.',
     }
   }
 
@@ -551,6 +584,175 @@ async function handleCheckoutSessionCompleted(event: WebhookEvent): Promise<Webh
       actorId: entry.actorId,
     },
   })
+
+  return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.PROCESSED }
+}
+
+// ---------------------------------------------------------------------------
+// handleTxAddonPurchase
+// Creates a BusinessSubscriptionAddon TX_TOPUP row when a TX top-up
+// checkout session completes. Idempotent via externalSessionId unique index.
+// ---------------------------------------------------------------------------
+async function handleTxAddonPurchase(event: WebhookEvent, session: NonNullable<WebhookEvent['checkoutSession']>): Promise<WebhookProcessingResult> {
+  if (session.paymentStatus !== 'paid') {
+    return {
+      eventId: event.id,
+      eventType: event.type,
+      outcome: WebhookOutcome.SKIPPED,
+      message: `Payment not complete (status: ${session.paymentStatus}).`,
+    }
+  }
+
+  const businessId = session.metadata['businessId']
+  const txAmount = Number(session.metadata['txAmount'] ?? '0')
+  const actorId = session.metadata['userId'] ?? null
+  const rawPeriodEnd = session.metadata['currentPeriodEnd']
+  const expiresAt = rawPeriodEnd ? new Date(rawPeriodEnd) : null
+
+  if (!businessId || txAmount <= 0) {
+    return {
+      eventId: event.id,
+      eventType: event.type,
+      outcome: WebhookOutcome.SKIPPED,
+      message: 'Missing businessId or txAmount in session metadata.',
+    }
+  }
+
+  // Idempotency: externalSessionId has a @unique index — duplicate delivery
+  // will throw a unique constraint violation which we catch and treat as SKIPPED.
+  try {
+    await rootPrisma.businessSubscriptionAddon.create({
+      data: {
+        businessId,
+        addonType: 'TX_TOPUP' as import('prisma/generated/prisma/enums').AddonType,
+        quantity: txAmount,
+        externalSessionId: session.externalSessionId,
+        expiresAt,
+        actorId,
+      },
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    // Unique constraint = already processed
+    if (msg.includes('Unique constraint')) {
+      return {
+        eventId: event.id,
+        eventType: event.type,
+        outcome: WebhookOutcome.SKIPPED,
+        message: 'TX addon already processed for this session.',
+      }
+    }
+    throw err
+  }
+
+  return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.PROCESSED }
+}
+
+// ---------------------------------------------------------------------------
+// handleAddonSubscriptionUpdated
+// Called when a Stripe subscription for an addon is created or renewed.
+// First activation: creates the BusinessSubscriptionAddon row.
+// Renewal: updates expiresAt to the new period end.
+// For capability addons (ANALYTICS, API_ACCESS): upserts an EntitlementOverride.
+// For TX_RECURRING: updates BusinessSubscriptionAddon.quantity + expiresAt.
+// ---------------------------------------------------------------------------
+async function handleAddonSubscriptionUpdated(
+  event: WebhookEvent,
+  sub: NonNullable<WebhookEvent['subscription']>,
+  addonRow: { id: string; businessId: string; addonType: string; quantity: number } | null,
+): Promise<WebhookProcessingResult> {
+  if (sub.status !== 'active') {
+    return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: `Addon subscription not yet active (${sub.status})` }
+  }
+
+  const businessId = sub.metadata['businessId'] ?? addonRow?.businessId
+  if (!businessId) {
+    return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: 'No businessId in addon subscription metadata' }
+  }
+
+  const addonType = sub.metadata['addonType'] ?? addonRow?.addonType
+  const featureKey = sub.metadata['featureKey'] ?? ''
+  const txAmount = Number(sub.metadata['txAmount'] ?? '0')
+  const quantity = Number(sub.metadata['quantity'] ?? addonRow?.quantity ?? '1')
+  const actorId = sub.metadata['userId'] ?? null
+
+  // Upsert BusinessSubscriptionAddon row —
+  // create on first activation, update expiresAt on renewal.
+  if (addonRow) {
+    await rootPrisma.businessSubscriptionAddon.update({
+      where: { id: addonRow.id },
+      data: {
+        expiresAt: sub.currentPeriodEnd,
+        quantity,
+        updatedAt: new Date(),
+      },
+    })
+  } else {
+    await rootPrisma.businessSubscriptionAddon.create({
+      data: {
+        businessId,
+        addonType: addonType as import('prisma/generated/prisma/enums').AddonType,
+        quantity: addonType === 'TX_RECURRING' ? txAmount : quantity,
+        externalSubscriptionId: sub.externalSubscriptionId,
+        expiresAt: sub.currentPeriodEnd,
+        actorId,
+      },
+    })
+  }
+
+  // For capability addons — upsert an EntitlementOverride so the feature
+  // is available immediately without waiting for a session refresh.
+  if (featureKey && (addonType === 'ANALYTICS' || addonType === 'API_ACCESS')) {
+    await rootPrisma.entitlementOverride.upsert({
+      where: { businessId_featureKey: { businessId, featureKey } },
+      update: { granted: true, expiresAt: sub.currentPeriodEnd, updatedAt: new Date() },
+      create: {
+        businessId,
+        featureKey,
+        granted: true,
+        expiresAt: sub.currentPeriodEnd,
+        reason: `Addon subscription ${sub.externalSubscriptionId}`,
+      },
+    })
+  }
+
+  return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.PROCESSED }
+}
+
+// ---------------------------------------------------------------------------
+// handleAddonSubscriptionCancelled
+// Called when an addon Stripe subscription is deleted/cancelled.
+// Expires the BusinessSubscriptionAddon row and revokes EntitlementOverride
+// for capability addons.
+// ---------------------------------------------------------------------------
+async function handleAddonSubscriptionCancelled(
+  event: WebhookEvent,
+  sub: NonNullable<WebhookEvent['subscription']>,
+  addonRow: { id: string; businessId: string; addonType: string },
+): Promise<WebhookProcessingResult> {
+  const featureKey = sub.metadata['featureKey'] ?? ''
+
+  // Mark the addon as expired (set expiresAt to now so the session assembly
+  // immediately excludes it from txAddonTotal and entitlement checks).
+  await rootPrisma.businessSubscriptionAddon.update({
+    where: { id: addonRow.id },
+    data: { expiresAt: new Date(), updatedAt: new Date() },
+  })
+
+  // Revoke EntitlementOverride for capability addons.
+  if (featureKey && (addonRow.addonType === 'ANALYTICS' || addonRow.addonType === 'API_ACCESS')) {
+    await rootPrisma.entitlementOverride.upsert({
+      where: { businessId_featureKey: { businessId: addonRow.businessId, featureKey } },
+      update: { granted: false, expiresAt: null, updatedAt: new Date() },
+      create: {
+        businessId: addonRow.businessId,
+        featureKey,
+        granted: false,
+        expiresAt: null,
+        reason: `Addon subscription ${sub.externalSubscriptionId} cancelled`,
+      },
+    })
+  }
 
   return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.PROCESSED }
 }

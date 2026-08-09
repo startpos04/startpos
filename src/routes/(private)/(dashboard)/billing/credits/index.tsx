@@ -4,47 +4,28 @@
  * /billing/credits — Prepaid Credit Management
  *
  * Displays:
- *   - Current credit balance (large, prominent, sourced from authStore.entitlement.creditBalance)
- *   - Low-balance warning when balance is below CREDIT_LOW_BALANCE_THRESHOLD
- *   - Manual credit grant CTA (ADMIN only — opens a dialog to insert PROMOTIONAL/ADJUSTMENT entries)
- *   - Paginated CreditLedger history table (event type, amount, balance after, date)
- *
- * Architecture compliance:
- *   - No monetary calculations in the component.
- *   - All balance data read from authStore.entitlement (server-assembled) or fetchCreditLedger.
- *   - MANAGE_BILLING capability required — same gate as /billing.
- *   - Only shown when billingModel = PREPAID_CREDITS; other models see a placeholder.
+ *   - Current credit balance (large, prominent)
+ *   - Low-balance / depleted warning
+ *   - Buy Credits dialog — three fixed packages, redirects to Stripe Checkout
+ *   - Paginated CreditLedger history via TableView with columns:
+ *     Event, Amount, Balance After, Transaction ID, Cashier, Date
  */
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
-import {
-  AlertTriangleIcon,
-  ArrowDownIcon,
-  ArrowUpIcon,
-  CalendarIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CircleDollarSignIcon,
-  CoinsIcon,
-  MinusCircleIcon,
-  PlusCircleIcon,
-  RotateCcwIcon,
-} from 'lucide-react'
-import { Role } from 'prisma/generated/prisma/enums'
-import { useState } from 'react'
-import { z } from 'zod'
+import { AlertTriangleIcon, CheckCircle2Icon, CircleDollarSignIcon, CoinsIcon, ExternalLinkIcon, ShoppingCartIcon, XCircleIcon } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { getColumns } from '@/components/custom/data-view'
+import { TableView } from '@/components/custom/data-view/table-view'
+import { GCashPaymentGuide } from '@/components/custom/gcash-payment-guide'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
-import { Skeleton } from '@/components/ui/skeleton'
-import { grantCredits } from '@/lib/queries/grant-credits'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import dayjs from '@/lib/dayjs'
+import { type CreditPackageOption, fetchCreditPackages, purchaseCreditPackage } from '@/lib/queries/purchase-credit-package'
 import { type CreditLedgerEntry, fetchCreditLedger } from '@/lib/server-fn/fetch-credit-ledger'
 import { cn } from '@/lib/utils'
 import { authStore } from '@/store/auth-store'
@@ -54,6 +35,11 @@ import { authStore } from '@/store/auth-store'
 // ---------------------------------------------------------------------------
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing/credits/')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    page: Number(search['page']) || 1,
+    pageSize: Number(search['pageSize']) || 30,
+    purchase: (search['purchase'] as 'success' | 'cancelled') ?? undefined,
+  }),
   component: CreditsPage,
 })
 
@@ -62,210 +48,138 @@ export const Route = createFileRoute('/(private)/(dashboard)/billing/credits/')(
 // ---------------------------------------------------------------------------
 
 const LOW_BALANCE_DEFAULT_THRESHOLD = 10
-const PAGE_SIZE = 30
 
 // ---------------------------------------------------------------------------
 // Event type display config
 // ---------------------------------------------------------------------------
 
-type EventConfig = {
-  label: string
-  icon: React.ReactNode
-  amountClass: string
-  badgeClass: string
-}
+type EventConfig = { label: string; badgeClass: string }
 
-function getEventConfig(eventType: string, amount: number): EventConfig {
+function getEventConfig(eventType: string): EventConfig {
   switch (eventType) {
     case 'CONSUMED':
-      return {
-        label: 'Checkout',
-        icon: <ArrowDownIcon className='h-3.5 w-3.5' />,
-        amountClass: 'text-destructive',
-        badgeClass: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300',
-      }
+      return { label: 'Checkout', badgeClass: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300' }
     case 'REFUNDED':
-      return {
-        label: 'Refund',
-        icon: <RotateCcwIcon className='h-3.5 w-3.5' />,
-        amountClass: 'text-emerald-600 dark:text-emerald-400',
-        badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300',
-      }
+      return { label: 'Refund', badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' }
     case 'PURCHASE':
-      return {
-        label: 'Purchase',
-        icon: <ArrowUpIcon className='h-3.5 w-3.5' />,
-        amountClass: 'text-emerald-600 dark:text-emerald-400',
-        badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300',
-      }
+      return { label: 'Purchase', badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' }
     case 'PROMOTIONAL':
-      return {
-        label: 'Promotional',
-        icon: <CoinsIcon className='h-3.5 w-3.5' />,
-        amountClass: 'text-emerald-600 dark:text-emerald-400',
-        badgeClass: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300',
-      }
+      return { label: 'Promotional', badgeClass: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300' }
     case 'ADJUSTMENT':
-      return {
-        label: 'Adjustment',
-        icon: <MinusCircleIcon className='h-3.5 w-3.5' />,
-        amountClass: amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive',
-        badgeClass: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300',
-      }
+      return { label: 'Adjustment', badgeClass: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300' }
     case 'EXPIRED':
-      return {
-        label: 'Expired',
-        icon: <MinusCircleIcon className='h-3.5 w-3.5' />,
-        amountClass: 'text-muted-foreground',
-        badgeClass: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400',
-      }
+      return { label: 'Expired', badgeClass: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400' }
     default:
-      return {
-        label: eventType,
-        icon: <CoinsIcon className='h-3.5 w-3.5' />,
-        amountClass: '',
-        badgeClass: '',
-      }
+      return { label: eventType, badgeClass: '' }
   }
 }
 
-function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString('en-PH', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+// ---------------------------------------------------------------------------
+// BuyCreditsDialog
+// ---------------------------------------------------------------------------
+
+interface BuyCreditsDialogProps {
+  open: boolean
+  onClose: () => void
 }
 
-// ---------------------------------------------------------------------------
-// Grant Credits Dialog
-// ---------------------------------------------------------------------------
+function BuyCreditsDialog({ open, onClose }: BuyCreditsDialogProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
-const grantSchema = z.object({
-  amount: z.number().int().min(1),
-  eventType: z.enum(['PROMOTIONAL', 'ADJUSTMENT']),
-  note: z.string().max(500).nullable(),
-})
-
-function GrantCreditsDialog({ onSuccess }: { onSuccess: () => void }) {
-  const [open, setOpen] = useState(false)
-  const [amount, setAmount] = useState('')
-  const [eventType, setEventType] = useState<'PROMOTIONAL' | 'ADJUSTMENT'>('PROMOTIONAL')
-  const [note, setNote] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const { data: packages = [], isLoading: isLoadingPackages } = useQuery({
+    queryKey: ['credit-packages'],
+    queryFn: () => fetchCreditPackages(),
+    enabled: open,
+    staleTime: 60_000,
+  })
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      const parsed = grantSchema.safeParse({
-        amount: Number(amount),
-        eventType,
-        note: note.trim() || null,
+    mutationFn: async (packageId: string) => {
+      const result = await purchaseCreditPackage({
+        data: { packageId: packageId as CreditPackageOption['id'] },
       })
-      if (!parsed.success) {
-        throw new Error(parsed.error.issues[0]?.message ?? 'Invalid input')
-      }
-      const result = await grantCredits({ data: parsed.data })
       if (!result.success) throw new Error(result.error)
       return result
     },
-    onSuccess: () => {
-      setOpen(false)
-      setAmount('')
-      setNote('')
-      setError(null)
-      onSuccess()
+    onSuccess: result => {
+      // Redirect to Stripe Checkout
+      window.location.href = result.checkoutUrl
     },
     onError: (err: Error) => {
-      setError(err.message)
+      toast.error(err.message)
     },
   })
 
+  const handleProceed = () => {
+    if (!selectedId) return
+    mutation.mutate(selectedId)
+  }
+
+  const handleClose = () => {
+    if (mutation.isPending) return
+    setSelectedId(null)
+    onClose()
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size='sm' className='gap-1.5'>
-          <PlusCircleIcon className='h-4 w-4' />
-          Add Credits
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={open => !open && handleClose()}>
       <DialogContent className='sm:max-w-md'>
         <DialogHeader>
-          <DialogTitle>Add Credits</DialogTitle>
-          <DialogDescription>
-            Manually grant credits to this account. Use Promotional for complimentary credits or Adjustment for corrections.
-          </DialogDescription>
+          <DialogTitle>Buy Credits</DialogTitle>
+          <DialogDescription>Select a package. You'll be redirected to Stripe to complete payment securely.</DialogDescription>
         </DialogHeader>
-        <div className='space-y-4 py-2'>
-          <div className='space-y-1.5'>
-            <Label htmlFor='grant-amount'>Amount</Label>
-            <Input id='grant-amount' type='number' min={1} placeholder='e.g. 50' value={amount} onChange={e => setAmount(e.target.value)} />
-          </div>
-          <div className='space-y-1.5'>
-            <Label htmlFor='grant-type'>Type</Label>
-            <Select value={eventType} onValueChange={v => setEventType(v as 'PROMOTIONAL' | 'ADJUSTMENT')}>
-              <SelectTrigger id='grant-type'>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='PROMOTIONAL'>Promotional — complimentary grant</SelectItem>
-                <SelectItem value='ADJUSTMENT'>Adjustment — balance correction</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className='space-y-1.5'>
-            <Label htmlFor='grant-note'>
-              Note <span className='text-muted-foreground text-xs font-normal'>(optional)</span>
-            </Label>
-            <Input id='grant-note' placeholder='Reason for grant...' value={note} onChange={e => setNote(e.target.value)} maxLength={500} />
-          </div>
-          {error && <p className='text-sm text-destructive'>{error}</p>}
+
+        {/* GCash payment guide — shown here so users know how to pay before selecting a package */}
+        <GCashPaymentGuide />
+
+        <div className='space-y-2 py-2'>
+          {isLoadingPackages ? (
+            <div className='space-y-2'>
+              {[1, 2, 3].map(i => (
+                <div key={i} className='h-16 rounded-lg bg-muted animate-pulse' />
+              ))}
+            </div>
+          ) : (
+            packages.map(pkg => (
+              <button
+                key={pkg.id}
+                type='button'
+                onClick={() => setSelectedId(pkg.id)}
+                className={cn(
+                  'w-full flex items-center justify-between rounded-lg border px-4 py-3 text-left transition-all',
+                  'hover:border-primary/60 hover:bg-primary/5',
+                  selectedId === pkg.id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card',
+                )}
+              >
+                <div>
+                  <p className='font-semibold text-sm'>{pkg.label}</p>
+                  <p className='text-xs text-muted-foreground mt-0.5'>
+                    {pkg.creditAmount} credit{pkg.creditAmount === 1 ? '' : 's'} added to your balance
+                  </p>
+                </div>
+                <span className='font-bold text-base tabular-nums text-primary'>{pkg.displayPrice}</span>
+              </button>
+            ))
+          )}
         </div>
+
         <DialogFooter>
-          <Button variant='outline' onClick={() => setOpen(false)}>
+          <Button variant='outline' onClick={handleClose} disabled={mutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !amount || Number(amount) < 1}>
-            {mutation.isPending ? 'Adding…' : 'Add Credits'}
+          <Button onClick={handleProceed} disabled={!selectedId || mutation.isPending} className='gap-1.5'>
+            {mutation.isPending ? (
+              'Redirecting…'
+            ) : (
+              <>
+                <ExternalLinkIcon className='h-3.5 w-3.5' />
+                Proceed to payment
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Ledger table row
-// ---------------------------------------------------------------------------
-
-function LedgerRow({ entry }: { entry: CreditLedgerEntry }) {
-  const config = getEventConfig(entry.eventType, entry.amount)
-  const sign = entry.amount >= 0 ? '+' : ''
-
-  return (
-    <div className='flex items-center justify-between gap-4 py-3'>
-      <div className='flex items-center gap-3 min-w-0'>
-        <Badge variant='outline' className={cn('flex items-center gap-1 text-xs shrink-0', config.badgeClass)}>
-          {config.icon}
-          {config.label}
-        </Badge>
-        <div className='min-w-0'>
-          {entry.note && <p className='text-xs text-muted-foreground truncate max-w-[200px]'>{entry.note}</p>}
-          <p className='text-xs text-muted-foreground flex items-center gap-1'>
-            <CalendarIcon className='h-3 w-3 shrink-0' />
-            {formatDate(entry.createdAt)}
-          </p>
-        </div>
-      </div>
-      <div className='text-right shrink-0'>
-        <p className={cn('text-sm font-semibold tabular-nums', config.amountClass)}>
-          {sign}
-          {entry.amount} cr
-        </p>
-        <p className='text-xs text-muted-foreground tabular-nums'>bal: {entry.balanceAfter}</p>
-      </div>
-    </div>
   )
 }
 
@@ -276,33 +190,91 @@ function LedgerRow({ entry }: { entry: CreditLedgerEntry }) {
 function CreditsPage() {
   const user = useStore(authStore, s => s.user)
   const entitlement = user?.entitlement
-  const [page, setPage] = useState(1)
-  const queryClient = useQueryClient()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const { page, pageSize, purchase } = useSearch({ from: '/(private)/(dashboard)/billing/credits/' })
+  const [dialogOpen, setDialogOpen] = useState(false)
 
-  const isAdmin = user?.role === Role.ADMIN || user?.role === Role.SUPERVISOR
   const isPrepaid = entitlement?.creditBalance !== null && entitlement?.creditBalance !== undefined
 
   const { data, isLoading } = useQuery({
-    queryKey: ['credit-ledger', page],
-    queryFn: () => fetchCreditLedger({ page, pageSize: PAGE_SIZE }),
+    queryKey: ['credit-ledger', page, pageSize],
+    queryFn: () => fetchCreditLedger({ data: { page, pageSize } }),
     enabled: isPrepaid,
   })
 
   const currentBalance = data?.currentBalance ?? entitlement?.creditBalance ?? 0
   const entries = data?.entries ?? []
   const totalItems = data?.totalItems ?? 0
-  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE))
 
-  // Low-balance threshold — read from systemConfigs if available, fall back to default
   const rawThreshold = (user?.systemConfigs as Record<string, unknown> | undefined)?.['CREDIT_LOW_BALANCE_THRESHOLD']
   const threshold = typeof rawThreshold === 'number' ? rawThreshold : typeof rawThreshold === 'string' ? Number(rawThreshold) : LOW_BALANCE_DEFAULT_THRESHOLD
 
   const isLow = currentBalance <= threshold
   const isEmpty = currentBalance === 0
 
-  const handleGrantSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['credit-ledger'] })
+  // Clear the ?purchase param from the URL without pushing a new history entry
+  const clearPurchaseParam = () => {
+    void navigate({ search: prev => ({ ...prev, purchase: undefined }), replace: true })
   }
+
+  const columns = useMemo(
+    () =>
+      getColumns<CreditLedgerEntry>(h => [
+        h.accessor('eventType', {
+          header: 'Event',
+          cell: info => {
+            const config = getEventConfig(info.getValue())
+            return (
+              <Badge variant='outline' className={cn('text-xs', config.badgeClass)}>
+                {config.label}
+              </Badge>
+            )
+          },
+        }),
+        h.accessor('amount', {
+          header: 'Amount',
+          maxSize: 100,
+          cell: info => {
+            const v = info.getValue()
+            const sign = v >= 0 ? '+' : ''
+            return (
+              <span className={cn('font-mono font-semibold text-sm tabular-nums', v >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
+                {sign}
+                {v} cr
+              </span>
+            )
+          },
+        }),
+        h.accessor('balanceAfter', {
+          header: 'Balance after',
+          maxSize: 120,
+          cell: info => <span className='font-mono text-sm tabular-nums text-muted-foreground'>{info.getValue()} cr</span>,
+        }),
+        h.accessor('transactionId', {
+          header: 'Transaction',
+          cell: info => {
+            const id = info.getValue()
+            return id ? (
+              <span className='font-mono text-xs text-primary truncate max-w-30 block' title={id}>
+                {id.slice(0, 8)}…
+              </span>
+            ) : (
+              <span className='text-muted-foreground text-xs'>—</span>
+            )
+          },
+        }),
+        h.display({
+          id: 'cashier',
+          header: 'Cashier',
+          cell: ({ row }) => <span className='text-sm'>{row.original.actorName ?? '—'}</span>,
+        }),
+        h.accessor('createdAt', {
+          header: 'Date',
+          cell: info => <span className='text-xs text-muted-foreground'>{dayjs(info.getValue()).format('MMM DD, YYYY HH:mm')}</span>,
+        }),
+      ]),
+    [],
+  )
 
   // If not a prepaid plan, show a plain placeholder
   if (!isPrepaid) {
@@ -324,14 +296,53 @@ function CreditsPage() {
   }
 
   return (
-    <div className='flex flex-col gap-6 px-4 py-6 max-w-4xl'>
+    <div className='flex flex-col gap-6 px-4 py-6 max-w-4xl h-full'>
+      {/* Purchase result banners — shown after Stripe redirects back */}
+      {purchase === 'success' && (
+        <div
+          className={cn(
+            'flex items-start gap-3 rounded-lg border px-4 py-3 text-sm',
+            'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300',
+          )}
+        >
+          <CheckCircle2Icon className='h-4 w-4 mt-0.5 shrink-0' />
+          <div className='flex-1'>
+            <p className='font-medium'>Payment received</p>
+            <p className='text-xs mt-0.5 opacity-80'>Your credits will appear in the balance shortly once the payment is confirmed.</p>
+          </div>
+          <button type='button' onClick={clearPurchaseParam} className='opacity-60 hover:opacity-100 transition-opacity'>
+            <XCircleIcon className='h-4 w-4' />
+          </button>
+        </div>
+      )}
+      {purchase === 'cancelled' && (
+        <div
+          className={cn(
+            'flex items-start gap-3 rounded-lg border px-4 py-3 text-sm',
+            'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300',
+          )}
+        >
+          <XCircleIcon className='h-4 w-4 mt-0.5 shrink-0' />
+          <div className='flex-1'>
+            <p className='font-medium'>Payment cancelled</p>
+            <p className='text-xs mt-0.5 opacity-80'>No charge was made. You can try again whenever you're ready.</p>
+          </div>
+          <button type='button' onClick={clearPurchaseParam} className='opacity-60 hover:opacity-100 transition-opacity'>
+            <XCircleIcon className='h-4 w-4' />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className='flex items-start justify-between gap-4'>
         <div>
           <h1 className='text-3xl font-bold tracking-tight'>Credits</h1>
           <p className='text-muted-foreground text-sm mt-1'>Prepaid credit balance and transaction history.</p>
         </div>
-        {isAdmin && <GrantCreditsDialog onSuccess={handleGrantSuccess} />}
+        <Button size='sm' className='gap-1.5 shrink-0' onClick={() => setDialogOpen(true)}>
+          <ShoppingCartIcon className='h-4 w-4' />
+          Buy Credits
+        </Button>
       </div>
 
       {/* Balance card */}
@@ -367,8 +378,7 @@ function CreditsPage() {
             </span>
             <span className='text-lg text-muted-foreground mb-1'>credit{currentBalance === 1 ? '' : 's'}</span>
           </div>
-
-          {isEmpty && <p className='text-sm text-destructive'>Balance depleted — add credits to continue processing transactions.</p>}
+          {isEmpty && <p className='text-sm text-destructive'>Balance depleted — buy credits to continue processing transactions.</p>}
           {isLow && !isEmpty && (
             <p className='text-sm text-amber-600 dark:text-amber-400'>
               Balance is below the low-balance threshold of {threshold} credits. Top up soon to avoid checkout interruptions.
@@ -379,8 +389,8 @@ function CreditsPage() {
       </Card>
 
       {/* Ledger history */}
-      <Card>
-        <CardHeader className='pb-3'>
+      <Card className='flex flex-col flex-1 min-h-0'>
+        <CardHeader className='pb-3 shrink-0'>
           <div className='flex items-center justify-between'>
             <div>
               <CardTitle className='text-lg'>Credit History</CardTitle>
@@ -391,55 +401,35 @@ function CreditsPage() {
             </span>
           </div>
         </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className='space-y-3'>
-              {Array.from({ length: 5 }).map(index => (
-                <Skeleton key={index} className='h-12 w-full rounded-md' />
-              ))}
-            </div>
-          ) : entries.length === 0 ? (
+        <CardContent className='flex flex-col flex-1 min-h-0 pb-4'>
+          {entries.length === 0 && !isLoading ? (
             <div className='py-10 text-center'>
               <CoinsIcon className='h-8 w-8 mx-auto text-muted-foreground/30 mb-2' />
               <p className='text-sm text-muted-foreground'>No credit events yet.</p>
-              {isAdmin && <p className='text-xs text-muted-foreground mt-1'>Use "Add Credits" above to grant the first credits.</p>}
             </div>
           ) : (
-            <div className='divide-y divide-border'>
-              {entries.map(entry => (
-                <LedgerRow key={entry.id} entry={entry} />
-              ))}
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <>
-              <Separator className='mt-4' />
-              <div className='flex items-center justify-between pt-3'>
-                <p className='text-xs text-muted-foreground'>
-                  Page {page} of {totalPages}
-                </p>
-                <div className='flex items-center gap-1'>
-                  <Button variant='ghost' size='icon' className='h-7 w-7' disabled={page <= 1} onClick={() => setPage(p => p - 1)} aria-label='Previous page'>
-                    <ChevronLeftIcon className='h-4 w-4' />
-                  </Button>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='h-7 w-7'
-                    disabled={page >= totalPages}
-                    onClick={() => setPage(p => p + 1)}
-                    aria-label='Next page'
-                  >
-                    <ChevronRightIcon className='h-4 w-4' />
-                  </Button>
-                </div>
-              </div>
-            </>
+            <TableView
+              data={entries}
+              isFetching={isLoading}
+              columns={columns}
+              emptyMessage='No credit events found.'
+              paginable={{
+                pageIndex: page - 1,
+                pageSize,
+                totalItems,
+                onPaginationChange: next => {
+                  void navigate({
+                    search: prev => ({ ...prev, page: next.pageIndex + 1, pageSize: next.pageSize }),
+                    replace: true,
+                  })
+                },
+              }}
+            />
           )}
         </CardContent>
       </Card>
+
+      <BuyCreditsDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </div>
   )
 }

@@ -74,6 +74,23 @@ enum ConfigKey {
   ADDON_API_PRICE // Default: "49900" — ₱499/mo for API Access add-on
   ADDON_BRANCH_PRICE // Default: "19900" — ₱199/mo per extra branch
   ADDON_EMPLOYEE_PRICE // Default: "4900" — ₱49/mo per extra employee (Basic only)
+  ADDON_TX_500_PRICE_ID // Stripe Price ID for +500 TX top-up package
+  ADDON_TX_1000_PRICE_ID // Stripe Price ID for +1,000 TX top-up package
+  ADDON_TX_5000_PRICE_ID // Stripe Price ID for +5,000 TX top-up package
+  ADDON_TX_500_PRICE // Default: "9900" — ₱99 for +500 TX top-up
+  ADDON_TX_1000_PRICE // Default: "17900" — ₱179 for +1,000 TX top-up
+  ADDON_TX_5000_PRICE // Default: "79900" — ₱799 for +5,000 TX top-up
+  // --- Monthly recurring addon Stripe Price IDs ---
+  ADDON_ANALYTICS_PRICE_ID // Stripe Price ID for Analytics Dashboard monthly addon
+  ADDON_API_PRICE_ID // Stripe Price ID for API Access monthly addon
+  ADDON_BRANCH_PRICE_ID // Stripe Price ID for Extra Branch monthly addon (per seat)
+  ADDON_EMPLOYEE_PRICE_ID // Stripe Price ID for Extra Employee monthly addon (per seat)
+  ADDON_TX_RECURRING_500_PRICE_ID // Stripe Price ID for +500 TX recurring monthly addon
+  ADDON_TX_RECURRING_1000_PRICE_ID // Stripe Price ID for +1,000 TX recurring monthly addon
+  ADDON_TX_RECURRING_5000_PRICE_ID // Stripe Price ID for +5,000 TX recurring monthly addon
+  ADDON_TX_RECURRING_500_PRICE // Default: "9900" — ₱99/mo for +500 TX recurring addon
+  ADDON_TX_RECURRING_1000_PRICE // Default: "17900" — ₱179/mo for +1,000 TX recurring addon
+  ADDON_TX_RECURRING_5000_PRICE // Default: "79900" — ₱799/mo for +5,000 TX recurring addon
 }
 
 enum ComplianceKey {
@@ -168,12 +185,13 @@ model Business {
   goodsReceiptItems    GoodsReceiptItem[]
   subscription         BusinessSubscription? // F1: Active subscription record (nullable = no plan assigned yet)
 
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  deletedAt       DateTime?
-  usageCounters   UsageCounter[]
-  billingInvoices BillingInvoice[]
-  creditLedger    CreditLedger[]
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  deletedAt          DateTime?
+  usageCounters      UsageCounter[]
+  billingInvoices    BillingInvoice[]
+  creditLedger       CreditLedger[]
+  subscriptionAddons BusinessSubscriptionAddon[]
 
   // ---------------------------------------------------------------------------
   // BOS (Business Operating System) — Phase 1 onboarding fields
@@ -2238,4 +2256,63 @@ model CharacteristicsRecalculationQueue {
 
   @@index([processedAt, priority])
   @@map("characteristics_recalculation_queue")
+}
+
+// ---------------------------------------------------------------------------
+// AddonType — Phase TX-Addon
+// Identifies the type of a BusinessSubscriptionAddon record.
+// TX_TOPUP = a one-time purchase of extra transactions for the current period.
+// ---------------------------------------------------------------------------
+enum AddonType {
+  TX_TOPUP // One-time extra transaction quota for the current billing period (legacy)
+  TX_RECURRING // Monthly recurring TX top-up subscription
+  ANALYTICS // Analytics Dashboard — monthly recurring capability addon
+  API_ACCESS // API Access — monthly recurring capability addon
+  BRANCH // Extra Branch — monthly recurring, quantity = number of extra branches
+  EMPLOYEE // Extra Employee seat — monthly recurring, quantity = number of extra seats
+}
+
+// ---------------------------------------------------------------------------
+// BusinessSubscriptionAddon — Phase TX-Addon
+// Records a purchased add-on that augments the base plan for a business.
+// Currently only TX_TOPUP is supported — other addon types will be added here.
+//
+// A TX_TOPUP addon grants `quantity` additional transactions on top of the
+// plan's includedTxPerMonth for the billing period it was purchased in.
+// Multiple addons may exist per business (one per top-up purchase).
+//
+// expiresAt = billingPeriodEnd of the period it was purchased for, set by
+// the webhook handler. Expired addons are excluded from the txRemaining
+// calculation in auth-server.ts and entitlement-middleware.ts.
+// ---------------------------------------------------------------------------
+model BusinessSubscriptionAddon {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  addonType AddonType
+
+  // TX_TOPUP: number of extra transactions granted by this addon
+  quantity Int
+
+  // Stripe session that triggered this addon grant (idempotency key for one-time payments)
+  externalSessionId String? @unique
+
+  // Stripe subscription ID for recurring addons (TX_RECURRING, ANALYTICS, API_ACCESS, BRANCH, EMPLOYEE)
+  // Null for one-time TX_TOPUP addons.
+  externalSubscriptionId String? @unique
+
+  // When this addon expires (set to currentPeriodEnd of the billing period
+  // it was purchased for). Null = never expires (perpetual top-up).
+  expiresAt DateTime?
+
+  // The user who triggered the purchase (from Stripe session metadata)
+  actorId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, addonType])
+  @@index([businessId, expiresAt])
+  @@map("business_subscription_addons")
 }

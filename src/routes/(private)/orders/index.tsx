@@ -182,7 +182,29 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
               title: 'Refund Order',
               description: 'Are you sure you want to refund this order?',
               onConfirm: async () => {
-                const result = await createPosRefund(order.transaction.id!)
+                const tx = order.transaction
+                if (!tx) {
+                  toast.error('No transaction found for this order.')
+                  return false
+                }
+
+                const result = await createPosRefund({
+                  id: tx.id,
+                  invoiceNo: tx.invoiceNo,
+                  totalAmount: tx.totalAmount,
+                  totalCost: tx.totalCost,
+                  taxAmount: tx.taxAmount,
+                  discount: tx.discount,
+                  bufferRate: ((tx as Record<string, unknown>)['bufferRate'] as number) ?? 0,
+                  priceConfiguration: ((tx as Record<string, unknown>)['priceConfiguration'] as string) ?? 'INCLUSIVE',
+                  invoiceType: ((tx as Record<string, unknown>)['invoiceType'] as string) ?? 'SALES_INVOICE',
+                  cashierId: tx.cashierId,
+                  orderId: tx.orderId,
+                  buyerName: tx.buyerName ?? null,
+                  complianceData: tx.complianceData as import('@/lib/types').TransactionComplianceData,
+                  payments: [], // orders page doesn't have payment detail — omit
+                  taxLines: [], // orders page doesn't have tax line detail — omit
+                })
 
                 if (result.error) {
                   toast.error('Failed to process refund. Please try again.')

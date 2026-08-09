@@ -278,16 +278,17 @@ const FEATURES: Array<{
 // the plan defines WHAT you get, the billing model defines HOW you pay.
 //
 // Tier capability matrix:
-//   Basic      — checkout, products, customers, orders, all reports, settings,
-//                billing, 1 employee (usageLimit: 1), 1 branch (usageLimit: 1)
-//   Premium    — Basic + inventory, vendor session, suppliers, export data,
-//                unlimited employees (usageLimit: null), up to 3 branches
-//   Enterprise — Premium + purchases, tasks, up to 5 branches
+//   Basic      — checkout, orders, refunds, receipts, products, customers, all
+//                reports, purchase orders, tasks, settings, billing,
+//                1 employee (usageLimit: 1), 1 branch (usageLimit: 1)
+//   Premium    — Basic + inventory management, vendor sessions, suppliers,
+//                data export, unlimited employees, up to 3 branches
+//   Enterprise — Premium + up to 5 branches, 10,000 TX/month
 //                NOTE: Analytics & API are add-ons on all tiers, not bundled.
 //
 // Trial uses Enterprise features with tight limits to let new registrants
 // explore everything without being able to abuse it:
-//   - 100 TX/month (lower than Basic's 500)
+//   - 1,000 TX/month (same as Basic — enough to experience the product)
 //   - 1 employee (same as Basic — minimum meaningful cap)
 //   - 1 branch (same as Basic)
 //   - No analytics or API (add-ons must be purchased separately)
@@ -306,6 +307,12 @@ type PlanDefinition = {
 }
 
 // Shared Basic capabilities — reused by Basic and as the foundation for Premium/Enterprise
+//
+// Design rationale (2026 tier structure):
+//   Basic covers solo operators: checkout, orders, products, customers, history.
+//   Purchase orders, restocking tasks, and supplier management require a more
+//   structured operation (dedicated purchasing role, supplier relationships) —
+//   these belong in Enterprise where multi-location teams operate at that scale.
 const BASIC_ENTITLEMENTS: Array<{ key: CapabilityKey; usageLimit: number | null }> = [
   { key: Capabilities.COMPLETE_CHECKOUT, usageLimit: null },
   { key: Capabilities.RECORD_PAYMENT, usageLimit: null },
@@ -315,8 +322,6 @@ const BASIC_ENTITLEMENTS: Array<{ key: CapabilityKey; usageLimit: number | null 
   { key: Capabilities.EDIT_ACTIVE_ORDER, usageLimit: null },
   { key: Capabilities.MANAGE_PRODUCTS, usageLimit: null },
   { key: Capabilities.MANAGE_CUSTOMERS, usageLimit: null },
-  { key: Capabilities.VIEW_SALES_REPORTS, usageLimit: null },
-  { key: Capabilities.VIEW_INVENTORY_REPORTS, usageLimit: null },
   { key: Capabilities.VIEW_TRANSACTION_HISTORY, usageLimit: null },
   { key: Capabilities.VIEW_ORDER_HISTORY, usageLimit: null },
   { key: Capabilities.MANAGE_SETTINGS, usageLimit: null },
@@ -328,11 +333,13 @@ const BASIC_ENTITLEMENTS: Array<{ key: CapabilityKey; usageLimit: number | null 
   { key: Capabilities.MANAGE_BRANCHES, usageLimit: 1 },
 ]
 
-// Premium adds on top of Basic
+// Premium adds inventory management, unlimited staff, vendor sessions,
+// data export, sales & inventory reports, and up to 3 branches on top of Basic.
 const PREMIUM_ADDITIONS: Array<{ key: CapabilityKey; usageLimit: number | null }> = [
   { key: Capabilities.MANAGE_INVENTORY, usageLimit: null },
   { key: Capabilities.START_VENDOR_SESSION, usageLimit: null },
-  { key: Capabilities.MANAGE_SUPPLIERS, usageLimit: null },
+  { key: Capabilities.VIEW_SALES_REPORTS, usageLimit: null },
+  { key: Capabilities.VIEW_INVENTORY_REPORTS, usageLimit: null },
   { key: Capabilities.EXPORT_DATA, usageLimit: null },
 ]
 
@@ -344,12 +351,14 @@ const PREMIUM_ENTITLEMENTS: Array<{ key: CapabilityKey; usageLimit: number | nul
   ...PREMIUM_ADDITIONS,
 ]
 
-// Enterprise adds on top of Premium.
+// Enterprise adds supplier management, purchase orders, restocking tasks,
+// and up to 5 branches on top of Premium.
 // Analytics (VIEW_ANALYTICS) and API (ACCESS_API) are NOT included here —
-// they are add-ons purchasable on any tier, not bundled with Enterprise.
+// they are add-ons purchasable on any tier.
 const ENTERPRISE_ENTITLEMENTS: Array<{ key: CapabilityKey; usageLimit: number | null }> = [
   ...PREMIUM_ENTITLEMENTS.filter(e => e.key !== Capabilities.MANAGE_BRANCHES),
   { key: Capabilities.MANAGE_BRANCHES, usageLimit: 5 }, // up to 5 branches
+  { key: Capabilities.MANAGE_SUPPLIERS, usageLimit: null },
   { key: Capabilities.CREATE_PURCHASE, usageLimit: null },
   { key: Capabilities.CREATE_TASK, usageLimit: null },
 ]
@@ -365,66 +374,102 @@ const TRIAL_ENTITLEMENTS: Array<{ key: CapabilityKey; usageLimit: number | null 
   { key: Capabilities.MANAGE_BRANCHES, usageLimit: 1 }, // capped at 1 — same as Basic
 ]
 
+// Perpetual License — full Enterprise feature set plus Analytics and API,
+// unlimited employees and branches. The license holder owns the software
+// and deploys it themselves — no SaaS cloud sync or support SLA.
+const LICENSE_ENTITLEMENTS: Array<{ key: CapabilityKey; usageLimit: number | null }> = [
+  ...ENTERPRISE_ENTITLEMENTS,
+  { key: Capabilities.VIEW_ANALYTICS, usageLimit: null }, // included — license owns everything
+  { key: Capabilities.ACCESS_API, usageLimit: null }, // included — license owns everything
+  { key: Capabilities.MANAGE_BRANCHES, usageLimit: null }, // unlimited branches
+  { key: Capabilities.MANAGE_EMPLOYEES, usageLimit: null }, // unlimited employees
+]
+
 const PLANS: PlanDefinition[] = [
   // --------------------------------------------------------------------------
-  // Trial — Enterprise features with strict limits to prevent abuse.
-  // New registrants get this plan on signup, no card required.
-  // Expires after 30 days → prompts upgrade to a paid plan.
-  //   - 100 TX/month (below Basic's 500 — hard cap)
-  //   - 1 employee, 1 branch (same as Basic)
-  //   - No analytics or API add-ons
+  // Trial — Full feature access with hard limits to prevent abuse.
+  // Auto-assigned on signup. No card required. Expires after 30 days.
+  //   - 1,000 TX/month, 1 employee, 1 branch
+  //   - All operational features unlocked so registrants see full value
+  //   - No Analytics or API add-ons (must purchase after upgrading)
   // --------------------------------------------------------------------------
   {
     name: 'Trial',
-    description: 'Try every Enterprise feature free for 30 days. Limited to 100 transactions, 1 employee, and 1 branch.',
+    description:
+      'Full access for 30 days — no credit card required. Includes checkout, orders, purchase orders, tasks, and all reports. Limited to 1,000 transactions, 1 employee, and 1 branch. Upgrade any time to keep your data and remove the limits.',
     sortOrder: 0,
     monthlyPrice: 0,
-    includedTxPerMonth: 100,
+    includedTxPerMonth: 1000,
     overagePerTx: 0,
     entitlements: TRIAL_ENTITLEMENTS,
   },
 
   // --------------------------------------------------------------------------
-  // Basic — entry-level paid tier.
-  // Checkout + products + reports + 1 employee. All billing models supported.
+  // Basic — Solo operators and single-location small businesses.
+  // Checkout, orders, products, customers, history. 1 employee, 1 branch.
   // --------------------------------------------------------------------------
   {
     name: 'Basic',
-    description: 'Essential POS for solo operators. Checkout, products, reports, and 1 employee account.',
+    description:
+      'Everything a solo operator needs to run a single location. POS checkout, orders, refunds, receipts, product catalogue, customers, and full transaction and order history. 1,000 transactions/month. Capped at 1 employee account and 1 branch — upgrade to Premium to add staff, locations, and reporting.',
     sortOrder: 1,
     monthlyPrice: 29900, // ₱299/mo
-    includedTxPerMonth: 500,
+    includedTxPerMonth: 1000,
     overagePerTx: 0,
     entitlements: BASIC_ENTITLEMENTS,
   },
 
   // --------------------------------------------------------------------------
-  // Premium — growth tier.
-  // Adds inventory, unlimited employees, vendor sessions, suppliers, export.
+  // Premium — Growing teams that need multi-staff, reporting, and inventory.
+  // Adds full inventory management, vendor/cash sessions, reports,
+  // CSV export, unlimited employees, and up to 3 branches.
   // --------------------------------------------------------------------------
   {
     name: 'Premium',
-    description: 'For growing businesses. Adds inventory management, unlimited employees, and data export.',
+    description:
+      'Built for growing businesses with a team. Everything in Basic plus full inventory management (adjustments, transfers, reconciliation), vendor cash sessions, sales and inventory reports, CSV data export, unlimited employee accounts, and up to 3 branches. 5,000 transactions/month included.',
     sortOrder: 2,
     monthlyPrice: 79900, // ₱799/mo
-    includedTxPerMonth: 2000,
+    includedTxPerMonth: 5000,
     overagePerTx: 0,
     entitlements: PREMIUM_ENTITLEMENTS,
   },
 
   // --------------------------------------------------------------------------
-  // Enterprise — full-feature tier.
-  // Adds purchases, tasks, and up to 5 branches on top of Premium.
+  // Enterprise — Multi-branch operations that need the full platform.
+  // Everything in Premium plus up to 5 branches and 10,000 TX/month.
   // Analytics and API access are available as add-ons on any tier.
   // --------------------------------------------------------------------------
   {
     name: 'Enterprise',
-    description: 'Full-featured for large operations. Purchase orders, tasks, and up to 5 branches. Analytics & API available as add-ons.',
+    description:
+      'For multi-location operations running at scale. Everything in Premium plus supplier records, purchase orders, restocking tasks, and up to 5 branches. 10,000 transactions/month. Analytics dashboards and developer API access are available as add-ons on any tier.',
     sortOrder: 3,
     monthlyPrice: 199900, // ₱1,999/mo
-    includedTxPerMonth: -1, // Unlimited
+    includedTxPerMonth: 10000,
     overagePerTx: 0,
     entitlements: ENTERPRISE_ENTITLEMENTS,
+  },
+
+  // --------------------------------------------------------------------------
+  // Perpetual License — self-hosted / on-premise deployment.
+  // One-time purchase, no monthly subscription. The business owns the software
+  // and deploys it on their own infrastructure.
+  //
+  // Pricing: contact sales (monthlyPrice = 0 here — actual payment is handled
+  // outside Stripe, e.g. a one-time invoice payment).
+  // The plans page renders a "Contact us" CTA instead of a checkout button
+  // when monthlyPrice = 0 and the plan name is "Perpetual License".
+  // --------------------------------------------------------------------------
+  {
+    name: 'Perpetual License',
+    description:
+      'Own the software outright with a one-time purchase. Deploy on your own server or private cloud — full Enterprise features, unlimited transactions, unlimited employees, and unlimited branches. No monthly fees, no cloud dependency. You manage updates and hosting. Contact us to get a quote.',
+    sortOrder: 4,
+    monthlyPrice: 0,
+    includedTxPerMonth: -1, // Unlimited — they own the software
+    overagePerTx: 0,
+    entitlements: LICENSE_ENTITLEMENTS,
   },
 ]
 
@@ -490,6 +535,37 @@ const BILLING_CONFIG_DEFAULTS: BillingConfigDefault[] = [
     key: 'ADDON_EMPLOYEE_PRICE',
     value: '4900',
     description: 'Monthly price in PHP cents per extra employee add-on — Basic tier only (₱49/employee/mo).',
+  },
+  {
+    key: 'ADDON_TX_500_PRICE',
+    value: '9900',
+    description: 'Price in PHP cents for +500 TX top-up add-on (₱99).',
+  },
+  {
+    key: 'ADDON_TX_1000_PRICE',
+    value: '17900',
+    description: 'Price in PHP cents for +1,000 TX top-up add-on (₱179).',
+  },
+  {
+    key: 'ADDON_TX_5000_PRICE',
+    value: '79900',
+    description: 'Price in PHP cents for +5,000 TX top-up add-on (₱799).',
+  },
+  // --- Monthly recurring addon display prices ---
+  {
+    key: 'ADDON_TX_RECURRING_500_PRICE',
+    value: '9900',
+    description: 'Monthly price in PHP cents for +500 TX recurring addon (₱99/mo).',
+  },
+  {
+    key: 'ADDON_TX_RECURRING_1000_PRICE',
+    value: '17900',
+    description: 'Monthly price in PHP cents for +1,000 TX recurring addon (₱179/mo).',
+  },
+  {
+    key: 'ADDON_TX_RECURRING_5000_PRICE',
+    value: '79900',
+    description: 'Monthly price in PHP cents for +5,000 TX recurring addon (₱799/mo).',
   },
 ]
 

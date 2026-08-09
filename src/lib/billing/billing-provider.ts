@@ -124,6 +124,27 @@ export interface BillingProviderAdapter {
   }): Promise<CreateSubscriptionResult>
 
   /**
+   * Update an existing subscription to a new price (e.g. Monthly → Annual same plan,
+   * or plan upgrade/downgrade within the same billing model).
+   * Uses Stripe's subscription update API with proration_behavior: 'always_invoice'
+   * so the change is charged/credited immediately.
+   *
+   * Returns a checkoutUrl when the provider requires a new payment method
+   * (e.g. switching from a free plan to a paid one). Returns null when the
+   * update is applied inline (card already on file).
+   */
+  updateSubscription(params: {
+    externalSubscriptionId: string
+    /** New provider price/product ID */
+    externalPriceId: string
+    /** Metadata to merge onto the subscription */
+    metadata: Record<string, string>
+    /** URL to redirect to after payment if a new checkout is required */
+    successUrl: string
+    cancelUrl: string
+  }): Promise<{ checkoutUrl: string | null; currentPeriodStart: Date; currentPeriodEnd: Date }>
+
+  /**
    * Cancel an existing subscription.
    * @param cancelImmediately - true = cancel now; false = cancel at period end
    */
@@ -145,6 +166,26 @@ export interface BillingProviderAdapter {
     /** URL to redirect to on cancellation */
     cancelUrl: string
     /** Metadata attached to the session for webhook reconciliation */
+    metadata: Record<string, string>
+  }): Promise<CreatePaymentLinkResult>
+
+  /**
+   * Create a monthly recurring addon subscription (Analytics, API, Branch, Employee, TX top-up).
+   * Uses Stripe Checkout Session mode: subscription with a fixed price.
+   * quantity > 1 is used for per-unit addons (Branch, Employee, TX recurring).
+   * The webhook handler grants/revokes capabilities on subscription lifecycle events.
+   */
+  createAddonSubscription(params: {
+    externalCustomerId: string
+    /** Provider price/product ID for the addon */
+    externalPriceId: string
+    /** Quantity of units (1 for feature addons, N for per-unit addons) */
+    quantity: number
+    /** URL to redirect to after successful checkout */
+    successUrl: string
+    /** URL to redirect to on cancellation */
+    cancelUrl: string
+    /** Metadata for webhook reconciliation */
     metadata: Record<string, string>
   }): Promise<CreatePaymentLinkResult>
 

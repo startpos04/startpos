@@ -1,4 +1,4 @@
-import { MovementType, SequenceType, TransactionType } from 'prisma/generated/prisma/enums'
+import { MovementType, SequenceType, type TaxCategory, type TaxLineType, TransactionType } from 'prisma/generated/prisma/enums'
 import {
   creditLedgerCollection,
   inventoryCollection,
@@ -9,105 +9,169 @@ import {
 } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { writeAudit } from '@/lib/queries/write-audit'
+import type { TransactionComplianceData } from '@/lib/types'
 import { authStore } from '@/store/auth-store'
 import { CreditEngine } from '../billing/credit-engine'
 import { BillingModel } from '../billing/types'
 import { fetchStructuredId } from './fetch-structured-id'
 
-export const createPosRefund = async (originalTransactionId: string) => {
+// ---------------------------------------------------------------------------
+// TransactionSnapshot
+//
+// Plain-object snapshot of the original transaction, passed in from the UI.
+//
+// Root cause of the original "transaction not found" error:
+//   transactionCollection is syncMode: 'on-demand'. The transaction detail
+//   sidebar is fed via crudAPI (server fetch) — those rows never land in the
+//   local collection. Passing the snapshot in from the caller avoids the
+//   failed .get() lookup entirely.
+//
+// Only INSERT operations now use the local collection.
+// ---------------------------------------------------------------------------
+
+export type TransactionSnapshot = {
+  id: string
+  invoiceNo: string
+  totalAmount: number
+  totalCost: number
+  taxAmount: number
+  discount: number | null
+  bufferRate: number
+  priceConfiguration: string
+  invoiceType: string
+  // cashierId is required (NOT NULL) on the Transaction table
+  cashierId: string
+  orderId: string | null
+  buyerName: string | null
+  complianceData: TransactionComplianceData
+  payments: Array<{
+    id: string
+    method: string
+    amount: number
+    platform: string | null
+  }>
+  taxLines: Array<{
+    id: string
+    type: TaxLineType
+    category: TaxCategory
+    rate: number
+    taxableAmount: number
+    taxAmount: number
+  }>
+}
+
+export const createPosRefund = async (snapshot: TransactionSnapshot) => {
   const { user } = authStore.state
 
+  // Check MANAGE_INVENTORY capability — gates the inventory restock step.
+  // The refund itself always completes; only the stock adjustment is skipped
+  // when the user is on a plan that does not include inventory management.
+  const canManageInventory = user?.entitlement?.capabilities?.includes(Capabilities.MANAGE_INVENTORY) ?? false
+
   const result = await dbTransaction(() => {
-    // 1. Fetch Original Data
-    const originalTx = transactionCollection.get(originalTransactionId)
-    if (!originalTx) throw new Error('Original transaction not found')
-
-    // Find all movements associated with this sale to know which batches to restock
-    const originalMovements = [...inventoryMovementCollection.values()].filter(m => m.transactionId === originalTransactionId)
-    const originalTransactionTaxLine = [...transactionTaxLineCollection.values()].filter(m => m.transactionId === originalTransactionId)
-
-    // 2. Generate Refund IDs
+    // 1. Generate Refund IDs
     const transactionId = crypto.randomUUID()
     const refundInvoiceNo = fetchStructuredId(SequenceType.REFUND)
 
-    // 3. Create Refund Transaction (Inverse of Sale)
+    // 2. Create Refund Transaction — built from the snapshot, not the collection
     transactionCollection.insert({
-      ...originalTx,
       id: transactionId,
       invoiceNo: refundInvoiceNo,
       type: TransactionType.REFUND,
-      originalTransactionId: originalTx.id,
+      originalTransactionId: snapshot.id,
+      priceConfiguration: snapshot.priceConfiguration as import('prisma/generated/prisma/browser').PriceConfiguration,
+      invoiceType: snapshot.invoiceType as import('prisma/generated/prisma/browser').InvoiceType,
+      bufferRate: snapshot.bufferRate,
 
-      totalAmount: -originalTx.totalAmount,
-      totalCost: -originalTx.totalCost,
-      taxAmount: -originalTx.taxAmount,
-      discount: originalTx.discount ? -originalTx.discount : 0,
+      // Invert financial amounts
+      totalAmount: -snapshot.totalAmount,
+      totalCost: -snapshot.totalCost,
+      taxAmount: -snapshot.taxAmount,
+      discount: snapshot.discount ? -snapshot.discount : 0,
+
+      // Carry over identity fields — orderId is required (NOT NULL) on Transaction
+      cashierId: snapshot.cashierId,
+      orderId: snapshot.orderId ?? snapshot.id, // fall back to transaction id if orderId missing
+      buyerName: snapshot.buyerName,
 
       complianceData: {
-        ...originalTx.complianceData,
-        vatExemptSales: originalTx.complianceData.vatExemptSales ? -originalTx.complianceData.vatExemptSales : 0,
-        zeroRatedSales: originalTx.complianceData.zeroRatedSales ? -originalTx.complianceData.zeroRatedSales : 0,
-        scPwdDiscount: originalTx.complianceData.scPwdDiscount ? -originalTx.complianceData.scPwdDiscount : 0,
+        ...snapshot.complianceData,
+        vatExemptSales: snapshot.complianceData.vatExemptSales ? -snapshot.complianceData.vatExemptSales : 0,
+        zeroRatedSales: snapshot.complianceData.zeroRatedSales ? -snapshot.complianceData.zeroRatedSales : 0,
+        scPwdDiscount: snapshot.complianceData.scPwdDiscount ? -snapshot.complianceData.scPwdDiscount : 0,
       },
 
+      // Optional / nullable fields — null for refund transactions
+      customerId: null,
+      buyerTaxId: null,
+      buyerAddress: null,
+      providerId: null,
+      sessionId: null,
+      usageCounterId: null,
+      startTime: null,
+      endTime: null,
+      notes: null,
+
+      businessId: user.business.id,
+      branchId: user.branch.id,
       createdAt: new Date(),
       updatedAt: new Date(),
     })
 
-    // 4. Revert Inventory (Restock the exact batches)
-    for (const movement of originalMovements) {
-      // Increment the specific inventory batch
-      inventoryCollection.update(movement.inventoryId, draft => {
-        draft.quantity += movement.quantity
-      })
+    // 3. Revert Inventory — only when user has MANAGE_INVENTORY capability.
+    //    The inventory movement records from the original sale are in the local
+    //    collection because they were inserted there during checkout.
+    if (canManageInventory) {
+      const originalMovements = [...inventoryMovementCollection.values()].filter(m => m.transactionId === snapshot.id)
 
-      // Record the "IN" movement for the refund
-      inventoryMovementCollection.insert({
-        id: crypto.randomUUID(),
-        variantId: movement.variantId,
-        inventoryId: movement.inventoryId,
-        transactionId,
-        userId: user?.id,
-        type: MovementType.IN,
-        quantity: movement.quantity,
-        reason: `Refund: ${refundInvoiceNo} (Ref: ${originalTx.invoiceNo})`,
-        unitId: movement.unitId,
-        purchaseId: null,
-        locationId: null,
-        targetBranchId: null,
-        operationalTaskId: null,
-        businessId: user.business.id,
-        branchId: user.branch.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-    }
+      for (const movement of originalMovements) {
+        inventoryCollection.update(movement.inventoryId, draft => {
+          draft.quantity += movement.quantity
+        })
 
-    // 5. Revert Tax Line
-    for (const originalLine of originalTransactionTaxLine) {
-      const refundTaxLine = {
-        ...originalLine,
-        id: crypto.randomUUID(),
-        transactionId: transactionId,
-        taxableAmount: -originalLine.taxableAmount,
-        taxAmount: -originalLine.taxAmount,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        inventoryMovementCollection.insert({
+          id: crypto.randomUUID(),
+          variantId: movement.variantId,
+          inventoryId: movement.inventoryId,
+          transactionId,
+          userId: user?.id,
+          type: MovementType.IN,
+          quantity: movement.quantity,
+          reason: `Refund: ${refundInvoiceNo} (Ref: ${snapshot.invoiceNo})`,
+          unitId: movement.unitId,
+          purchaseId: null,
+          locationId: null,
+          targetBranchId: null,
+          operationalTaskId: null,
+          businessId: user.business.id,
+          branchId: user.branch.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
       }
-
-      transactionTaxLineCollection.insert(refundTaxLine)
     }
 
-    // --- 6. RESTORE CREDIT (Phase 3 — PREPAID_CREDITS billing model only) ---
-    // If the original transaction consumed a credit, restore it on refund.
-    // Conditional on billing model — MONTHLY_SUBSCRIPTION is unaffected.
+    // 4. Revert Tax Lines — built from the snapshot
+    for (const line of snapshot.taxLines) {
+      transactionTaxLineCollection.insert({
+        id: crypto.randomUUID(),
+        transactionId,
+        type: line.type,
+        category: line.category,
+        rate: line.rate,
+        taxableAmount: -line.taxableAmount,
+        taxAmount: -line.taxAmount,
+      })
+    }
+
+    // 5. Restore Credit (PREPAID_CREDITS billing model only)
     const subscription = authStore.state.user?.entitlement
     const billingModel = (subscription as { billingModel?: string } | undefined)?.billingModel
 
     if (billingModel === BillingModel.PREPAID_CREDITS) {
       const businessId = user.business.id
-      // Read the latest ledger entry — prefer local collection, fall back to authStore.
       const ledgerEntries = [...creditLedgerCollection.values()]
         .filter(e => e.businessId === businessId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -132,16 +196,15 @@ export const createPosRefund = async (originalTransactionId: string) => {
       }
     }
 
-    // --- 7. CREATE NEGATIVE PAYMENT ---
-    // Mirrors the original payment method so the ledger is correctly balanced
-    const originalPayment = [...paymentCollection.values()].find(p => p.transactionId === originalTransactionId)
+    // 6. Create Negative Payment — mirrors the original payment method
+    const originalPayment = snapshot.payments[0]
     paymentCollection.insert({
       id: crypto.randomUUID(),
       transactionId,
-      referenceNo: originalTx.invoiceNo, // Reference the original SI
-      method: originalPayment?.method ?? 'CASH', // Mirror original payment method
-      amount: -originalTx.totalAmount, // Negative amount
-      tendered: -originalTx.totalAmount,
+      referenceNo: snapshot.invoiceNo,
+      method: (originalPayment?.method ?? 'CASH') as import('prisma/generated/prisma/browser').PaymentMethod,
+      amount: -snapshot.totalAmount,
+      tendered: -snapshot.totalAmount,
       change: 0,
       platform: originalPayment?.platform ?? null,
       businessId: user.business.id,
@@ -149,35 +212,26 @@ export const createPosRefund = async (originalTransactionId: string) => {
       createdAt: new Date(),
     })
 
-    // Directly return the generated details from the callback
-    return {
-      transactionId,
-      refundInvoiceNo,
-    }
+    return { transactionId, refundInvoiceNo }
   })
 
   if (result.isErr()) {
     console.error('Transaction failed:', result.error.message)
-    return { data: false, error: result.error }
+    return { data: false as const, error: result.error }
   }
 
-  // TypeScript now correctly infers result.value as { transactionId: string, refundInvoiceNo: string }
   const { transactionId, refundInvoiceNo } = result.value
 
-  // Audit the refund — financial actions are logged with throwOnFailure semantics
-  // at the call site to surface any persistence failures to the operator.
   writeAudit({
     data: {
       action: AuditAction.TRANSACTION_REFUNDED,
       targetType: AuditTargetType.Transaction,
-      targetId: originalTransactionId,
+      targetId: snapshot.id,
+      ipAddress: null,
       before: null,
       after: { refundTransactionId: transactionId, refundInvoiceNo },
     },
   }).catch(err => console.error('[audit] TRANSACTION_REFUNDED write failed:', err))
 
-  return {
-    data: refundInvoiceNo,
-    transactionId,
-  }
+  return { data: refundInvoiceNo, transactionId }
 }

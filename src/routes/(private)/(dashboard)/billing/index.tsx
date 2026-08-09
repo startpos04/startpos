@@ -16,7 +16,7 @@
  *   - MANAGE_BILLING capability check: this page must remain accessible for all statuses.
  */
 
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import {
@@ -28,6 +28,7 @@ import {
   ClockIcon,
   CodeIcon,
   CreditCardIcon,
+  ExternalLinkIcon,
   FileTextIcon,
   GitBranchIcon,
   PlusIcon,
@@ -52,6 +53,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { getAuthUser } from '@/lib/better-auth/auth-server'
@@ -60,6 +62,8 @@ import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-s
 import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
 import { cancelSubscription } from '@/lib/queries/cancel-subscription'
 import { createBillingPortalSession } from '@/lib/queries/create-billing-portal-session'
+import { type AddonCatalogItem, fetchAddonCatalog, purchaseAddonSubscription } from '@/lib/queries/purchase-addon-subscription'
+import { fetchTxAddonPackages } from '@/lib/queries/purchase-tx-addon'
 import { cn } from '@/lib/utils'
 import { authStore, refreshUser } from '@/store/auth-store'
 
@@ -481,130 +485,277 @@ function PlanFeatureRow({ label, value }: { label: string; value: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// AddonDialog
+// Unified dialog for purchasing any monthly addon subscription via Stripe.
+// For per-unit addons (Branch, Employee) shows a quantity selector.
+// For TX recurring addons shows three fixed package options.
+// For capability addons (Analytics, API) is a single confirm-and-redirect.
+// ---------------------------------------------------------------------------
+
+function AddonDialog({ addon, open, onClose }: { addon: AddonCatalogItem | null; open: boolean; onClose: () => void }) {
+  const [quantity, setQuantity] = useState(1)
+  const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
+
+  const { data: txPackages = [], isLoading: loadingTx } = useQuery({
+    queryKey: ['tx-addon-packages'],
+    queryFn: () => fetchTxAddonPackages(),
+    enabled: open && (addon?.id === 'tx_500' || addon?.id === 'tx_1000' || addon?.id === 'tx_5000'),
+    staleTime: 60_000,
+  })
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!addon) throw new Error('No addon selected')
+      const isTxRecurring = addon.addonType === 'TX_RECURRING'
+      const addonId = isTxRecurring ? (selectedTxId ?? addon.id) : addon.id
+      const result = await purchaseAddonSubscription({
+        data: { addonId: addonId as Parameters<typeof purchaseAddonSubscription>[0]['data']['addonId'], quantity },
+      })
+      if (!result.success) throw new Error(result.error)
+      return result
+    },
+    onSuccess: result => {
+      window.location.href = result.checkoutUrl
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const handleClose = () => {
+    if (mutation.isPending) return
+    setQuantity(1)
+    setSelectedTxId(null)
+    onClose()
+  }
+
+  if (!addon) return null
+
+  const isTxGroup = addon.addonType === 'TX_RECURRING'
+  const isPerUnit = addon.perUnit
+  const canProceed = isTxGroup ? !!selectedTxId : true
+
+  return (
+    <Dialog open={open} onOpenChange={v => !v && handleClose()}>
+      <DialogContent className='sm:max-w-md'>
+        <DialogHeader>
+          <DialogTitle>Add {addon.label}</DialogTitle>
+          <DialogDescription>
+            {isPerUnit
+              ? `Billed monthly per unit. Each unit adds one extra ${addon.id === 'branch' ? 'branch' : 'employee seat'}.`
+              : isTxGroup
+                ? 'Choose a monthly TX package. Auto-renews each billing period.'
+                : `${addon.label} billed at ${addon.displayPrice}${addon.priceNote}. Auto-renews monthly.`}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className='space-y-3 py-2'>
+          {/* Per-unit quantity selector */}
+          {isPerUnit && (
+            <div className='flex items-center justify-between rounded-lg border px-4 py-3 bg-card'>
+              <div>
+                <p className='font-semibold text-sm'>{addon.label}</p>
+                <p className='text-xs text-muted-foreground mt-0.5'>
+                  {addon.displayPrice}
+                  {addon.priceNote}
+                </p>
+              </div>
+              <div className='flex items-center gap-2'>
+                <Button
+                  type='button'
+                  size='icon'
+                  variant='outline'
+                  className='h-7 w-7'
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  disabled={quantity <= 1}
+                >
+                  −
+                </Button>
+                <span className='w-8 text-center font-semibold text-sm tabular-nums'>{quantity}</span>
+                <Button type='button' size='icon' variant='outline' className='h-7 w-7' onClick={() => setQuantity(q => Math.min(50, q + 1))}>
+                  +
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* TX package selector */}
+          {isTxGroup &&
+            (loadingTx
+              ? [1, 2, 3].map(i => <div key={i} className='h-16 rounded-lg bg-muted animate-pulse' />)
+              : txPackages.map(pkg => (
+                  <button
+                    key={pkg.id}
+                    type='button'
+                    onClick={() => setSelectedTxId(pkg.id)}
+                    className={cn(
+                      'w-full flex items-center justify-between rounded-lg border px-4 py-3 text-left transition-all',
+                      'hover:border-primary/60 hover:bg-primary/5',
+                      selectedTxId === pkg.id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card',
+                    )}
+                  >
+                    <div>
+                      <p className='font-semibold text-sm'>{pkg.label}</p>
+                      <p className='text-xs text-muted-foreground mt-0.5'>+{pkg.txAmount.toLocaleString()} transactions/mo — auto-renews</p>
+                    </div>
+                    <span className='font-bold text-base tabular-nums text-primary'>{pkg.displayPrice}/mo</span>
+                  </button>
+                )))}
+
+          {/* Capability addon — just a confirm */}
+          {!isTxGroup && !isPerUnit && (
+            <div className='flex items-center justify-between rounded-lg border px-4 py-3 bg-card'>
+              <div>
+                <p className='font-semibold text-sm'>{addon.label}</p>
+                <p className='text-xs text-muted-foreground mt-0.5'>Renews monthly. Cancel any time from the billing portal.</p>
+              </div>
+              <span className='font-bold text-base tabular-nums text-primary'>
+                {addon.displayPrice}
+                {addon.priceNote}
+              </span>
+            </div>
+          )}
+
+          {isPerUnit && quantity > 1 && (
+            <p className='text-xs text-muted-foreground text-right'>
+              Total: {addon.displayPrice.replace('₱', '')} × {quantity} = ₱
+              {(parseInt(addon.displayPrice.replace('₱', '').replace(',', '')) * quantity).toLocaleString()}/mo
+            </p>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant='outline' onClick={handleClose} disabled={mutation.isPending}>
+            Cancel
+          </Button>
+          <Button onClick={() => mutation.mutate()} disabled={!canProceed || mutation.isPending} className='gap-1.5'>
+            {mutation.isPending ? (
+              'Redirecting…'
+            ) : (
+              <>
+                <ExternalLinkIcon className='h-3.5 w-3.5' /> Proceed to payment
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // ActiveAddons
-// Shows currently active add-ons and lets the user add new ones.
-// Add-on prices read from authStore.systemConfigs (admin-configurable via SystemConfig).
 // ---------------------------------------------------------------------------
 
 function ActiveAddons() {
   const user = useStore(authStore, state => state.user)
   const entitlement = user?.entitlement
-  const configs = user?.systemConfigs
+  const [activeAddon, setActiveAddon] = useState<AddonCatalogItem | null>(null)
 
-  const analyticsPrice = configs?.ADDON_ANALYTICS_PRICE ?? 29900
-  const apiPrice = configs?.ADDON_API_PRICE ?? 49900
-  const branchPrice = configs?.ADDON_BRANCH_PRICE ?? 19900
-  const employeePrice = configs?.ADDON_EMPLOYEE_PRICE ?? 4900
+  const { data: catalog = [] } = useQuery({
+    queryKey: ['addon-catalog'],
+    queryFn: () => fetchAddonCatalog(),
+    staleTime: 60_000,
+  })
 
-  // Derive active add-ons from capabilities in the entitlement summary
   const hasAnalytics = entitlement?.capabilities.includes('VIEW_ANALYTICS') ?? false
   const hasApi = entitlement?.capabilities.includes('ACCESS_API') ?? false
-  // Show employee add-on on Basic (1-seat limit) and Trial (also 1-seat limit)
+  const txAddonTotal = entitlement?.txAddonTotal ?? 0
   const isBasicOrTrial = !entitlement?.capabilities.includes('MANAGE_INVENTORY') || entitlement?.status === 'TRIAL'
 
-  function formatPrice(cents: number) {
-    return `₱${(cents / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}/mo`
+  // Determine active state per addon
+  function isAddonActive(item: AddonCatalogItem): boolean {
+    if (item.addonType === 'ANALYTICS') return hasAnalytics
+    if (item.addonType === 'API_ACCESS') return hasApi
+    if (item.addonType === 'TX_RECURRING') return txAddonTotal > 0
+    return false
   }
 
-  function handleAddAddon(name: string) {
-    // TODO: wire to Stripe add-on checkout in Phase B
-    toast.info(`"${name}" add-on checkout coming soon.`)
+  // Filter: hide employee addon for non-basic/trial plans
+  const visibleCatalog = catalog.filter(a => {
+    if (a.addonType === 'EMPLOYEE') return isBasicOrTrial
+    // Collapse the three TX packages into one row — show tx_1000 as the representative
+    if (a.id === 'tx_500' || a.id === 'tx_5000') return false
+    return true
+  })
+
+  const txRepresentative = catalog.find(a => a.id === 'tx_1000') ?? null
+
+  function getAddonIcon(item: AddonCatalogItem) {
+    if (item.addonType === 'ANALYTICS') return <BarChart3Icon className='h-4 w-4' />
+    if (item.addonType === 'API_ACCESS') return <CodeIcon className='h-4 w-4' />
+    if (item.addonType === 'BRANCH') return <GitBranchIcon className='h-4 w-4' />
+    if (item.addonType === 'EMPLOYEE') return <UsersIcon className='h-4 w-4' />
+    if (item.addonType === 'TX_RECURRING') return <ZapIcon className='h-4 w-4' />
+    return <PlusIcon className='h-4 w-4' />
   }
 
-  type AddonDef = {
-    key: string
-    label: string
-    description: string
-    price: number
-    active: boolean
-    icon: React.ReactNode
+  function getDescription(item: AddonCatalogItem): string {
+    if (item.addonType === 'TX_RECURRING') {
+      return txAddonTotal > 0
+        ? `${txAddonTotal.toLocaleString()} extra TX active this period — packages from ₱99/mo.`
+        : 'Add extra monthly transactions on top of your plan. From ₱99/mo.'
+    }
+    if (item.addonType === 'BRANCH') return `Add branches beyond your plan's limit. ${item.displayPrice}${item.priceNote}.`
+    if (item.addonType === 'EMPLOYEE') return `Add seats beyond your 1-seat limit. ${item.displayPrice}${item.priceNote}.`
+    return item.priceNote ? `${item.displayPrice}${item.priceNote}` : item.displayPrice
   }
-
-  const addons: AddonDef[] = [
-    {
-      key: 'analytics',
-      label: 'Analytics Dashboard',
-      description: 'Advanced sales trends, staff performance, revenue vs cost.',
-      price: analyticsPrice,
-      active: hasAnalytics,
-      icon: <BarChart3Icon className='h-4 w-4' />,
-    },
-    {
-      key: 'api',
-      label: 'API Access',
-      description: 'Generate API keys and integrate with your own tools.',
-      price: apiPrice,
-      active: hasApi,
-      icon: <CodeIcon className='h-4 w-4' />,
-    },
-    {
-      key: 'branch',
-      label: 'Extra Branch',
-      description: `Add more locations beyond your plan's limit. ${formatPrice(branchPrice)} per branch.`,
-      price: branchPrice,
-      active: false, // always shows as an available add-on — quantity is chosen at checkout
-      icon: <GitBranchIcon className='h-4 w-4' />,
-    },
-    ...(isBasicOrTrial
-      ? [
-          {
-            key: 'employee',
-            label: 'Extra Employee',
-            description: `Add more seats beyond your 1-seat limit. ${formatPrice(employeePrice)} per employee.`,
-            price: employeePrice,
-            active: false,
-            icon: <UsersIcon className='h-4 w-4' />,
-          } as AddonDef,
-        ]
-      : []),
-  ]
 
   return (
-    <Card>
-      <CardHeader className='pb-3'>
-        <div className='flex items-center justify-between'>
-          <div>
-            <CardTitle className='text-lg'>Add-ons</CardTitle>
-            <CardDescription className='text-xs mt-0.5'>Extend your plan with premium features. Billed monthly on top of your plan.</CardDescription>
-          </div>
-          <Button size='sm' variant='outline' asChild>
-            <Link to={'/billing/success'}>
-              Browse add-ons <PlusIcon className='h-3.5 w-3.5 ml-1.5' />
-            </Link>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className='space-y-2'>
-          {addons.map(addon => (
-            <div key={addon.key} className='flex items-center justify-between py-2 px-3 rounded-lg bg-muted/40 gap-4'>
-              <div className='flex items-center gap-3 min-w-0'>
-                <span className='text-muted-foreground shrink-0'>{addon.icon}</span>
-                <div className='min-w-0'>
-                  <p className='text-sm font-medium flex items-center gap-2'>
-                    {addon.label}
-                    {addon.active && (
-                      <span className='text-[10px] font-semibold text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded-full'>
-                        Active
-                      </span>
-                    )}
-                  </p>
-                  <p className='text-xs text-muted-foreground truncate'>{addon.description}</p>
+    <>
+      <Card>
+        <CardHeader className='pb-3'>
+          <CardTitle className='text-lg'>Add-ons</CardTitle>
+          <CardDescription className='text-xs mt-0.5'>All add-ons are billed monthly and can be cancelled any time.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className='space-y-2'>
+            {visibleCatalog.map(item => {
+              const active = isAddonActive(item)
+              // For TX recurring row, open with the representative tx_1000 item
+              const openWith = item.addonType === 'TX_RECURRING' ? txRepresentative : item
+              return (
+                <div key={item.id} className='flex items-center justify-between py-2 px-3 rounded-lg bg-muted/40 gap-4'>
+                  <div className='flex items-center gap-3 min-w-0'>
+                    <span className='text-muted-foreground shrink-0'>{getAddonIcon(item)}</span>
+                    <div className='min-w-0'>
+                      <p className='text-sm font-medium flex items-center gap-2'>
+                        {item.label}
+                        {active && (
+                          <span className='text-[10px] font-semibold text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded-full'>
+                            Active
+                          </span>
+                        )}
+                        {!item.configured && (
+                          <span className='text-[10px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full'>Not configured</span>
+                        )}
+                      </p>
+                      <p className='text-xs text-muted-foreground truncate'>{getDescription(item)}</p>
+                    </div>
+                  </div>
+                  <div className='flex items-center gap-2 shrink-0'>
+                    <span className='text-sm font-medium text-muted-foreground'>
+                      {item.displayPrice}
+                      {item.priceNote}
+                    </span>
+                    <Button
+                      size='sm'
+                      variant='ghost'
+                      className='h-7 px-2 text-xs'
+                      onClick={() => openWith && setActiveAddon(openWith)}
+                      disabled={!item.configured}
+                    >
+                      <PlusIcon className='h-3 w-3 mr-1' />
+                      {active ? 'Add more' : 'Add'}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <div className='flex items-center gap-3 shrink-0'>
-                <span className='text-sm font-medium text-muted-foreground'>{formatPrice(addon.price)}</span>
-                {!addon.active && (
-                  <Button size='sm' variant='ghost' className='h-7 px-2 text-xs' onClick={() => handleAddAddon(addon.label)}>
-                    <PlusIcon className='h-3 w-3 mr-1' /> Add
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <AddonDialog addon={activeAddon} open={!!activeAddon} onClose={() => setActiveAddon(null)} />
+    </>
   )
 }
 

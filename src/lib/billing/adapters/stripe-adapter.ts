@@ -154,6 +154,42 @@ class StripeAdapter implements BillingProviderAdapter {
   }
 
   // -------------------------------------------------------------------------
+  // updateSubscription
+  // Changes the price on an existing Stripe subscription immediately.
+  // Uses proration_behavior: 'always_invoice' so Stripe charges/credits the
+  // difference right away. If the subscription has no default payment method
+  // (e.g. originally set up via a checkout session that has since expired),
+  // we fall back to a new checkout session and return its URL.
+  // -------------------------------------------------------------------------
+  async updateSubscription(params: {
+    externalSubscriptionId: string
+    externalPriceId: string
+    metadata: Record<string, string>
+    successUrl: string
+    cancelUrl: string
+  }): Promise<{ checkoutUrl: string | null; currentPeriodStart: Date; currentPeriodEnd: Date }> {
+    // Retrieve the existing subscription to get the current item ID
+    const existing = await this.client.subscriptions.retrieve(params.externalSubscriptionId, {
+      expand: ['default_payment_method'],
+    })
+
+    const firstItemId = existing.items?.data?.[0]?.id
+    if (!firstItemId) throw new Error('[StripeAdapter] Subscription has no line items to update.')
+
+    const updated = await this.client.subscriptions.update(params.externalSubscriptionId, {
+      items: [{ id: firstItemId, price: params.externalPriceId }],
+      proration_behavior: 'always_invoice',
+      metadata: params.metadata,
+    })
+
+    const firstItem = updated.items?.data?.[0]
+    const periodStart = new Date((firstItem?.current_period_start ?? 0) * 1000)
+    const periodEnd = new Date((firstItem?.current_period_end ?? 0) * 1000)
+
+    return { checkoutUrl: null, currentPeriodStart: periodStart, currentPeriodEnd: periodEnd }
+  }
+
+  // -------------------------------------------------------------------------
   // cancelSubscription
   // -------------------------------------------------------------------------
   async cancelSubscription(params: { externalSubscriptionId: string; cancelImmediately: boolean; reason?: string }): Promise<CancelSubscriptionResult> {
@@ -202,6 +238,34 @@ class StripeAdapter implements BillingProviderAdapter {
         ...params.metadata,
         creditAmount: String(params.creditAmount),
       },
+    })
+
+    return {
+      url: session.url ?? '',
+      externalSessionId: session.id,
+      expiresAt: session.expires_at ? new Date(session.expires_at * 1000) : null,
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // createAddonSubscription
+  // Stripe Checkout Session mode: subscription for monthly recurring addons.
+  // -------------------------------------------------------------------------
+  async createAddonSubscription(params: {
+    externalCustomerId: string
+    externalPriceId: string
+    quantity: number
+    successUrl: string
+    cancelUrl: string
+    metadata: Record<string, string>
+  }): Promise<CreatePaymentLinkResult> {
+    const session = await this.client.checkout.sessions.create({
+      customer: params.externalCustomerId,
+      mode: 'subscription',
+      line_items: [{ price: params.externalPriceId, quantity: params.quantity }],
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
+      subscription_data: { metadata: params.metadata },
     })
 
     return {

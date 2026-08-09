@@ -93,6 +93,17 @@ function POSPage() {
     )
 
     if (result.error) {
+      // Credit exhaustion gets its own modal with a billing link.
+      // All other errors fall through to the generic toast.
+      if (result.error.message?.includes('Credit balance is zero')) {
+        MountManager.show(AlertPrompt, {
+          title: 'Credits exhausted',
+          description: <span>You've used all your available credits. To keep processing transactions, top up your credits on the billing page .</span>,
+          btnText: 'Go to billing',
+          onClick: () => void navigate({ to: '/billing/credits' }),
+        })
+        return
+      }
       toast.error('Failed to process transaction. Please try again.')
       return
     }

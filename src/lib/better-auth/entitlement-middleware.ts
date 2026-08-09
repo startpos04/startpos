@@ -82,7 +82,7 @@ export function requireCapability(capability: CapabilityKey) {
     // -----------------------------------------------------------------------
     // Rebuild EntitlementContext from DB — not from the client session
     // -----------------------------------------------------------------------
-    const [subscription, overrides, openCounter, latestCredit] = await Promise.all([
+    const [subscription, overrides, openCounter, latestCredit, activeTxAddons] = await Promise.all([
       rootPrisma.businessSubscription.findUnique({
         where: { businessId },
         select: {
@@ -110,6 +110,14 @@ export function requireCapability(capability: CapabilityKey) {
         select: { balanceAfter: true },
         orderBy: { createdAt: 'desc' },
       }),
+      rootPrisma.businessSubscriptionAddon.findMany({
+        where: {
+          businessId,
+          addonType: 'TX_TOPUP',
+          OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
+        },
+        select: { quantity: true },
+      }),
     ])
 
     // If no subscription exists yet, use open context (dev / first login)
@@ -130,7 +138,9 @@ export function requireCapability(capability: CapabilityKey) {
 
       const includedTx = subscription.plan.includedTxPerMonth
       const txUsed = openCounter?.txCount ?? 0
-      const txRemaining = includedTx === -1 ? null : Math.max(0, includedTx - txUsed)
+      const txAddonTotal = activeTxAddons.reduce((sum, a) => sum + a.quantity, 0)
+      const effectiveTx = includedTx === -1 ? -1 : includedTx + txAddonTotal
+      const txRemaining = effectiveTx === -1 ? null : Math.max(0, effectiveTx - txUsed)
       const creditBalance = subscription.billingModel === BillingModel.PREPAID_CREDITS ? (latestCredit?.balanceAfter ?? 0) : null
 
       entitlementContext = {

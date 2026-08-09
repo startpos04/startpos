@@ -150,12 +150,13 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       longTermInactiveDays: typeof rawInactiveDays === 'number' ? rawInactiveDays : 90,
     }
 
-    const [businessSubscription, entitlementOverrides, openUsageCounter, latestCreditLedger, capabilityStates] = await Promise.all([
+    const [businessSubscription, entitlementOverrides, openUsageCounter, latestCreditLedger, capabilityStates, activeTxAddons] = await Promise.all([
       // Fetch the business's active subscription and its plan's entitlements.
       rootPrisma.businessSubscription.findUnique({
         where: { businessId },
         select: {
           id: true,
+          planId: true,
           status: true,
           billingModel: true,
           trialEndsAt: true,
@@ -208,6 +209,17 @@ export const getAuthUser = createServerFn({ method: 'GET' })
         where: { businessId },
         select: { capabilityId: true, state: true },
       }),
+
+      // TX addon — sum active TX_TOPUP addons for this billing period.
+      // expiresAt null = perpetual; expiresAt >= now = still valid.
+      rootPrisma.businessSubscriptionAddon.findMany({
+        where: {
+          businessId,
+          addonType: 'TX_TOPUP',
+          OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
+        },
+        select: { quantity: true },
+      }),
     ])
 
     const allCapabilities = Object.values(Capabilities)
@@ -238,10 +250,13 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       // Compute txRemaining from plan allowance minus current period usage.
       // Phase 2: reads from UsageCounter (openUsageCounter) instead of the
       // deprecated BusinessSubscription.txUsedThisPeriod field.
+      // TX addon: active TX_TOPUP addons are summed and added to the base quota.
       // -1 means unlimited; null means no allowance tracking.
       const includedTx = businessSubscription.plan.includedTxPerMonth
       const txUsed = openUsageCounter?.txCount ?? 0
-      const txRemaining = includedTx === -1 ? null : Math.max(0, includedTx - txUsed)
+      const txAddonTotal = activeTxAddons.reduce((sum, a) => sum + a.quantity, 0)
+      const effectiveTx = includedTx === -1 ? -1 : includedTx + txAddonTotal
+      const txRemaining = effectiveTx === -1 ? null : Math.max(0, effectiveTx - txUsed)
 
       // Phase 3: credit balance reads from the latest CreditLedger entry.
       // null = no ledger entries yet (balance is effectively 0 for PREPAID_CREDITS,
@@ -346,7 +361,9 @@ export const getAuthUser = createServerFn({ method: 'GET' })
             // A newly provisioned TRIAL subscription has no UsageCounter yet → txUsed = 0.
             const includedTx = freshSubscription.plan.includedTxPerMonth
             const txUsed = openUsageCounter?.txCount ?? 0
-            const txRemaining = includedTx === -1 ? null : Math.max(0, includedTx - txUsed)
+            const txAddonTotal = activeTxAddons.reduce((sum: number, a: { quantity: number }) => sum + a.quantity, 0)
+            const effectiveTx = includedTx === -1 ? -1 : includedTx + txAddonTotal
+            const txRemaining = effectiveTx === -1 ? null : Math.max(0, effectiveTx - txUsed)
 
             // Phase 3: a freshly provisioned TRIAL subscription has no CreditLedger
             // entries yet. Credit balance is null for non-prepaid billing models.
@@ -415,6 +432,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
           currentPeriodEnd: businessSubscription.currentPeriodEnd ?? null,
           billingModel: (businessSubscription.billingModel ?? null) as import('../entitlement/entitlement-types').BillingModelDomain | null,
           cancelledAt: businessSubscription.cancelledAt ?? null,
+          planId: businessSubscription.planId ?? null,
         }
       : undefined
 
@@ -500,7 +518,10 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       }),
     }
 
-    const entitlement = EntitlementEngine.buildSummary(allCapabilities, entitlementContext, subscriptionMeta)
+    const entitlement = EntitlementEngine.buildSummary(allCapabilities, entitlementContext, {
+      ...subscriptionMeta,
+      txAddonTotal: activeTxAddons.reduce((sum, a) => sum + a.quantity, 0),
+    })
     return {
       ...user,
       business,

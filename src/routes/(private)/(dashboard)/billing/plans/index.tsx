@@ -3,32 +3,36 @@
  *
  * /billing/plans — Plan selection page.
  *
- * Single screen where the user picks both a tier (Basic / Premium / Enterprise)
- * and a billing method (Monthly / Annual / Credits) simultaneously.
- * Selecting a plan + billing method goes straight to Stripe checkout — no
- * second page, no decision fatigue.
- *
- * Custom plan (composable feature picker) links to /billing/pricing.
+ * Handles two modes:
+ *   - New subscriber (no active subscription): calls createSubscription.
+ *   - Existing subscriber (active plan): shows a change dialog with billing
+ *     model selector, then calls changeSubscription.
  *
  * Architecture:
- *   - No price calculations in the component — uses PlanEngine helpers.
- *   - Plan data fetched server-side via fetchPlans.
- *   - createSubscription / purchaseCreditPackage handle the actual checkout.
+ *   - No price calculations in the component — prices come from DB via fetchPlans.
+ *   - createSubscription handles first-time activation.
+ *   - changeSubscription handles all plan/model switching (immediate).
+ *   - isCurrent is derived from authStore.entitlement.planId.
  */
 
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, CreditCardIcon, LayersIcon, SparklesIcon, ZapIcon } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { useStore } from '@tanstack/react-store'
+import { AlertTriangleIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CoinsIcon, LayersIcon, ServerIcon, SparklesIcon, ZapIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { GCashPaymentGuide } from '@/components/custom/gcash-payment-guide'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
-import { PlanEngine } from '@/lib/billing/plan-engine'
+import { BillingModel } from '@/lib/billing/types'
+import { changeSubscription } from '@/lib/queries/change-subscription'
 import { createSubscription } from '@/lib/queries/create-subscription'
 import { fetchPlans, type PlanWithEntitlements } from '@/lib/server-fn/fetch-plans'
 import { cn } from '@/lib/utils'
+import { authStore } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing/plans/')({
   component: PlansPage,
@@ -43,42 +47,55 @@ type BillingMethod = 'monthly' | 'annual' | 'credits'
 const BILLING_METHODS: Array<{ value: BillingMethod; label: string; badge?: string }> = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'annual', label: 'Annual', badge: 'Save 20%' },
-  { value: 'credits', label: 'Credits' },
+  { value: 'credits', label: 'Pay as you go' },
 ]
 
 // ---------------------------------------------------------------------------
 // Per-plan feature highlights
-// These are the key selling points shown on each card — not the full
-// capability list (that's in the DB). Kept in component for UI clarity.
 // ---------------------------------------------------------------------------
 
-type PlanHighlight = {
-  icon: React.ReactNode
-  text: string
-}
+type PlanHighlight = { text: string }
+type PlanDetails = { tagline: string; features: PlanHighlight[] }
 
-const PLAN_HIGHLIGHTS: Record<string, PlanHighlight[]> = {
-  Basic: [
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'POS checkout & payments' },
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Product catalogue management' },
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Customers & orders' },
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Sales & inventory reports' },
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: '1 employee account' },
-  ],
-  Premium: [
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Everything in Basic' },
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Inventory management' },
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Unlimited employees' },
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Vendor sessions & cash reconciliation' },
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Supplier management & data export' },
-  ],
-  Enterprise: [
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Everything in Premium' },
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Purchase orders & receiving' },
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Operational tasks' },
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Up to 5 branches' },
-    { icon: <CheckIcon className='h-3.5 w-3.5' />, text: 'Unlimited transactions' },
-  ],
+const PLAN_DETAILS: Record<string, PlanDetails> = {
+  Basic: {
+    tagline: 'Everything a solo operator needs to run a single location.',
+    features: [
+      { text: '1,000 transactions / month' },
+      { text: '1 employee account' },
+      { text: '1 branch' },
+      { text: 'POS checkout, payments & refunds' },
+      { text: 'Customer orders & kitchen workflow' },
+      { text: 'Product catalogue & variants' },
+      { text: 'Customer directory' },
+      { text: 'Full transaction & order history' },
+      { text: 'Receipt printing & download' },
+    ],
+  },
+  Premium: {
+    tagline: 'For growing teams that need inventory control.',
+    features: [
+      { text: 'Everything in Basic' },
+      { text: '5,000 transactions / month' },
+      { text: 'Up to 3 branches' },
+      { text: 'Inventory adjustments & transfers' },
+      { text: 'Vendor cash sessions & reconciliation' },
+      { text: 'Sales & inventory reports' },
+      { text: 'CSV data export' },
+    ],
+  },
+  Enterprise: {
+    tagline: 'For multi-location operations running at scale.',
+    features: [
+      { text: 'Everything in Premium' },
+      { text: '10,000 transactions / month' },
+      { text: 'Up to 5 branches' },
+      { text: 'Supplier records & management' },
+      { text: 'Purchase orders & stock receiving' },
+      { text: 'Restocking tasks' },
+      { text: 'Priority support' },
+    ],
+  },
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +107,7 @@ function getDisplayPrice(plan: PlanWithEntitlements, method: BillingMethod): str
   if (method === 'credits') return 'Pay per TX'
   const monthly = plan.monthlyPrice
   const amount = method === 'annual' ? monthly * 0.8 : monthly
-  return PlanEngine.formatMonthlyPrice(Math.round(amount))
+  return `₱${(Math.round(amount) / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
 }
 
 function getAnnualTotal(plan: PlanWithEntitlements): string {
@@ -100,21 +117,139 @@ function getAnnualTotal(plan: PlanWithEntitlements): string {
 }
 
 // ---------------------------------------------------------------------------
+// Change plan dialog
+// Shown when the user already has an active subscription and selects a plan.
+// ---------------------------------------------------------------------------
+
+interface ChangePlanDialogProps {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  plan: PlanWithEntitlements
+  billingMethod: BillingMethod
+  currentBillingModel: string | null
+  creditBalance: number | null
+  isPending: boolean
+  onConfirm: (method: BillingMethod) => void
+}
+
+function ChangePlanDialog({ open, onOpenChange, plan, billingMethod, currentBillingModel, creditBalance, isPending, onConfirm }: ChangePlanDialogProps) {
+  const [selectedMethod, setSelectedMethod] = useState<BillingMethod>(billingMethod)
+
+  const isFromCredits = currentBillingModel === BillingModel.PREPAID_CREDITS
+  const toCredits = selectedMethod === 'credits'
+  const hasCredits = (creditBalance ?? 0) > 0
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className='max-w-sm'>
+        <DialogHeader>
+          <DialogTitle>Switch to {plan.name}</DialogTitle>
+          <DialogDescription>This change takes effect immediately. Choose how you want to be billed.</DialogDescription>
+        </DialogHeader>
+
+        {/* Billing method selector */}
+        <div className='space-y-1.5'>
+          {BILLING_METHODS.map(m => {
+            const price = getDisplayPrice(plan, m.value)
+            return (
+              <button
+                key={m.value}
+                type='button'
+                onClick={() => setSelectedMethod(m.value)}
+                className={cn(
+                  'w-full flex items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-all',
+                  'hover:border-primary/60 hover:bg-primary/5',
+                  selectedMethod === m.value ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card',
+                )}
+              >
+                <div>
+                  <p className='text-sm font-medium'>{m.label}</p>
+                  {m.value === 'annual' && plan.monthlyPrice > 0 && <p className='text-xs text-muted-foreground mt-0.5'>{getAnnualTotal(plan)}</p>}
+                  {m.value === 'credits' && <p className='text-xs text-muted-foreground mt-0.5'>1 credit = 1 transaction</p>}
+                  {m.value === 'monthly' && plan.monthlyPrice > 0 && <p className='text-xs text-muted-foreground mt-0.5'>billed monthly</p>}
+                </div>
+                <span className='font-bold text-sm tabular-nums text-primary shrink-0 ml-3'>{price}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        <Separator />
+
+        {/* Contextual info depending on switching direction */}
+        {toCredits && (
+          <div className='flex items-start gap-2 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/60 px-3 py-2.5'>
+            <AlertTriangleIcon className='h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5' />
+            <p className='text-xs text-blue-800 dark:text-blue-300 leading-relaxed'>
+              Your current subscription will be cancelled immediately. You&apos;ll switch to pay-per-transaction billing — buy credits from the credits page.
+              {hasCredits && (
+                <>
+                  {' '}
+                  Your existing {creditBalance} credit{creditBalance === 1 ? '' : 's'} will remain available.
+                </>
+              )}
+            </p>
+          </div>
+        )}
+
+        {isFromCredits && !toCredits && (
+          <div className='flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 px-3 py-2.5'>
+            <AlertTriangleIcon className='h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5' />
+            <p className='text-xs text-amber-800 dark:text-amber-300 leading-relaxed'>
+              You&apos;ll be redirected to complete payment.
+              {hasCredits && (
+                <>
+                  {' '}
+                  Your {creditBalance} remaining credit{creditBalance === 1 ? '' : 's'} will stay as a buffer for extra transactions.
+                </>
+              )}
+            </p>
+          </div>
+        )}
+
+        {!isFromCredits && !toCredits && (
+          <div className='rounded-lg bg-muted/40 px-3 py-2'>
+            <p className='text-xs text-muted-foreground leading-relaxed'>The prorated difference will be charged or credited to your card immediately.</p>
+          </div>
+        )}
+
+        <DialogFooter className='gap-2 sm:gap-0'>
+          <Button variant='outline' onClick={() => onOpenChange(false)} disabled={isPending}>
+            Cancel
+          </Button>
+          <Button onClick={() => onConfirm(selectedMethod)} disabled={isPending}>
+            {isPending ? 'Processing…' : toCredits ? 'Switch to Credits' : 'Proceed to payment'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // PlansPage
 // ---------------------------------------------------------------------------
 
 function PlansPage() {
-  const navigate = useNavigate()
-
   const [billingMethod, setBillingMethod] = useState<BillingMethod>('monthly')
-  const [selectingPlanId, setSelectingPlanId] = useState<string | null>(null)
+  const [selectingPlan, setSelectingPlan] = useState<PlanWithEntitlements | null>(null)
+  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
+
+  const { user } = useStore(authStore, state => state)
+  const activePlanId = user?.entitlement?.planId ?? null
+  const activeBillingModel = user?.entitlement?.billingModel ?? null
+  const creditBalance = user?.entitlement?.creditBalance ?? null
+  const hasActiveSubscription = !!activePlanId
+
+  const queryClient = useQueryClient()
 
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ['plans'],
     queryFn: () => fetchPlans(),
   })
 
-  const subscriptionMutation = useMutation({
+  // First-time subscription (no active plan)
+  const createMutation = useMutation({
     mutationFn: (planId: string) =>
       createSubscription({
         data: {
@@ -123,7 +258,7 @@ function PlansPage() {
           billingModel: billingMethod === 'credits' ? 'PREPAID_CREDITS' : undefined,
         },
       }),
-    onSuccess: (result, planId) => {
+    onSuccess: result => {
       if (!result.success) {
         toast.error(result.error)
         return
@@ -132,28 +267,60 @@ function PlansPage() {
         window.location.href = result.checkoutUrl
         return
       }
-      // Subscription activated without Stripe redirect (e.g. free plan or auto-collect)
       toast.success('Subscription activated!')
-      const planName = plans.find(p => p.id === planId)?.name ?? 'your plan'
-      if (billingMethod === 'credits') {
-        // Send directly to credits top-up page so they can buy their first package
-        // biome-ignore lint/suspicious/noExplicitAny: route not yet in routeTree.gen.ts
-        navigate({ to: '/billing/credits' as any })
-      } else {
-        // biome-ignore lint/suspicious/noExplicitAny: /billing/success added; routeTree.gen.ts regeneration required
-        navigate({ to: '/billing/success' as any, search: { plan: planName, billing: billingMethod } as any })
-      }
+      queryClient.invalidateQueries({ queryKey: ['plans'] })
     },
     onError: () => toast.error('Something went wrong. Please try again.'),
-    onSettled: () => setSelectingPlanId(null),
+    onSettled: () => setPendingPlanId(null),
   })
 
+  // Plan / billing model change (already has active subscription)
+  const changeMutation = useMutation({
+    mutationFn: ({ planId, method }: { planId: string; method: BillingMethod }) =>
+      changeSubscription({
+        data: {
+          planId,
+          billingModel: method === 'credits' ? 'PREPAID_CREDITS' : method === 'annual' ? 'YEARLY_SUBSCRIPTION' : 'MONTHLY_SUBSCRIPTION',
+          billingInterval: method === 'annual' ? 'annual' : 'monthly',
+        },
+      }),
+    onSuccess: result => {
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl
+        return
+      }
+      toast.success(result.message ?? 'Plan updated successfully.')
+      queryClient.invalidateQueries({ queryKey: ['plans'] })
+    },
+    onError: () => toast.error('Something went wrong. Please try again.'),
+    onSettled: () => {
+      setPendingPlanId(null)
+      setSelectingPlan(null)
+    },
+  })
+
+  const isPending = createMutation.isPending || changeMutation.isPending
+
   const handleSelectPlan = (plan: PlanWithEntitlements) => {
-    setSelectingPlanId(plan.id)
-    subscriptionMutation.mutate(plan.id)
+    if (hasActiveSubscription) {
+      // Open the change dialog so user can pick billing method
+      setSelectingPlan(plan)
+    } else {
+      // First-time subscriber — go straight to checkout
+      setPendingPlanId(plan.id)
+      createMutation.mutate(plan.id)
+    }
   }
 
-  const isPending = subscriptionMutation.isPending
+  const handleConfirmChange = (method: BillingMethod) => {
+    if (!selectingPlan) return
+    setPendingPlanId(selectingPlan.id)
+    changeMutation.mutate({ planId: selectingPlan.id, method })
+  }
 
   return (
     <div className='flex flex-col gap-6 px-4 max-w-5xl'>
@@ -165,43 +332,50 @@ function PlansPage() {
           </Link>
         </Button>
         <div>
-          <h1 className='text-2xl font-bold tracking-tight'>Choose a plan</h1>
-          <p className='text-sm text-muted-foreground mt-0.5'>Pick the tier that fits your business. Change or cancel any time.</p>
+          <h1 className='text-2xl font-bold tracking-tight'>{hasActiveSubscription ? 'Change your plan' : 'Choose a plan'}</h1>
+          <p className='text-sm text-muted-foreground mt-0.5'>
+            {hasActiveSubscription
+              ? 'Switch plans or billing models instantly. Changes take effect immediately.'
+              : 'Pick the tier that fits your business. Change or cancel any time.'}
+          </p>
         </div>
       </div>
 
-      {/* Billing method toggle */}
-      <div className='flex flex-col gap-2'>
-        <div className='flex items-center gap-1 p-1 bg-muted rounded-lg w-fit'>
-          {BILLING_METHODS.map(method => (
-            <button
-              key={method.value}
-              type='button'
-              onClick={() => setBillingMethod(method.value)}
-              className={cn(
-                'flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
-                billingMethod === method.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {method.value === 'monthly' && <ZapIcon className='h-3.5 w-3.5' />}
-              {method.value === 'annual' && <SparklesIcon className='h-3.5 w-3.5' />}
-              {method.value === 'credits' && <CreditCardIcon className='h-3.5 w-3.5' />}
-              {method.label}
-              {method.badge && (
-                <Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-4 font-semibold text-emerald-700 bg-emerald-100'>
-                  {method.badge}
-                </Badge>
-              )}
-            </button>
-          ))}
+      {/* Billing method toggle — only shown for new subscribers since existing
+          subscribers pick billing method inside the change dialog */}
+      {!hasActiveSubscription && (
+        <div className='flex flex-col gap-2'>
+          <div className='flex items-center gap-1 p-1 bg-muted rounded-lg w-fit'>
+            {BILLING_METHODS.map(method => (
+              <button
+                key={method.value}
+                type='button'
+                onClick={() => setBillingMethod(method.value)}
+                className={cn(
+                  'flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
+                  billingMethod === method.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {method.value === 'monthly' && <ZapIcon className='h-3.5 w-3.5' />}
+                {method.value === 'annual' && <SparklesIcon className='h-3.5 w-3.5' />}
+                {method.value === 'credits' && <CoinsIcon className='h-3.5 w-3.5' />}
+                {method.label}
+                {method.badge && (
+                  <Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-4 font-semibold text-emerald-700 bg-emerald-100'>
+                    {method.badge}
+                  </Badge>
+                )}
+              </button>
+            ))}
+          </div>
+          {billingMethod === 'annual' && (
+            <p className='text-xs text-muted-foreground'>Annual pricing requires separate Stripe price IDs. Contact your admin if checkout fails.</p>
+          )}
         </div>
-        {billingMethod === 'annual' && (
-          <p className='text-xs text-muted-foreground'>Annual pricing requires separate Stripe price IDs. Contact your admin if checkout fails.</p>
-        )}
-        {billingMethod === 'credits' && (
-          <p className='text-xs text-muted-foreground'>Pay per transaction — no monthly commitment. Top up credits from the billing dashboard.</p>
-        )}
-      </div>
+      )}
+
+      {/* GCash payment guide */}
+      <GCashPaymentGuide />
 
       {/* Plan cards */}
       {isLoading ? (
@@ -215,77 +389,85 @@ function PlansPage() {
         </div>
       ) : (
         <div className='grid gap-4 sm:grid-cols-3'>
-          {plans.map(plan => {
-            const isPopular = plan.name === 'Premium'
-            const isCurrent = false // TODO: compare against user's active plan name once available in entitlement summary
-            const highlights = PLAN_HIGHLIGHTS[plan.name] ?? []
-            const isSelecting = selectingPlanId === plan.id && isPending
+          {plans
+            .filter(p => p.name !== 'Perpetual License' && p.name !== 'Trial')
+            .map(plan => {
+              const isPopular = plan.name === 'Premium'
+              const isCurrent = plan.id === activePlanId
+              const details = PLAN_DETAILS[plan.name]
+              const isProcessing = pendingPlanId === plan.id && isPending
 
-            return (
-              <Card
-                key={plan.id}
-                className={cn(
-                  'relative flex flex-col transition-shadow',
-                  isPopular && 'border-primary shadow-md shadow-primary/10',
-                  isCurrent && 'border-muted-foreground/30',
-                )}
-              >
-                {isPopular && (
-                  <div className='absolute -top-3 left-1/2 -translate-x-1/2'>
-                    <Badge className='bg-primary text-primary-foreground text-[10px] px-2.5 py-0.5'>Most popular</Badge>
-                  </div>
-                )}
-
-                <CardHeader className='pb-3'>
-                  <CardTitle className='text-lg'>{plan.name}</CardTitle>
-                  <CardDescription className='text-xs leading-relaxed'>{plan.description}</CardDescription>
-                </CardHeader>
-
-                <CardContent className='flex-1 space-y-4'>
-                  {/* Price display */}
-                  <div>
-                    <p className='text-3xl font-bold tracking-tight'>{getDisplayPrice(plan, billingMethod)}</p>
-                    {billingMethod === 'annual' && plan.monthlyPrice > 0 && <p className='text-xs text-muted-foreground mt-0.5'>{getAnnualTotal(plan)}</p>}
-                    {billingMethod === 'monthly' && plan.monthlyPrice > 0 && <p className='text-xs text-muted-foreground mt-0.5'>per month</p>}
-                    {billingMethod === 'credits' && <p className='text-xs text-muted-foreground mt-0.5'>1 credit = 1 transaction</p>}
-                  </div>
-
-                  <p className='text-xs text-muted-foreground'>
-                    {PlanEngine.formatTxAllowance(plan.includedTxPerMonth)}
-                    {billingMethod !== 'credits' ? ' included' : ''}
-                  </p>
-
-                  <Separator />
-
-                  {/* Feature highlights */}
-                  <ul className='space-y-2'>
-                    {highlights.map(h => (
-                      <li key={h.text} className='flex items-center gap-2 text-xs text-muted-foreground'>
-                        <span className='text-primary shrink-0'>{h.icon}</span>
-                        {h.text}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-
-                <CardFooter className='pt-4'>
-                  {isCurrent ? (
-                    <Button className='w-full' variant='outline' disabled>
-                      Current plan
-                    </Button>
-                  ) : (
-                    <Button className='w-full' variant={isPopular ? 'default' : 'outline'} disabled={isPending} onClick={() => handleSelectPlan(plan)}>
-                      {isSelecting ? 'Redirecting…' : `Get ${plan.name}`}
-                    </Button>
+              return (
+                <Card
+                  key={plan.id}
+                  className={cn(
+                    'relative flex flex-col transition-shadow',
+                    isCurrent && 'border-primary shadow-md shadow-primary/10',
+                    isPopular && !isCurrent && 'border-muted-foreground/40',
                   )}
-                </CardFooter>
-              </Card>
-            )
-          })}
+                >
+                  {isCurrent && (
+                    <div className='absolute -top-3 left-1/2 -translate-x-1/2'>
+                      <Badge className='bg-primary text-primary-foreground text-[10px] px-2.5 py-0.5'>Current plan</Badge>
+                    </div>
+                  )}
+                  {isPopular && !isCurrent && (
+                    <div className='absolute -top-3 left-1/2 -translate-x-1/2'>
+                      <Badge variant='secondary' className='text-[10px] px-2.5 py-0.5'>
+                        Most popular
+                      </Badge>
+                    </div>
+                  )}
+
+                  <CardHeader className='pb-3'>
+                    <CardTitle className='text-lg'>{plan.name}</CardTitle>
+                    {details && <p className='text-xs text-muted-foreground leading-relaxed'>{details.tagline}</p>}
+                  </CardHeader>
+
+                  <CardContent className='flex-1 space-y-4'>
+                    <div>
+                      <p className='text-3xl font-bold tracking-tight tabular-nums'>{getDisplayPrice(plan, billingMethod)}</p>
+                      <p className='text-xs text-muted-foreground mt-0.5'>
+                        {billingMethod === 'annual' && plan.monthlyPrice > 0
+                          ? getAnnualTotal(plan)
+                          : billingMethod === 'credits'
+                            ? '1 credit = 1 transaction'
+                            : plan.monthlyPrice > 0
+                              ? 'per month, billed monthly'
+                              : '\u00a0'}
+                      </p>
+                    </div>
+
+                    {details && (
+                      <ul className='space-y-1.5'>
+                        {details.features.map(f => (
+                          <li key={f.text} className='flex items-start gap-2 text-xs'>
+                            <CheckIcon className='h-3.5 w-3.5 text-primary shrink-0 mt-px' />
+                            <span className='leading-snug text-muted-foreground'>{f.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </CardContent>
+
+                  <CardFooter className='pt-4'>
+                    {isCurrent ? (
+                      <Button className='w-full' variant='outline' disabled>
+                        Current plan
+                      </Button>
+                    ) : (
+                      <Button className='w-full' variant={isPopular ? 'default' : 'outline'} disabled={isPending} onClick={() => handleSelectPlan(plan)}>
+                        {isProcessing ? 'Processing…' : hasActiveSubscription ? `Switch to ${plan.name}` : `Get ${plan.name}`}
+                      </Button>
+                    )}
+                  </CardFooter>
+                </Card>
+              )
+            })}
         </div>
       )}
 
-      {/* Custom plan CTA */}
+      {/* Bottom CTAs */}
       <Card className='border-dashed'>
         <CardContent className='flex items-center justify-between py-5'>
           <div className='flex items-center gap-3'>
@@ -305,17 +487,47 @@ function PlansPage() {
         </CardContent>
       </Card>
 
-      {/* Billing method explainer */}
-      {billingMethod === 'credits' && (
-        <p className='text-xs text-muted-foreground text-center'>
-          Credits are prepaid transactions. Buy a bundle, use them at your own pace — no monthly commitment. Your plan's feature set is determined by the tier
-          you select above.
-        </p>
+      {plans.some(p => p.name === 'Perpetual License') && (
+        <Card className='border-dashed'>
+          <CardContent className='flex items-center justify-between py-5'>
+            <div className='flex items-center gap-3'>
+              <div className='p-2 rounded-lg bg-muted'>
+                <ServerIcon className='h-5 w-5 text-muted-foreground' />
+              </div>
+              <div>
+                <p className='text-sm font-medium'>Self-host with a perpetual license</p>
+                <p className='text-xs text-muted-foreground'>Own the software outright. Full Enterprise features, unlimited transactions, one-time fee.</p>
+              </div>
+            </div>
+            <Button variant='ghost' size='sm' asChild className='shrink-0 gap-1'>
+              <Link to='/contact-us'>
+                Contact us <ArrowRightIcon className='h-3.5 w-3.5' />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       )}
-      {billingMethod === 'annual' && (
+
+      {billingMethod === 'annual' && !hasActiveSubscription && (
         <p className='text-xs text-muted-foreground text-center'>
           Annual billing locks in 20% savings. Billed as a single upfront payment. Cancel before renewal for a prorated refund.
         </p>
+      )}
+
+      {/* Change plan dialog — only shown for existing subscribers */}
+      {selectingPlan && (
+        <ChangePlanDialog
+          open={!!selectingPlan}
+          onOpenChange={v => {
+            if (!v) setSelectingPlan(null)
+          }}
+          plan={selectingPlan}
+          billingMethod={billingMethod}
+          currentBillingModel={activeBillingModel}
+          creditBalance={creditBalance}
+          isPending={isPending}
+          onConfirm={handleConfirmChange}
+        />
       )}
     </div>
   )

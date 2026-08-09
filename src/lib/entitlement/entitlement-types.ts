@@ -173,6 +173,8 @@ export type EntitlementSummary = {
   capabilities: CapabilityKey[]
   /** null = unlimited */
   txRemaining: number | null
+  /** Total extra TX granted by active top-up addons this period. 0 = none purchased. */
+  txAddonTotal: number
   /** null = not a prepaid plan */
   creditBalance: number | null
   /** ISO string of trial end date — used by SubscriptionBanner countdown. null if not in trial. */
@@ -189,4 +191,10 @@ export type EntitlementSummary = {
    * null = not cancelled.
    */
   cancelledAt: string | null
+  /**
+   * The current subscription plan ID (Prisma SubscriptionPlan.id).
+   * Used by the plans page to detect the active plan and show "Current plan" vs "Switch".
+   * null = no plan assigned (trial provisioning in progress, or no subscription).
+   */
+  planId: string | null
 }

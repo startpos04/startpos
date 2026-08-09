@@ -23,7 +23,7 @@ import { RecommendationCard } from '@/components/custom/bos/recommendation-card'
 import { FeatureLibrary } from '@/components/feature-library'
 import { FirstRunGuide, useFirstRun } from '@/components/first-run-guide'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { orderCollection, productCollection, userCollection } from '@/db/collections'
+import { creditLedgerCollection, orderCollection, productCollection, userCollection } from '@/db/collections'
 import { HEALTH_STAGE_HINTS } from '@/lib/evolution/business-health-model'
 import { fetchCapabilityStates } from '@/lib/queries/fetch-capability-states'
 import { fetchDashboardHints } from '@/lib/server-fn/fetch-dashboard-hints'
@@ -43,11 +43,20 @@ function DashboardPage() {
   const products = useLiveQuery(q => q.from({ p: productCollection }).select(({ p }) => p))
   const users = useLiveQuery(q => q.from({ u: userCollection }).select(({ u }) => u))
   const todaysOrders = useLiveQuery(q => q.from({ o: orderCollection }).select(({ o }) => o))
+  const creditLedgerEntries = useLiveQuery(q => q.from({ cl: creditLedgerCollection }).select(({ cl }) => cl))
 
   const productCount = products.data?.length ?? 0
   const teamCount = users.data?.length ?? 0
   const txToday = todaysOrders.data?.length ?? 0
-  const creditBalance = user?.entitlement?.creditBalance
+
+  // Derive credit balance from the local creditLedgerCollection so it updates
+  // immediately after every POS checkout (which inserts a new CONSUMED entry).
+  // Fall back to the authStore entitlement value when the collection is empty
+  // (e.g. the user hasn't done any checkout this session yet).
+  const latestLedgerEntry = (creditLedgerEntries.data ?? [])
+    .filter(e => e.businessId === user?.business?.id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+  const creditBalance = latestLedgerEntry?.balanceAfter ?? user?.entitlement?.creditBalance
 
   // Tips & hints for the dashboard section
   const { data: dashboardHints = [] } = useQuery({
