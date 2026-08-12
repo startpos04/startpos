@@ -128,6 +128,11 @@ create_price "STRIPE_PLAN_STARTER_PRICE_ID"  "Starter Plan"  2900  "usd"  "month
 create_price "STRIPE_PLAN_GROWTH_PRICE_ID"   "Growth Plan"   7900  "usd"  "month"
 create_price "STRIPE_PLAN_PREMIUM_PRICE_ID"  "Premium Plan"  14900 "usd"  "month"
 
+# ── Subscription plan prices (annual recurring — 20% discount) ───────────────
+create_price "STRIPE_PLAN_STARTER_ANNUAL_PRICE_ID" "Starter Plan (Annual)"  27840  "usd"  "year"
+create_price "STRIPE_PLAN_GROWTH_ANNUAL_PRICE_ID"  "Growth Plan (Annual)"   75840  "usd"  "year"
+create_price "STRIPE_PLAN_PREMIUM_ANNUAL_PRICE_ID" "Premium Plan (Annual)"  143040 "usd"  "year"
+
 # ── Credit package prices (one-time) ─────────────────────────────────────────
 create_price "STRIPE_CREDIT_PKG_10_PRICE_ID"  "10 Credits"  500  "usd"  "one_time"
 create_price "STRIPE_CREDIT_PKG_50_PRICE_ID"  "50 Credits"  2000 "usd"  "one_time"

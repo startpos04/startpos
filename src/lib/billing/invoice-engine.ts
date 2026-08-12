@@ -29,6 +29,11 @@ import { InvoiceItemType, InvoiceStatus } from './types'
 export type SubscriptionPlanInput = {
   /** Monthly subscription fee in cents (0 = free / trial) */
   monthlyPrice: number
+  /**
+   * Annual subscription fee in cents.
+   * null = not configured; fall back to monthlyPrice × 12 at invoice time.
+   */
+  annualPrice: number | null
   /** Transactions included per month (-1 = unlimited) */
   includedTxPerMonth: number
   /** Cents per overage transaction (from plan.overagePerTx) */
@@ -44,29 +49,70 @@ export type SubscriptionPlanInput = {
 export const InvoiceEngine = {
   // -------------------------------------------------------------------------
   // buildMonthlyInvoice
-  // Constructs a complete InvoiceDTO for a closed billing period.
+  // Constructs a complete InvoiceDTO for a closed monthly billing period.
   // Includes a subscription fee line and, if applicable, an overage line.
-  //
-  // @param businessId        - The business this invoice is for
-  // @param counter           - The closed UsageCounter for the period
-  // @param plan              - Minimal plan data (no Prisma dependency)
-  // @param policy            - Overage and tax policy from SystemConfig
   // -------------------------------------------------------------------------
   buildMonthlyInvoice(businessId: string, counter: UsageCounterSnapshot, plan: SubscriptionPlanInput, policy: OveragePolicy): InvoiceDTO {
     const items: InvoiceItemDTO[] = []
 
-    // --- Subscription fee line ---
     if (plan.monthlyPrice > 0) {
-      items.push(InvoiceEngine.buildSubscriptionFeeLine(plan.planName, plan.monthlyPrice))
+      items.push(InvoiceEngine._buildFeeLine(plan.planName, plan.monthlyPrice, 'Monthly subscription'))
     }
 
-    // --- Overage line (only when overage billing is enabled and there are overage TXs) ---
     if (policy.overageBillingEnabled && counter.overageTxCount > 0) {
       items.push(InvoiceEngine.buildOverageLineItem(counter.overageTxCount, policy.overageRatePerTx))
     }
 
+    return InvoiceEngine._assembleInvoice(businessId, counter, items, policy.vatRate)
+  },
+
+  // -------------------------------------------------------------------------
+  // buildAnnualInvoice
+  // Constructs a complete InvoiceDTO for a closed annual billing period.
+  // Uses plan.annualPrice when set; falls back to monthlyPrice × 12.
+  // Overage is not charged on annual plans — TX allowance is 12× monthly.
+  // -------------------------------------------------------------------------
+  buildAnnualInvoice(businessId: string, counter: UsageCounterSnapshot, plan: SubscriptionPlanInput, policy: OveragePolicy): InvoiceDTO {
+    const items: InvoiceItemDTO[] = []
+
+    // Resolve the annual fee: explicit annualPrice, or monthlyPrice × 12
+    const annualFee = plan.annualPrice ?? plan.monthlyPrice * 12
+
+    if (annualFee > 0) {
+      items.push(InvoiceEngine._buildFeeLine(plan.planName, annualFee, 'Annual subscription'))
+    }
+
+    // Overage on annual plans: still charge if enabled and overages exist.
+    // TX allowance is set to 12× monthly at subscription creation time, so
+    // overages should be rare, but we bill them the same way.
+    if (policy.overageBillingEnabled && counter.overageTxCount > 0) {
+      items.push(InvoiceEngine.buildOverageLineItem(counter.overageTxCount, policy.overageRatePerTx))
+    }
+
+    return InvoiceEngine._assembleInvoice(businessId, counter, items, policy.vatRate)
+  },
+
+  // -------------------------------------------------------------------------
+  // _buildFeeLine (private helper)
+  // Constructs a SUBSCRIPTION_FEE line item with a given label.
+  // -------------------------------------------------------------------------
+  _buildFeeLine(planName: string, amount: number, interval: string): InvoiceItemDTO {
+    return {
+      type: InvoiceItemType.SUBSCRIPTION_FEE,
+      description: `${planName} — ${interval}`,
+      quantity: 1,
+      unitAmount: amount,
+      lineAmount: amount,
+    }
+  },
+
+  // -------------------------------------------------------------------------
+  // _assembleInvoice (private helper)
+  // Sums line items, applies VAT, and returns the final InvoiceDTO.
+  // -------------------------------------------------------------------------
+  _assembleInvoice(businessId: string, counter: UsageCounterSnapshot, items: InvoiceItemDTO[], vatRate: number): InvoiceDTO {
     const subtotalAmount = items.reduce((sum, item) => sum + item.lineAmount, 0)
-    const taxAmount = InvoiceEngine.computeTax(subtotalAmount, policy.vatRate)
+    const taxAmount = InvoiceEngine.computeTax(subtotalAmount, vatRate)
     const totalAmount = subtotalAmount + taxAmount
 
     return {
@@ -83,16 +129,11 @@ export const InvoiceEngine = {
 
   // -------------------------------------------------------------------------
   // buildSubscriptionFeeLine
-  // Constructs a single SUBSCRIPTION_FEE line item.
+  // Public helper kept for backward-compatibility with existing callers.
+  // New code should use buildMonthlyInvoice / buildAnnualInvoice directly.
   // -------------------------------------------------------------------------
   buildSubscriptionFeeLine(planName: string, monthlyPrice: number): InvoiceItemDTO {
-    return {
-      type: InvoiceItemType.SUBSCRIPTION_FEE,
-      description: `${planName} — Monthly subscription`,
-      quantity: 1,
-      unitAmount: monthlyPrice,
-      lineAmount: monthlyPrice,
-    }
+    return InvoiceEngine._buildFeeLine(planName, monthlyPrice, 'Monthly subscription')
   },
 
   // -------------------------------------------------------------------------

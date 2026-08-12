@@ -15,6 +15,8 @@ export type PlanWithEntitlements = {
   description: string
   sortOrder: number
   monthlyPrice: number
+  /** Annual fee in cents. null = no annual discount configured; compute as monthlyPrice × 12 in the UI. */
+  annualPrice: number | null
   includedTxPerMonth: number
   entitlements: Array<{
     featureKey: string
@@ -44,6 +46,7 @@ export const fetchPlans = async (): Promise<PlanWithEntitlements[]> => {
     description: p.description ?? '',
     sortOrder: p.sortOrder,
     monthlyPrice: p.monthlyPrice,
+    annualPrice: p.annualPrice ?? null,
     includedTxPerMonth: p.includedTxPerMonth,
     entitlements: (p.entitlements ?? []).map(e => ({
       featureKey: e.featureKey,

@@ -17,6 +17,7 @@ import type { SubscriptionStatus } from '../entitlement/entitlement-types'
 // ---------------------------------------------------------------------------
 export const BillingModel = {
   MONTHLY_SUBSCRIPTION: 'MONTHLY_SUBSCRIPTION',
+  YEARLY_SUBSCRIPTION: 'YEARLY_SUBSCRIPTION',
   PREPAID_CREDITS: 'PREPAID_CREDITS',
   HYBRID: 'HYBRID',
   COMPOSABLE_FEATURES: 'COMPOSABLE_FEATURES',

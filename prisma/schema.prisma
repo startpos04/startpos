@@ -1357,6 +1357,7 @@ enum SubscriptionStatus {
 // ---------------------------------------------------------------------------
 enum BillingModel {
   MONTHLY_SUBSCRIPTION // Fixed monthly fee; TX allowance enforced; overage billing optional.
+  YEARLY_SUBSCRIPTION // Annual upfront fee; TX allowance enforced (12× monthly); overage billing optional.
   PREPAID_CREDITS // Credit units deducted per transaction; CreditLedger tracks balance.
   HYBRID // Subscription base with prepaid credit overflow for overage TXs.
   COMPOSABLE_FEATURES // Business-assembled feature set; dynamic price from PricingEngine (Phase 5).
@@ -1507,8 +1508,9 @@ model SubscriptionPlan {
 
   // Billing
   monthlyPrice       Int // In cents. 0 = free trial base plan
+  annualPrice        Int? // In cents. null = use monthlyPrice × 12 (no annual discount configured)
   includedTxPerMonth Int // Monthly transaction allowance. -1 = unlimited
-  overagePerTx       Int @default(0) // Cents per tx over allowance. 0 = block instead of charge
+  overagePerTx       Int  @default(0) // Cents per tx over allowance. 0 = block instead of charge
 
   entitlements PlanEntitlement[]
 

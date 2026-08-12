@@ -175,7 +175,7 @@ export const EntitlementEngine = {
 
     // ------------------------------------------------------------------
     // Step 6: Transaction allowance — only checked for COMPLETE_CHECKOUT
-    // on MONTHLY_SUBSCRIPTION and HYBRID billing models.
+    // on MONTHLY_SUBSCRIPTION, YEARLY_SUBSCRIPTION, and HYBRID billing models.
     // COMPOSABLE_FEATURES subscriptions do not use TX allowance enforcement.
     // ------------------------------------------------------------------
     const isComposable = context.billingModel === 'COMPOSABLE_FEATURES'

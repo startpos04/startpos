@@ -28,6 +28,8 @@ export type PlanDTO = {
   description: string
   sortOrder: number
   monthlyPrice: number // cents
+  /** Annual fee in cents. null = no annual discount set; use monthlyPrice × 12. */
+  annualPrice: number | null
   includedTxPerMonth: number // -1 = unlimited
   isActive: boolean
 }
@@ -76,11 +78,35 @@ export const PlanEngine = {
 
   /**
    * Formats a monthly price in cents to a human-readable string.
-   * e.g., 49900 → "₱499.00/mo"
+   * e.g., 49900 → "₱499/mo"
    */
   formatMonthlyPrice(cents: number): string {
     if (cents === 0) return 'Free'
     const amount = (cents / 100).toFixed(2)
+    return `₱${Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}/mo`
+  },
+
+  /**
+   * Formats an annual price in cents to a human-readable string.
+   * Falls back to monthlyPrice × 12 when annualPrice is null.
+   * e.g., 479040 → "₱4,790.40/yr"
+   */
+  formatAnnualPrice(monthlyPrice: number, annualPrice: number | null): string {
+    if (monthlyPrice === 0) return 'Free'
+    const total = annualPrice ?? monthlyPrice * 12
+    const amount = (total / 100).toFixed(2)
+    return `₱${Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}/yr`
+  },
+
+  /**
+   * Returns the effective per-month equivalent of the annual price (for display).
+   * e.g., annualPrice=479040 → 39920 cents/mo → "₱399.20/mo"
+   */
+  formatAnnualMonthlyEquivalent(monthlyPrice: number, annualPrice: number | null): string {
+    if (monthlyPrice === 0) return 'Free'
+    const annual = annualPrice ?? monthlyPrice * 12
+    const perMonth = Math.round(annual / 12)
+    const amount = (perMonth / 100).toFixed(2)
     return `₱${Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}/mo`
   },
 

@@ -46,7 +46,7 @@ type BillingMethod = 'monthly' | 'annual' | 'credits'
 
 const BILLING_METHODS: Array<{ value: BillingMethod; label: string; badge?: string }> = [
   { value: 'monthly', label: 'Monthly' },
-  { value: 'annual', label: 'Annual', badge: 'Save 20%' },
+  { value: 'annual', label: 'Annual' },
   { value: 'credits', label: 'Pay as you go' },
 ]
 
@@ -105,15 +105,30 @@ const PLAN_DETAILS: Record<string, PlanDetails> = {
 function getDisplayPrice(plan: PlanWithEntitlements, method: BillingMethod): string {
   if (plan.monthlyPrice === 0) return 'Free'
   if (method === 'credits') return 'Pay per TX'
-  const monthly = plan.monthlyPrice
-  const amount = method === 'annual' ? monthly * 0.8 : monthly
-  return `₱${(Math.round(amount) / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
+  if (method === 'annual') {
+    // Use DB annualPrice ÷ 12 as the monthly-equivalent display price.
+    // Falls back to monthlyPrice × 0.8 when annualPrice is not yet seeded.
+    const annual = plan.annualPrice ?? Math.round(plan.monthlyPrice * 0.8 * 12)
+    const perMonth = Math.round(annual / 12)
+    return `₱${(perMonth / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
+  }
+  return `₱${(plan.monthlyPrice / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
 }
 
 function getAnnualTotal(plan: PlanWithEntitlements): string {
   if (plan.monthlyPrice === 0) return ''
-  const annual = Math.round(plan.monthlyPrice * 0.8 * 12)
+  const annual = plan.annualPrice ?? Math.round(plan.monthlyPrice * 0.8 * 12)
   return `₱${(annual / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })} billed annually`
+}
+
+function getAnnualSavingsLabel(plan: PlanWithEntitlements): string {
+  if (plan.monthlyPrice === 0) return ''
+  const monthlyTotal = plan.monthlyPrice * 12
+  const annual = plan.annualPrice ?? Math.round(plan.monthlyPrice * 0.8 * 12)
+  const savingsCents = monthlyTotal - annual
+  if (savingsCents <= 0) return ''
+  const pct = Math.round((savingsCents / monthlyTotal) * 100)
+  return `Save ${pct}%`
 }
 
 // ---------------------------------------------------------------------------
@@ -346,27 +361,33 @@ function PlansPage() {
       {!hasActiveSubscription && (
         <div className='flex flex-col gap-2'>
           <div className='flex items-center gap-1 p-1 bg-muted rounded-lg w-fit'>
-            {BILLING_METHODS.map(method => (
-              <button
-                key={method.value}
-                type='button'
-                onClick={() => setBillingMethod(method.value)}
-                className={cn(
-                  'flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
-                  billingMethod === method.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {method.value === 'monthly' && <ZapIcon className='h-3.5 w-3.5' />}
-                {method.value === 'annual' && <SparklesIcon className='h-3.5 w-3.5' />}
-                {method.value === 'credits' && <CoinsIcon className='h-3.5 w-3.5' />}
-                {method.label}
-                {method.badge && (
-                  <Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-4 font-semibold text-emerald-700 bg-emerald-100'>
-                    {method.badge}
-                  </Badge>
-                )}
-              </button>
-            ))}
+            {BILLING_METHODS.map(method => {
+              // Compute a representative savings label for the annual toggle badge
+              // using the first paid plan returned (lowest sort order).
+              const firstPaidPlan = plans.find(p => p.monthlyPrice > 0 && p.name !== 'Trial')
+              const savingsLabel = method.value === 'annual' && firstPaidPlan ? getAnnualSavingsLabel(firstPaidPlan) : ''
+              return (
+                <button
+                  key={method.value}
+                  type='button'
+                  onClick={() => setBillingMethod(method.value)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
+                    billingMethod === method.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {method.value === 'monthly' && <ZapIcon className='h-3.5 w-3.5' />}
+                  {method.value === 'annual' && <SparklesIcon className='h-3.5 w-3.5' />}
+                  {method.value === 'credits' && <CoinsIcon className='h-3.5 w-3.5' />}
+                  {method.label}
+                  {savingsLabel && (
+                    <Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-4 font-semibold text-emerald-700 bg-emerald-100'>
+                      {savingsLabel}
+                    </Badge>
+                  )}
+                </button>
+              )
+            })}
           </div>
           {billingMethod === 'annual' && (
             <p className='text-xs text-muted-foreground'>Annual pricing requires separate Stripe price IDs. Contact your admin if checkout fails.</p>

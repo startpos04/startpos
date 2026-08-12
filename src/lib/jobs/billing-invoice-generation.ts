@@ -38,6 +38,7 @@ const SUBSCRIPTION_SELECT = {
   id: true,
   businessId: true,
   planId: true,
+  billingModel: true,
   externalId: true,
   currentPeriodStart: true,
   currentPeriodEnd: true,
@@ -45,6 +46,7 @@ const SUBSCRIPTION_SELECT = {
     select: {
       name: true,
       monthlyPrice: true,
+      annualPrice: true,
       includedTxPerMonth: true,
       overagePerTx: true,
     },
@@ -154,12 +156,16 @@ export async function runBillingInvoiceGenerationJob(
         const planInput: SubscriptionPlanInput = {
           planName: subscription.plan.name,
           monthlyPrice: subscription.plan.monthlyPrice,
+          annualPrice: subscription.plan.annualPrice ?? null,
           includedTxPerMonth: subscription.plan.includedTxPerMonth,
           overagePerTx: subscription.plan.overagePerTx,
         }
 
-        // Build the invoice DTO via the pure InvoiceEngine
-        const invoiceDTO = InvoiceEngine.buildMonthlyInvoice(subscription.businessId, counterSnapshot, planInput, policy)
+        // Route to the correct invoice builder based on billing model
+        const isAnnual = subscription.billingModel === 'YEARLY_SUBSCRIPTION'
+        const invoiceDTO = isAnnual
+          ? InvoiceEngine.buildAnnualInvoice(subscription.businessId, counterSnapshot, planInput, policy)
+          : InvoiceEngine.buildMonthlyInvoice(subscription.businessId, counterSnapshot, planInput, policy)
 
         // Skip zero-amount invoices (free trial period, no overage)
         if (invoiceDTO.totalAmount === 0 && invoiceDTO.items.length === 0) {
