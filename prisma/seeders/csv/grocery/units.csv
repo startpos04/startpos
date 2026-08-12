@@ -1,0 +1,11 @@
+name,abbreviation,type,conversionFactor,isBaseUnit
+Gram,g,WEIGHT,1,true
+Kilogram,kg,WEIGHT,1000,false
+Piece,pcs,COUNT,1,true
+Pack,pack,COUNT,1,false
+Box,box,COUNT,1,false
+Bottle,btl,COUNT,1,false
+Milliliter,ml,VOLUME,1,true
+Liter,L,VOLUME,1000,false
+Sachet,scht,COUNT,1,false
+Dozen,dz,COUNT,12,false

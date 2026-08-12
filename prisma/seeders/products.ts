@@ -45,44 +45,12 @@ interface RecipeRow {
   priceOverride: number | null
 }
 
-export const DEFAULT_PRODUCT_DATA = {
-  categories: [
-    { name: 'Beverages' },
-    { name: 'Main Dishes' },
-    { name: 'Desserts' },
-    { name: 'Snacks' },
-    { name: 'Add-ons & Modifiers' },
-    { name: 'Raw Materials & Supplies' },
-  ] as CategoryRow[],
-  variants: [] as FlattenedVariantRow[], // Formatted seamlessly inside your parsing pipeline
-  recipes: [
-    { hostVariantId: 'var-sisig-bowl', materialVariantId: 'var-extra-rice', unitAbbreviation: 'g', quantityUsed: 1.0, isAddon: false, priceOverride: null },
-    { hostVariantId: 'var-chicken-rice', materialVariantId: 'var-extra-rice', unitAbbreviation: 'g', quantityUsed: 1.0, isAddon: false, priceOverride: null },
-    {
-      hostVariantId: 'var-chicken-rice',
-      materialVariantId: 'var-raw-chicken-pc',
-      unitAbbreviation: 'kg',
-      quantityUsed: 1.0,
-      isAddon: false,
-      priceOverride: null,
-    },
-    {
-      hostVariantId: 'var-milktea-std',
-      materialVariantId: 'var-tapioca-pearls',
-      unitAbbreviation: 'g',
-      quantityUsed: 1.0,
-      isAddon: false,
-      priceOverride: null,
-    },
-    { hostVariantId: 'var-sisig-bowl', materialVariantId: 'var-extra-rice', unitAbbreviation: 'g', quantityUsed: 1.0, isAddon: true, priceOverride: 30 },
-    { hostVariantId: 'var-sisig-bowl', materialVariantId: 'var-extra-egg', unitAbbreviation: 'pcs', quantityUsed: 1.0, isAddon: true, priceOverride: null },
-    { hostVariantId: 'var-milktea-std', materialVariantId: 'var-tapioca-pearls', unitAbbreviation: 'g', quantityUsed: 2.0, isAddon: true, priceOverride: 40 },
-  ] as RecipeRow[],
-}
+function parseProductsCsvRequired<T>(folder: string, fileName: string, requiredHeaders: string[]): T[] {
+  const targetPath = path.join(PRODUCTS_CSV_DIR, folder, fileName)
 
-function parseProductsCsv<T>(fileName: string, requiredHeaders: string[]): T[] | null {
-  const targetPath = path.join(PRODUCTS_CSV_DIR, fileName)
-  if (!fs.existsSync(targetPath)) return null
+  if (!fs.existsSync(targetPath)) {
+    throw new Error(`❌ Ingestion aborted. Required product file is missing: "csv/${folder}/${fileName}"`)
+  }
 
   const fileContent = fs.readFileSync(targetPath, 'utf-8')
   const { data, meta } = Papa.parse(fileContent, {
@@ -102,50 +70,41 @@ export async function Products(prisma: PrismaClient, options: { folder: string }
   const accounts = getAccounts(options.folder)
 
   // --- RESOLVE CATEGORIES ---
-  let runtimeCategories = DEFAULT_PRODUCT_DATA.categories
-  const categoriesCsv = parseProductsCsv<any>(`${options.folder}/categories.csv`, ['name'])
-  if (categoriesCsv) {
-    console.info('📈 Hydrating product classifications from categories.csv...')
-    runtimeCategories = categoriesCsv.map(row => ({ name: String(row.name).trim() }))
-  }
+  const categoriesCsv = parseProductsCsvRequired<any>(options.folder, 'categories.csv', ['name'])
+  console.info(`📈 Hydrating product classifications from csv/${options.folder}/categories.csv...`)
+  const runtimeCategories: CategoryRow[] = categoriesCsv.map(row => ({ name: String(row.name).trim() }))
 
   // --- RESOLVE FLATTENED VARIANTS & PRODUCTS ---
-  let runtimeVariants = DEFAULT_PRODUCT_DATA.variants
-  const variantsCsv = parseProductsCsv<any>(`${options.folder}/product-variants.csv`, ['productId', 'variantId', 'sku'])
-  if (variantsCsv) {
-    console.info('📈 Hydrating variant profiles from variants.csv...')
-    runtimeVariants = variantsCsv.map(row => ({
-      productId: String(row.productId).trim(),
-      productName: String(row.productName).trim(),
-      productType: (String(row.productType).trim() as ResourceType) || ResourceType.PHYSICAL_GOOD,
-      categoryName: String(row.categoryName).trim(),
-      baseUnitAbbreviation: String(row.baseUnitAbbreviation).trim(),
-      variantId: String(row.variantId).trim(),
-      variantName: String(row.variantName).trim(),
-      image: String(row.image).trim(),
-      sku: String(row.sku).trim(),
-      price: parseInt(row.price, 10) || 0,
-      costPrice: parseInt(row.costPrice, 10) || 0,
-      attributeType: (String(row.attributeType).trim() as VariantAttributeType) || VariantAttributeType.UNSPECIFIED,
-      taxCategory: (String(row.taxCategory).trim() as TaxCategory) || TaxCategory.STANDARD,
-      lowStockThreshold: parseInt(row.lowStockThreshold, 10) || 0,
-    }))
-  }
+  const variantsCsv = parseProductsCsvRequired<any>(options.folder, 'product-variants.csv', ['productId', 'variantId', 'sku'])
+  console.info(`📈 Hydrating variant profiles from csv/${options.folder}/product-variants.csv...`)
+  const runtimeVariants: FlattenedVariantRow[] = variantsCsv.map(row => ({
+    productId: String(row.productId).trim(),
+    productName: String(row.productName).trim(),
+    productType: (String(row.productType).trim() as ResourceType) || ResourceType.PHYSICAL_GOOD,
+    categoryName: String(row.categoryName).trim(),
+    baseUnitAbbreviation: String(row.baseUnitAbbreviation).trim(),
+    variantId: String(row.variantId).trim(),
+    variantName: String(row.variantName).trim(),
+    image: String(row.image).trim(),
+    sku: String(row.sku).trim(),
+    price: parseInt(row.price, 10) || 0,
+    costPrice: parseInt(row.costPrice, 10) || 0,
+    attributeType: (String(row.attributeType).trim() as VariantAttributeType) || VariantAttributeType.UNSPECIFIED,
+    taxCategory: (String(row.taxCategory).trim() as TaxCategory) || TaxCategory.STANDARD,
+    lowStockThreshold: parseInt(row.lowStockThreshold, 10) || 0,
+  }))
 
   // --- RESOLVE RECIPES ---
-  let runtimeRecipes = DEFAULT_PRODUCT_DATA.recipes
-  const recipesCsv = parseProductsCsv<any>(`${options.folder}/product-recipes.csv`, ['hostVariantId', 'materialVariantId', 'quantityUsed'])
-  if (recipesCsv) {
-    console.info('📈 Hydrating recipes from recipes.csv...')
-    runtimeRecipes = recipesCsv.map(row => ({
-      hostVariantId: String(row.hostVariantId).trim(),
-      materialVariantId: String(row.materialVariantId).trim(),
-      unitAbbreviation: String(row.unitAbbreviation).trim(),
-      quantityUsed: parseFloat(row.quantityUsed) || 1.0,
-      isAddon: String(row.isAddon).trim().toLowerCase() === 'true',
-      priceOverride: row.priceOverride && String(row.priceOverride).trim() !== '' ? parseInt(row.priceOverride, 10) : null,
-    }))
-  }
+  const recipesCsv = parseProductsCsvRequired<any>(options.folder, 'product-recipes.csv', ['hostVariantId', 'materialVariantId', 'quantityUsed'])
+  console.info(`📈 Hydrating recipes from csv/${options.folder}/product-recipes.csv...`)
+  const runtimeRecipes: RecipeRow[] = recipesCsv.map(row => ({
+    hostVariantId: String(row.hostVariantId).trim(),
+    materialVariantId: String(row.materialVariantId).trim(),
+    unitAbbreviation: String(row.unitAbbreviation).trim(),
+    quantityUsed: parseFloat(row.quantityUsed) || 1.0,
+    isAddon: String(row.isAddon).trim().toLowerCase() === 'true',
+    priceOverride: row.priceOverride && String(row.priceOverride).trim() !== '' ? parseInt(row.priceOverride, 10) : null,
+  }))
 
   // =======================================================
   // EXECUTION LAYER: INITIALIZE CATEGORIES MAP
@@ -190,19 +149,15 @@ export async function Products(prisma: PrismaClient, options: { folder: string }
 
     if (item.image && item.image.trim() !== '' && !item.image.startsWith('data:')) {
       try {
-        // Resolve absolute or relative filesystem paths for local files, while leaving URLs intact
         const imagePath = item.image.startsWith('http')
           ? item.image
           : path.isAbsolute(item.image)
             ? item.image
             : path.join(PRODUCTS_CSV_DIR, options.folder, item.image)
 
-        // Run your unified function!
-        // We pass undefined for pixelCrop so it auto-calculates the center crop.
         finalProcessedImage = await getCroppedImg(imagePath, undefined, { targetWidth: 600, targetHeight: 600, format: 'image/webp', quality: 0.9 })
       } catch (error) {
         console.warn(`  ⚠️ Image crop skipped for "${item.productName}": ${(error as Error).message}`)
-        // Fallback to the original layout text/path if processing fails
         finalProcessedImage = item.image
       }
     }
@@ -215,7 +170,7 @@ export async function Products(prisma: PrismaClient, options: { folder: string }
         type: item.productType,
         categoryId: categoryId,
         baseUnitId: targetUnit.id,
-        image: finalProcessedImage, // Saved uniformly as a crisp base64 square
+        image: finalProcessedImage,
         deletedAt: null,
       },
       create: {
@@ -224,7 +179,7 @@ export async function Products(prisma: PrismaClient, options: { folder: string }
         type: item.productType,
         categoryId: categoryId,
         baseUnitId: targetUnit.id,
-        image: finalProcessedImage, // Saved uniformly as a crisp base64 square
+        image: finalProcessedImage,
         businessId: accounts.business.id,
       },
     })
@@ -234,7 +189,7 @@ export async function Products(prisma: PrismaClient, options: { folder: string }
       where: { id: item.variantId },
       update: {
         name: item.variantName,
-        image: finalProcessedImage, // Match parent image uniformity
+        image: finalProcessedImage,
         sku: item.sku,
         price: PriceEngine.toCents(item.price),
         costPrice: PriceEngine.toCents(item.costPrice),
@@ -247,7 +202,7 @@ export async function Products(prisma: PrismaClient, options: { folder: string }
         id: item.variantId,
         productId: product.id,
         name: item.variantName,
-        image: finalProcessedImage, // Match parent image uniformity
+        image: finalProcessedImage,
         sku: item.sku,
         price: PriceEngine.toCents(item.price),
         costPrice: PriceEngine.toCents(item.costPrice),

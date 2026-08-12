@@ -1,0 +1,15 @@
+id,variantId,quantity,unitAbbreviation,batchNumber,costPrice,locationName
+kln-inv-liempo,kln-var-raw-liempo,8,kg,BATCH-LIEMPO-001,27000,Walk-in Cooler
+kln-inv-gnd-pork,kln-var-raw-gnd-pork,5,kg,BATCH-GNDPRK-001,24000,Walk-in Cooler
+kln-inv-beef-shank,kln-var-raw-beef-shank,4,kg,BATCH-BFSHANK-001,55000,Walk-in Cooler
+kln-inv-bangus,kln-var-raw-bangus,6,kg,BATCH-BANGUS-001,22000,Walk-in Cooler
+kln-inv-squid,kln-var-raw-squid,3,kg,BATCH-SQUID-001,32000,Walk-in Cooler
+kln-inv-rice,kln-var-rice,25,kg,BATCH-RICE-001,7200,Dry Storage Room
+kln-inv-tapa,kln-var-raw-tapa,4,kg,BATCH-TAPA-001,48000,Walk-in Cooler
+kln-inv-longganisa,kln-var-raw-longganisa,3,kg,BATCH-LNGS-001,35000,Walk-in Cooler
+kln-inv-eggs,kln-var-raw-eggs,72,pcs,BATCH-EGGS-001,800,Walk-in Cooler
+kln-inv-coke,kln-var-coke-reg,48,pcs,BATCH-COKE-001,2200,Dry Storage Room
+kln-inv-sprite,kln-var-sprite-reg,36,pcs,BATCH-SPRT-001,2200,Dry Storage Room
+kln-inv-extra-rice,kln-var-extra-rice,15000,g,BATCH-XRICE-001,400,Dry Storage Room
+kln-inv-extra-egg,kln-var-extra-egg,30,pcs,BATCH-XEGG-001,600,Walk-in Cooler
+kln-inv-bagoong,kln-var-bagoong,25,pcs,BATCH-BGOONG-001,700,Dry Storage Room

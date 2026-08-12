@@ -1,0 +1,4 @@
+id,purchaseId,totalCost,notes,supplierName,operationalTaskId
+shub-po-001,PO-SHB-2024-001,4560000,Seasonal collection delivery — women's tops bottoms dresses,Manila Garments Corp,shub-task-po-001
+shub-po-002,PO-SHB-2024-002,3280000,Men's collection restock — polo shirts chinos graphic tees,Bench Manufacturing,shub-task-po-002
+shub-po-003,PO-SHB-2024-003,2960000,Outerwear footwear and accessories delivery,Cebu Fashion Wholesale,shub-task-po-003

@@ -1,748 +1,210 @@
 /**
- * entitlements.ts — Entitlement Engine seed (Phase 2 + Phase 5)
+ * entitlements.ts — Entitlement Engine seed
  *
- * Seeds the Feature registry, SubscriptionPlan tiers, PlanEntitlement
- * join records, billing policy config defaults, and (Phase 5) the initial
- * PricingCatalog v1 with FeaturePrice records for all selectable features.
+ * Reads all platform-global data from csv/system/:
+ *   features.csv              — Feature registry
+ *   plans.csv                 — SubscriptionPlan tiers
+ *   plan-entitlements.csv     — PlanEntitlement join records
+ *   billing-config-defaults.csv — Platform-level SystemConfig defaults
+ *   pricing-catalog.csv       — PricingCatalog v1 with FeaturePrice records
  *
- * Design decisions:
- *  - All upserts keyed on stable natural keys (Feature.key, SubscriptionPlan.name)
- *    so the seed is fully idempotent — safe to re-run at any time.
- *  - Capability keys imported directly from the domain module to prevent
- *    string drift between the code and the DB.
- *  - No CSV used: entitlement data is platform-global and code-defined.
- *    It is the same in every environment and must stay typed against CapabilityKey.
- *  - order = 0: runs before all tenant-specific seeders.
- *  - Phase 5: FeatureDependency DAG is validated post-seed to prevent cycle insertion.
+ * All upserts are keyed on stable natural keys so the seed is fully
+ * idempotent — safe to re-run at any time.
+ *
+ * order = 0: runs before all tenant-specific seeders.
  */
 
 /** biome-ignore-all lint/suspicious/noExplicitAny: seeder tx type */
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import Papa from 'papaparse'
 import type { PrismaClient } from 'prisma/generated/prisma/client'
-import { Capabilities, type CapabilityKey, OPERATIONAL_CAPABILITIES } from '../../src/lib/entitlement/capability-keys'
+import { OPERATIONAL_CAPABILITIES } from '../../src/lib/entitlement/capability-keys'
 
 export const order = 0
 
-// ---------------------------------------------------------------------------
-// Feature Definitions
-// key           → CapabilityKey constant (source of truth: capability-keys.ts)
-// label         → Human-readable name for admin UI
-// description   → What this capability controls
-// isOperational → Derived from OPERATIONAL_CAPABILITIES set
-// Phase 5b fields:
-//   isSelectableByCustomer → true = appears in the pricing calculator
-//   pricingCategory        → grouping category for calculator display
-//   sortOrder              → display order within the category
-// ---------------------------------------------------------------------------
-const FEATURES: Array<{
-  key: CapabilityKey
-  label: string
-  description: string
-  isSelectableByCustomer: boolean
-  pricingCategory: string | null
-  sortOrder: number
-}> = [
-  // --- Operational (blocked when subscription lapses) ---
-  {
-    key: Capabilities.COMPLETE_CHECKOUT,
-    label: 'Complete Checkout',
-    description: 'Process a POS transaction and collect payment.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'CORE',
-    sortOrder: 10,
-  },
-  {
-    key: Capabilities.CREATE_ORDER,
-    label: 'Create Order',
-    description: 'Create a new kitchen or service order.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'OPERATIONAL',
-    sortOrder: 20,
-  },
-  {
-    key: Capabilities.EDIT_ACTIVE_ORDER,
-    label: 'Edit Active Order',
-    description: 'Modify an order that is currently in progress.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'OPERATIONAL',
-    sortOrder: 30,
-  },
-  {
-    key: Capabilities.RECORD_PAYMENT,
-    label: 'Record Payment',
-    description: 'Record a payment against an existing order or invoice.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'CORE',
-    sortOrder: 20,
-  },
-  {
-    key: Capabilities.ISSUE_REFUND,
-    label: 'Issue Refund',
-    description: 'Process a refund transaction against a completed sale.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'OPERATIONAL',
-    sortOrder: 40,
-  },
-  {
-    key: Capabilities.PRINT_RECEIPT,
-    label: 'Print Receipt',
-    description: 'Generate and print or download a transaction receipt.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'OPERATIONAL',
-    sortOrder: 50,
-  },
-  {
-    key: Capabilities.START_VENDOR_SESSION,
-    label: 'Start Vendor Session',
-    description: 'Open a vendor / cash reconciliation session.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'OPERATIONAL',
-    sortOrder: 60,
-  },
-  {
-    key: Capabilities.CREATE_PURCHASE,
-    label: 'Create Purchase',
-    description: 'Record a new stock purchase from a supplier.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'OPERATIONAL',
-    sortOrder: 70,
-  },
-  {
-    key: Capabilities.MANAGE_INVENTORY,
-    label: 'Manage Inventory',
-    description: 'Adjust, transfer, and reconcile inventory stock.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'CORE',
-    sortOrder: 30,
-  },
-  {
-    key: Capabilities.CREATE_TASK,
-    label: 'Create Task',
-    description: 'Create operational tasks (shelf refill, stock count, etc.).',
-    isSelectableByCustomer: true,
-    pricingCategory: 'OPERATIONAL',
-    sortOrder: 80,
-  },
-
-  // --- Management (always accessible regardless of subscription status) ---
-  {
-    key: Capabilities.MANAGE_PRODUCTS,
-    label: 'Manage Products',
-    description: 'Create, edit, and archive products and variants.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'MANAGEMENT',
-    sortOrder: 10,
-  },
-  {
-    key: Capabilities.MANAGE_EMPLOYEES,
-    label: 'Manage Employees',
-    description: 'Invite, edit, and deactivate employee accounts.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'MANAGEMENT',
-    sortOrder: 20,
-  },
-  {
-    key: Capabilities.MANAGE_CUSTOMERS,
-    label: 'Manage Customers',
-    description: 'View and manage the customer directory.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'MANAGEMENT',
-    sortOrder: 30,
-  },
-  {
-    key: Capabilities.MANAGE_SUPPLIERS,
-    label: 'Manage Suppliers',
-    description: 'Create and manage supplier records.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'MANAGEMENT',
-    sortOrder: 40,
-  },
-  {
-    key: Capabilities.VIEW_SALES_REPORTS,
-    label: 'View Sales Reports',
-    description: 'Access revenue, transaction, and sales trend reports.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'MANAGEMENT',
-    sortOrder: 50,
-  },
-  {
-    key: Capabilities.VIEW_INVENTORY_REPORTS,
-    label: 'View Inventory Reports',
-    description: 'Access stock movement and valuation reports.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'MANAGEMENT',
-    sortOrder: 60,
-  },
-  {
-    key: Capabilities.VIEW_TRANSACTION_HISTORY,
-    label: 'View Transaction History',
-    description: 'Browse and search full historical transaction records.',
-    isSelectableByCustomer: false, // Included free — not a paid selection
-    pricingCategory: 'MANAGEMENT',
-    sortOrder: 70,
-  },
-  {
-    key: Capabilities.VIEW_ORDER_HISTORY,
-    label: 'View Order History',
-    description: 'Browse and search full historical order records.',
-    isSelectableByCustomer: false,
-    pricingCategory: 'MANAGEMENT',
-    sortOrder: 80,
-  },
-  {
-    key: Capabilities.VIEW_ANALYTICS,
-    label: 'View Analytics',
-    description: 'Access advanced analytics dashboards (premium).',
-    isSelectableByCustomer: true,
-    pricingCategory: 'ADVANCED',
-    sortOrder: 10,
-  },
-  {
-    key: Capabilities.EXPORT_DATA,
-    label: 'Export Data',
-    description: 'Download transaction and inventory data as CSV.',
-    isSelectableByCustomer: true,
-    pricingCategory: 'MANAGEMENT',
-    sortOrder: 90,
-  },
-  {
-    key: Capabilities.MANAGE_SETTINGS,
-    label: 'Manage Settings',
-    description: 'Edit business, branch, and system configuration.',
-    isSelectableByCustomer: false,
-    pricingCategory: 'MANAGEMENT',
-    sortOrder: 100,
-  },
-  {
-    key: Capabilities.MANAGE_BRANCHES,
-    label: 'Manage Branches',
-    description: 'Create and configure additional branches (premium).',
-    isSelectableByCustomer: true,
-    pricingCategory: 'ADVANCED',
-    sortOrder: 20,
-  },
-  {
-    key: Capabilities.MANAGE_BILLING,
-    label: 'Manage Billing',
-    description: 'View subscription status, invoices, and payment methods.',
-    isSelectableByCustomer: false,
-    pricingCategory: null,
-    sortOrder: 0,
-  },
-  {
-    key: Capabilities.REACTIVATE_SUBSCRIPTION,
-    label: 'Reactivate Subscription',
-    description: 'Reactivate an expired or cancelled subscription.',
-    isSelectableByCustomer: false,
-    pricingCategory: null,
-    sortOrder: 0,
-  },
-  {
-    key: Capabilities.ACCESS_API,
-    label: 'Access API',
-    description: 'Generate API keys and access the developer API (enterprise).',
-    isSelectableByCustomer: true,
-    pricingCategory: 'INTEGRATION',
-    sortOrder: 10,
-  },
-  // Future capabilities — not yet built; seeded so BOS registry IDs resolve
-  {
-    key: Capabilities.LOYALTY_POINTS,
-    label: 'Loyalty Points',
-    description: 'Award and redeem loyalty points at checkout.',
-    isSelectableByCustomer: false,
-    pricingCategory: null,
-    sortOrder: 0,
-  },
-  {
-    key: Capabilities.KITCHEN_DISPLAY,
-    label: 'Kitchen Display System',
-    description: 'Display orders on a kitchen screen as they come in.',
-    isSelectableByCustomer: false,
-    pricingCategory: null,
-    sortOrder: 0,
-  },
-  {
-    key: Capabilities.DELIVERY_MANAGEMENT,
-    label: 'Delivery Management',
-    description: 'Manage delivery orders and track driver assignments.',
-    isSelectableByCustomer: false,
-    pricingCategory: null,
-    sortOrder: 0,
-  },
-]
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const SYSTEM_CSV_DIR = path.join(__dirname, 'csv', 'system')
 
 // ---------------------------------------------------------------------------
-// Plan Definitions
-//
-// Three production tiers + one Trial. All tiers support all billing models —
-// the plan defines WHAT you get, the billing model defines HOW you pay.
-//
-// Tier capability matrix:
-//   Basic      — checkout, orders, refunds, receipts, products, customers, all
-//                reports, purchase orders, tasks, settings, billing,
-//                1 employee (usageLimit: 1), 1 branch (usageLimit: 1)
-//   Premium    — Basic + inventory management, vendor sessions, suppliers,
-//                data export, unlimited employees, up to 3 branches
-//   Enterprise — Premium + up to 5 branches, 10,000 TX/month
-//                NOTE: Analytics & API are add-ons on all tiers, not bundled.
-//
-// Trial uses Enterprise features with tight limits to let new registrants
-// explore everything without being able to abuse it:
-//   - 1,000 TX/month (same as Basic — enough to experience the product)
-//   - 1 employee (same as Basic — minimum meaningful cap)
-//   - 1 branch (same as Basic)
-//   - No analytics or API (add-ons must be purchased separately)
-//   - Expires after 30 days → prompts upgrade to a paid plan.
-//
-// monthlyPrice in PHP cents. includedTxPerMonth: -1 = unlimited.
+// CSV helpers
 // ---------------------------------------------------------------------------
-type PlanDefinition = {
-  name: string
-  description: string
-  sortOrder: number
-  monthlyPrice: number
-  includedTxPerMonth: number
-  overagePerTx: number
-  entitlements: Array<{ key: CapabilityKey; usageLimit: number | null }>
+
+function parseSystemCsv<T>(fileName: string, requiredHeaders: string[]): T[] {
+  const filePath = path.join(SYSTEM_CSV_DIR, fileName)
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`❌ Ingestion aborted. Required system file is missing: "csv/system/${fileName}"`)
+  }
+
+  const { data, meta } = Papa.parse(fs.readFileSync(filePath, 'utf-8'), {
+    header: true,
+    skipEmptyLines: true,
+  })
+
+  const missing = requiredHeaders.filter(h => !meta.fields?.includes(h))
+  if (missing.length > 0) {
+    throw new Error(`❌ csv/system/${fileName} missing required columns: [${missing.join(', ')}]`)
+  }
+
+  return data as T[]
 }
 
-// Shared Basic capabilities — reused by Basic and as the foundation for Premium/Enterprise
-//
-// Design rationale (2026 tier structure):
-//   Basic covers solo operators: checkout, orders, products, customers, history.
-//   Purchase orders, restocking tasks, and supplier management require a more
-//   structured operation (dedicated purchasing role, supplier relationships) —
-//   these belong in Enterprise where multi-location teams operate at that scale.
-const BASIC_ENTITLEMENTS: Array<{ key: CapabilityKey; usageLimit: number | null }> = [
-  { key: Capabilities.COMPLETE_CHECKOUT, usageLimit: null },
-  { key: Capabilities.RECORD_PAYMENT, usageLimit: null },
-  { key: Capabilities.PRINT_RECEIPT, usageLimit: null },
-  { key: Capabilities.ISSUE_REFUND, usageLimit: null },
-  { key: Capabilities.CREATE_ORDER, usageLimit: null },
-  { key: Capabilities.EDIT_ACTIVE_ORDER, usageLimit: null },
-  { key: Capabilities.MANAGE_PRODUCTS, usageLimit: null },
-  { key: Capabilities.MANAGE_CUSTOMERS, usageLimit: null },
-  { key: Capabilities.VIEW_TRANSACTION_HISTORY, usageLimit: null },
-  { key: Capabilities.VIEW_ORDER_HISTORY, usageLimit: null },
-  { key: Capabilities.MANAGE_SETTINGS, usageLimit: null },
-  { key: Capabilities.MANAGE_BILLING, usageLimit: null },
-  { key: Capabilities.REACTIVATE_SUBSCRIPTION, usageLimit: null },
-  // 1 employee limit on Basic — upgrade pressure to Premium
-  { key: Capabilities.MANAGE_EMPLOYEES, usageLimit: 1 },
-  // 1 branch limit on Basic
-  { key: Capabilities.MANAGE_BRANCHES, usageLimit: 1 },
-]
-
-// Premium adds inventory management, unlimited staff, vendor sessions,
-// data export, sales & inventory reports, and up to 3 branches on top of Basic.
-const PREMIUM_ADDITIONS: Array<{ key: CapabilityKey; usageLimit: number | null }> = [
-  { key: Capabilities.MANAGE_INVENTORY, usageLimit: null },
-  { key: Capabilities.START_VENDOR_SESSION, usageLimit: null },
-  { key: Capabilities.VIEW_SALES_REPORTS, usageLimit: null },
-  { key: Capabilities.VIEW_INVENTORY_REPORTS, usageLimit: null },
-  { key: Capabilities.EXPORT_DATA, usageLimit: null },
-]
-
-// Premium replaces the 1-employee and 1-branch Basic caps
-const PREMIUM_ENTITLEMENTS: Array<{ key: CapabilityKey; usageLimit: number | null }> = [
-  ...BASIC_ENTITLEMENTS.filter(e => e.key !== Capabilities.MANAGE_EMPLOYEES && e.key !== Capabilities.MANAGE_BRANCHES),
-  { key: Capabilities.MANAGE_EMPLOYEES, usageLimit: null }, // unlimited
-  { key: Capabilities.MANAGE_BRANCHES, usageLimit: 3 }, // up to 3 branches
-  ...PREMIUM_ADDITIONS,
-]
-
-// Enterprise adds supplier management, purchase orders, restocking tasks,
-// and up to 5 branches on top of Premium.
-// Analytics (VIEW_ANALYTICS) and API (ACCESS_API) are NOT included here —
-// they are add-ons purchasable on any tier.
-const ENTERPRISE_ENTITLEMENTS: Array<{ key: CapabilityKey; usageLimit: number | null }> = [
-  ...PREMIUM_ENTITLEMENTS.filter(e => e.key !== Capabilities.MANAGE_BRANCHES),
-  { key: Capabilities.MANAGE_BRANCHES, usageLimit: 5 }, // up to 5 branches
-  { key: Capabilities.MANAGE_SUPPLIERS, usageLimit: null },
-  { key: Capabilities.CREATE_PURCHASE, usageLimit: null },
-  { key: Capabilities.CREATE_TASK, usageLimit: null },
-]
-
-// Trial gets all Enterprise features so registrants can explore the full product,
-// but with hard limits to prevent abuse:
-//   - 1 employee (usageLimit: 1) — same as Basic
-//   - 1 branch (usageLimit: 1) — same as Basic
-//   - No analytics or API — add-ons must be purchased after upgrading
-const TRIAL_ENTITLEMENTS: Array<{ key: CapabilityKey; usageLimit: number | null }> = [
-  ...ENTERPRISE_ENTITLEMENTS.filter(e => e.key !== Capabilities.MANAGE_EMPLOYEES && e.key !== Capabilities.MANAGE_BRANCHES),
-  { key: Capabilities.MANAGE_EMPLOYEES, usageLimit: 1 }, // capped at 1 — same as Basic
-  { key: Capabilities.MANAGE_BRANCHES, usageLimit: 1 }, // capped at 1 — same as Basic
-]
-
-// Perpetual License — full Enterprise feature set plus Analytics and API,
-// unlimited employees and branches. The license holder owns the software
-// and deploys it themselves — no SaaS cloud sync or support SLA.
-const LICENSE_ENTITLEMENTS: Array<{ key: CapabilityKey; usageLimit: number | null }> = [
-  ...ENTERPRISE_ENTITLEMENTS,
-  { key: Capabilities.VIEW_ANALYTICS, usageLimit: null }, // included — license owns everything
-  { key: Capabilities.ACCESS_API, usageLimit: null }, // included — license owns everything
-  { key: Capabilities.MANAGE_BRANCHES, usageLimit: null }, // unlimited branches
-  { key: Capabilities.MANAGE_EMPLOYEES, usageLimit: null }, // unlimited employees
-]
-
-const PLANS: PlanDefinition[] = [
-  // --------------------------------------------------------------------------
-  // Trial — Full feature access with hard limits to prevent abuse.
-  // Auto-assigned on signup. No card required. Expires after 30 days.
-  //   - 1,000 TX/month, 1 employee, 1 branch
-  //   - All operational features unlocked so registrants see full value
-  //   - No Analytics or API add-ons (must purchase after upgrading)
-  // --------------------------------------------------------------------------
-  {
-    name: 'Trial',
-    description:
-      'Full access for 30 days — no credit card required. Includes checkout, orders, purchase orders, tasks, and all reports. Limited to 1,000 transactions, 1 employee, and 1 branch. Upgrade any time to keep your data and remove the limits.',
-    sortOrder: 0,
-    monthlyPrice: 0,
-    includedTxPerMonth: 1000,
-    overagePerTx: 0,
-    entitlements: TRIAL_ENTITLEMENTS,
-  },
-
-  // --------------------------------------------------------------------------
-  // Basic — Solo operators and single-location small businesses.
-  // Checkout, orders, products, customers, history. 1 employee, 1 branch.
-  // --------------------------------------------------------------------------
-  {
-    name: 'Basic',
-    description:
-      'Everything a solo operator needs to run a single location. POS checkout, orders, refunds, receipts, product catalogue, customers, and full transaction and order history. 1,000 transactions/month. Capped at 1 employee account and 1 branch — upgrade to Premium to add staff, locations, and reporting.',
-    sortOrder: 1,
-    monthlyPrice: 29900, // ₱299/mo
-    includedTxPerMonth: 1000,
-    overagePerTx: 0,
-    entitlements: BASIC_ENTITLEMENTS,
-  },
-
-  // --------------------------------------------------------------------------
-  // Premium — Growing teams that need multi-staff, reporting, and inventory.
-  // Adds full inventory management, vendor/cash sessions, reports,
-  // CSV export, unlimited employees, and up to 3 branches.
-  // --------------------------------------------------------------------------
-  {
-    name: 'Premium',
-    description:
-      'Built for growing businesses with a team. Everything in Basic plus full inventory management (adjustments, transfers, reconciliation), vendor cash sessions, sales and inventory reports, CSV data export, unlimited employee accounts, and up to 3 branches. 5,000 transactions/month included.',
-    sortOrder: 2,
-    monthlyPrice: 79900, // ₱799/mo
-    includedTxPerMonth: 5000,
-    overagePerTx: 0,
-    entitlements: PREMIUM_ENTITLEMENTS,
-  },
-
-  // --------------------------------------------------------------------------
-  // Enterprise — Multi-branch operations that need the full platform.
-  // Everything in Premium plus up to 5 branches and 10,000 TX/month.
-  // Analytics and API access are available as add-ons on any tier.
-  // --------------------------------------------------------------------------
-  {
-    name: 'Enterprise',
-    description:
-      'For multi-location operations running at scale. Everything in Premium plus supplier records, purchase orders, restocking tasks, and up to 5 branches. 10,000 transactions/month. Analytics dashboards and developer API access are available as add-ons on any tier.',
-    sortOrder: 3,
-    monthlyPrice: 199900, // ₱1,999/mo
-    includedTxPerMonth: 10000,
-    overagePerTx: 0,
-    entitlements: ENTERPRISE_ENTITLEMENTS,
-  },
-
-  // --------------------------------------------------------------------------
-  // Perpetual License — self-hosted / on-premise deployment.
-  // One-time purchase, no monthly subscription. The business owns the software
-  // and deploys it on their own infrastructure.
-  //
-  // Pricing: contact sales (monthlyPrice = 0 here — actual payment is handled
-  // outside Stripe, e.g. a one-time invoice payment).
-  // The plans page renders a "Contact us" CTA instead of a checkout button
-  // when monthlyPrice = 0 and the plan name is "Perpetual License".
-  // --------------------------------------------------------------------------
-  {
-    name: 'Perpetual License',
-    description:
-      'Own the software outright with a one-time purchase. Deploy on your own server or private cloud — full Enterprise features, unlimited transactions, unlimited employees, and unlimited branches. No monthly fees, no cloud dependency. You manage updates and hosting. Contact us to get a quote.',
-    sortOrder: 4,
-    monthlyPrice: 0,
-    includedTxPerMonth: -1, // Unlimited — they own the software
-    overagePerTx: 0,
-    entitlements: LICENSE_ENTITLEMENTS,
-  },
-]
-
 // ---------------------------------------------------------------------------
-// Billing Policy Config Defaults — Phase 0
-// These SystemConfig records are seeded at the BUSINESS scope with a sentinel
-// businessId of null (platform-level defaults). getAuthUser merges them into
-// the session so SubscriptionPolicy always has threshold values available.
-//
-// All values are stored as strings in SystemConfig (coerced at read time).
-// Keys must match the ConfigKey enum values exactly.
+// Seed function
 // ---------------------------------------------------------------------------
-type BillingConfigDefault = {
-  key: string
-  value: string
-  description: string
-}
 
-const BILLING_CONFIG_DEFAULTS: BillingConfigDefault[] = [
-  {
-    key: 'TRIAL_DURATION_DAYS',
-    value: '30',
-    description: 'Days from subscription creation before TRIAL expires.',
-  },
-  {
-    key: 'GRACE_PERIOD_DAYS',
-    value: '7',
-    description: 'Days after expiry before hard operational restriction (GRACE_PERIOD → EXPIRED).',
-  },
-  {
-    key: 'LONG_TERM_INACTIVE_DAYS',
-    value: '90',
-    description: 'Days after EXPIRED before account is moved to LONG_TERM_INACTIVE.',
-  },
-  {
-    key: 'CREDIT_LOW_BALANCE_THRESHOLD',
-    value: '10',
-    description: 'Notify when prepaid credit balance falls below this number of units.',
-  },
-  {
-    key: 'OVERAGE_BILLING_ENABLED',
-    value: 'false',
-    description: 'When false, checkout is blocked when TX allowance is exhausted. When true, overage is billed.',
-  },
-  // --- Add-on pricing defaults (PHP cents) ---
-  // All values are admin-configurable via SystemConfig — no hardcoded prices in code.
-  {
-    key: 'ADDON_ANALYTICS_PRICE',
-    value: '29900',
-    description: 'Monthly price in PHP cents for the Analytics Dashboard add-on (₱299/mo).',
-  },
-  {
-    key: 'ADDON_API_PRICE',
-    value: '49900',
-    description: 'Monthly price in PHP cents for the API Access add-on (₱499/mo).',
-  },
-  {
-    key: 'ADDON_BRANCH_PRICE',
-    value: '19900',
-    description: 'Monthly price in PHP cents per extra branch add-on (₱199/branch/mo).',
-  },
-  {
-    key: 'ADDON_EMPLOYEE_PRICE',
-    value: '4900',
-    description: 'Monthly price in PHP cents per extra employee add-on — Basic tier only (₱49/employee/mo).',
-  },
-  {
-    key: 'ADDON_TX_500_PRICE',
-    value: '9900',
-    description: 'Price in PHP cents for +500 TX top-up add-on (₱99).',
-  },
-  {
-    key: 'ADDON_TX_1000_PRICE',
-    value: '17900',
-    description: 'Price in PHP cents for +1,000 TX top-up add-on (₱179).',
-  },
-  {
-    key: 'ADDON_TX_5000_PRICE',
-    value: '79900',
-    description: 'Price in PHP cents for +5,000 TX top-up add-on (₱799).',
-  },
-  // --- Monthly recurring addon display prices ---
-  {
-    key: 'ADDON_TX_RECURRING_500_PRICE',
-    value: '9900',
-    description: 'Monthly price in PHP cents for +500 TX recurring addon (₱99/mo).',
-  },
-  {
-    key: 'ADDON_TX_RECURRING_1000_PRICE',
-    value: '17900',
-    description: 'Monthly price in PHP cents for +1,000 TX recurring addon (₱179/mo).',
-  },
-  {
-    key: 'ADDON_TX_RECURRING_5000_PRICE',
-    value: '79900',
-    description: 'Monthly price in PHP cents for +5,000 TX recurring addon (₱799/mo).',
-  },
-]
-
-// ---------------------------------------------------------------------------
-// Seed function — called by the seeder pipeline in index.ts
-// ---------------------------------------------------------------------------
 export async function Entitlements(prisma: PrismaClient) {
-  console.info('🔐 Seeding Feature registry...')
+  // ── Step 1: Features ──────────────────────────────────────────────────────
+  console.info('🔐 Seeding Feature registry from csv/system/features.csv...')
 
-  // Step 1: Upsert all Feature records
-  for (const feature of FEATURES) {
+  const featureRows = parseSystemCsv<any>('features.csv', ['key', 'label', 'description', 'isSelectableByCustomer', 'sortOrder'])
+
+  for (const row of featureRows) {
+    const key = String(row.key).trim()
     await prisma.feature.upsert({
-      where: { key: feature.key },
+      where: { key },
       update: {
-        label: feature.label,
-        description: feature.description,
-        isOperational: OPERATIONAL_CAPABILITIES.has(feature.key),
-        // Phase 5b — composable pricing fields
-        isSelectableByCustomer: feature.isSelectableByCustomer,
-        pricingCategory: feature.pricingCategory as any,
-        sortOrder: feature.sortOrder,
+        label: String(row.label).trim(),
+        description: String(row.description).trim(),
+        isOperational: OPERATIONAL_CAPABILITIES.has(key as any),
+        isSelectableByCustomer: String(row.isSelectableByCustomer).trim().toLowerCase() === 'true',
+        pricingCategory: row.pricingCategory?.trim() || null,
+        sortOrder: parseInt(row.sortOrder, 10) || 0,
       },
       create: {
-        key: feature.key,
-        label: feature.label,
-        description: feature.description,
-        isOperational: OPERATIONAL_CAPABILITIES.has(feature.key),
-        // Phase 5b — composable pricing fields
-        isSelectableByCustomer: feature.isSelectableByCustomer,
-        pricingCategory: feature.pricingCategory as any,
-        sortOrder: feature.sortOrder,
+        key,
+        label: String(row.label).trim(),
+        description: String(row.description).trim(),
+        isOperational: OPERATIONAL_CAPABILITIES.has(key as any),
+        isSelectableByCustomer: String(row.isSelectableByCustomer).trim().toLowerCase() === 'true',
+        pricingCategory: row.pricingCategory?.trim() || null,
+        sortOrder: parseInt(row.sortOrder, 10) || 0,
       },
     })
   }
 
-  console.info(`   ✔  ${FEATURES.length} features upserted.`)
-  console.info('📦 Seeding SubscriptionPlan tiers...')
+  console.info(`   ✔  ${featureRows.length} features upserted.`)
 
-  // Step 2: Upsert SubscriptionPlan records + their PlanEntitlement rows
-  for (const plan of PLANS) {
-    const { entitlements, ...planData } = plan
+  // ── Step 2: Plans + Entitlements ──────────────────────────────────────────
+  console.info('📦 Seeding SubscriptionPlan tiers from csv/system/plans.csv...')
 
+  const planRows = parseSystemCsv<any>('plans.csv', ['name', 'monthlyPrice', 'includedTxPerMonth', 'overagePerTx', 'sortOrder'])
+  const entitlementRows = parseSystemCsv<any>('plan-entitlements.csv', ['planName', 'featureKey'])
+
+  for (const row of planRows) {
     const upsertedPlan = await prisma.subscriptionPlan.upsert({
-      where: { name: planData.name },
+      where: { name: String(row.name).trim() },
       update: {
-        description: planData.description,
-        sortOrder: planData.sortOrder,
-        monthlyPrice: planData.monthlyPrice,
-        includedTxPerMonth: planData.includedTxPerMonth,
-        overagePerTx: planData.overagePerTx,
+        description: String(row.description).trim(),
+        sortOrder: parseInt(row.sortOrder, 10) || 0,
+        monthlyPrice: parseInt(row.monthlyPrice, 10) || 0,
+        includedTxPerMonth: parseInt(row.includedTxPerMonth, 10) || 0,
+        overagePerTx: parseInt(row.overagePerTx, 10) || 0,
         isActive: true,
       },
-      create: { ...planData, isActive: true },
+      create: {
+        name: String(row.name).trim(),
+        description: String(row.description).trim(),
+        sortOrder: parseInt(row.sortOrder, 10) || 0,
+        monthlyPrice: parseInt(row.monthlyPrice, 10) || 0,
+        includedTxPerMonth: parseInt(row.includedTxPerMonth, 10) || 0,
+        overagePerTx: parseInt(row.overagePerTx, 10) || 0,
+        isActive: true,
+      },
     })
 
-    for (const entitlement of entitlements) {
+    const planEntitlements = entitlementRows.filter(e => String(e.planName).trim() === upsertedPlan.name)
+
+    for (const e of planEntitlements) {
+      const featureKey = String(e.featureKey).trim()
+      const rawLimit = String(e.usageLimit ?? '').trim()
+      const usageLimit = rawLimit !== '' ? parseInt(rawLimit, 10) : null
+
       await prisma.planEntitlement.upsert({
-        where: {
-          planId_featureKey: {
-            planId: upsertedPlan.id,
-            featureKey: entitlement.key,
-          },
-        },
-        update: { usageLimit: entitlement.usageLimit },
-        create: {
-          planId: upsertedPlan.id,
-          featureKey: entitlement.key,
-          usageLimit: entitlement.usageLimit,
-        },
+        where: { planId_featureKey: { planId: upsertedPlan.id, featureKey } },
+        update: { usageLimit },
+        create: { planId: upsertedPlan.id, featureKey, usageLimit },
       })
     }
 
-    console.info(`   ✔  Plan "${planData.name}" — ${entitlements.length} entitlements upserted.`)
+    console.info(`   ✔  Plan "${upsertedPlan.name}" — ${planEntitlements.length} entitlements upserted.`)
   }
 
-  // Step 3: Seed billing policy defaults into SystemConfig.
-  // These are platform-global defaults stored with no entity IDs.
-  // We use findFirst + conditional create because Prisma upsert requires a
-  // non-null unique key, and all entity FKs here are null (global scope).
-  // Existing values are NOT overwritten — re-runs are safe.
-  console.info('⚙️  Seeding billing policy config defaults...')
-  for (const cfg of BILLING_CONFIG_DEFAULTS) {
+  // ── Step 3: Billing config defaults ───────────────────────────────────────
+  console.info('⚙️  Seeding billing policy config defaults from csv/system/billing-config-defaults.csv...')
+
+  const configRows = parseSystemCsv<any>('billing-config-defaults.csv', ['key', 'value'])
+
+  for (const row of configRows) {
+    const key = String(row.key).trim()
+    const value = String(row.value).trim()
+
     const existing = await (prisma as any).systemConfig.findFirst({
-      where: {
-        key: cfg.key,
-        businessId: null,
-        branchId: null,
-        userId: null,
-        scope: 'BUSINESS',
-      },
+      where: { key, businessId: null, branchId: null, userId: null, scope: 'BUSINESS' },
     })
 
     if (!existing) {
       await (prisma as any).systemConfig.create({
-        data: {
-          key: cfg.key,
-          value: cfg.value,
-          scope: 'BUSINESS',
-          // businessId / branchId / userId intentionally omitted (global default)
-        },
+        data: { key, value, scope: 'BUSINESS' },
       })
-      console.info(`   ✔  Config "${cfg.key}" = "${cfg.value}" seeded.`)
+      console.info(`   ✔  Config "${key}" = "${value}" seeded.`)
     } else {
-      console.info(`   –  Config "${cfg.key}" already exists (value: "${existing.value}"), skipped.`)
+      console.info(`   –  Config "${key}" already exists (value: "${existing.value}"), skipped.`)
     }
   }
-  console.info(`   ✔  ${BILLING_CONFIG_DEFAULTS.length} billing config defaults processed.`)
 
-  // ---------------------------------------------------------------------------
-  // Step 4: Seed initial PricingCatalog v1 (Phase 5)
-  // Creates the first versioned catalog with FeaturePrice records for all
-  // selectable features. Idempotent — skipped if version 1 already exists.
-  // ---------------------------------------------------------------------------
-  console.info('📊 Seeding PricingCatalog v1...')
+  console.info(`   ✔  ${configRows.length} billing config defaults processed.`)
 
-  // Monthly prices in PHP cents for each selectable feature
-  const FEATURE_PRICES: Array<{
-    featureKey: CapabilityKey
-    monthlyPrice: number
-    isIncludedInBase: boolean
-  }> = [
-    // CORE — included in base (no charge)
-    { featureKey: Capabilities.COMPLETE_CHECKOUT, monthlyPrice: 0, isIncludedInBase: true },
-    { featureKey: Capabilities.MANAGE_INVENTORY, monthlyPrice: 0, isIncludedInBase: true },
-    { featureKey: Capabilities.RECORD_PAYMENT, monthlyPrice: 0, isIncludedInBase: true },
-    // OPERATIONAL — à la carte
-    { featureKey: Capabilities.CREATE_ORDER, monthlyPrice: 49900, isIncludedInBase: false },
-    { featureKey: Capabilities.EDIT_ACTIVE_ORDER, monthlyPrice: 19900, isIncludedInBase: false },
-    { featureKey: Capabilities.ISSUE_REFUND, monthlyPrice: 19900, isIncludedInBase: false },
-    { featureKey: Capabilities.PRINT_RECEIPT, monthlyPrice: 9900, isIncludedInBase: false },
-    { featureKey: Capabilities.START_VENDOR_SESSION, monthlyPrice: 29900, isIncludedInBase: false },
-    { featureKey: Capabilities.CREATE_PURCHASE, monthlyPrice: 29900, isIncludedInBase: false },
-    { featureKey: Capabilities.CREATE_TASK, monthlyPrice: 19900, isIncludedInBase: false },
-    // MANAGEMENT — à la carte
-    { featureKey: Capabilities.MANAGE_PRODUCTS, monthlyPrice: 29900, isIncludedInBase: false },
-    { featureKey: Capabilities.MANAGE_EMPLOYEES, monthlyPrice: 19900, isIncludedInBase: false },
-    { featureKey: Capabilities.MANAGE_CUSTOMERS, monthlyPrice: 14900, isIncludedInBase: false },
-    { featureKey: Capabilities.MANAGE_SUPPLIERS, monthlyPrice: 14900, isIncludedInBase: false },
-    { featureKey: Capabilities.VIEW_SALES_REPORTS, monthlyPrice: 29900, isIncludedInBase: false },
-    { featureKey: Capabilities.VIEW_INVENTORY_REPORTS, monthlyPrice: 19900, isIncludedInBase: false },
-    { featureKey: Capabilities.EXPORT_DATA, monthlyPrice: 9900, isIncludedInBase: false },
-    // ADVANCED — premium
-    { featureKey: Capabilities.VIEW_ANALYTICS, monthlyPrice: 49900, isIncludedInBase: false },
-    { featureKey: Capabilities.MANAGE_BRANCHES, monthlyPrice: 49900, isIncludedInBase: false },
-    // INTEGRATION
-    { featureKey: Capabilities.ACCESS_API, monthlyPrice: 99900, isIncludedInBase: false },
-  ]
+  // ── Step 4: PricingCatalog ────────────────────────────────────────────────
+  console.info('📊 Seeding PricingCatalog from csv/system/pricing-catalog.csv...')
 
-  const existingCatalog = await (prisma as any).pricingCatalog.findFirst({
-    where: { version: 1 },
-  })
+  const catalogRows = parseSystemCsv<any>('pricing-catalog.csv', ['version', 'label', 'status', 'featureKey', 'monthlyPrice', 'isIncludedInBase'])
 
-  if (!existingCatalog) {
-    const catalog = await (prisma as any).pricingCatalog.create({
-      data: {
-        version: 1,
-        label: '2026 Standard Pricing',
-        status: 'ACTIVE',
-        activatedAt: new Date(),
-      },
-    })
-
-    for (const fp of FEATURE_PRICES) {
-      await (prisma as any).featurePrice.create({
-        data: {
-          catalogId: catalog.id,
-          featureKey: fp.featureKey,
-          monthlyPrice: fp.monthlyPrice,
-          annualPrice: null, // Will be set when annual pricing is configured
-          isIncludedInBase: fp.isIncludedInBase,
-        },
+  // Group rows by catalog version — each version = one catalog record
+  const catalogsByVersion = new Map<number, { label: string; status: string; rows: any[] }>()
+  for (const row of catalogRows) {
+    const version = parseInt(row.version, 10)
+    if (!catalogsByVersion.has(version)) {
+      catalogsByVersion.set(version, {
+        label: String(row.label).trim(),
+        status: String(row.status).trim(),
+        rows: [],
       })
     }
+    catalogsByVersion.get(version)!.rows.push(row)
+  }
 
-    console.info(`   ✔  PricingCatalog v1 created (${FEATURE_PRICES.length} feature prices).`)
-  } else {
-    console.info('   –  PricingCatalog v1 already exists, skipped.')
+  for (const [version, catalog] of catalogsByVersion) {
+    const existing = await (prisma as any).pricingCatalog.findFirst({ where: { version } })
+
+    if (!existing) {
+      const created = await (prisma as any).pricingCatalog.create({
+        data: {
+          version,
+          label: catalog.label,
+          status: catalog.status,
+          activatedAt: new Date(),
+        },
+      })
+
+      for (const row of catalog.rows) {
+        await (prisma as any).featurePrice.create({
+          data: {
+            catalogId: created.id,
+            featureKey: String(row.featureKey).trim(),
+            monthlyPrice: parseInt(row.monthlyPrice, 10) || 0,
+            annualPrice: null,
+            isIncludedInBase: String(row.isIncludedInBase).trim().toLowerCase() === 'true',
+          },
+        })
+      }
+
+      console.info(`   ✔  PricingCatalog v${version} created (${catalog.rows.length} feature prices).`)
+    } else {
+      console.info(`   –  PricingCatalog v${version} already exists, skipped.`)
+    }
   }
 
   console.info('✅ Entitlement seed complete.')

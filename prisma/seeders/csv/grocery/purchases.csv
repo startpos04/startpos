@@ -1,0 +1,4 @@
+id,purchaseId,totalCost,notes,supplierName,operationalTaskId
+fmrt-po-001,PO-FMT-2024-001,1352000,Weekly grocery dry goods restock — rice canned goods cooking essentials,MercadoCorp Wholesale,fmrt-task-po-001
+fmrt-po-002,PO-FMT-2024-002,628400,Poultry and dairy weekly delivery,Magnolia Poultry Products,fmrt-task-po-002
+fmrt-po-003,PO-FMT-2024-003,415000,Beverage and snack restocking run,Universal Robina Corporation,fmrt-task-po-003

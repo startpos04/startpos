@@ -4,6 +4,7 @@ import Tab from '@/components/custom/tab'
 import { RequireCapability } from '@/components/require-capability'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { AccountPage } from './-account'
+import { BranchesPage } from './-branches'
 import { BusinessProfilePage } from './-business-profile'
 import { CapabilitiesPage } from './-capabilities'
 import { CategoriesPage } from './-categories'
@@ -42,13 +43,21 @@ const TABS = [
       </RequireCapability>
     ),
   },
+  {
+    label: 'Branches',
+    Component: () => (
+      <RequireCapability cap={Capabilities.MANAGE_BRANCHES} inline={false}>
+        <BranchesPage />
+      </RequireCapability>
+    ),
+  },
   { label: 'Capabilities', Component: CapabilitiesPage },
   { label: 'Business Profile', Component: BusinessProfilePage },
   { label: 'Security', Component: SecurityPage },
   { label: 'Account', Component: AccountPage },
 ] as const
 
-const VALID_TABS = new Set(TABS.map(t => t.label))
+const VALID_TABS: Set<string> = new Set(TABS.map(t => t.label))
 
 function RouteComponent() {
   const { tab } = Route.useSearch()

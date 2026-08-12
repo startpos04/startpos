@@ -1,0 +1,10 @@
+id,userId,type,title,message,isRead,link,hoursAgo
+shub-notif-001,shub-admin-1,LOW_STOCK,Low Stock — Bomber Jacket Olive M,"Oversized Bomber Jacket in Olive M is running low (3 units). Restock threshold is 3. Consider placing a reorder.",FALSE,/inventory,4
+shub-notif-002,shub-admin-1,LOW_STOCK,Low Stock — Sale Sundress S Yellow,"Sale Sundress in S Yellow has only 2 units remaining. Below minimum threshold of 3.",FALSE,/inventory,3
+shub-notif-003,shub-admin-1,TASK_ASSIGNED,Refund Processed — Bomber Jacket,"A refund of ₱3,495.00 was processed for RF-SHB-2024-000001. Bomber Jacket M Olive returned by customer.",FALSE,/transactions,46
+shub-notif-004,shub-admin-1,PURCHASE_PENDING_APPROVAL,Purchase Order Ready for Review,"Seasonal women's collection PO from Manila Garments Corp (₱45,600.00) has been submitted for your approval.",TRUE,/purchases,122
+shub-notif-005,shub-sup-1,TASK_ASSIGNED,Shelf Refill Completed — Women's Section,"Camille Santos has fulfilled the women's section restock task. Ready for your review.",FALSE,/tasks,3
+shub-notif-006,shub-sup-1,LOW_STOCK,Multiple Items Approaching Low Stock,"Bomber Jacket Olive M and Sale Sundress S Yellow are both near or at their minimum stock thresholds.",FALSE,/inventory,3
+shub-notif-007,shub-sup-1,TASK_ASSIGNED,Shelf Refill Request Pending — Men's Polo,"Jed Castillo submitted a shelf refill request for Men's Polo Shirt M. Awaiting your approval.",FALSE,/tasks,5
+shub-notif-008,shub-cash-1,TASK_ASSIGNED,Task Approved — Quarterly Stock Count,"Your quarterly stock count task has been approved and is due in 48 hours. Please plan accordingly.",FALSE,/tasks,2
+shub-notif-009,shub-cash-2,TASK_ASSIGNED,Waste Disposal Task Reviewed,"Your waste disposal report for damaged sundresses has been reviewed and locked.",TRUE,/tasks,22

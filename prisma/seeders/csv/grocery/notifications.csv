@@ -1,0 +1,10 @@
+id,userId,type,title,message,isRead,link,hoursAgo
+fmrt-notif-001,fmrt-admin-1,LOW_STOCK,Low Stock — Pancit Canton Chili Mansi,"Lucky Me Pancit Canton Chili Mansi is running low. Only 6 packs remaining on shelf. Restock threshold is 10.",FALSE,/inventory,3
+fmrt-notif-002,fmrt-admin-1,LOW_STOCK,Low Stock — Detergent Sachet,"Ariel Detergent sachets are at 8 units — below minimum threshold of 10. Current display shelf stock is nearly empty.",FALSE,/inventory,2
+fmrt-notif-003,fmrt-admin-1,TASK_ASSIGNED,Purchase Order Delivered — MercadoCorp,"PO-FMT-2024-001 from MercadoCorp has been received and shelved. Task reviewed and locked by Roberto Tan.",TRUE,/purchases,119
+fmrt-notif-004,fmrt-admin-1,PURCHASE_PENDING_APPROVAL,New Purchase Order Ready for Approval,"URC beverage and snack PO (₱4,150.00) has been submitted and requires your approval before delivery is scheduled.",TRUE,/purchases,51
+fmrt-notif-005,fmrt-sup-1,TASK_ASSIGNED,Shelf Refill Completed — Canned Goods,"Dennis Aquino has fulfilled the canned goods shelf refill task. Ready for your review.",FALSE,/tasks,2
+fmrt-notif-006,fmrt-sup-1,LOW_STOCK,Multiple SKUs Below Threshold,"Pancit Canton Chili Mansi and Ariel Detergent sachets are both below stock threshold. Review inventory and place orders.",FALSE,/inventory,2
+fmrt-notif-007,fmrt-sup-1,TASK_ASSIGNED,New Shelf Refill Request — Rice,"Gladys Espiritu submitted a rice shelf refill request. Awaiting your approval.",FALSE,/tasks,4
+fmrt-notif-008,fmrt-cash-1,TASK_ASSIGNED,Task Approved — Stock Count,"Your monthly stock count task has been approved. Please complete by end of next business day.",FALSE,/tasks,1
+fmrt-notif-009,fmrt-cash-2,TASK_ASSIGNED,Waste Disposal Reviewed and Locked,"Your expired produce disposal report has been reviewed and locked by the supervisor.",TRUE,/tasks,22

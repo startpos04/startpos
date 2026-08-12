@@ -21,7 +21,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./docker/postgres/ensure-database.sh:/ensure-database.sh:ro
+      - ./prisma/ensure-database.sh:/ensure-database.sh:ro
     entrypoint: ['/bin/sh', '/ensure-database.sh']
     depends_on:
       db:
@@ -60,6 +60,50 @@ services:
         - action: rebuild
           path: pnpm-lock.yaml
 
+  stripe-setup:
+    build:
+      context: ./stripe
+      dockerfile: Dockerfile
+    profiles:
+      - stripe
+    # One-shot: exits after creating/reconciling all Stripe products and prices.
+    # docker-compose will not restart it once it finishes successfully.
+    command: ["/scripts/setup.sh"]
+    restart: "no"
+    environment:
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+    volumes:
+      - stripe_config:/root/.config/stripe
+      # Generated env file — lands at ./stripe/env/stripe.env on the host.
+      - ./stripe/env:/stripe-env
+      # Workspace root — gives the script direct write access to .env.
+      - .:/host-env
+
+  stripe-webhook:
+    build:
+      context: ./stripe
+      dockerfile: Dockerfile
+    profiles:
+      - stripe
+    # Long-running: stays up forwarding events to the app container.
+    # Restarts automatically if the CLI disconnects.
+    command: ["/scripts/webhook.sh"]
+    restart: unless-stopped
+    depends_on:
+      stripe-setup:
+        condition: service_completed_successfully
+    environment:
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      # Override if your webhook route differs from the default below.
+      STRIPE_WEBHOOK_FORWARD_URL: ${STRIPE_WEBHOOK_FORWARD_URL:-http://app:3000/api/stripe/webhook}
+    volumes:
+      - stripe_config:/root/.config/stripe
+      # Shared with stripe-setup so the webhook service can read the API key.
+      - ./stripe/env:/stripe-env
+      # Workspace root — gives the script direct write access to .env.
+      - .:/host-env
+
 volumes:
   postgres_data:
   app_output:
+  stripe_config:

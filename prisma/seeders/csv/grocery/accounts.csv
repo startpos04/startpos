@@ -1,0 +1,5 @@
+business_id,business_name,business_slug,business_type,branch_id,branch_name,serial_number,min_invoice,max_invoice,branch_code,user_id,user_email,user_name,user_role,user_image
+fmrt-org-1,FreshMart Superstore,freshmart-superstore,GROCERY,fmrt-branch-1,Marikina Main Branch,SN-FMT-2024-001,5000,999999,00001,fmrt-admin-1,admin@freshmart.ph,Patricia Gonzales,ADMIN,https://api.dicebear.com/7.x/avataaars/svg?seed=PatriciaFM
+fmrt-org-1,FreshMart Superstore,freshmart-superstore,GROCERY,fmrt-branch-1,Marikina Main Branch,SN-FMT-2024-001,5000,999999,00001,fmrt-sup-1,supervisor@freshmart.ph,Roberto Tan,SUPERVISOR,https://api.dicebear.com/7.x/avataaars/svg?seed=RobertoFM
+fmrt-org-1,FreshMart Superstore,freshmart-superstore,GROCERY,fmrt-branch-1,Marikina Main Branch,SN-FMT-2024-001,5000,999999,00001,fmrt-cash-1,cashier1@freshmart.ph,Gladys Espiritu,CASHIER,https://api.dicebear.com/7.x/avataaars/svg?seed=GladysFM
+fmrt-org-1,FreshMart Superstore,freshmart-superstore,GROCERY,fmrt-branch-1,Marikina Main Branch,SN-FMT-2024-001,5000,999999,00001,fmrt-cash-2,cashier2@freshmart.ph,Dennis Aquino,CASHIER,https://api.dicebear.com/7.x/avataaars/svg?seed=DennisFM

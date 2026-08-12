@@ -1,5 +1,6 @@
 name,abbreviation,type,conversionFactor,isBaseUnit
-Kilogram,kg,WEIGHT,1,true
-Gram,g,WEIGHT,1,false
+Gram,g,WEIGHT,1,true
+Kilogram,kg,WEIGHT,1000,false
 Piece,pcs,COUNT,1,true
 Milliliter,ml,VOLUME,1,true
+Liter,L,VOLUME,1000,false

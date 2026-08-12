@@ -1,0 +1,29 @@
+key,label,description,isSelectableByCustomer,pricingCategory,sortOrder
+COMPLETE_CHECKOUT,Complete Checkout,Process a POS transaction and collect payment.,true,CORE,10
+CREATE_ORDER,Create Order,Create a new kitchen or service order.,true,OPERATIONAL,20
+EDIT_ACTIVE_ORDER,Edit Active Order,Modify an order that is currently in progress.,true,OPERATIONAL,30
+RECORD_PAYMENT,Record Payment,Record a payment against an existing order or invoice.,true,CORE,20
+ISSUE_REFUND,Issue Refund,Process a refund transaction against a completed sale.,true,OPERATIONAL,40
+PRINT_RECEIPT,Print Receipt,Generate and print or download a transaction receipt.,true,OPERATIONAL,50
+START_VENDOR_SESSION,Start Vendor Session,Open a vendor / cash reconciliation session.,true,OPERATIONAL,60
+CREATE_PURCHASE,Create Purchase,Record a new stock purchase from a supplier.,true,OPERATIONAL,70
+MANAGE_INVENTORY,Manage Inventory,Adjust and transfer inventory stock.,true,CORE,30
+CREATE_TASK,Create Task,"Create operational tasks (shelf refill, stock count, etc.).",true,OPERATIONAL,80
+MANAGE_PRODUCTS,Manage Products,Create and edit products and variants.,true,MANAGEMENT,10
+MANAGE_EMPLOYEES,Manage Employees,Invite and deactivate employee accounts.,true,MANAGEMENT,20
+MANAGE_CUSTOMERS,Manage Customers,View and manage the customer directory.,true,MANAGEMENT,30
+MANAGE_SUPPLIERS,Manage Suppliers,Create and manage supplier records.,true,MANAGEMENT,40
+VIEW_SALES_REPORTS,View Sales Reports,"Access revenue, transaction, and sales trend reports.",true,MANAGEMENT,50
+VIEW_INVENTORY_REPORTS,View Inventory Reports,Access stock movement and valuation reports.,true,MANAGEMENT,60
+VIEW_TRANSACTION_HISTORY,View Transaction History,Browse and search full historical transaction records.,false,MANAGEMENT,70
+VIEW_ORDER_HISTORY,View Order History,Browse and search full historical order records.,false,MANAGEMENT,80
+VIEW_ANALYTICS,View Analytics,Access advanced analytics dashboards (premium).,true,ADVANCED,10
+EXPORT_DATA,Export Data,Download transaction and inventory data as CSV.,true,MANAGEMENT,90
+MANAGE_SETTINGS,Manage Settings,Edit business and system configuration.,false,MANAGEMENT,100
+MANAGE_BRANCHES,Manage Branches,Create and configure additional branches (premium).,true,ADVANCED,20
+MANAGE_BILLING,Manage Billing,"View subscription status, invoices, and payment methods.",false,,0
+REACTIVATE_SUBSCRIPTION,Reactivate Subscription,Reactivate an expired or cancelled subscription.,false,,0
+ACCESS_API,Access API,Generate API keys and access the developer API (enterprise).,true,INTEGRATION,10
+LOYALTY_POINTS,Loyalty Points,Award and redeem loyalty points at checkout.,false,,0
+KITCHEN_DISPLAY,Kitchen Display System,Display orders on a kitchen screen as they come in.,false,,0
+DELIVERY_MANAGEMENT,Delivery Management,Manage delivery orders and track driver assignments.,false,,0

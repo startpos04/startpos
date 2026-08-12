@@ -1,0 +1,43 @@
+id,variantId,quantity,unitAbbreviation,batchNumber,costPrice,locationName
+shub-inv-crop-xs-wht,shub-var-crop-tee-xs-wht,8,pcs,BATCH-CRPXSWHT-001,32000,Women's Section Display
+shub-inv-crop-s-wht,shub-var-crop-tee-s-wht,10,pcs,BATCH-CRPSWHT-001,32000,Women's Section Display
+shub-inv-crop-m-wht,shub-var-crop-tee-m-wht,6,pcs,BATCH-CRPMWHT-001,32000,Women's Section Display
+shub-inv-crop-m-blk,shub-var-crop-tee-m-blk,8,pcs,BATCH-CRPMBLK-001,32000,Women's Section Display
+shub-inv-crop-l-blk,shub-var-crop-tee-l-blk,4,pcs,BATCH-CRPLBLK-001,32000,Women's Section Display
+shub-inv-lnbls-s-ecr,shub-var-linen-blouse-s-ecru,5,pcs,BATCH-LNBLS-S-ECR-001,58000,Women's Section Display
+shub-inv-lnbls-m-ecr,shub-var-linen-blouse-m-ecru,6,pcs,BATCH-LNBLS-M-ECR-001,58000,Women's Section Display
+shub-inv-lnbls-m-sge,shub-var-linen-blouse-m-sage,4,pcs,BATCH-LNBLS-M-SGE-001,58000,Women's Section Display
+shub-inv-wdpnt-s-blk,shub-var-wide-pants-s-blk,5,pcs,BATCH-WDPNT-S-BLK-001,72000,Women's Section Display
+shub-inv-wdpnt-m-blk,shub-var-wide-pants-m-blk,6,pcs,BATCH-WDPNT-M-BLK-001,72000,Women's Section Display
+shub-inv-wdpnt-m-cam,shub-var-wide-pants-m-camel,4,pcs,BATCH-WDPNT-M-CAM-001,72000,Women's Section Display
+shub-inv-mdskrt-s-flr,shub-var-midi-skirt-s-flrl,5,pcs,BATCH-MDSKRT-S-FLR-001,65000,Women's Section Display
+shub-inv-mdskrt-m-flr,shub-var-midi-skirt-m-flrl,4,pcs,BATCH-MDSKRT-M-FLR-001,65000,Women's Section Display
+shub-inv-wrpdrs-s-nvy,shub-var-wrap-dress-s-navy,4,pcs,BATCH-WRPDRS-S-NVY-001,95000,Women's Section Display
+shub-inv-wrpdrs-m-nvy,shub-var-wrap-dress-m-navy,5,pcs,BATCH-WRPDRS-M-NVY-001,95000,Women's Section Display
+shub-inv-wrpdrs-m-rst,shub-var-wrap-dress-m-rust,3,pcs,BATCH-WRPDRS-M-RST-001,95000,Women's Section Display
+shub-inv-polo-s-wht,shub-var-polo-s-wht,6,pcs,BATCH-POLO-S-WHT-001,50000,Men's Section Display
+shub-inv-polo-m-wht,shub-var-polo-m-wht,8,pcs,BATCH-POLO-M-WHT-001,50000,Men's Section Display
+shub-inv-polo-m-nvy,shub-var-polo-m-nvy,7,pcs,BATCH-POLO-M-NVY-001,50000,Men's Section Display
+shub-inv-polo-l-nvy,shub-var-polo-l-nvy,5,pcs,BATCH-POLO-L-NVY-001,50000,Men's Section Display
+shub-inv-gtee-m-blk,shub-var-gtee-m-blk,10,pcs,BATCH-GTEE-M-BLK-001,34000,Men's Section Display
+shub-inv-gtee-l-blk,shub-var-gtee-l-blk,8,pcs,BATCH-GTEE-L-BLK-001,34000,Men's Section Display
+shub-inv-gtee-l-wht,shub-var-gtee-l-wht,6,pcs,BATCH-GTEE-L-WHT-001,34000,Men's Section Display
+shub-inv-chno-30-khk,shub-var-chino-30-khk,4,pcs,BATCH-CHNO-30-KHK-001,76000,Men's Section Display
+shub-inv-chno-32-khk,shub-var-chino-32-khk,5,pcs,BATCH-CHNO-32-KHK-001,76000,Men's Section Display
+shub-inv-chno-32-nvy,shub-var-chino-32-nvy,4,pcs,BATCH-CHNO-32-NVY-001,76000,Men's Section Display
+shub-inv-bmbr-m-olv,shub-var-bomber-m-olv,3,pcs,BATCH-BMBR-M-OLV-001,135000,Back Stockroom
+shub-inv-bmbr-l-olv,shub-var-bomber-l-olv,3,pcs,BATCH-BMBR-L-OLV-001,135000,Back Stockroom
+shub-inv-bmbr-m-blk,shub-var-bomber-m-blk,4,pcs,BATCH-BMBR-M-BLK-001,135000,Back Stockroom
+shub-inv-snkr-7-wht,shub-var-snkr-7-wht,4,pcs,BATCH-SNKR-7-WHT-001,95000,Back Stockroom
+shub-inv-snkr-8-wht,shub-var-snkr-8-wht,3,pcs,BATCH-SNKR-8-WHT-001,95000,Back Stockroom
+shub-inv-snkr-9-blk,shub-var-snkr-9-blk,4,pcs,BATCH-SNKR-9-BLK-001,95000,Back Stockroom
+shub-inv-tote-nat,shub-var-tote-nat,8,pcs,BATCH-TOTE-NAT-001,48000,Accessories Wall
+shub-inv-tote-blk,shub-var-tote-blk,6,pcs,BATCH-TOTE-BLK-001,48000,Accessories Wall
+shub-inv-belt-s-brn,shub-var-belt-s-brn,6,pcs,BATCH-BELT-SM-BRN-001,55000,Accessories Wall
+shub-inv-belt-l-brn,shub-var-belt-l-brn,5,pcs,BATCH-BELT-LXL-BRN-001,55000,Accessories Wall
+shub-inv-spbra-s-blk,shub-var-sportsbra-s-blk,5,pcs,BATCH-SPBRA-S-BLK-001,45000,Women's Section Display
+shub-inv-spbra-m-blk,shub-var-sportsbra-m-blk,4,pcs,BATCH-SPBRA-M-BLK-001,45000,Women's Section Display
+shub-inv-jgr-s-gry,shub-var-jogger-s-gry,5,pcs,BATCH-JGR-S-GRY-001,60000,Women's Section Display
+shub-inv-jgr-m-gry,shub-var-jogger-m-gry,4,pcs,BATCH-JGR-M-GRY-001,60000,Women's Section Display
+shub-inv-sale-s-ylw,shub-var-sale-dress-s-ylw,2,pcs,BATCH-SALE-S-YLW-001,65000,Sale Items
+shub-inv-sale-m-ylw,shub-var-sale-dress-m-ylw,3,pcs,BATCH-SALE-M-YLW-001,65000,Sale Items

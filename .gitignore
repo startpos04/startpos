@@ -23,3 +23,6 @@ todos.json
 
 /coverage/
 .fallow/
+
+# Stripe CLI — generated env values (contains real secret keys)
+/stripe/env/

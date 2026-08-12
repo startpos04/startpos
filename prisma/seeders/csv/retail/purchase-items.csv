@@ -1,0 +1,15 @@
+id,purchaseId,variantId,quantity,unitAbbreviation,unitCost
+shub-poi-001a,shub-po-001,shub-var-crop-tee-xs-wht,10,pcs,32000
+shub-poi-001b,shub-po-001,shub-var-crop-tee-s-wht,10,pcs,32000
+shub-poi-001c,shub-po-001,shub-var-linen-blouse-m-ecru,8,pcs,58000
+shub-poi-001d,shub-po-001,shub-var-wide-pants-m-blk,8,pcs,72000
+shub-poi-001e,shub-po-001,shub-var-midi-skirt-m-flrl,8,pcs,65000
+shub-poi-001f,shub-po-001,shub-var-wrap-dress-m-navy,6,pcs,95000
+shub-poi-002a,shub-po-002,shub-var-polo-m-wht,10,pcs,50000
+shub-poi-002b,shub-po-002,shub-var-polo-m-nvy,10,pcs,50000
+shub-poi-002c,shub-po-002,shub-var-gtee-m-blk,12,pcs,34000
+shub-poi-002d,shub-po-002,shub-var-chino-32-khk,8,pcs,76000
+shub-poi-003a,shub-po-003,shub-var-bomber-m-olv,5,pcs,135000
+shub-poi-003b,shub-po-003,shub-var-bomber-m-blk,5,pcs,135000
+shub-poi-003c,shub-po-003,shub-var-snkr-8-wht,6,pcs,95000
+shub-poi-003d,shub-po-003,shub-var-tote-nat,10,pcs,48000

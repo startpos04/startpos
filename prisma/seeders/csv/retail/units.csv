@@ -1,0 +1,7 @@
+name,abbreviation,type,conversionFactor,isBaseUnit
+Piece,pcs,COUNT,1,true
+Pair,pr,COUNT,2,false
+Set,set,COUNT,1,false
+Pack,pack,COUNT,1,false
+Gram,g,WEIGHT,1,true
+Kilogram,kg,WEIGHT,1000,false

@@ -40,10 +40,11 @@
 
 import { createMiddleware } from '@tanstack/react-start'
 import { BillingModel } from '../billing/types'
-import type { CapabilityKey } from '../entitlement/capability-keys'
+import { Capabilities, type CapabilityKey } from '../entitlement/capability-keys'
 import { EntitlementEngine } from '../entitlement/entitlement-engine'
 import type { EntitlementContext, EntitlementOverrideDTO } from '../entitlement/entitlement-types'
 import { prisma as rootPrisma } from '../prisma-client'
+import { ConfigKeySchema } from '../types'
 
 // ---------------------------------------------------------------------------
 // Entitlement error — thrown when the capability is denied
@@ -71,18 +72,19 @@ export class EntitlementDeniedError extends Error {
  */
 export function requireCapability(capability: CapabilityKey) {
   return createMiddleware().server(async ({ next, context }) => {
-    const user = (context as { user?: { businessId?: string } }).user
+    const user = (context as { user?: { businessId?: string; branchId?: string } }).user
 
     if (!user?.businessId) {
       throw new EntitlementDeniedError('UNAUTHENTICATED', 'You must be logged in to perform this action.')
     }
 
     const businessId = user.businessId
+    const branchId = user.branchId
 
     // -----------------------------------------------------------------------
     // Rebuild EntitlementContext from DB — not from the client session
     // -----------------------------------------------------------------------
-    const [subscription, overrides, openCounter, latestCredit, activeTxAddons] = await Promise.all([
+    const [subscription, overrides, openCounter, latestCredit, activeTxAddons, branchConfigs] = await Promise.all([
       rootPrisma.businessSubscription.findUnique({
         where: { businessId },
         select: {
@@ -118,6 +120,14 @@ export function requireCapability(capability: CapabilityKey) {
         },
         select: { quantity: true },
       }),
+      // Branch-scoped SystemConfig rows — used to populate branchDisabledFeatures.
+      // Only fetched when a branchId is present in the request context.
+      branchId
+        ? rootPrisma.systemConfig.findMany({
+            where: { branchId, scope: 'BRANCH' },
+            select: { key: true, value: true },
+          })
+        : Promise.resolve([]),
     ])
 
     // If no subscription exists yet, use open context (dev / first login)
@@ -158,6 +168,46 @@ export function requireCapability(capability: CapabilityKey) {
           }),
         ),
         creditBalance,
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Branch feature toggle gate — mirrors auth-server.ts branch toggle logic.
+    // Reads branch-scoped SystemConfig rows fetched above and maps them to
+    // disabled capability keys. Only applies when a branchId is in context.
+    // -----------------------------------------------------------------------
+    if (branchConfigs.length > 0) {
+      const rawBranchMap = Object.fromEntries(branchConfigs.map(c => [c.key, c.value]))
+      const parsedBranchConfigs = ConfigKeySchema.safeParse(rawBranchMap).data
+
+      if (parsedBranchConfigs) {
+        const branchDisabled = new Set<CapabilityKey>()
+
+        if (parsedBranchConfigs.ENABLE_ORDER === false) {
+          branchDisabled.add(Capabilities.CREATE_ORDER)
+          branchDisabled.add(Capabilities.EDIT_ACTIVE_ORDER)
+          branchDisabled.add(Capabilities.VIEW_ORDER_HISTORY)
+        }
+        if (parsedBranchConfigs.ENABLE_ORDER_TAB === false) {
+          branchDisabled.add(Capabilities.CREATE_ORDER)
+          branchDisabled.add(Capabilities.EDIT_ACTIVE_ORDER)
+        }
+        if (parsedBranchConfigs.ENABLE_TASK === false) {
+          branchDisabled.add(Capabilities.CREATE_TASK)
+        }
+        if (parsedBranchConfigs.ENABLE_CASH_RECONCILIATION === false) {
+          branchDisabled.add(Capabilities.START_VENDOR_SESSION)
+        }
+        if (parsedBranchConfigs.ENABLE_PRINT_RECEIPT === false) {
+          branchDisabled.add(Capabilities.PRINT_RECEIPT)
+        }
+
+        if (branchDisabled.size > 0) {
+          entitlementContext = {
+            ...entitlementContext,
+            branchDisabledFeatures: branchDisabled,
+          }
+        }
       }
     }
 

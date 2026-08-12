@@ -1,0 +1,2 @@
+id,userId,status,openingCash,closingCash,expectedCash,verifiedCash,startTimeOffsetHrs,endTimeOffsetHrs,operationalTaskId
+fmrt-session-open,fmrt-cash-1,OPEN,300000,,,,0,,fmrt-task-cash-recon

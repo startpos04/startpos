@@ -28,6 +28,11 @@ export const EntitlementCode = {
   FEATURE_NOT_IN_PLAN: 'FEATURE_NOT_IN_PLAN',
   OVERRIDE_REVOKED: 'OVERRIDE_REVOKED',
 
+  // Branch-level denials
+  // A branch manager disabled this feature for this specific branch.
+  // The business plan still includes it — only this branch has it turned off.
+  FEATURE_DISABLED_AT_BRANCH: 'FEATURE_DISABLED_AT_BRANCH',
+
   // Usage & quota denials
   USAGE_LIMIT_REACHED: 'USAGE_LIMIT_REACHED',
   TX_ALLOWANCE_EXHAUSTED: 'TX_ALLOWANCE_EXHAUSTED',
@@ -159,6 +164,24 @@ export type EntitlementContext = {
    * 0    = exhausted; engine will deny COMPLETE_CHECKOUT.
    */
   creditBalance: number | null
+
+  /**
+   * Capability keys explicitly disabled for the current branch.
+   *
+   * A feature in this set is denied even if the business plan grants it —
+   * but only at this branch. Other branches are unaffected.
+   *
+   * Populated by the Application Layer from branch-scoped SystemConfig rows
+   * (e.g. ENABLE_ORDER = "false" → disables CREATE_ORDER at this branch).
+   *
+   * Rules:
+   *   - undefined / empty set → no branch-level restrictions (default)
+   *   - A branch can ONLY disable features the business plan grants; it
+   *     cannot grant features the plan does not include.
+   *   - Business-level EntitlementOverride grants are NOT blocked by this
+   *     set — overrides are platform-admin actions that bypass branch config.
+   */
+  branchDisabledFeatures?: ReadonlySet<CapabilityKey>
 }
 
 // ---------------------------------------------------------------------------

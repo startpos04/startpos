@@ -1,0 +1,2 @@
+id,userId,status,openingCash,closingCash,expectedCash,verifiedCash,startTimeOffsetHrs,endTimeOffsetHrs,operationalTaskId
+kln-session-open,kln-cash-1,OPEN,200000,,,,0,,kln-task-cash-recon

@@ -1,0 +1,39 @@
+id,variantId,quantity,unitAbbreviation,batchNumber,costPrice,locationName
+fmrt-inv-rice-5kg,fmrt-var-rice-5kg,40,pcs,BATCH-RICE5K-001,22000,Stockroom A
+fmrt-inv-rice-25kg,fmrt-var-rice-25kg,15,pcs,BATCH-RICE25K-001,108000,Stockroom A
+fmrt-inv-rice-dino,fmrt-var-rice-dino-5kg,20,pcs,BATCH-DINO5K-001,26000,Stockroom A
+fmrt-inv-sardines-155,fmrt-var-sardines-155g,120,pcs,BATCH-SARD155-001,1900,Display Shelves — Aisle 1
+fmrt-inv-sardines-425,fmrt-var-sardines-425g,48,pcs,BATCH-SARD425-001,4500,Display Shelves — Aisle 1
+fmrt-inv-cornbeef-175,fmrt-var-cornbeef-175g,60,pcs,BATCH-CB175-001,3800,Display Shelves — Aisle 1
+fmrt-inv-cornbeef-380,fmrt-var-cornbeef-380g,24,pcs,BATCH-CB380-001,7800,Display Shelves — Aisle 1
+fmrt-inv-soysauce-350,fmrt-var-soysauce-350ml,36,pcs,BATCH-SOY350-001,2100,Display Shelves — Aisle 1
+fmrt-inv-soysauce-1L,fmrt-var-soysauce-1L,24,pcs,BATCH-SOY1L-001,5200,Display Shelves — Aisle 1
+fmrt-inv-vinegar,fmrt-var-vinegar-350ml,30,pcs,BATCH-VIN350-001,1800,Display Shelves — Aisle 1
+fmrt-inv-oil-1L,fmrt-var-oil-1L,24,pcs,BATCH-OIL1L-001,8200,Stockroom A
+fmrt-inv-oil-2L,fmrt-var-oil-2L,12,pcs,BATCH-OIL2L-001,15500,Stockroom A
+fmrt-inv-eggs-6,fmrt-var-eggs-6pcs,30,pcs,BATCH-EGG6-001,4000,Walk-in Refrigerator
+fmrt-inv-eggs-12,fmrt-var-eggs-12pcs,20,pcs,BATCH-EGG12-001,7800,Walk-in Refrigerator
+fmrt-inv-milk-1L,fmrt-var-milk-1L,18,pcs,BATCH-MILK1L-001,7000,Walk-in Refrigerator
+fmrt-inv-cheese,fmrt-var-cheese-165g,24,pcs,BATCH-CHSE165-001,5500,Walk-in Refrigerator
+fmrt-inv-tomato,fmrt-var-tomato-500g,25,pcs,BATCH-TOM500-001,2200,Walk-in Refrigerator
+fmrt-inv-onion,fmrt-var-onion-1kg,20,pcs,BATCH-ONI1K-001,6800,Display Shelves — Aisle 1
+fmrt-inv-garlic,fmrt-var-garlic-250g,30,pcs,BATCH-GAR250-001,4500,Display Shelves — Aisle 1
+fmrt-inv-chicken-whole,fmrt-var-chicken-whole,12,pcs,BATCH-CHWHL-001,15500,Walk-in Refrigerator
+fmrt-inv-chicken-parts,fmrt-var-chicken-parts,20,pcs,BATCH-CHPRT-001,8800,Walk-in Refrigerator
+fmrt-inv-hotdog,fmrt-var-hotdog-500g,24,pcs,BATCH-HTDG-001,8200,Walk-in Refrigerator
+fmrt-inv-coke-330,fmrt-var-coke-330ml,72,pcs,BATCH-CK330-001,2400,Display Shelves — Aisle 2
+fmrt-inv-coke-1.5L,fmrt-var-coke-1.5L,36,pcs,BATCH-CK15L-001,5200,Display Shelves — Aisle 2
+fmrt-inv-water-500,fmrt-var-water-500ml,96,pcs,BATCH-WTR500-001,700,Display Shelves — Aisle 2
+fmrt-inv-water-1.5L,fmrt-var-water-1.5L,48,pcs,BATCH-WTR15L-001,1300,Display Shelves — Aisle 2
+fmrt-inv-juice-orange,fmrt-var-juice-orange-250ml,48,pcs,BATCH-JCO250-001,1400,Display Shelves — Aisle 2
+fmrt-inv-piattos-chz,fmrt-var-piattos-cheese,60,pcs,BATCH-PTCHZ-001,2300,Display Shelves — Aisle 2
+fmrt-inv-piattos-src,fmrt-var-piattos-sour,60,pcs,BATCH-PTSRC-001,2300,Display Shelves — Aisle 2
+fmrt-inv-skyflakes,fmrt-var-skyflakes-800g,18,pcs,BATCH-SKFLK-001,11000,Display Shelves — Aisle 2
+fmrt-inv-pancit-orig,fmrt-var-pancit-canton-orig,120,pcs,BATCH-PCORG-001,900,Display Shelves — Aisle 1
+fmrt-inv-pancit-chili,fmrt-var-pancit-canton-chili,6,pcs,BATCH-PCCHL-001,900,Display Shelves — Aisle 1
+fmrt-inv-shampoo-180,fmrt-var-shampoo-180ml,24,pcs,BATCH-SHP180-001,13500,Display Shelves — Aisle 2
+fmrt-inv-shampoo-scht,fmrt-var-shampoo-sachet,120,pcs,BATCH-SHPSCT-001,400,Display Shelves — Aisle 2
+fmrt-inv-soap,fmrt-var-soap-90g,60,pcs,BATCH-SOAP90-001,2600,Display Shelves — Aisle 2
+fmrt-inv-detergent-1kg,fmrt-var-detergent-1kg,18,pcs,BATCH-DET1K-001,13200,Stockroom B
+fmrt-inv-detergent-scht,fmrt-var-detergent-sachet,8,pcs,BATCH-DETSCT-001,700,Display Shelves — Aisle 2
+fmrt-inv-dishwash,fmrt-var-dishwash-250ml,30,pcs,BATCH-DSHW250-001,3800,Display Shelves — Aisle 2

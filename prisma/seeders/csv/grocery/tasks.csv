@@ -1,0 +1,10 @@
+id,type,status,notes,creatorId,approverId,clerkId,reviewerId,cancelerId,dueDateOffsetHrs,approvedAtOffsetHrs,inProgressAtOffsetHrs,fulfilledAtOffsetHrs,reviewedAtOffsetHrs,canceledAtOffsetHrs
+fmrt-task-po-001,GENERAL_CHORE,REVIEWED,Weekly dry goods restock — MercadoCorp delivery received and shelved,fmrt-admin-1,fmrt-admin-1,fmrt-admin-1,fmrt-sup-1,,-120,-122,-121,-120,-119,
+fmrt-task-po-002,GENERAL_CHORE,REVIEWED,Magnolia poultry and dairy delivery — chicken and eggs counted and refrigerated,fmrt-admin-1,fmrt-admin-1,fmrt-admin-1,fmrt-sup-1,,-72,-74,-73,-72,-71,
+fmrt-task-po-003,GENERAL_CHORE,REVIEWED,URC beverage and snack delivery — stored in Aisle 2 shelves,fmrt-admin-1,fmrt-admin-1,fmrt-admin-1,fmrt-sup-1,,-48,-50,-49,-48,-47,
+fmrt-task-refill-canned,SHELF_REFILL,FULFILLED,Restock canned sardines and corned beef from Stockroom A to Aisle 1 display shelves,fmrt-sup-1,fmrt-sup-1,fmrt-cash-2,fmrt-sup-1,,-5,-6,-5,-2,,
+fmrt-task-stock-count,STOCK_COUNT,APPROVED,Monthly physical inventory count — Aisle 1 and Aisle 2 all SKUs,fmrt-sup-1,fmrt-sup-1,fmrt-cash-1,,,+24,-1,,,,
+fmrt-task-refill-rice,SHELF_REFILL,PENDING,Move 10 bags of Sinandomeng 5kg from Stockroom A to front display,fmrt-cash-1,fmrt-sup-1,fmrt-cash-1,,,+6,,,,,
+fmrt-task-cash-recon,CASH_RECONCILIATION,IN_PROGRESS,End-of-day cash drawer count — Cashier Gladys Espiritu shift close,fmrt-cash-1,fmrt-cash-1,fmrt-cash-1,,,0,-1,-1,,,
+fmrt-task-waste,WASTE_DISPOSAL,FULFILLED,Dispose expired fresh produce — 3 packs tomatoes past best-before,fmrt-sup-1,fmrt-sup-1,fmrt-cash-2,fmrt-sup-1,,-24,-25,-24,-22,,
+fmrt-task-draft,GENERAL_CHORE,DRAFT,Reorganize household supplies section — group by brand,fmrt-cash-2,,,,,+72,,,,,

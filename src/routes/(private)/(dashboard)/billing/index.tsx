@@ -617,7 +617,7 @@ function AddonDialog({ addon, open, onClose }: { addon: AddonCatalogItem | null;
           {isPerUnit && quantity > 1 && (
             <p className='text-xs text-muted-foreground text-right'>
               Total: {addon.displayPrice.replace('₱', '')} × {quantity} = ₱
-              {(parseInt(addon.displayPrice.replace('₱', '').replace(',', '')) * quantity).toLocaleString()}/mo
+              {(parseInt(addon.displayPrice.replace('₱', '').replace(',', ''), 10) * quantity).toLocaleString()}/mo
             </p>
           )}
         </div>

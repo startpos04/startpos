@@ -1,0 +1,10 @@
+id,type,status,notes,creatorId,approverId,clerkId,reviewerId,cancelerId,dueDateOffsetHrs,approvedAtOffsetHrs,inProgressAtOffsetHrs,fulfilledAtOffsetHrs,reviewedAtOffsetHrs,canceledAtOffsetHrs
+shub-task-po-001,GENERAL_CHORE,REVIEWED,Seasonal women's collection delivery from Manila Garments — all items tagged and racked,shub-admin-1,shub-admin-1,shub-cash-1,shub-sup-1,,-120,-122,-121,-120,-119,
+shub-task-po-002,GENERAL_CHORE,REVIEWED,Men's collection delivery from Bench Manufacturing — received counted and displayed,shub-admin-1,shub-admin-1,shub-cash-1,shub-sup-1,,-72,-74,-73,-72,-71,
+shub-task-po-003,GENERAL_CHORE,REVIEWED,Outerwear and accessories delivery from Cebu Fashion — stored and ticketed,shub-admin-1,shub-admin-1,shub-cash-2,shub-sup-1,,-48,-50,-49,-48,-47,
+shub-task-refill-women,SHELF_REFILL,FULFILLED,Restock women's crop tees and blouses from Back Stockroom to Women's Section Display,shub-sup-1,shub-sup-1,shub-cash-1,shub-sup-1,,-5,-6,-5,-3,,
+shub-task-stock-count,STOCK_COUNT,APPROVED,Quarterly physical stock count — all SKUs across all sections,shub-sup-1,shub-sup-1,shub-cash-1,,,+48,-2,,,,
+shub-task-pending-men,SHELF_REFILL,PENDING,Restock men's polo shirts size M from Back Stockroom to Men's Section,shub-cash-2,shub-sup-1,shub-cash-2,,,+8,,,,,
+shub-task-cash-recon,CASH_RECONCILIATION,IN_PROGRESS,End-of-shift cash drawer count — Cashier Camille Santos,shub-cash-1,shub-cash-1,shub-cash-1,,,0,-1,-1,,,
+shub-task-waste,WASTE_DISPOSAL,FULFILLED,Write off 2 damaged sundresses from Sale Items — torn during fitting room incident,shub-sup-1,shub-sup-1,shub-cash-2,shub-sup-1,,-24,-25,-24,-22,,
+shub-task-draft,GENERAL_CHORE,DRAFT,Rearrange footwear display by size — largest at bottom smallest at eye level,shub-cash-1,,,,,+72,,,,,

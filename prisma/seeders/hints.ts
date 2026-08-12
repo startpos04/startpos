@@ -1,95 +1,69 @@
 /**
- * hints.ts — Hint system seed (Phase A)
+ * hints.ts — Hint system seed
  *
- * Seeds 10 starter hints covering the most useful tips across POS, products,
- * reports, settings, and global shortcuts. All upserts are keyed on (title, page)
- * — fully idempotent, safe to re-run at any time.
+ * Reads from csv/system/hints.csv — platform-global, same for every
+ * deployment. The target folder param is intentionally ignored here.
  *
- * Contents are managed in the DB so platform operators can update them without
- * deployment (Phase C will add the admin UI for this).
+ * All upserts are keyed on (title, page) — fully idempotent, safe to
+ * re-run at any time.
  *
- * Source of truth: REGISTRATION_ONBOARDING_PLAN.md §7.6
+ * CSV columns: title, body, page, sortOrder
+ *   - page: leave empty for global hints (no page filter)
  */
 
 /** biome-ignore-all lint/suspicious/noExplicitAny: seeder tx type */
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import Papa from 'papaparse'
 import type { PrismaClient } from 'prisma/generated/prisma/client'
 
 export const order = 10
 
-const STARTER_HINTS = [
-  // POS tips
-  {
-    title: 'Quick item search',
-    body: 'Start typing a product name to filter instantly — no need to scroll.',
-    page: '/pos',
-    sortOrder: 10,
-  },
-  {
-    title: 'SC/PWD discounts',
-    body: 'Select a customer type on the payment screen to apply SC/PWD discounts automatically.',
-    page: '/pos',
-    sortOrder: 20,
-  },
-  // Products tips
-  {
-    title: 'Bulk variants',
-    body: 'Add multiple variants (size, flavor) to a single product from the variants tab.',
-    page: '/products',
-    sortOrder: 10,
-  },
-  // Reports tips
-  {
-    title: 'Export to CSV',
-    body: 'Click the download icon on any report to export the data as a CSV file.',
-    page: '/sales-reports',
-    sortOrder: 10,
-  },
-  // Inventory tips
-  {
-    title: 'Low stock alerts',
-    body: 'Set a reorder threshold on a variant to get notified when stock runs low.',
-    page: '/inventory',
-    sortOrder: 10,
-  },
-  // Settings tips
-  {
-    title: 'Business type defaults',
-    body: 'Your tax and order settings were pre-configured based on your business type. Review them in Settings.',
-    page: '/settings',
-    sortOrder: 10,
-  },
-  // Global tips
-  {
-    title: 'Offline mode',
-    body: 'StartPOS works without internet. Transactions sync automatically when you reconnect.',
-    page: null,
-    sortOrder: 10,
-  },
-  {
-    title: 'Keyboard shortcuts',
-    body: "Press '/' anywhere in the POS to focus the search bar instantly.",
-    page: null,
-    sortOrder: 20,
-  },
-  {
-    title: 'Dark mode',
-    body: 'Toggle dark mode from the settings menu or the icon in the top corner.',
-    page: null,
-    sortOrder: 30,
-  },
-  {
-    title: 'Receipt customisation',
-    body: 'Add your business logo and contact details to receipts in Settings → Receipt.',
-    page: null,
-    sortOrder: 40,
-  },
-]
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const SYSTEM_CSV_DIR = path.join(__dirname, 'csv', 'system')
 
-export async function Hints(prisma: PrismaClient) {
-  console.info('💡 Seeding starter hints...')
+interface HintRow {
+  title: string
+  body: string
+  page: string | null
+  sortOrder: number
+}
 
-  for (const hint of STARTER_HINTS) {
-    // Idempotent upsert: key on (title, page) combo
+function parseHintsCsv(): HintRow[] {
+  const filePath = path.join(SYSTEM_CSV_DIR, 'hints.csv')
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error('❌ Ingestion aborted. Required system file is missing: "csv/system/hints.csv"')
+  }
+
+  const { data, meta } = Papa.parse(fs.readFileSync(filePath, 'utf-8'), {
+    header: true,
+    skipEmptyLines: true,
+  })
+
+  const required = ['title', 'body', 'sortOrder']
+  const missing = required.filter(h => !meta.fields?.includes(h))
+  if (missing.length > 0) {
+    throw new Error(`❌ csv/system/hints.csv missing required columns: [${missing.join(', ')}]`)
+  }
+
+  return (data as any[]).map(row => ({
+    title: String(row.title).trim(),
+    body: String(row.body).trim(),
+    page: row.page?.trim() || null,
+    sortOrder: parseInt(row.sortOrder, 10) || 0,
+  }))
+}
+
+// folder param accepted for pipeline compatibility but not used —
+// hints always come from csv/system/
+export async function Hints(prisma: PrismaClient, _options?: { folder: string }) {
+  const hints = parseHintsCsv()
+
+  console.info(`💡 Seeding ${hints.length} hints from csv/system/hints.csv...`)
+
+  for (const hint of hints) {
     const existing = await (prisma as any).hint.findFirst({
       where: { title: hint.title, page: hint.page ?? null },
     })
@@ -110,28 +84,7 @@ export async function Hints(prisma: PrismaClient) {
     }
   }
 
-  // Seed HINT_FREQUENCY_DAYS and HINT_DISPLAY_SECONDS platform defaults
-  const hintConfigs = [
-    { key: 'HINT_FREQUENCY_DAYS', value: '1', description: 'Days between showing the same hint to the same user.' },
-    { key: 'HINT_DISPLAY_SECONDS', value: '6', description: 'Seconds before a hint auto-dismisses.' },
-  ]
-
-  for (const cfg of hintConfigs) {
-    const existing = await (prisma as any).systemConfig.findFirst({
-      where: { key: cfg.key, businessId: null, branchId: null, userId: null, scope: 'BUSINESS' },
-    })
-
-    if (!existing) {
-      await (prisma as any).systemConfig.create({
-        data: { key: cfg.key, value: cfg.value, scope: 'BUSINESS' },
-      })
-      console.info(`   ✔  Config "${cfg.key}" = "${cfg.value}" seeded.`)
-    } else {
-      console.info(`   –  Config "${cfg.key}" already exists, skipped.`)
-    }
-  }
-
-  console.info(`✅ Hint seed complete (${STARTER_HINTS.length} hints processed).`)
+  console.info(`✅ Hint seed complete (${hints.length} hints processed).`)
 }
 
 export default Hints

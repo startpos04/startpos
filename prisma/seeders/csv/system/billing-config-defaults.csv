@@ -1,0 +1,18 @@
+key,value,description
+TRIAL_DURATION_DAYS,30,Days from subscription creation before TRIAL expires.
+GRACE_PERIOD_DAYS,7,Days after expiry before hard operational restriction (GRACE_PERIOD → EXPIRED).
+LONG_TERM_INACTIVE_DAYS,90,Days after EXPIRED before account is moved to LONG_TERM_INACTIVE.
+CREDIT_LOW_BALANCE_THRESHOLD,10,Notify when prepaid credit balance falls below this number of units.
+OVERAGE_BILLING_ENABLED,false,When false checkout is blocked when TX allowance is exhausted. When true overage is billed.
+ADDON_ANALYTICS_PRICE,29900,Monthly price in PHP cents for the Analytics Dashboard add-on (₱299/mo).
+ADDON_API_PRICE,49900,Monthly price in PHP cents for the API Access add-on (₱499/mo).
+ADDON_BRANCH_PRICE,19900,Monthly price in PHP cents per extra branch add-on (₱199/branch/mo).
+ADDON_EMPLOYEE_PRICE,4900,Monthly price in PHP cents per extra employee add-on — Basic tier only (₱49/employee/mo).
+ADDON_TX_500_PRICE,9900,Price in PHP cents for +500 TX top-up add-on (₱99).
+ADDON_TX_1000_PRICE,17900,Price in PHP cents for +1000 TX top-up add-on (₱179).
+ADDON_TX_5000_PRICE,79900,Price in PHP cents for +5000 TX top-up add-on (₱799).
+ADDON_TX_RECURRING_500_PRICE,9900,Monthly price in PHP cents for +500 TX recurring addon (₱99/mo).
+ADDON_TX_RECURRING_1000_PRICE,17900,Monthly price in PHP cents for +1000 TX recurring addon (₱179/mo).
+ADDON_TX_RECURRING_5000_PRICE,79900,Monthly price in PHP cents for +5000 TX recurring addon (₱799/mo).
+HINT_FREQUENCY_DAYS,1,Days between showing the same hint to the same user.
+HINT_DISPLAY_SECONDS,6,Seconds before a hint auto-dismisses.

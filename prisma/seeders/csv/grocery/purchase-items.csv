@@ -1,0 +1,15 @@
+id,purchaseId,variantId,quantity,unitAbbreviation,unitCost
+fmrt-poi-001a,fmrt-po-001,fmrt-var-rice-5kg,20,pcs,22000
+fmrt-poi-001b,fmrt-po-001,fmrt-var-rice-25kg,10,pcs,108000
+fmrt-poi-001c,fmrt-po-001,fmrt-var-sardines-155g,48,pcs,1900
+fmrt-poi-001d,fmrt-po-001,fmrt-var-cornbeef-175g,24,pcs,3800
+fmrt-poi-001e,fmrt-po-001,fmrt-var-oil-1L,12,pcs,8200
+fmrt-poi-001f,fmrt-po-001,fmrt-var-soysauce-1L,12,pcs,5200
+fmrt-poi-002a,fmrt-po-002,fmrt-var-chicken-whole,10,pcs,15500
+fmrt-poi-002b,fmrt-po-002,fmrt-var-eggs-12pcs,12,pcs,7800
+fmrt-poi-002c,fmrt-po-002,fmrt-var-milk-1L,12,pcs,7000
+fmrt-poi-002d,fmrt-po-002,fmrt-var-hotdog-500g,12,pcs,8200
+fmrt-poi-003a,fmrt-po-003,fmrt-var-coke-330ml,48,pcs,2400
+fmrt-poi-003b,fmrt-po-003,fmrt-var-coke-1.5L,24,pcs,5200
+fmrt-poi-003c,fmrt-po-003,fmrt-var-piattos-cheese,36,pcs,2300
+fmrt-poi-003d,fmrt-po-003,fmrt-var-skyflakes-800g,12,pcs,11000

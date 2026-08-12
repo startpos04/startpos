@@ -1,0 +1,10 @@
+id,type,status,notes,creatorId,approverId,clerkId,reviewerId,cancelerId,dueDateOffsetHrs,approvedAtOffsetHrs,inProgressAtOffsetHrs,fulfilledAtOffsetHrs,reviewedAtOffsetHrs,canceledAtOffsetHrs
+kln-task-po-001,GENERAL_CHORE,REVIEWED,Weekly protein restock — Benedicto Meat Supply delivery received and inspected,kln-admin-1,kln-admin-1,kln-admin-1,kln-sup-1,,-120,-122,-121,-120,-119,
+kln-task-po-002,GENERAL_CHORE,REVIEWED,Seafood delivery from Golden Bay — bangus and squid counted and stored,kln-admin-1,kln-admin-1,kln-admin-1,kln-sup-1,,-72,-74,-73,-72,-71,
+kln-task-po-003,GENERAL_CHORE,REVIEWED,Rice sack delivery stored in dry storage,kln-admin-1,kln-admin-1,kln-admin-1,kln-sup-1,,-48,-50,-49,-48,-47,
+kln-task-refill-rice,SHELF_REFILL,FULFILLED,Move 5kg rice from dry storage to kitchen prep station,kln-sup-1,kln-sup-1,kln-cash-2,kln-sup-1,,-3,-4,-3,-1,,
+kln-task-stock-count,STOCK_COUNT,APPROVED,Monthly physical stock count — proteins and dry goods,kln-sup-1,kln-sup-1,kln-cash-1,,,+24,-1,,,,
+kln-task-waste,WASTE_DISPOSAL,FULFILLED,Dispose expired bangus batch from cooler — 1 kg,kln-sup-1,kln-sup-1,kln-cash-2,kln-sup-1,,-24,-26,-25,-24,,
+kln-task-cash-recon,CASH_RECONCILIATION,IN_PROGRESS,End-of-day cash drawer reconciliation — cashier Ana Cruz shift,kln-cash-1,kln-cash-1,kln-cash-1,,,0,-1,-1,,,
+kln-task-pending-refill,SHELF_REFILL,PENDING,Restock soy sauce and vinegar bottles from bodega to kitchen,kln-cash-2,kln-sup-1,kln-cash-2,,,+8,,,,,
+kln-task-draft-chore,GENERAL_CHORE,DRAFT,Clean and reorganize walk-in cooler shelves after inventory,kln-cash-1,,,,,+48,,,,,

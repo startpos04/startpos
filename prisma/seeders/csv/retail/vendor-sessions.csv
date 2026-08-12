@@ -1,0 +1,2 @@
+id,userId,status,openingCash,closingCash,expectedCash,verifiedCash,startTimeOffsetHrs,endTimeOffsetHrs,operationalTaskId
+shub-session-open,shub-cash-1,OPEN,100000,,,,0,,shub-task-cash-recon

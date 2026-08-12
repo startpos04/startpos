@@ -1,0 +1,10 @@
+id,userId,type,title,message,isRead,link,hoursAgo
+kln-notif-001,kln-admin-1,LOW_STOCK,Low Stock Alert — Pork Belly,"Pork belly (Liempo) is below the minimum stock threshold. Current stock: 3 kg remaining. Consider placing a restock order.",FALSE,/inventory,2
+kln-notif-002,kln-admin-1,LOW_STOCK,Low Stock Alert — Fresh Squid,"Fresh squid (Pusit) is critically low. Only 1 kg left. Last delivery was 72 hours ago.",FALSE,/inventory,1
+kln-notif-003,kln-admin-1,TASK_ASSIGNED,Stock Count Task Awaiting Your Review,"A monthly physical stock count has been submitted and is ready for your approval.",FALSE,/tasks,3
+kln-notif-004,kln-admin-1,PURCHASE_PENDING_APPROVAL,New Purchase Order Submitted,"Weekly protein restock PO from Benedicto Meat Supply (₱3,780.00) is awaiting your approval.",TRUE,/purchases,122
+kln-notif-005,kln-sup-1,TASK_ASSIGNED,Shelf Refill Task Completed,"Ana Cruz has fulfilled the rice shelf refill task. Please review and lock.",FALSE,/tasks,1
+kln-notif-006,kln-sup-1,LOW_STOCK,Multiple Ingredients Low,"Pork belly and fresh squid are both running low. Current session sales are high — recommend ordering today.",FALSE,/inventory,2
+kln-notif-007,kln-sup-1,TASK_ASSIGNED,New Shelf Refill Request Pending Approval,"Ben Flores submitted a shelf refill request for soy sauce and vinegar. Awaiting your approval.",FALSE,/tasks,3
+kln-notif-008,kln-cash-1,TASK_ASSIGNED,Your Task Has Been Approved,"Your stock count task has been approved and assigned to you. Due in 24 hours.",FALSE,/tasks,1
+kln-notif-009,kln-cash-2,TASK_ASSIGNED,Waste Disposal Task Reviewed,"Your waste disposal report for expired bangus has been reviewed and locked by the supervisor.",TRUE,/tasks,23

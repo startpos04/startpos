@@ -1,0 +1,4 @@
+id,purchaseId,totalCost,notes,supplierName,operationalTaskId
+kln-po-001,PO-KNL-2024-001,378000,Weekly protein restock — pork belly beef tapa longganisa,Benedicto Meat Supply,kln-task-po-001
+kln-po-002,PO-KNL-2024-002,132000,Fresh bangus and squid weekly delivery,Golden Bay Seafood,kln-task-po-002
+kln-po-003,PO-KNL-2024-003,180000,Jasmine rice sack delivery — 25kg bags,QC Fresh Produce Market,kln-task-po-003

@@ -1,0 +1,11 @@
+title,body,page,sortOrder
+Quick item search,Start typing a product name to filter instantly — no need to scroll.,/pos,10
+SC/PWD discounts,Select a customer type on the payment screen to apply SC/PWD discounts automatically.,/pos,20
+Bulk variants,"Add multiple variants (size, flavor) to a single product from the variants tab.",/products,10
+Export to CSV,Click the download icon on any report to export the data as a CSV file.,/sales-reports,10
+Low stock alerts,Set a reorder threshold on a variant to get notified when stock runs low.,/inventory,10
+Business type defaults,Your tax and order settings were pre-configured based on your business type. Review them in Settings.,/settings,10
+Offline mode,StartPOS works without internet. Transactions sync automatically when you reconnect.,,10
+Keyboard shortcuts,Press '/' anywhere in the POS to focus the search bar instantly.,,20
+Dark mode,Toggle dark mode from the settings menu or the icon in the top corner.,,30
+Receipt customisation,Add your business logo and contact details to receipts in Settings → Receipt.,,40

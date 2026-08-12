@@ -1,0 +1,5 @@
+business_id,business_name,business_slug,business_type,branch_id,branch_name,serial_number,min_invoice,max_invoice,branch_code,user_id,user_email,user_name,user_role,user_image
+kln-org-1,Kusina ni Lola,kusina-ni-lola,RESTAURANT,kln-branch-1,Quezon City Branch,SN-KNL-2024-001,1000,999999,00001,kln-admin-1,admin@kusinanlola.ph,Maria Santos,ADMIN,https://api.dicebear.com/7.x/avataaars/svg?seed=MariaKNL
+kln-org-1,Kusina ni Lola,kusina-ni-lola,RESTAURANT,kln-branch-1,Quezon City Branch,SN-KNL-2024-001,1000,999999,00001,kln-sup-1,supervisor@kusinanlola.ph,Jose Reyes,SUPERVISOR,https://api.dicebear.com/7.x/avataaars/svg?seed=JoseKNL
+kln-org-1,Kusina ni Lola,kusina-ni-lola,RESTAURANT,kln-branch-1,Quezon City Branch,SN-KNL-2024-001,1000,999999,00001,kln-cash-1,cashier1@kusinanlola.ph,Ana Cruz,CASHIER,https://api.dicebear.com/7.x/avataaars/svg?seed=AnaKNL
+kln-org-1,Kusina ni Lola,kusina-ni-lola,RESTAURANT,kln-branch-1,Quezon City Branch,SN-KNL-2024-001,1000,999999,00001,kln-cash-2,cashier2@kusinanlola.ph,Ben Flores,CASHIER,https://api.dicebear.com/7.x/avataaars/svg?seed=BenKNL

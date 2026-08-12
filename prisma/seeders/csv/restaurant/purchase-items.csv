@@ -1,0 +1,8 @@
+id,purchaseId,variantId,quantity,unitAbbreviation,unitCost
+kln-poi-001a,kln-po-001,kln-var-raw-liempo,5,kg,27000
+kln-poi-001b,kln-po-001,kln-var-raw-tapa,3,kg,48000
+kln-poi-001c,kln-po-001,kln-var-raw-longganisa,3,kg,35000
+kln-poi-001d,kln-po-001,kln-var-raw-gnd-pork,3,kg,24000
+kln-poi-002a,kln-po-002,kln-var-raw-bangus,4,kg,22000
+kln-poi-002b,kln-po-002,kln-var-raw-squid,2,kg,32000
+kln-poi-003a,kln-po-003,kln-var-rice,25,kg,7200

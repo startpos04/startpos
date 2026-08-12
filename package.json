@@ -27,7 +27,11 @@
     "test:e2e:headed": "playwright test --headed",
     "docker:dev": "docker compose up --build --watch",
     "docker:down": "docker compose down",
-    "docker:exec": "docker compose exec -it app"
+    "docker:exec": "docker compose exec -it app",
+    "stripe:setup": "docker compose --profile stripe up --build stripe-setup",
+    "stripe:webhook": "docker compose --profile stripe up --build stripe-webhook",
+    "stripe:start": "docker compose --profile stripe up --build stripe-setup stripe-webhook",
+    "stripe:down": "docker compose --profile stripe stop stripe-setup stripe-webhook"
   },
   "prisma": {
     "seed": "tsx --env-file=.env --env-file=.env.local ./prisma/seeders/index.ts"

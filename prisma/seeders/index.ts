@@ -8,6 +8,17 @@ import { askQuestion, confirmYesNo, getDatabaseTarget, isProductionDatabaseTarge
 const __filename = fileURLToPath(import.meta.url)
 const CURRENT_FILE = path.basename(__filename)
 
+// Seeders that always run regardless of target folder — they seed platform-global
+// data (features, plans, hints, etc.) that must exist in every environment.
+const SYSTEM_SEEDER_FILES = new Set(['entitlements.ts', 'entitlements.js', 'hints.ts', 'hints.js'])
+
+// Seeders that are locked to a specific folder — they only run when the target
+// folder exactly matches. Keyed by file name → required folder name.
+const FOLDER_LOCKED_SEEDERS = new Map<string, string>([
+  ['e2e.ts', 'e2e'],
+  ['e2e.js', 'e2e'],
+])
+
 async function main() {
   const { dbUrl, dbTarget, nodeEnv } = getDatabaseTarget()
   const isProductionDB = isProductionDatabaseTarget(dbUrl)
@@ -51,7 +62,8 @@ async function main() {
 
   console.info(`\n🌱 Inspecting seeder modules. Target Data Folder: [\x1b[34m${targetFolder}\x1b[0m]`)
 
-  const seederPipeline: any[] = []
+  const systemPipeline: any[] = []
+  const tenantPipeline: any[] = []
 
   for (const file of rawFiles) {
     const filePath = path.join(seedersDir, file)
@@ -60,26 +72,61 @@ async function main() {
       const weight = typeof module.order === 'number' ? module.order : 99
       const seederTask = module.default || Object.values(module).find(val => typeof val === 'function')
 
-      seederPipeline.push({
-        file,
-        fileName: path.parse(file).name,
-        weight,
-        seederTask,
-      })
+      const entry = { file, fileName: path.parse(file).name, weight, seederTask }
+
+      if (SYSTEM_SEEDER_FILES.has(file)) {
+        systemPipeline.push(entry)
+      } else {
+        tenantPipeline.push(entry)
+      }
     } catch (err) {
       console.error(`❌ Metadata extraction failed on ${file}:`, err)
       throw err
     }
   }
 
-  seederPipeline.sort((a, b) => a.weight - b.weight)
+  systemPipeline.sort((a, b) => a.weight - b.weight)
+  tenantPipeline.sort((a, b) => a.weight - b.weight)
 
   console.info('🚀 Starting ordered database seeding...')
 
   try {
     await prisma.$transaction(
       async tx => {
-        for (const task of seederPipeline) {
+        // ── Phase 1: System seeders — always run, no folder filter ──────────
+        if (systemPipeline.length > 0) {
+          console.info('\n📦 [SYSTEM] Running platform-global seeders...')
+          for (const task of systemPipeline) {
+            // When a specific file arg is given, still run system seeders unless
+            // the arg explicitly targets a different single tenant seeder.
+            // System seeders are skipped only if arg targets another specific file.
+            const isTargeted = arg && arg !== 'all' && arg !== task.fileName && arg !== task.file
+            if (isTargeted) {
+              console.info(` -> [System] Skipping ${task.file} (not targeted by arg "${arg}").`)
+              continue
+            }
+
+            if (typeof task.seederTask !== 'function') {
+              console.warn(`⚠️  Skipping ${task.file}: No exportable execution function discovered.`)
+              continue
+            }
+
+            console.info(` -> [Order: ${task.weight}] Executing: ${task.file}`)
+            await task.seederTask(tx, { folder: targetFolder })
+            console.info('---------------------------------------------------')
+          }
+        }
+
+        // ── Phase 2: Tenant seeders — filtered by folder + optional arg ─────
+        console.info(`\n🏢 [TENANT] Running tenant seeders for folder: ${targetFolder}...`)
+        for (const task of tenantPipeline) {
+          // Skip folder-locked seeders when the target folder doesn't match
+          const lockedFolder = FOLDER_LOCKED_SEEDERS.get(task.file)
+          if (lockedFolder && lockedFolder !== targetFolder) {
+            console.info(` -> Skipping ${task.file} (locked to folder "${lockedFolder}", current: "${targetFolder}").`)
+            continue
+          }
+
           const shouldRun = !arg || arg === 'all' || arg === task.fileName || arg === task.file
 
           if (shouldRun) {
@@ -90,7 +137,7 @@ async function main() {
 
             console.info(` -> [Order: ${task.weight}] Executing: ${task.file}`)
             await task.seederTask(tx, { folder: targetFolder })
-            console.info(`---------------------------------------------------`)
+            console.info('---------------------------------------------------')
           }
         }
       },

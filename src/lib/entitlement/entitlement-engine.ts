@@ -10,12 +10,19 @@
  * Evaluation order (per ADR-004 and master plan §2.10):
  *   1. SUSPENDED or LONG_TERM_INACTIVE?          → block all operational features
  *   2. EXPIRED (past grace period)?              → block all operational features
+ *   2.5 Branch toggle disabled?                  → block this feature at this branch only
  *   3. EntitlementOverride for this business+key? → honor it (can grant or revoke)
  *   4. Plan includes this feature key?            → proceed if yes
  *   5. Per-feature usage limit?                   → check against currentUsage
  *   6. TX allowance exhausted?                    → check txRemaining for COMPLETE_CHECKOUT
  *   7. Prepaid credit balance zero?               → check creditBalance for COMPLETE_CHECKOUT
  *   8. → GRANTED
+ *
+ * Branch toggle ordering rationale:
+ *   Step 2.5 runs AFTER subscription status blocks (1–2) so a suspended/expired
+ *   account still sees the subscription denial, not a branch denial.
+ *   Step 2.5 runs BEFORE business-level overrides (3) so a branch toggle cannot
+ *   suppress a feature that a platform admin has explicitly granted via override.
  *
  * Usage:
  *   const result = EntitlementEngine.check(Capabilities.COMPLETE_CHECKOUT, context)
@@ -73,6 +80,26 @@ export const EntitlementEngine = {
           code: EntitlementCode.SUBSCRIPTION_EXPIRED,
           reason: 'Your subscription has expired. Upgrade your plan to continue processing transactions.',
         }
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Step 2.5: Branch-level feature toggle.
+    // A branch manager can disable individual features for their branch
+    // without affecting other branches or the business-level subscription.
+    //
+    // This check runs AFTER subscription status blocks so that a suspended
+    // or expired account still receives the correct subscription denial code.
+    //
+    // This check runs BEFORE business-level EntitlementOverrides (Step 3)
+    // so that platform-admin override grants can never be suppressed by a
+    // branch manager — overrides are a platform-admin tool, not a branch tool.
+    // ------------------------------------------------------------------
+    if (context.branchDisabledFeatures?.has(capability)) {
+      return {
+        granted: false,
+        code: EntitlementCode.FEATURE_DISABLED_AT_BRANCH,
+        reason: 'This feature has been disabled for this branch.',
       }
     }
 

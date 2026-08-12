@@ -1,0 +1,13 @@
+id,variantId,quantity,unitAbbreviation,batchNumber,costPrice,locationName
+inv-coffee-reg,var-coffee-reg,5000,ml,INIT-COF-REG,3500,Warehouse A
+inv-coffee-lrg,var-coffee-lrg,5000,ml,INIT-COF-LRG,4500,Warehouse A
+inv-milktea-std,var-milktea-std,4000,ml,INIT-MT-STD,4000,Warehouse A
+inv-sisig-bowl,var-sisig-bowl,100,pcs,INIT-SISIG,7000,Main Counter Freezer
+inv-chicken-rice,var-chicken-rice,150,pcs,INIT-CHKN,5500,Main Counter Freezer
+inv-halohalo-reg,var-halohalo-reg,80,pcs,INIT-HALO,3500,Main Counter Freezer
+inv-fries-bbq,var-fries-bbq,3000,g,INIT-FRY-BBQ,2200,Warehouse A
+inv-fries-cheese,var-fries-cheese,3000,g,INIT-FRY-CHZ,2200,Warehouse A
+inv-extra-rice,var-extra-rice,20000,g,INIT-RICE,800,Warehouse A
+inv-tapioca-pearls,var-tapioca-pearls,10000,g,INIT-PEARLS,500,Warehouse A
+inv-extra-egg,var-extra-egg,200,pcs,INIT-EGG,700,Main Counter Freezer
+inv-raw-chicken,var-raw-chicken-pc,50,kg,INIT-RAW-CHKN,3200,Main Counter Freezer
