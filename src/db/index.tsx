@@ -12,6 +12,7 @@ import utc from 'dayjs/plugin/utc'
 import dayjs from '@/lib/dayjs'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { getQueryClient } from '@/lib/query-client'
+import { authStore } from '@/store/auth-store'
 
 dayjs.extend(utc)
 
@@ -106,6 +107,11 @@ export function createSyncableCollection<TRecord extends SyncableRecord>(config:
 
         queryFn: async ctx => {
           if (typeof navigator !== 'undefined' && !navigator.onLine) return []
+
+          // Collections are module-level singletons that instantiate before auth
+          // state is known. Guard here so tenant-gated collections never fire
+          // API calls on the login page or any unauthenticated route.
+          if (!authStore.state.isAuthenticated) return []
           const options = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions)
 
           const where: Record<string, any> = {}

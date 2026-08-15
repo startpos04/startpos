@@ -105,7 +105,7 @@ const SECTIONS: { label: string; fields: string[] }[] = [
       'hasPerishables',
     ],
   },
-  { label: 'Sales process', fields: ['paymentTiming', 'requiresTableManagement', 'hasOrderCustomization', 'offersDelivery'] },
+  { label: 'Sales process', fields: ['paymentTiming', 'requiresTableManagement', 'hasOrderCustomization'] },
   {
     label: 'Inventory',
     fields: ['tracksInventory', 'inventoryCriticality', 'hasMultipleStockLocations', 'usesSuppliers', 'requiresGoodsReceipt', 'hasRegularWaste'],
@@ -115,18 +115,11 @@ const SECTIONS: { label: string; fields: string[] }[] = [
     label: 'Finance & compliance',
     fields: ['handlesCash', 'reconcilesCash', 'isVatRegistered', 'taxDisplayMode', 'requiresOfficialReceipts', 'hasCorporateBuyers'],
   },
-  { label: 'Customers', fields: ['tracksCustomers', 'hasLoyaltyIntent'] },
+  { label: 'Customers', fields: ['tracksCustomers'] },
   { label: 'Growth', fields: ['plansExpansion', 'needsExternalIntegrations'] },
   {
     label: 'Your plans',
-    fields: [
-      'intentToAddMoreStaff',
-      'intentToTrackInventory',
-      'intentToManageSuppliers',
-      'intentToOfferDelivery',
-      'intentToOpenMoreLocations',
-      'intentToIntegrateExternalSystems',
-    ],
+    fields: ['intentToAddMoreStaff', 'intentToTrackInventory', 'intentToManageSuppliers', 'intentToOpenMoreLocations', 'intentToIntegrateExternalSystems'],
   },
 ]
 

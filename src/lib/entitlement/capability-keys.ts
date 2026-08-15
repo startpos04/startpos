@@ -69,11 +69,11 @@ export const Capabilities = {
   MANAGE_BILLING: 'MANAGE_BILLING',
   REACTIVATE_SUBSCRIPTION: 'REACTIVATE_SUBSCRIPTION',
 
-  // API access (enterprise tier)
+  // API access (post-V1 capability - not exposed in V1 public surfaces)
   ACCESS_API: 'ACCESS_API',
 
   // ---------------------------------------------------------------------------
-  // Future capabilities — not yet built; seeded so registry IDs resolve
+  // Post-V1 capabilities — architecture exists but not exposed in V1 public surfaces
   // ---------------------------------------------------------------------------
   LOYALTY_POINTS: 'LOYALTY_POINTS',
   KITCHEN_DISPLAY: 'KITCHEN_DISPLAY',

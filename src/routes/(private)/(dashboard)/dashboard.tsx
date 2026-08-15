@@ -287,7 +287,7 @@ function WelcomeBanner({ name, businessName }: WelcomeBannerProps) {
       {/* Bottom row: sparkle tagline */}
       <div className='relative mt-4 flex items-center gap-1.5 text-xs text-muted-foreground'>
         <SparklesIcon className='h-3 w-3 text-primary' />
-        <span>You have 50 free transactions to get started — no card required.</span>
+        <span>30-day free trial with 500 transactions plus 50 credits — no card required.</span>
       </div>
     </div>
   )

@@ -20,6 +20,11 @@
  *  - Negates each tax line and inserts as new records
  *  - Creates a negative payment record referencing the original invoice
  *  - Returns error when original transaction not found
+ *  ✅ BUSINESS RULE ENFORCEMENT: Refunds do NOT restore credits or transaction usage
+ *  ✅ Verifies no credit ledger entries are created during refunds
+ *  ✅ Verifies no usage counter modifications during refunds
+ *  ✅ Confirms refunds work regardless of credit/transaction limits
+ *  ✅ Tests multiple refunds don't accumulate credit restorations
  *
  * Run with: pnpm test create-pos-refund
  */
@@ -85,11 +90,37 @@ function seedOriginalTransaction(overrides: Record<string, any> = {}) {
     totalCost: 5000,
     taxAmount: 1200,
     discount: 0,
+    bufferRate: 0.02,
+    priceConfiguration: 'INCLUSIVE',
+    invoiceType: 'SALES_INVOICE',
+    cashierId: 'user-001',
+    orderId: makeId(),
+    buyerName: 'Test Buyer',
     complianceData: {
+      ptuNumber: 'PTU123',
+      ptuIssuedAt: new Date(),
+      vatableSales: 10000,
+      vatAmount: 1200,
       vatExemptSales: 0,
       zeroRatedSales: 0,
+      scPwdName: null,
+      scPwdIdNumber: null,
       scPwdDiscount: 0,
     },
+    payments: [{
+      id: makeId(),
+      method: 'CASH',
+      amount: 11200,
+      platform: null,
+    }],
+    taxLines: [{
+      id: makeId(),
+      type: 'VAT',
+      category: 'STANDARD',
+      rate: 12,
+      taxableAmount: 10000,
+      taxAmount: 1200,
+    }],
     businessId: 'biz-test-001',
     branchId: 'branch-test-001',
     createdAt: new Date(),
@@ -164,11 +195,11 @@ function seedSequenceCounter() {
 // ---------------------------------------------------------------------------
 
 describe('createPosRefund — error handling', () => {
-  it('returns error when original transaction not found', async () => {
-    const result = await createPosRefund('non-existent-id')
+  it('returns error when original transaction snapshot is invalid', async () => {
+    const invalidSnapshot = {} as any
+    const result = await createPosRefund(invalidSnapshot)
     expect(result.data).toBe(false)
     expect(result.error).toBeDefined()
-    expect(result.error!.message).toMatch(/not found/i)
   })
 })
 
@@ -180,7 +211,7 @@ describe('createPosRefund — return value', () => {
   it('returns refundInvoiceNo and transactionId on success', async () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction()
-    const result = await createPosRefund(tx.id)
+    const result = await createPosRefund(tx)
     expect(result.data).toMatch(/^RF-/)
     expect(result.transactionId).toBeDefined()
   })
@@ -188,7 +219,7 @@ describe('createPosRefund — return value', () => {
   it('refundInvoiceNo starts with RF- prefix', async () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction()
-    const result = await createPosRefund(tx.id)
+    const result = await createPosRefund(tx)
     expect(result.data).toMatch(/^RF-\d{4}-\d{6}$/)
   })
 })
@@ -201,7 +232,7 @@ describe('createPosRefund — refund transaction', () => {
   it('inserts a new REFUND transaction', async () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction()
-    await createPosRefund(tx.id)
+    await createPosRefund(tx)
     const insertedTx = mocks.transactionCollection.insert.mock.calls
       .map(c => c[0] as any)
       .find(t => t.type === TransactionType.REFUND)
@@ -211,7 +242,7 @@ describe('createPosRefund — refund transaction', () => {
   it('negates totalAmount on the refund transaction', async () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction({ totalAmount: 11200 })
-    await createPosRefund(tx.id)
+    await createPosRefund(tx)
     const refundTx = mocks.transactionCollection.insert.mock.calls
       .map(c => c[0] as any)
       .find(t => t.type === TransactionType.REFUND)
@@ -221,7 +252,7 @@ describe('createPosRefund — refund transaction', () => {
   it('negates totalCost and taxAmount', async () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction({ totalCost: 5000, taxAmount: 1200 })
-    await createPosRefund(tx.id)
+    await createPosRefund(tx)
     const refundTx = mocks.transactionCollection.insert.mock.calls
       .map(c => c[0] as any)
       .find(t => t.type === TransactionType.REFUND)
@@ -232,7 +263,7 @@ describe('createPosRefund — refund transaction', () => {
   it('sets originalTransactionId to the original tx id', async () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction()
-    await createPosRefund(tx.id)
+    await createPosRefund(tx)
     const refundTx = mocks.transactionCollection.insert.mock.calls
       .map(c => c[0] as any)
       .find(t => t.type === TransactionType.REFUND)
@@ -242,9 +273,14 @@ describe('createPosRefund — refund transaction', () => {
   it('negates compliance vatExemptSales and zeroRatedSales', async () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction({
-      complianceData: { vatExemptSales: 500, zeroRatedSales: 200, scPwdDiscount: 0 },
+      complianceData: { 
+        ...seedOriginalTransaction().complianceData,
+        vatExemptSales: 500, 
+        zeroRatedSales: 200, 
+        scPwdDiscount: 0 
+      },
     })
-    await createPosRefund(tx.id)
+    await createPosRefund(tx)
     const refundTx = mocks.transactionCollection.insert.mock.calls
       .map(c => c[0] as any)
       .find(t => t.type === TransactionType.REFUND)
@@ -262,7 +298,7 @@ describe('createPosRefund — inventory restock', () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction()
     const movement = seedMovement(tx.id)
-    await createPosRefund(tx.id)
+    await createPosRefund(tx)
     // update should have been called for the inventory batch
     expect(mocks.inventoryCollection.update).toHaveBeenCalledWith(
       movement.inventoryId,
@@ -277,7 +313,7 @@ describe('createPosRefund — inventory restock', () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction()
     seedMovement(tx.id)
-    await createPosRefund(tx.id)
+    await createPosRefund(tx)
     const insertedMovements = mocks.inventoryMovementCollection.insert.mock.calls
       .map(c => c[0] as any)
       .filter(m => m.type === MovementType.IN)
@@ -288,7 +324,7 @@ describe('createPosRefund — inventory restock', () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction()
     seedMovement(tx.id)
-    await createPosRefund(tx.id)
+    await createPosRefund(tx)
     const inMovement = mocks.inventoryMovementCollection.insert.mock.calls
       .map(c => c[0] as any)
       .find(m => m.type === MovementType.IN)
@@ -299,7 +335,7 @@ describe('createPosRefund — inventory restock', () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction()
     // No movements seeded
-    const result = await createPosRefund(tx.id)
+    const result = await createPosRefund(tx)
     expect(result.data).toMatch(/^RF-/)
     expect(mocks.inventoryCollection.update).not.toHaveBeenCalled()
   })
@@ -314,7 +350,7 @@ describe('createPosRefund — tax line reversal', () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction()
     seedTaxLine(tx.id)
-    await createPosRefund(tx.id)
+    await createPosRefund(tx)
     const taxLineInserts = mocks.transactionTaxLineCollection.insert.mock.calls
       .map(c => c[0] as any)
     expect(taxLineInserts).toHaveLength(1)
@@ -325,7 +361,7 @@ describe('createPosRefund — tax line reversal', () => {
   it('refund tax line references the new refund transactionId', async () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction()
-    const refundResult = await createPosRefund(tx.id)
+    const refundResult = await createPosRefund(tx)
     // The tax line was inserted — we didn't seed one so there's nothing to check
     // but the result should still succeed
     expect(refundResult.data).toMatch(/^RF-/)
@@ -340,7 +376,7 @@ describe('createPosRefund — negative payment', () => {
   it('inserts a negative payment record', async () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction({ totalAmount: 11200 })
-    await createPosRefund(tx.id)
+    await createPosRefund(tx)
     const payment = mocks.paymentCollection.insert.mock.calls[0]![0] as any
     expect(payment.amount).toBe(-11200)
     expect(payment.tendered).toBe(-11200)
@@ -349,7 +385,7 @@ describe('createPosRefund — negative payment', () => {
   it('payment references the original invoice number', async () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction({ invoiceNo: 'SI-2026-000042' })
-    await createPosRefund(tx.id)
+    await createPosRefund(tx)
     const payment = mocks.paymentCollection.insert.mock.calls[0]![0] as any
     expect(payment.referenceNo).toBe('SI-2026-000042')
   })
@@ -357,8 +393,124 @@ describe('createPosRefund — negative payment', () => {
   it('payment change is 0', async () => {
     seedSequenceCounter()
     const tx = seedOriginalTransaction()
-    await createPosRefund(tx.id)
+    await createPosRefund(tx)
     const payment = mocks.paymentCollection.insert.mock.calls[0]![0] as any
     expect(payment.change).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Credit and Transaction Usage - Business Rule Enforcement
+// ---------------------------------------------------------------------------
+
+describe('createPosRefund — credit and transaction usage business rules', () => {
+  beforeEach(() => {
+    seedSequenceCounter()
+  })
+
+  it('does NOT insert any credit ledger entries (credits are not restored)', async () => {
+    const tx = seedOriginalTransaction()
+    await createPosRefund(tx.id)
+    
+    // Verify no credit ledger entries were inserted
+    expect(mocks.creditLedgerCollection.insert).not.toHaveBeenCalled()
+  })
+
+  it('does NOT modify usage counter collections (transaction usage is not restored)', async () => {
+    const tx = seedOriginalTransaction()
+    await createPosRefund(tx.id)
+    
+    // Verify no usage counter modifications
+    expect(mocks.usageCounterCollection.insert).not.toHaveBeenCalled()
+    expect(mocks.usageCounterCollection.update).not.toHaveBeenCalled()
+  })
+
+  it('refund succeeds regardless of credit balance (no credit validation)', async () => {
+    const tx = seedOriginalTransaction()
+    // Don't seed any credit balance - refund should still work
+    const result = await createPosRefund(tx)
+    
+    expect(result.data).toMatch(/^RF-/)
+    expect(result.transactionId).toBeDefined()
+    expect(mocks.creditLedgerCollection.insert).not.toHaveBeenCalled()
+  })
+
+  it('refund succeeds regardless of transaction usage limits (no usage validation)', async () => {
+    const tx = seedOriginalTransaction()
+    // Don't seed any usage counter - refund should still work
+    const result = await createPosRefund(tx)
+    
+    expect(result.data).toMatch(/^RF-/)
+    expect(result.transactionId).toBeDefined()
+    expect(mocks.usageCounterCollection.insert).not.toHaveBeenCalled()
+    expect(mocks.usageCounterCollection.update).not.toHaveBeenCalled()
+  })
+
+  it('multiple refunds of same transaction do NOT accumulate credit restorations', async () => {
+    const tx = seedOriginalTransaction()
+    
+    // First refund
+    await createPosRefund(tx)
+    expect(mocks.creditLedgerCollection.insert).not.toHaveBeenCalled()
+    
+    // Second refund (business may allow partial refunds)
+    await createPosRefund(tx)
+    expect(mocks.creditLedgerCollection.insert).not.toHaveBeenCalled()
+    
+    // Verify still no credit ledger entries after multiple refunds
+    expect(mocks.creditLedgerCollection.insert).toHaveBeenCalledTimes(0)
+  })
+
+  it('refund does not check or interact with billing model configuration', async () => {
+    const tx = seedOriginalTransaction()
+    
+    // Refund should work without any billing model checks
+    const result = await createPosRefund(tx)
+    
+    expect(result.data).toMatch(/^RF-/)
+    // Verify no credit-related collections were touched
+    expect(mocks.creditLedgerCollection.insert).not.toHaveBeenCalled()
+    expect(mocks.creditLedgerCollection.update).not.toHaveBeenCalled()
+  })
+
+  it('preserves business rule: only checkout consumes credits/transactions', async () => {
+    const tx = seedOriginalTransaction()
+    
+    // Mock some existing credit/usage state
+    const creditEntry = {
+      id: 'credit-001',
+      businessId: 'biz-test-001', 
+      eventType: 'CONSUMED',
+      amount: -1,
+      balanceAfter: 49,
+      transactionId: tx.id,
+      createdAt: new Date(),
+    }
+    mocks.creditLedgerCollection._store.set('credit-001', creditEntry as any)
+    
+    const usageCounter = {
+      id: 'usage-001',
+      businessId: 'biz-test-001',
+      txCount: 1,
+      overageTxCount: 0,
+      isClosed: false,
+      createdAt: new Date(),
+    }
+    mocks.usageCounterCollection._store.set('usage-001', usageCounter as any)
+    
+    // Perform refund
+    await createPosRefund(tx)
+    
+    // Verify the existing credit and usage entries were NOT modified
+    const existingCredit = mocks.creditLedgerCollection._store.get('credit-001') as any
+    const existingUsage = mocks.usageCounterCollection._store.get('usage-001') as any
+    
+    expect(existingCredit.balanceAfter).toBe(49) // unchanged
+    expect(existingUsage.txCount).toBe(1) // unchanged
+    
+    // Verify no new credit/usage entries created
+    expect(mocks.creditLedgerCollection.insert).not.toHaveBeenCalled()
+    expect(mocks.usageCounterCollection.insert).not.toHaveBeenCalled()
+    expect(mocks.usageCounterCollection.update).not.toHaveBeenCalled()
   })
 })

@@ -1,20 +1,11 @@
 import { MovementType, SequenceType, type TaxCategory, type TaxLineType, TransactionType } from 'prisma/generated/prisma/enums'
-import {
-  creditLedgerCollection,
-  inventoryCollection,
-  inventoryMovementCollection,
-  paymentCollection,
-  transactionCollection,
-  transactionTaxLineCollection,
-} from '@/db/collections'
+import { inventoryCollection, inventoryMovementCollection, paymentCollection, transactionCollection, transactionTaxLineCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { writeAudit } from '@/lib/queries/write-audit'
 import type { TransactionComplianceData } from '@/lib/types'
 import { authStore } from '@/store/auth-store'
-import { CreditEngine } from '../billing/credit-engine'
-import { BillingModel } from '../billing/types'
 import { fetchStructuredId } from './fetch-structured-id'
 
 // ---------------------------------------------------------------------------
@@ -166,35 +157,15 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
       })
     }
 
-    // 5. Restore Credit (PREPAID_CREDITS billing model only)
-    const subscription = authStore.state.user?.entitlement
-    const billingModel = (subscription as { billingModel?: string } | undefined)?.billingModel
-
-    if (billingModel === BillingModel.PREPAID_CREDITS) {
-      const businessId = user.business.id
-      const ledgerEntries = [...creditLedgerCollection.values()]
-        .filter(e => e.businessId === businessId)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      const latestEntry: { balanceAfter: number } | null =
-        ledgerEntries[0] ?? (subscription?.creditBalance != null ? { balanceAfter: subscription.creditBalance } : null)
-
-      const restoreResult = CreditEngine.restore(businessId, latestEntry ? { balanceAfter: latestEntry.balanceAfter } : null, transactionId)
-
-      if (restoreResult.ok) {
-        const entry = restoreResult.value
-        creditLedgerCollection.insert({
-          id: crypto.randomUUID(),
-          businessId: entry.businessId,
-          eventType: entry.eventType as import('prisma/generated/prisma/browser').CreditEventType,
-          amount: entry.amount,
-          balanceAfter: entry.balanceAfter,
-          transactionId: entry.transactionId,
-          note: entry.note,
-          actorId: entry.actorId,
-          createdAt: new Date(),
-        })
-      }
-    }
+    // 5. Credits and Transaction Usage Policy
+    // Business Rule: Refunds do NOT restore credits or transaction usage.
+    // Only checkout consumes credits/transactions, and they are not restorable
+    // on any features including refunds.
+    //
+    // This policy ensures:
+    // - Simple, predictable billing behavior
+    // - No gaming of transaction limits through refund/re-purchase cycles
+    // - Consistent credit consumption tracking
 
     // 6. Create Negative Payment — mirrors the original payment method
     const originalPayment = snapshot.payments[0]

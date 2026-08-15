@@ -10,6 +10,8 @@ services:
       - '${POSTGRES_HOST_PORT:-5434}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d postgres']
       interval: 5s
@@ -27,6 +29,8 @@ services:
       db:
         condition: service_healthy
     restart: 'no'
+    networks:
+      - app-network
 
   app:
     build:
@@ -46,6 +50,8 @@ services:
       - app_output:/app/.output
       - ./.env:/app/.env:ro
     command: ['pnpm', 'run', 'dev:docker']
+    networks:
+      - app-network
     develop:
       watch:
         - action: sync
@@ -78,6 +84,8 @@ services:
       - ./stripe/env:/stripe-env
       # Workspace root — gives the script direct write access to .env.
       - .:/host-env
+    networks:
+      - app-network
 
   stripe-webhook:
     build:
@@ -102,8 +110,14 @@ services:
       - ./stripe/env:/stripe-env
       # Workspace root — gives the script direct write access to .env.
       - .:/host-env
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
   app_output:
   stripe_config:
+
+networks:
+  app-network:
+    driver: bridge

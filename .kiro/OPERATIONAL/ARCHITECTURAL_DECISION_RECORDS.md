@@ -596,7 +596,7 @@ Remove `UsageEngine` if:
 Prepaid credit management requires the same balance read and deduction rules in two separate call sites that run in different contexts:
 
 - `createPosTransaction` — reads the latest ledger entry, deducts 1 credit, builds a CONSUMED entry, checks the low-balance threshold.
-- `createPosRefund` — reads the latest ledger entry, restores 1 credit, builds a REFUNDED entry.
+- `createPosRefund` — creates a REFUND transaction record but does NOT restore credits per business policy.
 
 Without an engine, both files would independently implement:
 - The "read `balanceAfter` from the latest ledger entry or default to 0" pattern
@@ -626,7 +626,7 @@ Create `src/lib/billing/credit-utils.ts` with exported functions.
 
 **Alternative 3: Introduce CreditEngine (the chosen approach)**
 
-Follow the established Engine pattern. `CreditEngine` receives a `CreditLedgerSnapshot` DTO (the latest ledger row), applies rules, and returns either an `OperationResult<CreditDeductionResult>` (for deduct) or a new entry DTO (for restore). The Application Layer inserts the returned entry into the collection.
+Follow the established Engine pattern. `CreditEngine` receives a `CreditLedgerSnapshot` DTO (the latest ledger row), applies rules, and returns either an `OperationResult<CreditDeductionResult>` (for deduct) or maintains legacy restore capability (deprecated). The Application Layer handles insertion of entries into the collection. Note: Credit restoration on refunds has been removed per business policy.
 
 *Why chosen:* Two simultaneous call sites at introduction. Synchronous methods. No infrastructure imports. Returns `OperationResult`. Identical pattern to `UsageEngine`.
 

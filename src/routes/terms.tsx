@@ -148,7 +148,7 @@ function TermsPage() {
           </p>
           <p>
             <strong className='text-foreground'>Credits:</strong> Prepaid transaction credits are non-refundable unless otherwise required by applicable law.
-            Credits are consumed one per completed POS transaction and are restored upon refund.
+            Credits are consumed one per completed POS transaction and are not restored upon refund.
           </p>
           <p>
             <strong className='text-foreground'>Plan changes:</strong> Upgrading or downgrading your plan takes effect immediately. Downgrades that reduce

@@ -1193,6 +1193,7 @@ enum NotificationType {
   PURCHASE_PENDING_APPROVAL // D7: A purchase above threshold requires management sign-off
   CREDIT_LOW_BALANCE // Phase 3: fired when prepaid credit balance drops below CREDIT_LOW_BALANCE_THRESHOLD
   GROWTH_MILESTONE // Phase 5: fired when the business crosses a meaningful growth threshold
+  USAGE_THRESHOLD // Generic usage threshold crossing (transactions, credits, or any metered resource)
 }
 
 model Notification {

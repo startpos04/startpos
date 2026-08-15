@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { userCollection } from '@/db/collections'
+import { createEmployee } from '@/lib/queries/create-employee'
 import { closeEmployeeSidebar } from '../-components/employee-sidebar'
 import { CreateAccount, type CreateAccountFormData } from './-create-account'
 
@@ -19,20 +19,24 @@ export function CreateEmployeeSidebar({ onClose }: CreateEmployeeSidebarProps) {
 
   const handleSubmit = async ({ value }: { value: CreateAccountFormData }) => {
     try {
-      userCollection.insert({
-        ...value,
-        id: crypto.randomUUID(),
-        image: value.image || null,
-        emailVerified: false,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-        deletedAt: null,
+      const result = await createEmployee({
+        data: {
+          name: value.name,
+          email: value.email,
+          image: value.image || undefined,
+          role: value.role,
+        },
       })
+
+      if (!result.success) {
+        toast.error(result.error ?? 'Failed to create employee')
+        return
+      }
 
       toast.success('Employee successfully added')
       handleClose()
     } catch (error) {
-      console.error('Transaction failed:', error)
+      console.error('Employee creation failed:', error)
       toast.error('Failed to add Employee. Please try again.')
     }
   }

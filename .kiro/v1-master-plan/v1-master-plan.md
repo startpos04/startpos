@@ -306,14 +306,14 @@ A `Feature` describes **what the platform provides** — its identity, label, op
 enum PricingCategory {
   CORE          // Base platform capabilities (always included in composable base)
   OPERATIONAL   // Day-to-day operations features (POS, Orders, Inventory, Purchasing)
-  MANAGEMENT    // Back-office and reporting features
-  INTEGRATION   // API access, third-party connectors
-  ADVANCED      // Analytics, forecasting, loyalty
+  MANAGEMENT    // Back-office and reporting features  
+  INTEGRATION   // Post-V1: API access, third-party connectors
+  ADVANCED      // Post-V1: Analytics, forecasting, loyalty
 }
 
 model Feature {
   id            String  @id @default(cuid())
-  key           String  @unique   // e.g. "CREATE_ORDER", "FEATURE_ANALYTICS", "ACCESS_API"
+  key           String  @unique   // e.g. "CREATE_ORDER", "MANAGE_INVENTORY" (V1 capabilities)
   label         String            // Human-readable label for admin UI
   description   String?
   isOperational Boolean @default(false)
@@ -373,7 +373,7 @@ model FeaturePrice {
   // One-time charges (in cents)
   implementationFee Int @default(0)
   // Charged once when this feature is first activated on a subscription.
-  // Example: kitchen display system setup and onboarding.
+  // Example: specialized equipment setup (post-V1 capability).
 
   setupFee      Int    @default(0)
   // One-time configuration fee, separate from implementation.
@@ -549,9 +549,8 @@ model FeatureDependency {
 | Dependent Feature | Requires | Reason |
 |---|---|---|
 | `FEATURE_INVENTORY` | `FEATURE_POS` | Inventory movements are triggered by POS sales |
-| `FEATURE_KITCHEN_DISPLAY` | `FEATURE_ORDERS` | Kitchen display renders active order queue |
-| `ACCESS_API` | `FEATURE_ADVANCED_REPORTS` | API access requires professional-tier data access |
 | `FEATURE_PURCHASING` | `FEATURE_INVENTORY` | Purchase records update inventory stock levels |
+| Post-V1 capabilities have dependencies but are not exposed in V1 public surfaces |
 
 The dependency graph must be acyclic. The `PricingEngine.validateDependencies` method detects cycles at validation time and returns an error before any price is calculated.
 
@@ -716,9 +715,8 @@ Immutable append-only log of every credit event. Current balance is derived from
 
 ```prisma
 enum CreditEventType {
-  PURCHASE      // Business bought a credit package
   CONSUMED      // Credits deducted by a billable operation
-  REFUNDED      // Credits restored due to a transaction refund
+  REFUNDED      // DEPRECATED - Previously credits restored due to refunds (no longer used per business policy)
   EXPIRED       // Credits that lapsed past their expiry date
   ADJUSTMENT    // Manual admin correction
   PROMOTIONAL   // Granted credits (onboarding bonus, etc.)
@@ -1302,7 +1300,7 @@ The architecture supports four billing models via `BillingModel` enum on `Busine
 - The `CreditLedger.balanceAfter` snapshot means current balance is always an O(1) read of the most recent ledger entry for the business, not a full-table sum.
 - When balance reaches `CREDIT_LOW_BALANCE_THRESHOLD`, a notification is triggered.
 - When balance reaches zero, checkout is blocked until credits are purchased.
-- Refunds restore credits via a `REFUNDED` ledger event.
+- Refunds do not restore credits per business policy (prevents gaming of limits).
 
 #### Hybrid (Subscription + Prepaid Overages)
 
@@ -2063,10 +2061,8 @@ Dependencies: Phase 3 complete.
 
 Deliverables:
 - Add `CreditLedger` table
-- Credit purchase flow (manual admin credit grant first; payment integration later)
 - Credit deduction on `createPosTransaction`
-- Credit restoration on `createPosRefund`
-- Low-balance notification
+- Low-balance notification (credit restoration removed per business policy)
 - `/billing/credits` route: balance, history, purchase CTA
 
 Dependencies: Phase 4 complete (usage counter infrastructure already in place).
@@ -2424,7 +2420,7 @@ Instead, the infrastructure layer emits a domain event after a successful operat
 | Event | Emitted By | Consumed By |
 |---|---|---|
 | `TransactionCompleted` | `createPosTransaction` | UsageEngine (increment counter), CreditEngine (deduct credits), Analytics, Notifications |
-| `TransactionRefunded` | `createPosRefund` | CreditEngine (restore credits), UsageEngine (decrement if applicable), Analytics |
+| `TransactionRefunded` | `createPosRefund` | Analytics, Inventory (if applicable) - No credit/usage restoration per business policy |
 | `OrderCompleted` | Order status update | Analytics, Notifications |
 | `TrialStarted` | Business creation | Notifications (welcome), Analytics |
 | `TrialExpired` | Subscription lifecycle job | EntitlementEngine (re-evaluate), Notifications (conversion prompt) |
@@ -2963,7 +2959,7 @@ A **Domain Event** is a record that something significant happened in the domain
 | Event | Domain | Key Payload Fields | Consumers |
 |---|---|---|---|
 | `TransactionCompleted` | Commerce | `transactionId`, `businessId`, `totalAmount`, `txCount` | Billing (usage), Billing (credits), Reporting, Notifications |
-| `TransactionRefunded` | Commerce | `transactionId`, `originalTransactionId`, `amount` | Billing (credit restore), Reporting |
+| `TransactionRefunded` | Commerce | `transactionId`, `originalTransactionId`, `amount` | Reporting (no credit restoration per policy) |
 | `OrderCompleted` | Commerce | `orderId`, `businessId` | Reporting, Notifications |
 | `InventoryAdjusted` | Inventory | `variantId`, `movementType`, `quantity`, `businessId` | Reporting, Notifications (low stock) |
 | `LowStockReached` | Inventory | `variantId`, `currentStock`, `threshold` | Notifications |

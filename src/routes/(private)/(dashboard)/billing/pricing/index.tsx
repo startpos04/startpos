@@ -125,16 +125,8 @@ const SELECTABLE_FEATURES: FeatureOption[] = [
   },
   { key: 'EXPORT_DATA', label: 'Export Data', description: 'Download transaction and inventory data as CSV', category: 'MANAGEMENT', isIncludedInBase: false },
   // Advanced
-  {
-    key: 'VIEW_ANALYTICS',
-    label: 'Analytics Dashboard',
-    description: 'Advanced analytics and business intelligence',
-    category: 'ADVANCED',
-    isIncludedInBase: false,
-  },
   { key: 'MANAGE_BRANCHES', label: 'Multi-Branch', description: 'Create and configure additional branches', category: 'ADVANCED', isIncludedInBase: false },
   // Integration
-  { key: 'ACCESS_API', label: 'API Access', description: 'Developer API and key management', category: 'INTEGRATION', isIncludedInBase: false },
 ]
 
 // ---------------------------------------------------------------------------

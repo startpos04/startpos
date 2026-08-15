@@ -286,9 +286,7 @@ The `BusinessSubscription` model is now fully expanded as of Phase 0.
             ↓
 [ Phase 3 — Prepaid Credits ]
   CreditLedger model
-  CreditEngine
   Credit deduction in createPosTransaction
-  Credit restoration in createPosRefund
   Low-balance notification
   /billing/credits route
   creditLedgerCollection (offline on-demand)
@@ -645,17 +643,19 @@ src/routes/.../billing/index.tsx           ← extended with usage stats
 
 ### Phase 3 — Prepaid Credits ✅ COMPLETE
 
-**Objective:** Introduce the prepaid credit billing model. Credit deduction on checkout, restoration on refund, low-balance notification, and the credit management UI. After this phase, the PREPAID_CREDITS billing model is fully functional.
+**Objective:** Introduce the prepaid credit billing model. Credit deduction on checkout, low-balance notification, and the credit management UI. After this phase, the PREPAID_CREDITS billing model is fully functional.
+
+**Note:** As of the current implementation, credits are NOT restored on refunds per business policy. This change ensures simple billing behavior and prevents gaming of transaction limits.
 
 **Delivered:**
 - ✅ `CreditLedger` model + `CreditEventType` enum added to `schema.prisma`; `CREDIT_LOW_BALANCE` added to `NotificationType`; DB synced via `prisma db push` (Migration 14)
 - ✅ `CreditBalance` value object promoted from Phase 2 stub (`src/lib/billing/value-objects/credit-balance.ts`) — full implementation: `of()`, `zero()`, `afterDeduction()`, `afterCredit()`, `formatLabel()`
-- ✅ `CreditEngine` — pure synchronous domain engine (`src/lib/billing/credit-engine.ts`): `readBalance`, `deduct`, `restore`, `grant`, `isLowBalance`
+- ✅ `CreditEngine` — pure synchronous domain engine (`src/lib/billing/credit-engine.ts`): `readBalance`, `deduct`, `restore` (deprecated), `grant`, `isLowBalance`
 - ✅ `creditLedgerCollection` added to `collections.ts` (on-demand, SCHEMA_VERSION 14)
 - ✅ `grant-credits.ts` server function — admin PROMOTIONAL/ADJUSTMENT grant via `rootPrisma`; tenant isolation enforced
 - ✅ `fetch-credit-ledger.ts` server function — paginated ledger history + current balance from `rootPrisma`
 - ✅ Credit deduction wired into `createPosTransaction` (conditional on `billingModel = PREPAID_CREDITS`); synchronous inside `dbTransaction`; collection insert for offline-first support
-- ✅ Credit restoration wired into `createPosRefund` (conditional on `billingModel = PREPAID_CREDITS`); REFUNDED ledger entry inserted
+- ✅ Credit restoration previously wired into `createPosRefund` (now removed per business policy - refunds do not restore credits)
 - ✅ `NotificationEngine.sendCreditLowBalance()` — fires async (fire-and-forget) from `createPosTransaction` when `isLowBalance` flag set; targets ADMIN + SUPERVISOR members
 - ✅ `CREDIT_LOW_BALANCE` priority entry added to `DEFAULT_PRIORITY` map in NotificationEngine
 - ✅ `getAuthUser` (`auth-server.ts`) — `latestCreditLedger` added to parallel fetch; `creditBalance` set from `CreditLedger.balanceAfter` for `PREPAID_CREDITS` model; deprecated `BusinessSubscription.creditBalance` read removed
@@ -666,9 +666,9 @@ src/routes/.../billing/index.tsx           ← extended with usage stats
 
 **Scope:**
 - Add `CreditLedger` model + `CreditEventType` enum to schema
-- Implement `CreditEngine`: balance read (last ledger entry), deduction, restoration, low-balance check
+- Implement `CreditEngine`: balance read (last ledger entry), deduction, low-balance check (restoration method deprecated)
 - Wire credit deduction into `createPosTransaction` (conditional on `billingModel = PREPAID_CREDITS`)
-- Wire credit restoration into `createPosRefund`
+- Credit restoration on refunds removed per business policy
 - Wire `LOW_BALANCE_THRESHOLD` check: emit `NotificationEngine.send(LOW_STOCK → CREDIT_LOW_BALANCE notification)` — requires adding `CREDIT_LOW_BALANCE` to `NotificationType` enum
 - Implement `CreditBalance` value object
 - Implement admin credit grant flow (manual credit insertion — no payment provider yet)

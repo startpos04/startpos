@@ -368,6 +368,24 @@ export function BranchesPage() {
   const [editTarget, setEditTarget] = useState<BranchRow | null>(null)
   const [editOpen, setEditOpen] = useState(false)
 
+  // Calculate branch usage and limits
+  const activeBranches = data?.filter(b => !b.deletedAt) ?? []
+  const currentBranchCount = activeBranches.length
+
+  // Get branch limit from user entitlement
+  const branchEntitlement = user?.entitlement?.planFeatures?.find(f => f === 'MANAGE_BRANCHES')
+  const branchUsageLimit = user?.entitlement?.usageLimits?.MANAGE_BRANCHES
+  const planBranchLimit = branchUsageLimit ?? (branchEntitlement ? -1 : 0) // -1 = unlimited, 0 = no access
+
+  // Note: Add-on calculation would require a separate query, for now just show plan limits
+  const atBranchLimit = planBranchLimit !== -1 && currentBranchCount >= planBranchLimit
+
+  const getBranchLimitText = () => {
+    if (planBranchLimit === -1) return 'Unlimited branches'
+    if (planBranchLimit === 0) return 'No branch access'
+    return `${currentBranchCount} of ${planBranchLimit} branches used`
+  }
+
   const openEdit = (branch: BranchRow) => {
     setEditTarget(branch)
     setEditOpen(true)
@@ -509,19 +527,40 @@ export function BranchesPage() {
       <div className='px-4 grow flex flex-col gap-2'>
         <MultiView<NonNullable<typeof data>[number]>
           label='Branches'
-          description='Manage your business locations. Each branch can independently enable or disable features without affecting other branches.'
+          description={
+            <div className='space-y-1'>
+              <div>Manage your business locations. Each branch can independently enable or disable features without affecting other branches.</div>
+              <div className='text-xs text-muted-foreground'>{getBranchLimitText()}</div>
+            </div>
+          }
           data={data}
           isFetching={isLoading}
-          creatable={{
-            label: 'Add Branch',
-            href: '#',
-            onAdd: e => {
-              e.preventDefault()
-              setCreateOpen(true)
-            },
-          }}
+          creatable={
+            atBranchLimit
+              ? undefined
+              : {
+                  label: 'Add Branch',
+                  href: '#',
+                  onAdd: e => {
+                    e.preventDefault()
+                    setCreateOpen(true)
+                  },
+                }
+          }
           views={{ list: [{ type: 'table', columns }] }}
         />
+
+        {atBranchLimit && (
+          <div className='rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 p-3'>
+            <div className='text-sm text-amber-800 dark:text-amber-200'>
+              <div className='font-medium'>Branch limit reached</div>
+              <div className='mt-1'>
+                Your current plan allows {planBranchLimit} branch{planBranchLimit === 1 ? '' : 'es'}. Upgrade your plan or purchase branch add-ons to add more
+                locations.
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <CreateBranchDialog open={createOpen} onOpenChange={setCreateOpen} />

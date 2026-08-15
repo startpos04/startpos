@@ -18,8 +18,10 @@
 import { execSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const BASE_URL   = process.env['BASE_URL'] ?? 'http://localhost:3000'
 const AUTH_DIR   = path.join(__dirname, 'fixtures', '.auth')
 const PASSWORD   = '123qwe123!1'
@@ -65,7 +67,20 @@ export default async function globalSetup() {
     const context = await browser.newContext()
     const page    = await context.newPage()
 
-    await page.goto(`${BASE_URL}/login`)
+    const response = await page.goto(`${BASE_URL}/login`)
+
+    console.info(`  URL: ${page.url()}`)
+    console.info(`  Status: ${response?.status()}`)
+    console.info(`  Content-Type: ${response?.headers()['content-type']}`)
+
+    console.info(`  Title: ${await page.title()}`)
+    console.info(`  Body: ${(await page.locator('body').innerText()).slice(0, 1000)}`)
+
+    await page.screenshot({
+      path: path.join(AUTH_DIR, `debug-${account.role}.png`),
+      fullPage: true,
+    })
+
     await page.getByLabel(/email/i).fill(account.email)
     await page.getByLabel(/password/i).fill(PASSWORD)
     await page.getByRole('button', { name: /sign in|log in/i }).click()

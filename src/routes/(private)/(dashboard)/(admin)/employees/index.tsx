@@ -31,9 +31,36 @@ export const Route = createFileRoute('/(private)/(dashboard)/(admin)/employees/'
 function RouteComponent() {
   const { data, isLoading } = useLiveQuery(q => q.from({ user: userCollection }))
   const [selectedId, setSelectedId] = useState<string>('')
+  const { user } = authStore.state
+
+  // Calculate employee usage and limits
+  const activeEmployees = data?.filter(u => !u.deletedAt) ?? []
+  const currentEmployeeCount = activeEmployees.length
+
+  // Get employee limit from user entitlement
+  const employeeEntitlement = user?.entitlement?.planFeatures?.find(f => f === 'MANAGE_EMPLOYEES')
+  const employeeUsageLimit = user?.entitlement?.usageLimits?.MANAGE_EMPLOYEES
+  const planEmployeeLimit = employeeUsageLimit ?? (employeeEntitlement ? -1 : 0) // -1 = unlimited, 0 = no access
+
+  // Note: Add-on calculation would require a separate query, for now just show plan limits
+  const atEmployeeLimit = planEmployeeLimit !== -1 && currentEmployeeCount >= planEmployeeLimit
+
+  const getEmployeeLimitText = () => {
+    if (planEmployeeLimit === -1) return 'Unlimited employees'
+    if (planEmployeeLimit === 0) return 'No employee access'
+    return `${currentEmployeeCount} of ${planEmployeeLimit} employees`
+  }
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
+
+    if (atEmployeeLimit) {
+      toast.error(
+        `Employee limit reached. Your plan allows ${planEmployeeLimit} employee${planEmployeeLimit === 1 ? '' : 's'}. Consider upgrading your plan or purchasing employee add-ons.`,
+      )
+      return
+    }
+
     setSelectedId('')
     showEmployeeSidebar(<CreateEmployeeSidebar />)
   }
@@ -144,14 +171,33 @@ function RouteComponent() {
         <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
           <div>
             <h1 className='text-3xl font-bold tracking-tight text-foreground'>Employees</h1>
-            <p className='text-muted-foreground text-sm'>Manage your team and their workspace roles.</p>
+            <div className='space-y-1'>
+              <p className='text-muted-foreground text-sm'>Manage your team and their workspace roles.</p>
+              <p className='text-xs text-muted-foreground'>{getEmployeeLimitText()}</p>
+            </div>
           </div>
           <a href='/employees/create' onClick={handleAdd} className='contents'>
-            <Button size='sm' className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'>
+            <Button
+              size='sm'
+              className={`shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] ${atEmployeeLimit ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={atEmployeeLimit}
+            >
               <Plus /> Add Employee
             </Button>
           </a>
         </div>
+
+        {atEmployeeLimit && (
+          <div className='rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 p-3'>
+            <div className='text-sm text-amber-800 dark:text-amber-200'>
+              <div className='font-medium'>Employee limit reached</div>
+              <div className='mt-1'>
+                Your current plan allows {planEmployeeLimit} employee{planEmployeeLimit === 1 ? '' : 's'}. Upgrade your plan or purchase employee add-ons to add
+                more team members.
+              </div>
+            </div>
+          </div>
+        )}
 
         <TableView
           data={data}

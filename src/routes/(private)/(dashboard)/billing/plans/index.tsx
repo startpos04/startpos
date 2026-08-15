@@ -65,7 +65,7 @@ const PLAN_DETAILS: Record<string, PlanDetails> = {
       { text: '1 employee account' },
       { text: '1 branch' },
       { text: 'POS checkout, payments & refunds' },
-      { text: 'Customer orders & kitchen workflow' },
+      { text: 'Customer orders & order management' },
       { text: 'Product catalogue & variants' },
       { text: 'Customer directory' },
       { text: 'Full transaction & order history' },

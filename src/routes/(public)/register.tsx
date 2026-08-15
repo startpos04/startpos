@@ -450,7 +450,7 @@ function RouteComponent() {
             <CardTitle className='text-2xl font-bold'>Create your account</CardTitle>
             <ThemeToggle />
           </div>
-          <CardDescription>Get started with 50 free transactions — no card required.</CardDescription>
+          <CardDescription>30-day free trial with 500 transactions plus 50 credits — no card required.</CardDescription>
         </CardHeader>
 
         {/* OAuth buttons */}

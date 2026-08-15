@@ -131,7 +131,7 @@ describe('Register page', () => {
 
   it('renders free trial tagline', async () => {
     renderRegister()
-    await waitFor(() => { expect(screen.getByText(/50 free transactions/i)).toBeInTheDocument() })
+    await waitFor(() => { expect(screen.getByText(/30-day free trial with 500 transactions plus 50 credits/i)).toBeInTheDocument() })
   })
 
   it('renders Google OAuth button', async () => {

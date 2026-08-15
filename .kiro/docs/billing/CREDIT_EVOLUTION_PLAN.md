@@ -257,11 +257,13 @@ to insert `entries` (array) instead of a single `entry`. This is the only call s
 
 ---
 
-### Task B.3 — Update `CreditEngine.restore()` for source awareness
+### Task B.3 — Update `CreditEngine.restore()` for source awareness (DEPRECATED)
+
+**Note:** This task is now obsolete as credit restoration on refunds has been removed per business policy. The `restore()` method remains in the codebase for historical compatibility but is marked as deprecated and should not be used in business flows.
 
 **File:** `src/lib/billing/credit-engine.ts`
 
-On refund, credits are restored to the same bucket they were consumed from. The
+**DEPRECATED:** Credit restoration on refunds has been removed per business policy.
 `createPosRefund` handler already stores the original transaction ID — the Application
 Layer must read the original `CreditLedger` row to determine which `creditSource` was
 consumed, then pass that source to `restore()`.
@@ -291,7 +293,7 @@ in Phase C and the period-opening logic).
 
 **Files to update:**
 - `src/lib/queries/create-pos-transaction.ts` — insert `entries[]` instead of `entry`
-- `src/lib/queries/create-pos-refund.ts` — read original source, pass to `restore()`
+- `src/lib/queries/create-pos-refund.ts` — no longer performs credit restoration per business policy
 - `src/routes/api/billing/webhook/-shared/handlers.ts` — pass `creditSource: TOPUP`
   to `CreditEngine.grant()` in `handleCheckoutSessionCompleted`
 
@@ -308,7 +310,7 @@ Tests:
 - deduct() fails when planBalance = 0 AND topupBalance = 0
 - deduct() produces correct newPlanBalance and newTopupBalance
 - deduct() isLowBalance uses total balance (plan + topup)
-- restore() returns entry with correct creditSource matching originalSource
+- restore() method maintained for historical compatibility (deprecated)
 - grant() with TOPUP source produces TOPUP entry
 - grant() with PLAN_MONTHLY source produces PLAN_MONTHLY entry
 ```

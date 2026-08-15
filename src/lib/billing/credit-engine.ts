@@ -10,7 +10,14 @@
  *   - Build new CreditLedgerEntry DTOs for insert by the Application Layer.
  *   - Check whether the balance after a deduction is below the low-balance
  *     threshold (to trigger the CREDIT_LOW_BALANCE notification).
- *   - Restore credits on a POS refund.
+ *   - Provide legacy credit restoration capability (DEPRECATED - no longer used in business flows).
+ *
+ * Business Rule (Updated):
+ *   Refunds DO NOT restore credits or transaction usage. Only checkout consumes
+ *   credits/transactions, and they are not restorable on any features. This ensures:
+ *   - Simple, predictable billing behavior
+ *   - No gaming of transaction limits through refund/re-purchase cycles
+ *   - Consistent credit consumption tracking
  *
  * Architectural contract (ADR-001):
  *   - No Prisma imports, no collection reads, no HTTP calls.
@@ -50,7 +57,7 @@ export type CreditLedgerEntryDTO = {
   amount: number
   /** Running balance snapshot after this event. */
   balanceAfter: number
-  /** POS transaction ID — only set for CONSUMED / REFUNDED events. */
+  /** POS transaction ID — only set for CONSUMED / REFUNDED events. NOTE: REFUNDED events are deprecated per current business rules. */
   transactionId: string | null
   /** Optional admin note — required for ADJUSTMENT events. */
   note: string | null
@@ -147,9 +154,19 @@ export const CreditEngine = {
   },
 
   // -------------------------------------------------------------------------
-  // restore
-  // Called on POS refund. Adds back the credit that was consumed by the
-  // original transaction. Returns a REFUNDED ledger entry DTO.
+  // restore (DEPRECATED)
+  // Legacy method for credit restoration on POS refunds.
+  //
+  // WARNING: This method is DEPRECATED and should not be used in business flows.
+  // Business Rule: Refunds do NOT restore credits or transaction usage.
+  // Only checkout consumes credits/transactions, and they are not restorable.
+  //
+  // This method is retained for:
+  // - Potential admin/support tools for manual credit adjustments
+  // - Historical compatibility with existing tests
+  // - Emergency credit restoration scenarios (use grant() instead for normal admin operations)
+  //
+  // For normal admin credit operations, use grant() with ADJUSTMENT event type.
   // -------------------------------------------------------------------------
   restore(businessId: string, snapshot: CreditLedgerSnapshot | null, transactionId: string): OperationResult<CreditLedgerEntryDTO> {
     const balance = CreditEngine.readBalance(snapshot)

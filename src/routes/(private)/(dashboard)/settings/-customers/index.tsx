@@ -39,7 +39,7 @@ export function CustomersPage() {
     <div className='px-4 grow flex flex-col gap-2'>
       <MultiView<NonNullable<typeof data>[number]>
         label='Customers'
-        description='Manage customer profiles, contact directories, and loyalty segment tracking.'
+        description='Manage customer profiles and contact directories.'
         data={data}
         isFetching={isLoading}
         views={{

@@ -1,34 +1,121 @@
 /**
  * subscription/reactivate/index.tsx
  *
- * /subscription/reactivate — Account Reactivation Shell
+ * /subscription/reactivate — Account Reactivation Flow
  *
  * Accessible to businesses in LONG_TERM_INACTIVE, EXPIRED, or CANCELLED status.
  * This route is the designated escape hatch: it must render without any
  * subscription check (a suspended/inactive business must be able to reach it).
  *
- * Phase 1: UI shell with status context and support contact CTA.
- * Phase 4: Wired to billing provider checkout for actual reactivation payment.
+ * Features:
+ * - Plan selection with pricing display
+ * - Billing method selection (monthly/annual/credits)
+ * - Full checkout integration for reactivation
+ * - Immediate capability restoration upon successful payment
  *
  * Route placement: /subscription/reactivate (outside (private)/(dashboard) so
  * it does NOT inherit the Dashboard sidebar layout — full-page escape hatch).
  */
 
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
-import { ArrowLeftIcon, CheckCircle2Icon, CreditCardIcon, GalleryVerticalEndIcon, MailIcon, RefreshCwIcon } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
+import {
+  ArrowLeftIcon,
+  CheckCircle2Icon,
+  CoinsIcon,
+  CreditCardIcon,
+  GalleryVerticalEndIcon,
+  MailIcon,
+  RefreshCwIcon,
+  SparklesIcon,
+  ZapIcon,
+} from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
-import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
+import { BillingModel } from '@/lib/billing/types'
+import { canReactivate, SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
 import { APP_NAME } from '@/lib/constants'
 import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
+import { reactivateSubscription } from '@/lib/queries/reactivate-subscription'
+import { fetchPlans, type PlanWithEntitlements } from '@/lib/server-fn/fetch-plans'
 import { cn } from '@/lib/utils'
-import { authStore } from '@/store/auth-store'
+import { refreshAuthUser } from '@/store/auth-store'
 
 export const Route = createFileRoute('/subscription/reactivate/')({
   component: ReactivatePage,
+  beforeLoad: async ({ context }) => {
+    // Authentication check - user should be authenticated
+    if (!context.user?.id) {
+      throw redirect({
+        to: '/login',
+        search: { redirect: '/subscription/reactivate' },
+      })
+    }
+
+    // Business context check - user must belong to a business
+    if (!context.user.business?.id) {
+      throw redirect({
+        to: '/register/business-setup',
+        search: {
+          redirect: '/subscription/reactivate',
+          error: 'Business setup required before reactivation',
+        },
+      })
+    }
+
+    // Subscription status check - must be in a reactivatable status
+    const status = context.user.entitlement?.status as SubscriptionStatus | undefined
+    if (!status) {
+      throw redirect({
+        to: '/billing',
+        search: {
+          error: 'Unable to determine subscription status. Please contact support.',
+        },
+      })
+    }
+
+    // Check if the status allows reactivation
+    if (!canReactivate(status)) {
+      // Handle different non-reactivatable cases with appropriate redirects
+      if (status === SubscriptionStatus.SUSPENDED) {
+        throw redirect({
+          to: '/billing',
+          search: {
+            error: 'Your account is suspended. Please contact support to resolve this issue.',
+          },
+        })
+      }
+
+      // Already active statuses should go to billing dashboard
+      if (SubscriptionStatusVO.isOperationallyActive(status)) {
+        throw redirect({
+          to: '/billing',
+          search: {
+            info: 'Your subscription is already active. Use the billing dashboard to make changes.',
+          },
+        })
+      }
+
+      // Fallback for any other non-reactivatable status
+      throw redirect({
+        to: '/billing',
+        search: {
+          error: 'Reactivation is not available for your current subscription status.',
+        },
+      })
+    }
+
+    // All checks passed - allow access to reactivation flow
+    return {
+      user: context.user,
+      reactivatableStatus: status,
+    }
+  },
 })
 
 // ---------------------------------------------------------------------------
@@ -44,16 +131,235 @@ const RESTORED_FEATURES = [
 ]
 
 // ---------------------------------------------------------------------------
+// Billing method options for reactivation
+// ---------------------------------------------------------------------------
+
+type BillingMethod = 'monthly' | 'annual' | 'credits'
+
+const BILLING_METHODS: Array<{ value: BillingMethod; label: string; description: string; icon: React.ReactNode }> = [
+  {
+    value: 'monthly',
+    label: 'Monthly',
+    description: 'Billed monthly',
+    icon: <ZapIcon className='h-4 w-4' />,
+  },
+  {
+    value: 'annual',
+    label: 'Annual',
+    description: 'Save 20% with annual billing',
+    icon: <SparklesIcon className='h-4 w-4' />,
+  },
+  {
+    value: 'credits',
+    label: 'Pay as you go',
+    description: '1 credit = 1 transaction',
+    icon: <CoinsIcon className='h-4 w-4' />,
+  },
+]
+
+// ---------------------------------------------------------------------------
+// Plan selection dialog
+// ---------------------------------------------------------------------------
+
+interface PlanSelectionDialogProps {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  plans: PlanWithEntitlements[]
+  selectedPlan: PlanWithEntitlements | null
+  selectedMethod: BillingMethod
+  onPlanSelect: (plan: PlanWithEntitlements) => void
+  onMethodSelect: (method: BillingMethod) => void
+  onConfirm: () => void
+  isProcessing: boolean
+}
+
+function PlanSelectionDialog({
+  open,
+  onOpenChange,
+  plans,
+  selectedPlan,
+  selectedMethod,
+  onPlanSelect,
+  onMethodSelect,
+  onConfirm,
+  isProcessing,
+}: PlanSelectionDialogProps) {
+  const getDisplayPrice = (plan: PlanWithEntitlements, method: BillingMethod): string => {
+    if (plan.monthlyPrice === 0) return 'Free'
+    if (method === 'credits') return 'Pay per TX'
+    if (method === 'annual') {
+      const annual = plan.annualPrice ?? Math.round(plan.monthlyPrice * 0.8 * 12)
+      const perMonth = Math.round(annual / 12)
+      return `₱${(perMonth / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
+    }
+    return `₱${(plan.monthlyPrice / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className='sm:max-w-2xl max-h-[90vh] overflow-y-auto'>
+        <DialogHeader>
+          <DialogTitle>Choose a Plan to Reactivate</DialogTitle>
+          <DialogDescription>Select a subscription plan and billing method to restore full access to your account.</DialogDescription>
+        </DialogHeader>
+
+        <div className='space-y-6'>
+          {/* Billing Method Selection */}
+          <div className='space-y-3'>
+            <h4 className='text-sm font-semibold'>Billing Method</h4>
+            <div className='grid grid-cols-1 sm:grid-cols-3 gap-2'>
+              {BILLING_METHODS.map(method => (
+                <button
+                  key={method.value}
+                  type='button'
+                  onClick={() => onMethodSelect(method.value)}
+                  className={cn(
+                    'flex items-center gap-2 rounded-lg border p-3 text-left transition-all text-sm',
+                    'hover:border-primary/60 hover:bg-primary/5',
+                    selectedMethod === method.value ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card',
+                  )}
+                >
+                  {method.icon}
+                  <div>
+                    <p className='font-medium'>{method.label}</p>
+                    <p className='text-xs text-muted-foreground'>{method.description}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Plan Selection */}
+          <div className='space-y-3'>
+            <h4 className='text-sm font-semibold'>Select Plan</h4>
+            <div className='grid gap-3'>
+              {plans
+                .filter(p => p.name !== 'Trial')
+                .map(plan => (
+                  <button
+                    key={plan.id}
+                    type='button'
+                    onClick={() => onPlanSelect(plan)}
+                    className={cn(
+                      'flex items-center justify-between rounded-lg border p-4 text-left transition-all',
+                      'hover:border-primary/60 hover:bg-primary/5',
+                      selectedPlan?.id === plan.id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card',
+                    )}
+                  >
+                    <div>
+                      <p className='font-semibold'>{plan.name}</p>
+                      <p className='text-sm text-muted-foreground mt-1'>{plan.includedTxPerMonth?.toLocaleString()} transactions/month, full access</p>
+                    </div>
+                    <div className='text-right'>
+                      <p className='font-bold text-lg tabular-nums text-primary'>{getDisplayPrice(plan, selectedMethod)}</p>
+                      {selectedMethod === 'monthly' && plan.monthlyPrice > 0 && <p className='text-xs text-muted-foreground'>/month</p>}
+                      {selectedMethod === 'annual' && plan.monthlyPrice > 0 && <p className='text-xs text-muted-foreground'>/month, billed annually</p>}
+                    </div>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant='outline' onClick={() => onOpenChange(false)} disabled={isProcessing}>
+            Cancel
+          </Button>
+          <Button onClick={onConfirm} disabled={!selectedPlan || isProcessing} className='gap-2'>
+            {isProcessing ? (
+              'Processing...'
+            ) : (
+              <>
+                <CreditCardIcon className='h-4 w-4' />
+                {selectedMethod === 'credits' ? 'Switch to Credits' : 'Proceed to Payment'}
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // ReactivatePage
 // ---------------------------------------------------------------------------
 
 function ReactivatePage() {
-  const user = useStore(authStore, state => state.user)
-  const status = user?.entitlement?.status as SubscriptionStatus | undefined
+  const [showPlanDialog, setShowPlanDialog] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<PlanWithEntitlements | null>(null)
+  const [selectedMethod, setSelectedMethod] = useState<BillingMethod>('monthly')
 
-  const businessName = user?.business?.name ?? 'Your business'
+  // Get validated user and status from route context (guaranteed to exist due to beforeLoad checks)
+  const { user, reactivatableStatus } = Route.useRouteContext()
+  const businessName = user.business?.name ?? 'Your business'
 
-  const isSuspended = status === SubscriptionStatus.SUSPENDED
+  const queryClient = useQueryClient()
+
+  const { data: plans = [], isLoading: loadingPlans } = useQuery({
+    queryKey: ['plans'],
+    queryFn: () => fetchPlans(),
+  })
+
+  const isSuspended = reactivatableStatus === SubscriptionStatus.SUSPENDED
+  const canUserReactivate = canReactivate(reactivatableStatus)
+
+  const reactivateMutation = useMutation({
+    mutationFn: () => {
+      if (!selectedPlan) throw new Error('No plan selected')
+
+      return reactivateSubscription({
+        data: {
+          planId: selectedPlan.id,
+          billingInterval: selectedMethod === 'annual' ? 'annual' : 'monthly',
+          billingModel: selectedMethod === 'credits' ? BillingModel.PREPAID_CREDITS : undefined,
+        },
+      })
+    },
+    onSuccess: result => {
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+
+      if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl
+        return
+      }
+
+      const message = result.reactivated ? result.message || 'Account reactivated successfully!' : 'Account activated successfully!'
+
+      toast.success(message)
+      queryClient.invalidateQueries({ queryKey: ['plans'] })
+
+      // Refresh user entitlements immediately after reactivation
+      // This ensures the user gets updated capabilities before navigation
+      refreshAuthUser()
+        .then(() => {
+          // Redirect to dashboard after entitlements are refreshed
+          window.location.href = '/dashboard'
+        })
+        .catch(error => {
+          console.warn('Failed to refresh user entitlements after reactivation:', error)
+          // Still redirect to dashboard even if refresh fails - the page reload will get fresh data
+          window.location.href = '/dashboard'
+        })
+    },
+    onError: () => toast.error('Something went wrong. Please try again.'),
+    onSettled: () => setShowPlanDialog(false),
+  })
+
+  const handleStartReactivation = () => {
+    if (canUserReactivate && !loadingPlans) {
+      setShowPlanDialog(true)
+    }
+  }
+
+  const handleConfirmReactivation = () => {
+    if (selectedPlan) {
+      reactivateMutation.mutate()
+    }
+  }
 
   return (
     <div className='min-h-screen bg-background flex flex-col'>
@@ -83,17 +389,15 @@ function ReactivatePage() {
             </div>
             <h1 className='text-2xl font-bold tracking-tight'>Reactivate Your Account</h1>
             <p className='text-muted-foreground text-sm'>{businessName} — restore full access to all your operational features.</p>
-            {status && (
-              <Badge
-                variant='outline'
-                className={cn(
-                  'mx-auto mt-1 inline-flex items-center gap-1.5 text-xs',
-                  SubscriptionStatusVO.toBannerSeverity(status) === 'error' && 'border-destructive/40 text-destructive bg-destructive/5',
-                )}
-              >
-                Current status: {SubscriptionStatusVO.toLabel(status)}
-              </Badge>
-            )}
+            <Badge
+              variant='outline'
+              className={cn(
+                'mx-auto mt-1 inline-flex items-center gap-1.5 text-xs',
+                SubscriptionStatusVO.toBannerSeverity(reactivatableStatus) === 'error' && 'border-destructive/40 text-destructive bg-destructive/5',
+              )}
+            >
+              Current status: {SubscriptionStatusVO.toLabel(reactivatableStatus)}
+            </Badge>
           </div>
 
           {/* Suspended — admin-only resolution */}
@@ -139,30 +443,26 @@ function ReactivatePage() {
 
               <Separator />
 
-              {/* Phase 1: CTA shell — Phase 4 wires the actual payment flow */}
+              {/* Reactivation CTA */}
               <Card className='border-primary/30 bg-primary/5'>
                 <CardHeader className='pb-3'>
                   <CardTitle className='text-base flex items-center gap-2'>
                     <CreditCardIcon className='h-4 w-4 text-primary' />
                     Choose a Plan to Reactivate
                   </CardTitle>
-                  <CardDescription>
-                    Select a subscription plan and complete payment to restore your account. Payment processing will be available in the next update.
-                  </CardDescription>
+                  <CardDescription>Select a subscription plan and complete payment to restore your account immediately.</CardDescription>
                 </CardHeader>
                 <CardContent className='space-y-3'>
-                  {/* Phase 4 placeholder — will be replaced with PricingEngine plan selector */}
-                  <div className='rounded-lg border border-dashed border-border p-4 text-center'>
-                    <p className='text-sm text-muted-foreground'>
-                      Plan selection and checkout coming soon. Contact support to reactivate manually in the meantime.
-                    </p>
-                  </div>
-
                   <div className='flex flex-col gap-2'>
-                    <Button className='w-full gap-2' disabled>
-                      <CreditCardIcon className='h-4 w-4' />
-                      Subscribe &amp; Reactivate
-                      <span className='ml-auto text-xs opacity-60'>(Phase 4)</span>
+                    <Button className='w-full gap-2' onClick={handleStartReactivation} disabled={!canUserReactivate || loadingPlans}>
+                      {loadingPlans ? (
+                        'Loading plans...'
+                      ) : (
+                        <>
+                          <CreditCardIcon className='h-4 w-4' />
+                          Select Plan & Reactivate
+                        </>
+                      )}
                     </Button>
                     <Button variant='outline' className='w-full gap-2' asChild>
                       <a href='mailto:support@startpos.app'>
@@ -177,6 +477,19 @@ function ReactivatePage() {
           )}
         </div>
       </main>
+
+      {/* Plan Selection Dialog */}
+      <PlanSelectionDialog
+        open={showPlanDialog}
+        onOpenChange={setShowPlanDialog}
+        plans={plans}
+        selectedPlan={selectedPlan}
+        selectedMethod={selectedMethod}
+        onPlanSelect={setSelectedPlan}
+        onMethodSelect={setSelectedMethod}
+        onConfirm={handleConfirmReactivation}
+        isProcessing={reactivateMutation.isPending}
+      />
     </div>
   )
 }

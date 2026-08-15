@@ -130,13 +130,13 @@ Always accessible regardless of subscription status (read-only when expired).
 | `VIEW_INVENTORY_REPORTS` | Reporting | Stock level, movement, and valuation reports |
 | `VIEW_TRANSACTION_HISTORY` | Reporting | Full paginated transaction audit trail |
 | `VIEW_ORDER_HISTORY` | Reporting | Order history with status and items |
-| `VIEW_ANALYTICS` | Analytics | Dashboard analytics (add-on) |
+| `VIEW_ANALYTICS` | Analytics | Advanced analytics (post-V1, architecture exists) |
 | `EXPORT_DATA` | Data | CSV exports for inventory, transactions |
 | `MANAGE_SETTINGS` | Settings | Units, categories, locations, suppliers |
 | `MANAGE_BRANCHES` | Multi-Branch | Add and manage additional branches |
 | `MANAGE_BILLING` | Billing | View and manage subscription and billing |
 | `REACTIVATE_SUBSCRIPTION` | Billing | Reactivate after expiry |
-| `ACCESS_API` | API | Programmatic API access for integrations |
+| `ACCESS_API` | API | Programmatic API access (post-V1, architecture exists) |
 
 ## 1C — System Configuration Settings (ConfigKey)
 
@@ -198,11 +198,11 @@ Always accessible regardless of subscription status (read-only when expired).
 These are registered in the Capability Registry today with `required: () => false`.
 When each ships, only the registry entry changes — the survey does not.
 
-| Capability | Signal That Suggests It | Current Status |
+| Capability | Signal That Suggests It | V1 Status |
 |---|---|---|
-| Loyalty / Points | Returning customers, loyalty intent | Planned |
-| Kitchen Display System | Sells food, high order customization | Planned |
-| Delivery Management | Offers delivery orders | Planned |
+| Loyalty / Points | Returning customers, loyalty intent | Post-V1 (architecture exists) |
+| Kitchen Display System | Sells food, high order customization | Post-V1 (architecture exists) |
+| Delivery Management | Offers delivery orders | Post-V1 (architecture exists) |
 | Reservations | Table management, service bookings | Planned |
 | Workforce Scheduling | Medium/large team | Planned |
 | AI Inventory Forecasting | Strict inventory criticality, perishables | Planned |

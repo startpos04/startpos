@@ -10,7 +10,7 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
-import { getHeaders } from '@tanstack/react-start/server'
+import { HEADERS } from '@tanstack/react-start/server'
 import { Resend } from 'resend'
 import { z } from 'zod'
 import { auth } from '../better-auth/auth'
@@ -182,7 +182,7 @@ export const resetForgotPassword = createServerFn({ method: 'POST' })
           otp: data.otp,
           password: data.newPassword,
         },
-        headers: new Headers(getHeaders() as Record<string, string>),
+        headers: new Headers(HEADERS as Record<string, string>),
       })
 
       if (!response?.success) {

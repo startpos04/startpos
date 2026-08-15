@@ -91,60 +91,124 @@ async function main() {
   console.info('🚀 Starting ordered database seeding...')
 
   try {
-    await prisma.$transaction(
-      async tx => {
-        // ── Phase 1: System seeders — always run, no folder filter ──────────
-        if (systemPipeline.length > 0) {
-          console.info('\n📦 [SYSTEM] Running platform-global seeders...')
-          for (const task of systemPipeline) {
-            // When a specific file arg is given, still run system seeders unless
-            // the arg explicitly targets a different single tenant seeder.
-            // System seeders are skipped only if arg targets another specific file.
-            const isTargeted = arg && arg !== 'all' && arg !== task.fileName && arg !== task.file
-            if (isTargeted) {
-              console.info(` -> [System] Skipping ${task.file} (not targeted by arg "${arg}").`)
-              continue
-            }
+    // Check if we should use individual transactions for better stability
+    const useIndividualTransactions = process.env.SEED_INDIVIDUAL_TRANSACTIONS === 'true' || isProductionDB
 
-            if (typeof task.seederTask !== 'function') {
-              console.warn(`⚠️  Skipping ${task.file}: No exportable execution function discovered.`)
-              continue
-            }
+    if (useIndividualTransactions) {
+      console.info('🔄 Using individual transactions for each seeder (safer for large datasets)...')
 
-            console.info(` -> [Order: ${task.weight}] Executing: ${task.file}`)
-            await task.seederTask(tx, { folder: targetFolder })
-            console.info('---------------------------------------------------')
-          }
-        }
-
-        // ── Phase 2: Tenant seeders — filtered by folder + optional arg ─────
-        console.info(`\n🏢 [TENANT] Running tenant seeders for folder: ${targetFolder}...`)
-        for (const task of tenantPipeline) {
-          // Skip folder-locked seeders when the target folder doesn't match
-          const lockedFolder = FOLDER_LOCKED_SEEDERS.get(task.file)
-          if (lockedFolder && lockedFolder !== targetFolder) {
-            console.info(` -> Skipping ${task.file} (locked to folder "${lockedFolder}", current: "${targetFolder}").`)
+      // ── Phase 1: System seeders — always run, no folder filter ──────────
+      if (systemPipeline.length > 0) {
+        console.info('\n📦 [SYSTEM] Running platform-global seeders...')
+        for (const task of systemPipeline) {
+          const isTargeted = arg && arg !== 'all' && arg !== task.fileName && arg !== task.file
+          if (isTargeted) {
+            console.info(` -> [System] Skipping ${task.file} (not targeted by arg "${arg}").`)
             continue
           }
 
-          const shouldRun = !arg || arg === 'all' || arg === task.fileName || arg === task.file
+          if (typeof task.seederTask !== 'function') {
+            console.warn(`⚠️  Skipping ${task.file}: No exportable execution function discovered.`)
+            continue
+          }
 
-          if (shouldRun) {
-            if (typeof task.seederTask !== 'function') {
-              console.warn(`⚠️  Skipping ${task.file}: No exportable execution function discovered.`)
+          console.info(` -> [Order: ${task.weight}] Executing: ${task.file}`)
+          await prisma.$transaction(
+            async tx => {
+              await task.seederTask(tx, { folder: targetFolder })
+            },
+            { timeout: 600000 },
+          )
+          console.info('---------------------------------------------------')
+        }
+      }
+
+      // ── Phase 2: Tenant seeders — filtered by folder + optional arg ─────
+      console.info(`\n🏢 [TENANT] Running tenant seeders for folder: ${targetFolder}...`)
+      for (const task of tenantPipeline) {
+        const lockedFolder = FOLDER_LOCKED_SEEDERS.get(task.file)
+        if (lockedFolder && lockedFolder !== targetFolder) {
+          console.info(` -> Skipping ${task.file} (locked to folder "${lockedFolder}", current: "${targetFolder}").`)
+          continue
+        }
+
+        const shouldRun = !arg || arg === 'all' || arg === task.fileName || arg === task.file
+
+        if (shouldRun) {
+          if (typeof task.seederTask !== 'function') {
+            console.warn(`⚠️  Skipping ${task.file}: No exportable execution function discovered.`)
+            continue
+          }
+
+          console.info(` -> [Order: ${task.weight}] Executing: ${task.file}`)
+          await prisma.$transaction(
+            async tx => {
+              await task.seederTask(tx, { folder: targetFolder })
+            },
+            { timeout: 600000 },
+          )
+          console.info('---------------------------------------------------')
+        }
+      }
+    } else {
+      // Original single transaction approach (faster but less stable for large datasets)
+      console.info('⚡ Using single large transaction (faster but may timeout on large datasets)...')
+      await prisma.$transaction(
+        async tx => {
+          // ── Phase 1: System seeders — always run, no folder filter ──────────
+          if (systemPipeline.length > 0) {
+            console.info('\n📦 [SYSTEM] Running platform-global seeders...')
+            for (const task of systemPipeline) {
+              // When a specific file arg is given, still run system seeders unless
+              // the arg explicitly targets a different single tenant seeder.
+              // System seeders are skipped only if arg targets another specific file.
+              const isTargeted = arg && arg !== 'all' && arg !== task.fileName && arg !== task.file
+              if (isTargeted) {
+                console.info(` -> [System] Skipping ${task.file} (not targeted by arg "${arg}").`)
+                continue
+              }
+
+              if (typeof task.seederTask !== 'function') {
+                console.warn(`⚠️  Skipping ${task.file}: No exportable execution function discovered.`)
+                continue
+              }
+
+              console.info(` -> [Order: ${task.weight}] Executing: ${task.file}`)
+              await task.seederTask(tx, { folder: targetFolder })
+              console.info('---------------------------------------------------')
+            }
+          }
+
+          // ── Phase 2: Tenant seeders — filtered by folder + optional arg ─────
+          console.info(`\n🏢 [TENANT] Running tenant seeders for folder: ${targetFolder}...`)
+          for (const task of tenantPipeline) {
+            // Skip folder-locked seeders when the target folder doesn't match
+            const lockedFolder = FOLDER_LOCKED_SEEDERS.get(task.file)
+            if (lockedFolder && lockedFolder !== targetFolder) {
+              console.info(` -> Skipping ${task.file} (locked to folder "${lockedFolder}", current: "${targetFolder}").`)
               continue
             }
 
-            console.info(` -> [Order: ${task.weight}] Executing: ${task.file}`)
-            await task.seederTask(tx, { folder: targetFolder })
-            console.info('---------------------------------------------------')
+            const shouldRun = !arg || arg === 'all' || arg === task.fileName || arg === task.file
+
+            if (shouldRun) {
+              if (typeof task.seederTask !== 'function') {
+                console.warn(`⚠️  Skipping ${task.file}: No exportable execution function discovered.`)
+                continue
+              }
+
+              console.info(` -> [Order: ${task.weight}] Executing: ${task.file}`)
+              await task.seederTask(tx, { folder: targetFolder })
+              console.info('---------------------------------------------------')
+            }
           }
-        }
-      },
-      {
-        timeout: 90000,
-      },
-    )
+        },
+        {
+          timeout: 600000, // Increased to 10 minutes (600 seconds)
+          maxWait: 10000, // Maximum wait time for transaction to start
+        },
+      )
+    }
 
     console.info('🏁 Ordered pipeline tasks finished successfully.')
     process.exit(0)

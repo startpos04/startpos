@@ -4,8 +4,6 @@
  * Server function: initiate a monthly recurring addon subscription via Stripe.
  *
  * Supported addons:
- *   analytics    — Analytics Dashboard (₱299/mo, qty 1)
- *   api          — API Access (₱499/mo, qty 1)
  *   branch       — Extra Branch (₱199/mo per branch, qty = number of branches)
  *   employee     — Extra Employee (₱49/mo per seat, qty = number of seats)
  *   tx_500       — +500 TX/mo recurring (₱99/mo)
@@ -17,13 +15,10 @@
  *   2. This fn creates a Stripe Checkout Session (mode: subscription).
  *   3. Browser redirects to Stripe hosted page.
  *   4. On payment: Stripe fires customer.subscription.updated webhook.
- *   5. Webhook handler creates/updates BusinessSubscriptionAddon row and
- *      writes EntitlementOverride for capability addons (Analytics, API).
+ *   5. Webhook handler creates/updates BusinessSubscriptionAddon row.
  *   6. On cancellation: customer.subscription.deleted → row marked inactive.
  *
  * Environment variables required (one per addon type):
- *   STRIPE_ADDON_ANALYTICS_PRICE_ID
- *   STRIPE_ADDON_API_PRICE_ID
  *   STRIPE_ADDON_BRANCH_PRICE_ID
  *   STRIPE_ADDON_EMPLOYEE_PRICE_ID
  *   STRIPE_ADDON_TX_RECURRING_500_PRICE_ID
@@ -40,7 +35,7 @@ import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
 // Addon catalog
 // ---------------------------------------------------------------------------
 
-export type AddonId = 'analytics' | 'api' | 'branch' | 'employee' | 'tx_500' | 'tx_1000' | 'tx_5000'
+export type AddonId = 'branch' | 'employee' | 'tx_500' | 'tx_1000' | 'tx_5000'
 
 type AddonCatalogEntry = {
   id: AddonId
@@ -55,26 +50,6 @@ type AddonCatalogEntry = {
 }
 
 export const ADDON_CATALOG: AddonCatalogEntry[] = [
-  {
-    id: 'analytics',
-    label: 'Analytics Dashboard',
-    addonType: 'ANALYTICS',
-    featureKey: 'VIEW_ANALYTICS',
-    displayPrice: '₱299',
-    priceNote: '/mo',
-    stripePriceIdEnvKey: 'STRIPE_ADDON_ANALYTICS_PRICE_ID',
-    perUnit: false,
-  },
-  {
-    id: 'api',
-    label: 'API Access',
-    addonType: 'API_ACCESS',
-    featureKey: 'ACCESS_API',
-    displayPrice: '₱499',
-    priceNote: '/mo',
-    stripePriceIdEnvKey: 'STRIPE_ADDON_API_PRICE_ID',
-    perUnit: false,
-  },
   {
     id: 'branch',
     label: 'Extra Branch',
@@ -156,7 +131,7 @@ export type AddonCatalogItem = Awaited<ReturnType<typeof fetchAddonCatalog>>[num
 // ---------------------------------------------------------------------------
 
 const PurchaseAddonInputSchema = z.object({
-  addonId: z.enum(['analytics', 'api', 'branch', 'employee', 'tx_500', 'tx_1000', 'tx_5000']),
+  addonId: z.enum(['branch', 'employee', 'tx_500', 'tx_1000', 'tx_5000']),
   /** For per-unit addons (branch, employee) — how many units to subscribe to */
   quantity: z.number().int().min(1).max(50).default(1),
 })

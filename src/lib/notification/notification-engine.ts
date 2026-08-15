@@ -10,6 +10,7 @@ import {
 import { dbTransaction } from '@/db/local-db-transaction'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import { authStore } from '@/store/auth-store'
+import type { ThresholdSeverity, UsageNotificationResult } from './usage-notification-types'
 
 interface SendNotificationParams {
   type: NotificationType
@@ -35,6 +36,19 @@ const DEFAULT_PRIORITY: Record<NotificationType, NotificationPriority> = {
   [NotificationType.COMPLIANCE_REMINDER]: NotificationPriority.MEDIUM,
   [NotificationType.PURCHASE_PENDING_APPROVAL]: NotificationPriority.HIGH,
   [NotificationType.CREDIT_LOW_BALANCE]: NotificationPriority.HIGH,
+  [NotificationType.USAGE_THRESHOLD]: NotificationPriority.MEDIUM, // overridden per-threshold by sendUsageThreshold()
+  [NotificationType.GROWTH_MILESTONE]: NotificationPriority.MEDIUM,
+}
+
+/**
+ * Maps UsageThresholdSeverity to NotificationPriority so the delivery tier
+ * is consistent regardless of which resource triggered the notification.
+ */
+const USAGE_THRESHOLD_PRIORITY: Record<ThresholdSeverity, NotificationPriority> = {
+  info: NotificationPriority.MEDIUM,
+  warning: NotificationPriority.HIGH,
+  critical: NotificationPriority.HIGH,
+  limit: NotificationPriority.URGENT,
 }
 
 export const NotificationEngine = {
@@ -138,6 +152,42 @@ export const NotificationEngine = {
       )
     } catch (error) {
       console.error('Notification Engine Error [Credit Low Balance]:', error)
+    }
+  },
+
+  /**
+   * Send a USAGE_THRESHOLD notification to all ADMIN and SUPERVISOR members
+   * of the current business when a usage threshold is crossed.
+   *
+   * Called by the Application Layer (e.g. createPosTransaction, credit deduction)
+   * after UsageNotificationEngine.evaluate() returns shouldNotify = true.
+   *
+   * The caller is responsible for:
+   *   1. Running UsageNotificationEngine.evaluate() to get the result
+   *   2. Calling this method to deliver the notification
+   *   3. Persisting result.updatedNotifiedThresholds so the threshold is not
+   *      re-fired for the same period
+   *
+   * @param result - The shouldNotify=true result from UsageNotificationEngine.evaluate()
+   */
+  async sendUsageThreshold(result: Extract<UsageNotificationResult, { shouldNotify: true }>) {
+    try {
+      const admins = [...membershipCollection.values()].filter(member => ([Role.ADMIN, Role.SUPERVISOR] as Role[]).includes(member.role))
+      if (admins.length === 0) return
+
+      await NotificationEngine.send(
+        admins.map(a => a.id),
+        {
+          type: NotificationType.USAGE_THRESHOLD,
+          title: result.title,
+          message: result.message,
+          metadata: result.payload as unknown as Record<string, unknown>,
+          link: result.payload.resource === 'TRANSACTIONS' ? '/billing' : '/billing/credits',
+          priority: USAGE_THRESHOLD_PRIORITY[result.severity],
+        },
+      )
+    } catch (error) {
+      console.error('Notification Engine Error [Usage Threshold]:', error)
     }
   },
 

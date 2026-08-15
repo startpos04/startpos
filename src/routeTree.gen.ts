@@ -32,6 +32,7 @@ import { Route as privatedashboardSettingsRouteRouteImport } from './routes/(pri
 import { Route as privatedashboardBillingRouteRouteImport } from './routes/(private)/(dashboard)/billing/route'
 import { Route as privatedashboardsupervisorRouteRouteImport } from './routes/(private)/(dashboard)/(supervisor)/route'
 import { Route as privatedashboardadminRouteRouteImport } from './routes/(private)/(dashboard)/(admin)/route'
+import { Route as ApiCronDailyIndexRouteImport } from './routes/api/cron/daily/index'
 import { Route as ApiBillingWebhookIndexRouteImport } from './routes/api/billing/webhook/index'
 import { Route as privateTasksCreateIndexRouteImport } from './routes/(private)/tasks/create/index'
 import { Route as privateTasksTaskIdIndexRouteImport } from './routes/(private)/tasks/$taskId/index'
@@ -181,6 +182,11 @@ const privatedashboardadminRouteRoute =
     id: '/(admin)',
     getParentRoute: () => privatedashboardRouteRoute,
   } as any)
+const ApiCronDailyIndexRoute = ApiCronDailyIndexRouteImport.update({
+  id: '/api/cron/daily/',
+  path: '/api/cron/daily/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBillingWebhookIndexRoute = ApiBillingWebhookIndexRouteImport.update({
   id: '/api/billing/webhook/',
   path: '/api/billing/webhook/',
@@ -377,6 +383,7 @@ export interface FileRoutesByFullPath {
   '/tasks/$taskId/': typeof privateTasksTaskIdIndexRoute
   '/tasks/create/': typeof privateTasksCreateIndexRoute
   '/api/billing/webhook/': typeof ApiBillingWebhookIndexRoute
+  '/api/cron/daily/': typeof ApiCronDailyIndexRoute
   '/employees/': typeof privatedashboardadminEmployeesIndexRoute
   '/ingredients/': typeof privatedashboardadminIngredientsIndexRoute
   '/products/': typeof privatedashboardadminProductsIndexRoute
@@ -424,6 +431,7 @@ export interface FileRoutesByTo {
   '/tasks/$taskId': typeof privateTasksTaskIdIndexRoute
   '/tasks/create': typeof privateTasksCreateIndexRoute
   '/api/billing/webhook': typeof ApiBillingWebhookIndexRoute
+  '/api/cron/daily': typeof ApiCronDailyIndexRoute
   '/employees': typeof privatedashboardadminEmployeesIndexRoute
   '/ingredients': typeof privatedashboardadminIngredientsIndexRoute
   '/products': typeof privatedashboardadminProductsIndexRoute
@@ -479,6 +487,7 @@ export interface FileRoutesById {
   '/(private)/tasks/$taskId/': typeof privateTasksTaskIdIndexRoute
   '/(private)/tasks/create/': typeof privateTasksCreateIndexRoute
   '/api/billing/webhook/': typeof ApiBillingWebhookIndexRoute
+  '/api/cron/daily/': typeof ApiCronDailyIndexRoute
   '/(private)/(dashboard)/(admin)/employees/': typeof privatedashboardadminEmployeesIndexRoute
   '/(private)/(dashboard)/(admin)/ingredients/': typeof privatedashboardadminIngredientsIndexRoute
   '/(private)/(dashboard)/(admin)/products/': typeof privatedashboardadminProductsIndexRoute
@@ -530,6 +539,7 @@ export interface FileRouteTypes {
     | '/tasks/$taskId/'
     | '/tasks/create/'
     | '/api/billing/webhook/'
+    | '/api/cron/daily/'
     | '/employees/'
     | '/ingredients/'
     | '/products/'
@@ -577,6 +587,7 @@ export interface FileRouteTypes {
     | '/tasks/$taskId'
     | '/tasks/create'
     | '/api/billing/webhook'
+    | '/api/cron/daily'
     | '/employees'
     | '/ingredients'
     | '/products'
@@ -631,6 +642,7 @@ export interface FileRouteTypes {
     | '/(private)/tasks/$taskId/'
     | '/(private)/tasks/create/'
     | '/api/billing/webhook/'
+    | '/api/cron/daily/'
     | '/(private)/(dashboard)/(admin)/employees/'
     | '/(private)/(dashboard)/(admin)/ingredients/'
     | '/(private)/(dashboard)/(admin)/products/'
@@ -666,6 +678,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   SubscriptionReactivateIndexRoute: typeof SubscriptionReactivateIndexRoute
   ApiBillingWebhookIndexRoute: typeof ApiBillingWebhookIndexRoute
+  ApiCronDailyIndexRoute: typeof ApiCronDailyIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -830,6 +843,13 @@ declare module '@tanstack/react-router' {
       fullPath: ''
       preLoaderRoute: typeof privatedashboardadminRouteRouteImport
       parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/api/cron/daily/': {
+      id: '/api/cron/daily/'
+      path: '/api/cron/daily'
+      fullPath: '/api/cron/daily/'
+      preLoaderRoute: typeof ApiCronDailyIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/billing/webhook/': {
       id: '/api/billing/webhook/'
@@ -1250,6 +1270,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   SubscriptionReactivateIndexRoute: SubscriptionReactivateIndexRoute,
   ApiBillingWebhookIndexRoute: ApiBillingWebhookIndexRoute,
+  ApiCronDailyIndexRoute: ApiCronDailyIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

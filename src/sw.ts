@@ -11,6 +11,7 @@ declare global {
 declare const self: ServiceWorkerGlobalScope
 
 const isProd = typeof process !== 'undefined' ? process.env['NODE_ENV'] === 'production' : import.meta.env?.MODE === 'production'
+const BUILD_ID = process.env['BUILD_ID'] ?? Date.now().toString() // injected at build time
 
 const serwist = new Serwist({
   disableDevLogs: false,
@@ -27,7 +28,7 @@ const serwist = new Serwist({
           // This prevents "ERR_FAILED" if the precache fails.
           matcher: ({ request }) => request.mode === 'navigate',
           handler: new NetworkFirst({
-            cacheName: 'pages-cache',
+            cacheName: `pages-cache-${BUILD_ID}`,
           }),
         },
         {
@@ -43,7 +44,7 @@ const serwist = new Serwist({
         {
           matcher: ({ request }) => request.destination === 'style' || request.destination === 'image' || request.destination === 'font',
           handler: new CacheFirst({
-            cacheName: 'static-assets',
+            cacheName: `static-assets-${BUILD_ID}`,
           }),
         },
       ]
@@ -68,3 +69,9 @@ if (isProd) {
 }
 
 serwist.addEventListeners()
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.filter(key => !key.includes(BUILD_ID) && !key.startsWith('unsplash')).map(key => caches.delete(key)))),
+  )
+})

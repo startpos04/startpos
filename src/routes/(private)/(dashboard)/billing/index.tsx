@@ -22,15 +22,14 @@ import { useStore } from '@tanstack/react-store'
 import {
   AlertTriangleIcon,
   ArrowRightIcon,
-  BarChart3Icon,
   CalendarIcon,
   CheckCircle2Icon,
   ClockIcon,
-  CodeIcon,
   CreditCardIcon,
   ExternalLinkIcon,
   FileTextIcon,
   GitBranchIcon,
+  MailIcon,
   PlusIcon,
   RefreshCwIcon,
   UsersIcon,
@@ -318,8 +317,6 @@ function BillingDashboard() {
                 <PlanFeatureRow label='Data export' value={entitlement?.capabilities.includes('EXPORT_DATA') ? 'Included' : 'Not included'} />
                 <PlanFeatureRow label='Purchase orders' value={entitlement?.capabilities.includes('CREATE_PURCHASE') ? 'Included' : 'Not included'} />
                 <PlanFeatureRow label='Task management' value={entitlement?.capabilities.includes('CREATE_TASK') ? 'Included' : 'Not included'} />
-                <PlanFeatureRow label='Analytics dashboard' value={entitlement?.capabilities.includes('VIEW_ANALYTICS') ? 'Included' : 'Add-on'} />
-                <PlanFeatureRow label='API access' value={entitlement?.capabilities.includes('ACCESS_API') ? 'Included' : 'Add-on'} />
               </div>
 
               {/* Upgrade nudge */}
@@ -489,7 +486,7 @@ function PlanFeatureRow({ label, value }: { label: string; value: string }) {
 // Unified dialog for purchasing any monthly addon subscription via Stripe.
 // For per-unit addons (Branch, Employee) shows a quantity selector.
 // For TX recurring addons shows three fixed package options.
-// For capability addons (Analytics, API) is a single confirm-and-redirect.
+// For capability addons shows a single confirm-and-redirect.
 // ---------------------------------------------------------------------------
 
 function AddonDialog({ addon, open, onClose }: { addon: AddonCatalogItem | null; open: boolean; onClose: () => void }) {
@@ -656,15 +653,11 @@ function ActiveAddons() {
     staleTime: 60_000,
   })
 
-  const hasAnalytics = entitlement?.capabilities.includes('VIEW_ANALYTICS') ?? false
-  const hasApi = entitlement?.capabilities.includes('ACCESS_API') ?? false
   const txAddonTotal = entitlement?.txAddonTotal ?? 0
   const isBasicOrTrial = !entitlement?.capabilities.includes('MANAGE_INVENTORY') || entitlement?.status === 'TRIAL'
 
   // Determine active state per addon
   function isAddonActive(item: AddonCatalogItem): boolean {
-    if (item.addonType === 'ANALYTICS') return hasAnalytics
-    if (item.addonType === 'API_ACCESS') return hasApi
     if (item.addonType === 'TX_RECURRING') return txAddonTotal > 0
     return false
   }
@@ -680,8 +673,6 @@ function ActiveAddons() {
   const txRepresentative = catalog.find(a => a.id === 'tx_1000') ?? null
 
   function getAddonIcon(item: AddonCatalogItem) {
-    if (item.addonType === 'ANALYTICS') return <BarChart3Icon className='h-4 w-4' />
-    if (item.addonType === 'API_ACCESS') return <CodeIcon className='h-4 w-4' />
     if (item.addonType === 'BRANCH') return <GitBranchIcon className='h-4 w-4' />
     if (item.addonType === 'EMPLOYEE') return <UsersIcon className='h-4 w-4' />
     if (item.addonType === 'TX_RECURRING') return <ZapIcon className='h-4 w-4' />
@@ -768,6 +759,8 @@ function ActiveAddons() {
 function BillingCTAs({ status, isBlocked, cancelledAt }: { status: SubscriptionStatus; isBlocked: boolean; cancelledAt: string | null | undefined }) {
   const [cancelOpen, setCancelOpen] = useState(false)
 
+  const canReactivate = SubscriptionStatusVO.canReactivate(status)
+
   const cancelMutation = useMutation({
     mutationFn: () => cancelSubscription({ data: { immediate: false, reason: 'Business-initiated cancellation from billing dashboard.' } }),
     onSuccess: async result => {
@@ -797,7 +790,7 @@ function BillingCTAs({ status, isBlocked, cancelledAt }: { status: SubscriptionS
     <div className='flex flex-wrap gap-2 pt-1'>
       {/* Upgrade — shown during trial */}
       {status === SubscriptionStatus.TRIAL && (
-        <Button size='sm' asChild>
+        <Button size='sm' variant='default' asChild>
           <Link to={'/billing/plans'}>
             <CreditCardIcon className='h-4 w-4 mr-1.5' />
             Upgrade Plan
@@ -845,9 +838,8 @@ function BillingCTAs({ status, isBlocked, cancelledAt }: { status: SubscriptionS
         </AlertDialog>
       )}
 
-      {/* Reactivate — shown when blocked (not long-term inactive) */}
       {isBlocked && status !== SubscriptionStatus.LONG_TERM_INACTIVE && (
-        <Button size='sm' asChild>
+        <Button size='sm' variant='default' asChild>
           <Link to={'/billing/plans'}>
             <RefreshCwIcon className='h-4 w-4 mr-1.5' />
             Reactivate Subscription
@@ -855,13 +847,23 @@ function BillingCTAs({ status, isBlocked, cancelledAt }: { status: SubscriptionS
         </Button>
       )}
 
-      {/* Long-term inactive — special escape hatch */}
-      {status === SubscriptionStatus.LONG_TERM_INACTIVE && (
-        <Button size='sm' asChild>
+      {/* Reactivation � for expired, cancelled, and inactive statuses */}
+      {canReactivate && (
+        <Button size='sm' variant='default' asChild>
           <Link to='/subscription/reactivate'>
             <RefreshCwIcon className='h-4 w-4 mr-1.5' />
-            Reactivate Account
+            {status === SubscriptionStatus.LONG_TERM_INACTIVE ? 'Reactivate Account' : 'Reactivate Subscription'}
           </Link>
+        </Button>
+      )}
+
+      {/* Suspended status � contact support */}
+      {status === SubscriptionStatus.SUSPENDED && (
+        <Button size='sm' variant='outline' asChild>
+          <a href='mailto:support@startpos.app'>
+            <MailIcon className='h-4 w-4 mr-1.5' />
+            Contact Support
+          </a>
         </Button>
       )}
 
