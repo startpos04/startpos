@@ -5,6 +5,6 @@ strict-origin-when-cross-origin
 
 2. e2e test ui not working
 
-3. offline not working serwist
+3. actual registration should happen at the end off servey, if servay api fails no user should be registered
 
 4. 

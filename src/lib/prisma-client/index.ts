@@ -12,7 +12,14 @@ const pool = new pg.Pool({
 const adapter = new PrismaPg(pool)
 
 // Define the Base Client with Soft Delete
-const createBaseClient = () => new PrismaClient({ adapter }).$extends(softDeleteExtension)
+const createBaseClient = () =>
+  new PrismaClient({
+    adapter,
+    transactionOptions: {
+      maxWait: 5_000, // max time to wait for a connection from the pool (ms)
+      timeout: 20_000, // max time for the interactive transaction itself (ms)
+    },
+  }).$extends(softDeleteExtension)
 
 // We use ReturnType to keep the complex Prisma Extension types intact
 type BasePrismaClient = ReturnType<typeof createBaseClient>

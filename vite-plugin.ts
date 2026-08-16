@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process'
 import path from 'node:path'
 import { injectManifest } from '@serwist/build'
 import type { Plugin } from 'vite'
@@ -15,7 +16,6 @@ export function tanstackSerwistPlugin(): Plugin {
       isProduction = config.command === 'build'
     },
     async buildStart() {
-      // Build SW in dev mode so the file exists for the browser
       if (!isProduction && !isBuilding) {
         isBuilding = true
         await buildServiceWorker(rootDir, false)
@@ -23,13 +23,39 @@ export function tanstackSerwistPlugin(): Plugin {
       }
     },
     async closeBundle() {
-      // In production, wait until the app is bundled to inject hashed assets
       if (isProduction && !isBuilding) {
         isBuilding = true
         await buildServiceWorker(rootDir, true)
         isBuilding = false
       }
     },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Deployment-specific build identifier — fully automatic, no manual step.
+//
+// Priority:
+//   1. VERCEL_DEPLOYMENT_ID — unique per Vercel deployment, even for repeat
+//      deploys of the same commit (e.g. "redeploy" / promote-to-production).
+//      This is what "recache on every deploy" actually requires — commit SHA
+//      alone does NOT change on a redeploy of unchanged code.
+//   2. VERCEL_GIT_COMMIT_SHA — fallback if deployment ID is unavailable for
+//      some reason, still correct for the common case of one deploy per commit.
+//   3. `git rev-parse HEAD` — local builds outside Vercel.
+//   4. Date.now() — last resort if git isn't available (e.g. shallow checkout).
+// ---------------------------------------------------------------------------
+function resolveBuildId(): string {
+  if (process.env['VERCEL_DEPLOYMENT_ID']) {
+    return process.env['VERCEL_DEPLOYMENT_ID']
+  }
+  if (process.env['VERCEL_GIT_COMMIT_SHA']) {
+    return process.env['VERCEL_GIT_COMMIT_SHA']
+  }
+  try {
+    return execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim()
+  } catch {
+    return Date.now().toString()
   }
 }
 
@@ -40,14 +66,18 @@ async function buildServiceWorker(rootDir: string, production: boolean) {
   const swSrc = path.resolve(rootDir, 'src', 'sw.ts')
   const swDest = path.resolve(outDir, outName)
 
+  const buildId = production ? resolveBuildId() : 'dev'
+
   try {
-    // Step 1: Bundle SW with Vite
     await build({
       root: rootDir,
       configFile: false,
       define: {
         'process.env.NODE_ENV': JSON.stringify(production ? 'production' : 'development'),
-        'process.env': JSON.stringify({ NODE_ENV: production ? 'production' : 'development' }),
+        'process.env': JSON.stringify({
+          NODE_ENV: production ? 'production' : 'development',
+          BUILD_ID: buildId,
+        }),
       },
       build: {
         lib: {
@@ -65,16 +95,25 @@ async function buildServiceWorker(rootDir: string, production: boolean) {
       logLevel: 'error',
     })
 
-    // Step 2: Inject Manifest (Production Only)
     if (production) {
-      const result = await injectManifest({
+      const shellResult = await injectManifest({
         swSrc: swDest,
         swDest,
         globDirectory: outDir,
-        globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest,json,woff,woff2}'],
+        globPatterns: ['**/*.{html,webmanifest,ico,png,svg,woff,woff2}'],
         injectionPoint: 'self.__SW_MANIFEST',
       })
-      console.info(`✅ [SERWIST] Precached ${result.count} files`)
+
+      const lazyResult = await injectManifest({
+        swSrc: swDest,
+        swDest,
+        globDirectory: outDir,
+        globPatterns: ['**/*.{js,css}'],
+        globIgnores: ['**/opfs-worker*.js'],
+        injectionPoint: 'self.__SW_LAZY_MANIFEST',
+      })
+
+      console.info(`✅ [SERWIST] Build ${buildId} — precached ${shellResult.count} shell files, queued ${lazyResult.count} for background caching`)
     }
   } catch (error) {
     console.error('❌ [SERWIST] Build failed:', error)
