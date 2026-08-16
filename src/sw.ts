@@ -28,6 +28,20 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: isProd,
+  ...(isProd
+    ? {
+        fallbacks: {
+          entries: [
+            {
+              url: '/offline.html',
+              matcher({ request }: { request: Request }) {
+                return request.destination === 'document'
+              },
+            },
+          ],
+        },
+      }
+    : {}),
   runtimeCaching: isProd
     ? [
         {

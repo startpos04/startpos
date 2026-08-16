@@ -13,8 +13,8 @@
  *   1. Checks email availability.
  *   2. Sends a 6-digit OTP via authClient.emailOtp.sendVerificationOtp().
  *   3. User enters OTP → verified via authClient.emailOtp.verifyEmail().
- *   4. Signs up via authClient.signUp.email.
- *   5. Calls completeRegistration with surveyAnswers → applies ConfigurationEngine.
+ *   4. Calls registerWithSurvey — creates the auth user + full tenant record
+ *      atomically. If survey config fails, no user is left orphaned.
  *   6. Signs in to get a session with businessId/branchId.
  *   7. Redirects to /dashboard.
  *
@@ -43,7 +43,7 @@ import { authClient } from '@/lib/better-auth/auth-client'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import type { SurveyAnswers } from '@/lib/onboarding/types'
 import { checkEmailAvailable } from '@/lib/queries/check-email-available'
-import { completeRegistration } from '@/lib/queries/complete-registration'
+import { registerWithSurvey } from '@/lib/queries/complete-registration'
 import { fetchFeatureFlags } from '@/lib/queries/fetch-feature-flags'
 import { sendRegistrationOTP, verifyRegistrationOTP } from '@/lib/queries/send-registration-otp'
 import { cn } from '@/lib/utils'
@@ -360,28 +360,19 @@ function RouteComponent() {
     setIsSubmitting(true)
 
     try {
-      // Step 1: Create the better-auth user record (email is already verified at this point)
-      const { error: signUpError } = await authClient.signUp.email({
-        name: accountValues.name,
-        email: accountValues.email,
-        password: accountValues.password,
-      })
-
-      if (signUpError) {
-        toast.error(signUpError.message || 'Registration failed. Please try again.')
-        setStep('account')
-        return
-      }
-
-      // Step 2: Atomically create the tenant record with survey answers
-      const result = await completeRegistration({
+      // Single atomic call — the Better Auth user + account rows are created
+      // inside the same Prisma transaction as the business/branch/membership.
+      // If the survey config or any later step fails, zero rows are committed
+      // and the user can retry without hitting a "email already exists" error.
+      const result = await registerWithSurvey({
         data: {
+          email: accountValues.email,
+          password: accountValues.password,
+          name: accountValues.name,
           displayName: accountValues.name,
           businessName: accountValues.businessName,
           contactNumber: accountValues.contactNumber,
           surveyAnswers,
-          // Pass the consent timestamp so the server records exactly when
-          // this user agreed to the ToS and Privacy Policy.
           ...(consentTimestamp ? { termsAcceptedAt: consentTimestamp } : {}),
         },
       })
@@ -392,7 +383,7 @@ function RouteComponent() {
         return
       }
 
-      // Step 3: Sign in to get a fresh session with businessId/branchId
+      // Sign in to get a fresh session with businessId/branchId
       await AuthEngine.loginOnline(accountValues.email, accountValues.password, freshUser => {
         setUser(freshUser)
         navigate({ to: '/dashboard' })
