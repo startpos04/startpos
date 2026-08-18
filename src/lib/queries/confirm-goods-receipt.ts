@@ -31,7 +31,7 @@ import {
 } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
-import { receiptWorkflow } from '@/lib/queries/receipt-workflow'
+import { receiptWorkflow } from '@/lib/server-fn/receipt-workflow'
 import { authStore } from '@/store/auth-store'
 
 export const confirmGoodsReceipt = async (receiptId: string) => {

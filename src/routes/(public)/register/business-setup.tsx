@@ -24,8 +24,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { SurveyAnswers } from '@/lib/onboarding/types'
-import { completeRegistration } from '@/lib/queries/complete-registration'
-import { refreshSession } from '@/lib/queries/refresh-session'
+import { completeRegistration } from '@/lib/server-fn/complete-registration'
+import { refreshSession } from '@/lib/server-fn/refresh-session'
 import { authStore, setUser } from '@/store/auth-store'
 
 const businessNameSchema = z.string().min(1).max(100)

@@ -26,7 +26,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
-import { acceptCapability, dismissCapability } from '@/lib/queries/capability-actions'
+import { acceptCapability, dismissCapability } from '@/lib/server-fn/capability-actions'
 import { cn } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------

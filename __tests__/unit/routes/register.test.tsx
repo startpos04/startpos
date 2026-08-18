@@ -120,7 +120,7 @@ afterEach(() => {
 
 describe('Register page', () => {
   function renderRegister() {
-    const router = buildRouter(RegisterRoute.options.component as any, '/(public)/register')
+    const router = buildRouter(RegisterRoute.options.component as any, '/(public)/register', {}, { emailVerificationEnabled: true })
     return render(<RouterProvider router={router} />)
   }
 
@@ -134,19 +134,32 @@ describe('Register page', () => {
     await waitFor(() => { expect(screen.getByText(/30-day free trial with 500 transactions plus 50 credits/i)).toBeInTheDocument() })
   })
 
-  it('renders Google OAuth button', async () => {
+  it('hides Google OAuth button when GOOGLE_CLIENT_SECRET is not set', async () => {
+    // Env vars are not set in test environment by default
     renderRegister()
-    await waitFor(() => { expect(screen.getByText('Continue with Google')).toBeInTheDocument() })
+    await waitFor(() => {
+      // Should NOT find the Google OAuth button
+      expect(document.body.textContent).not.toMatch(/Continue with Google/i)
+    })
   })
 
-  it('renders Facebook OAuth button', async () => {
+  it('hides Facebook OAuth button when FACEBOOK_CLIENT_SECRET is not set', async () => {
+    // Env vars are not set in test environment by default
     renderRegister()
-    await waitFor(() => { expect(screen.getByText('Continue with Facebook')).toBeInTheDocument() })
+    await waitFor(() => {
+      // Should NOT find the Facebook OAuth button
+      expect(document.body.textContent).not.toMatch(/Continue with Facebook/i)
+    })
   })
 
-  it('renders "Or register with email" divider', async () => {
+  it('hides "Or register with email" divider when no OAuth providers are configured', async () => {
+    // Divider only shows when OAuth buttons are present
+    // Since env vars are not set, divider should be hidden
     renderRegister()
-    await waitFor(() => { expect(screen.getByText(/or register with email/i)).toBeInTheDocument() })
+    await waitFor(() => {
+      const text = document.body.textContent?.toLowerCase() || ''
+      expect(text).not.toMatch(/or register with email/i)
+    })
   })
 
   it('renders Full name input field', async () => {
@@ -198,6 +211,8 @@ describe('BusinessSetup page', () => {
     const router = buildRouter(
       BusinessSetupRoute.options.component as any,
       '/(public)/register/business-setup',
+      {},
+      { emailVerificationEnabled: true }
     )
     return render(<RouterProvider router={router} />)
   }

@@ -72,7 +72,7 @@ test.describe('Branch Limit Enforcement', () => {
     await page.waitForLoadState('networkidle')
 
     // Check if at limit
-    const limitWarning = page.locator(LIMIT_TEST_CONFIG.messages.branchLimit)
+    const limitWarning = page.locator(`text=${LIMIT_TEST_CONFIG.messages.branchLimit}`)
     const addBranchButton = page.locator('button:has-text("Add Branch"), a:has-text("Add Branch")')
 
     if (await limitWarning.count() > 0) {
@@ -130,13 +130,13 @@ test.describe('Branch Limit Enforcement', () => {
     await page.goto(LIMIT_TEST_CONFIG.routes.branches)
     await page.waitForLoadState('networkidle')
 
-    const limitWarning = page.locator(LIMIT_TEST_CONFIG.messages.branchLimit)
+    const limitWarning = page.locator(`text=${LIMIT_TEST_CONFIG.messages.branchLimit}`)
     
     if (await limitWarning.count() > 0) {
       await expect(limitWarning.first()).toBeVisible()
 
       // Should mention upgrade options
-      const upgradeGuidance = page.locator(LIMIT_TEST_CONFIG.messages.upgradeGuidance)
+      const upgradeGuidance = page.locator(`text=${LIMIT_TEST_CONFIG.messages.upgradeGuidance}`)
       if (await upgradeGuidance.count() > 0) {
         await expect(upgradeGuidance.first()).toBeVisible()
         console.log('✓ Upgrade guidance provided for branch limits')
@@ -156,7 +156,7 @@ test.describe('Branch Limit Enforcement', () => {
     await page.waitForLoadState('networkidle')
 
     // Should show branch list
-    const branchList = page.locator('[role="table"], text=/branch.*name|location.*name/i')
+    const branchList = page.locator('[role="table"]')
     if (await branchList.count() > 0) {
       await expect(branchList.first()).toBeVisible()
     }
@@ -169,9 +169,12 @@ test.describe('Branch Limit Enforcement', () => {
     }
 
     // Check branch names and details
-    const branchNames = page.locator('td:has-text("Main"), text=/branch|location/i')
+    const branchNames = page.locator('td:has-text("Main")')
+    const branchText = page.locator('text=/branch|location/i')
     if (await branchNames.count() > 0) {
       await expect(branchNames.first()).toBeVisible()
+    } else if (await branchText.count() > 0) {
+      await expect(branchText.first()).toBeVisible()
     }
   })
 })
@@ -191,7 +194,7 @@ test.describe('Employee Limit Enforcement', () => {
     }
 
     // Should show current employees in list
-    const employeeList = page.locator('[role="table"], text=/employee|name.*role/i')
+    const employeeList = page.locator('[role="table"]')
     if (await employeeList.count() > 0) {
       await expect(employeeList.first()).toBeVisible()
     }
@@ -201,7 +204,7 @@ test.describe('Employee Limit Enforcement', () => {
     await page.goto(LIMIT_TEST_CONFIG.routes.employees)
     await page.waitForLoadState('networkidle')
 
-    const limitWarning = page.locator(LIMIT_TEST_CONFIG.messages.employeeLimit)
+    const limitWarning = page.locator(`text=${LIMIT_TEST_CONFIG.messages.employeeLimit}`)
     const addEmployeeButton = page.locator('button:has-text("Add Employee")')
 
     if (await limitWarning.count() > 0) {
@@ -297,13 +300,13 @@ test.describe('Employee Limit Enforcement', () => {
     await page.goto(LIMIT_TEST_CONFIG.routes.employees)
     await page.waitForLoadState('networkidle')
 
-    const limitWarning = page.locator(LIMIT_TEST_CONFIG.messages.employeeLimit)
+    const limitWarning = page.locator(`text=${LIMIT_TEST_CONFIG.messages.employeeLimit}`)
     
     if (await limitWarning.count() > 0) {
       await expect(limitWarning.first()).toBeVisible()
 
       // Should mention upgrade options
-      const upgradeGuidance = page.locator(LIMIT_TEST_CONFIG.messages.upgradeGuidance)
+      const upgradeGuidance = page.locator(`text=${LIMIT_TEST_CONFIG.messages.upgradeGuidance}`)
       if (await upgradeGuidance.count() > 0) {
         await expect(upgradeGuidance.first()).toBeVisible()
         console.log('✓ Upgrade guidance provided for employee limits')
@@ -321,7 +324,7 @@ test.describe('Add-on Integration for Limit Increases', () => {
     await page.waitForLoadState('networkidle')
 
     // Find branch add-on
-    const branchAddon = page.locator('button:has-text("Add"):near(text=/branch/i)')
+    const branchAddon = page.locator('text=/extra.*branch/i').locator('..').locator('button:has-text("Add")')
     
     if (await branchAddon.count() > 0) {
       await branchAddon.first().click()
@@ -370,7 +373,7 @@ test.describe('Add-on Integration for Limit Increases', () => {
     await page.waitForLoadState('networkidle')
 
     // Find employee add-on (may only be visible for Basic plans)
-    const employeeAddon = page.locator('button:has-text("Add"):near(text=/employee/i)')
+    const employeeAddon = page.locator('text=/extra.*employee/i').locator('..').locator('button:has-text("Add")')
     
     if (await employeeAddon.count() > 0) {
       await employeeAddon.first().click()
@@ -403,7 +406,7 @@ test.describe('Add-on Integration for Limit Increases', () => {
     await page.waitForLoadState('networkidle')
 
     // Find TX add-on
-    const txAddon = page.locator('button:has-text("Add"):near(text=/transaction|TX/i)')
+    const txAddon = page.locator('text=/transaction|TX/i').locator('..').locator('button:has-text("Add")')
     
     if (await txAddon.count() > 0) {
       await txAddon.first().click()

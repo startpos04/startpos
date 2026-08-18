@@ -1,0 +1,29 @@
+{
+  "cookies": [
+    {
+      "name": "better-auth.session_token",
+      "value": "bsn1DO2Tf2ZuDDYmkoBiJUR7W7JaoSte.2pTnCYOt1LRZ6DIH1UQ7UjNWmffv9kMleE6ZYqfnjrY%3D",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1787579377.845826,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "last-business-id",
+          "value": "e2e-org-1"
+        },
+        {
+          "name": "my-app-storage",
+          "value": "{\"user\":{\"id\":\"e2e-supervisor-1\"}}"
+        }
+      ]
+    }
+  ]
+}

@@ -34,7 +34,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
-import { createPricingQuote } from '@/lib/queries/create-pricing-quote'
+import { createPricingQuote } from '@/lib/server-fn/create-pricing-quote'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing/pricing/')({

@@ -32,7 +32,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { getAuthUser } from '@/lib/better-auth/auth-server'
-import { purchaseAddonSubscription } from '@/lib/queries/purchase-addon-subscription'
+import { purchaseAddonSubscription } from '@/lib/server-fn/purchase-addon-subscription'
 import { authStore, refreshUser } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing/success/')({

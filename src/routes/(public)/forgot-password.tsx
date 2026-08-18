@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useIsOnline } from '@/hooks/use-is-online'
-import { resetForgotPassword, sendForgotPasswordOTP, verifyForgotPasswordOTP } from '@/lib/queries/forgot-password-otp'
+import { resetForgotPassword, sendForgotPasswordOTP, verifyForgotPasswordOTP } from '@/lib/server-fn/forgot-password-otp'
 import { cn } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------

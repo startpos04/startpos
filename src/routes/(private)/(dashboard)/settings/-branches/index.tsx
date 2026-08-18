@@ -30,9 +30,9 @@ import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { branchCollection } from '@/db/collections'
 import MountManager from '@/lib/mount-manager'
-import { createBranch } from '@/lib/queries/create-branch'
-import { updateBranch } from '@/lib/queries/update-branch'
-import { BRANCH_TOGGLE_DEFAULTS, type BranchToggleConfig, fetchBranchConfig, updateBranchConfig } from '@/lib/queries/update-branch-config'
+import { createBranch } from '@/lib/server-fn/create-branch'
+import { updateBranch } from '@/lib/server-fn/update-branch'
+import { BRANCH_TOGGLE_DEFAULTS, type BranchToggleConfig, fetchBranchConfig, updateBranchConfig } from '@/lib/server-fn/update-branch-config'
 import { authStore } from '@/store/auth-store'
 
 // ---------------------------------------------------------------------------

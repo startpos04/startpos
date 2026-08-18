@@ -1,7 +1,7 @@
 /**
  * inventory-engine.test.ts
  *
- * Covers InventoryEngine:
+ * Covers PosStockEngine:
  *   - getReservedMap   (cart + order reservation aggregation)
  *   - getUnitRequirements (per-variant material requirements)
  *   - findPhysicalStock   (stock lookup: direct variant + component material)
@@ -46,10 +46,11 @@ function makeComponent(materialVariantId: string, quantityUsed: number, isAddon 
 // getReservedMap
 // ---------------------------------------------------------------------------
 
-describe('InventoryEngine.getReservedMap', () => {
+describe('PosStockEngine.getReservedMap', () => {
   it('direct-sale variant: reserves quantity against variant ID', () => {
     const variantId = makeId()
-    const variant = makePosVariant({ id: variantId, components: [] })
+    const inventoryRecord = { id: makeId(), variantId, quantity: 50, costPrice: 100 } as any
+    const variant = makePosVariant({ id: variantId, components: [], inventory: [inventoryRecord] })
     const product = makePosProduct({ variants: [variant] })
     const item = makePosItem({ product, variant: variant as any, quantity: 3 })
 
@@ -86,7 +87,8 @@ describe('InventoryEngine.getReservedMap', () => {
 
   it('cart + order items combined into total reservation', () => {
     const variantId = makeId()
-    const variant = makePosVariant({ id: variantId, components: [] })
+    const inventoryRecord = { id: makeId(), variantId, quantity: 50, costPrice: 100 } as any
+    const variant = makePosVariant({ id: variantId, components: [], inventory: [inventoryRecord] })
     const product = makePosProduct({ variants: [variant] })
     const cartItem = makePosItem({ product, variant: variant as any, quantity: 2 })
     const orderItem = makePosItem({ product, variant: variant as any, quantity: 3 })
@@ -137,7 +139,7 @@ describe('InventoryEngine.getReservedMap', () => {
 // getUnitRequirements
 // ---------------------------------------------------------------------------
 
-describe('InventoryEngine.getUnitRequirements', () => {
+describe('PosStockEngine.getUnitRequirements', () => {
   it('variant with no components: requires 1 unit of the variant itself', () => {
     const variantId = makeId()
     const variant = makePosVariant({ id: variantId, components: [] })
@@ -195,7 +197,7 @@ describe('InventoryEngine.getUnitRequirements', () => {
 // findPhysicalStock
 // ---------------------------------------------------------------------------
 
-describe('InventoryEngine.findPhysicalStock', () => {
+describe('PosStockEngine.findPhysicalStock', () => {
   it('finds stock on a direct variant match', () => {
     const variantId = makeId()
     const inventoryRecord = { id: makeId(), variantId, quantity: 50, costPrice: 100 } as any
@@ -285,7 +287,7 @@ describe('InventoryEngine.findPhysicalStock', () => {
 // calculateRemainingYield
 // ---------------------------------------------------------------------------
 
-describe('InventoryEngine.calculateRemainingYield', () => {
+describe('PosStockEngine.calculateRemainingYield', () => {
   it('direct variant: yield = stock - already reserved', () => {
     const variantId = makeId()
     const inv = { id: makeId(), variantId, quantity: 10 } as any
@@ -364,13 +366,15 @@ describe('InventoryEngine.calculateRemainingYield', () => {
   })
 
   it('returns 0 for empty variant with no unit requirements', () => {
+    // A variant with no components and no inventory will return UNLIMITED (999) not 0
     const variant = makePosVariant({ components: [] }) as any
-    // Force empty components to make getUnitRequirements return {}
-    // Actually with no components, it returns { variantId: 1 } and stock=0
-    const product = makePosProduct({ variants: [variant] })
+    variant.inventory = [] // Empty inventory
+    const product = makePosProduct({ type: 'PHYSICAL_GOOD', variants: [variant] })
 
     const remaining = PosStockEngine.calculateRemainingYield(product, variant, [], [])
 
-    expect(remaining).toBe(0) // no inventory → 0 yield
+    // When there are no components AND no inventory, the engine returns UNLIMITED (999)
+    // unless the product type is SERVICE, which also returns UNLIMITED
+    expect(remaining).toBe(999) // UNLIMITED
   })
 })

@@ -25,8 +25,8 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { acceptTerms } from '@/lib/queries/accept-terms'
-import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '@/lib/queries/complete-registration'
+import { acceptTerms } from '@/lib/server-fn/accept-terms'
+import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '@/lib/server-fn/complete-registration'
 import { authStore, refreshAuthUser } from '@/store/auth-store'
 
 // ---------------------------------------------------------------------------
@@ -77,6 +77,7 @@ export function TermsUpdateModal() {
     >
       <DialogContent
         className='sm:max-w-md'
+        data-testid='terms-update-modal'
         // Remove the default close button by overriding onPointerDownOutside
         onPointerDownOutside={e => e.preventDefault()}
         onEscapeKeyDown={e => e.preventDefault()}
@@ -105,7 +106,13 @@ export function TermsUpdateModal() {
 
           {/* Acceptance checkbox */}
           <div className='flex items-start gap-3'>
-            <Checkbox id='terms-reaccept' checked={accepted} onCheckedChange={val => setAccepted(val === true)} className='mt-0.5' />
+            <Checkbox
+              id='terms-reaccept'
+              checked={accepted}
+              onCheckedChange={val => setAccepted(val === true)}
+              className='mt-0.5'
+              data-testid='terms-acceptance-checkbox'
+            />
             <label htmlFor='terms-reaccept' className='text-sm leading-snug cursor-pointer'>
               I have read and agree to the updated{' '}
               <a
@@ -138,7 +145,7 @@ export function TermsUpdateModal() {
             <span className='text-xs text-muted-foreground flex-1'>
               Document versions: ToS {CURRENT_TERMS_VERSION} · Privacy {CURRENT_PRIVACY_VERSION}
             </span>
-            <Button onClick={handleAccept} disabled={!accepted || isSaving} size='sm'>
+            <Button onClick={handleAccept} disabled={!accepted || isSaving} size='sm' data-testid='accept-terms-button'>
               {isSaving ? <Loader2 className='size-3.5 mr-1 animate-spin' /> : null}
               Accept & Continue
             </Button>

@@ -28,7 +28,7 @@
 
 import { CAPABILITY_REGISTRY } from '@/lib/onboarding/capability-registry'
 import type { CapabilityCategory } from '@/lib/onboarding/types'
-import type { CapabilityStateRow } from '@/lib/queries/fetch-capability-states'
+import type { CapabilityStateRow } from '@/lib/server-fn/fetch-capability-states'
 
 // ---------------------------------------------------------------------------
 // Feature entry state

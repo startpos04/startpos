@@ -29,6 +29,7 @@ import type { ReactNode } from 'react'
 import React from 'react'
 
 type SearchParams = Record<string, unknown>
+type LoaderData = Record<string, unknown>
 
 /**
  * Build a minimal in-memory test router with a single route at the given path.
@@ -38,6 +39,7 @@ export function buildRouter(
   component: () => ReactNode,
   path: string,
   initialSearch: SearchParams = {},
+  loaderData: LoaderData = {},
 ) {
   const rootRoute = createRootRoute()
 
@@ -46,6 +48,7 @@ export function buildRouter(
     path,
     component: component as React.FC,
     validateSearch: (search: Record<string, unknown>) => ({ ...initialSearch, ...search }),
+    loader: () => loaderData,
   })
 
   const routeTree = rootRoute.addChildren([testRoute])
@@ -77,8 +80,9 @@ export function routerWrapper(
   component: () => ReactNode,
   path: string,
   initialSearch: SearchParams = {},
+  loaderData: LoaderData = {},
 ) {
-  const router = buildRouter(component, path, initialSearch)
+  const router = buildRouter(component, path, initialSearch, loaderData)
   return function Wrapper({ children: _ }: { children?: ReactNode }) {
     return <RouterProvider router={router} />
   }

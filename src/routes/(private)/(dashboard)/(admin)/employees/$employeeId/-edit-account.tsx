@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { userCollection } from '@/db/collections'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import type { MountProps } from '@/lib/mount-manager'
-import { writeAudit } from '@/lib/queries/write-audit'
+import { writeAudit } from '@/lib/server-fn/write-audit'
 import { closeEmployeeSidebar } from '../-components/employee-sidebar'
 import { CreateAccount, type CreateAccountFormData } from '../create/-create-account'
 

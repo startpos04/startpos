@@ -23,8 +23,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { correctCharacteristicFn } from '@/lib/queries/capability-actions'
-import { fetchBusinessProfile, type ProfileFieldRow } from '@/lib/queries/fetch-business-profile'
+import { correctCharacteristicFn } from '@/lib/server-fn/capability-actions'
+import { fetchBusinessProfile, type ProfileFieldRow } from '@/lib/server-fn/fetch-business-profile'
 import { cn } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------

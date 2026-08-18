@@ -15,7 +15,8 @@
       "!!src/routeTree.gen.ts",
       "!!**/*.test.*",
       "!!**/*.spec.*",
-      "!!**/__tests__"
+      "!!**/__tests__",
+      "!!**/playwright-report"
     ]
   },
   "javascript": {

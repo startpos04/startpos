@@ -718,52 +718,9 @@ test.describe('V1 Certification: Comprehensive Refund Management', () => {
       
       console.log('✅ V1 verification: Analytics dashboard properly hidden from customer interface')
     })
-      
-      await page.goto(REFUND_CONFIG.routes.reports)
-      
-      // Key metrics
-      await expect(page.locator(REFUND_CONFIG.selectors.refundAnalytics)).toBeVisible()
-      await expect(page.locator('[data-testid="total-refunds-today"]')).toContainText('₱2,350.00')
-      await expect(page.locator('[data-testid="refund-rate"]')).toContainText('3.2%')
-      await expect(page.locator('[data-testid="average-refund-amount"]')).toContainText('₱185.50')
-      
-      // Refund trends
-      await expect(page.locator(REFUND_CONFIG.selectors.refundTrends)).toBeVisible()
-      await expect(page.locator('[data-testid="refund-trend-chart"]')).toBeVisible()
-      
-      // Reason analysis
-      await expect(page.locator('[data-testid="refund-reasons-chart"]')).toBeVisible()
-      await expect(page.locator('[data-testid="defective-product-percentage"]')).toContainText('35%')
-      await expect(page.locator('[data-testid="customer-changed-mind-percentage"]')).toContainText('28%')
-      
-      // Loss impact
-      await expect(page.locator(REFUND_CONFIG.selectors.lossReports)).toBeVisible()
-      await expect(page.locator('[data-testid="monthly-loss"]')).toContainText('₱45,200.00')
-      await expect(page.locator('[data-testid="loss-trend"]')).toContainText('+12% vs last month')
-    })
-
-    test('refund performance by employee', async ({ page }) => {
-      await loginAsAdmin(page)
-      
-      await page.goto('/reports/employee-refunds')
-      
-      // Employee refund statistics
-      const employeeStats = page.locator('[data-testid="employee-refund-stats"]')
-      
-      await expect(employeeStats.locator('[data-testid="employee-john"]')).toContainText('15 refunds')
-      await expect(employeeStats.locator('[data-testid="employee-john"]')).toContainText('₱3,250.00 total')
-      await expect(employeeStats.locator('[data-testid="employee-john"]')).toContainText('5.2% refund rate')
-      
-      await expect(employeeStats.locator('[data-testid="employee-mary"]')).toContainText('8 refunds')
-      await expect(employeeStats.locator('[data-testid="employee-mary"]')).toContainText('₱1,180.00 total')
-      await expect(employeeStats.locator('[data-testid="employee-mary"]')).toContainText('2.1% refund rate')
-      
-      // Performance insights
-      await expect(page.locator('[data-testid="performance-insights"]')).toContainText('John has above-average refund rate')
-      await expect(page.locator('[data-testid="training-recommendations"]')).toContainText('Consider additional training on product knowledge')
-    })
   })
 })
+
 // Helper Functions for Comprehensive Refund Testing
 
 /**

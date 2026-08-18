@@ -125,7 +125,7 @@ test.describe('Add-on Purchase Flow from Billing Success Page', () => {
     await page.waitForLoadState('networkidle')
 
     const addonName = addonType === 'branch' ? 'Extra Branches' : 'Extra Employees'
-    const addButton = page.locator(`button:has-text("Add"):near(text="${addonName}")`)
+    const addButton = page.locator(`text="${addonName}"`).locator('..').locator('button:has-text("Add")')
     
     if (await addButton.count() === 0) {
       console.log(`Note: ${addonName} add-on not available for this plan`)
@@ -197,8 +197,9 @@ test.describe('Add-on Purchase Flow from Billing Success Page', () => {
     await page.waitForLoadState('networkidle')
 
     // Find quantity picker for branches
-    const plusButton = page.locator('button:has-text("+"):near(text="Extra Branches")')
-    const minusButton = page.locator('button:has-text("-"):near(text="Extra Branches")')
+    const branchSection = page.locator('text="Extra Branches"').locator('..')
+    const plusButton = branchSection.locator('button:has-text("+")')
+    const minusButton = branchSection.locator('button:has-text("-")')
     
     if (await plusButton.count() > 0) {
       // Click plus to increase quantity
@@ -224,13 +225,19 @@ test.describe('Add-on Purchase Flow from Billing Success Page', () => {
     await page.waitForLoadState('networkidle')
 
     // Find skip button or billing dashboard link
-    const skipButton = page.locator('button:has-text("Skip"), text=/skip.*now/i')
-    const billingLink = page.locator('text="Go to Billing Dashboard", a[href="/billing"]')
+    const skipButton = page.locator('button:has-text("Skip")')
+    const skipText = page.locator('text=/skip.*now/i')
+    const billingLink = page.locator('text="Go to Billing Dashboard"')
+    const billingHref = page.locator('a[href="/billing"]')
     
     if (await billingLink.count() > 0) {
       await billingLink.click()
+    } else if (await billingHref.count() > 0) {
+      await billingHref.click()
     } else if (await skipButton.count() > 0) {
       await skipButton.click()
+    } else if (await skipText.count() > 0) {
+      await skipText.click()
     } else {
       console.log('Note: No skip navigation found')
       return

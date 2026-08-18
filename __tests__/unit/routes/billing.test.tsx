@@ -270,7 +270,11 @@ describe('CreditsPage — prepaid plan with balance', () => {
         billingModel: 'PREPAID_CREDITS',
       },
     } as any)
-    mockUseQuery.mockReturnValue({ data: { data: [], totalItems: 0 }, isLoading: false })
+    mockUseQuery.mockImplementation((opts: any) => {
+      if (opts.queryKey?.[0] === 'credit-ledger') return { data: { entries: [], currentBalance: 42, totalItems: 0 }, isLoading: false }
+      if (opts.queryKey?.[0] === 'credit-packages') return { data: [], isLoading: false }
+      return { data: undefined, isLoading: false }
+    })
   })
 
   it('renders the current credit balance (42)', async () => {
@@ -291,17 +295,25 @@ describe('PlansPage', () => {
   })
 
   it('renders billing method toggle tabs (Monthly, Annual, Credits)', async () => {
-    mockUseQuery.mockReturnValue({ data: [], isLoading: false })
+    mockUseQuery.mockImplementation((opts: any) => {
+      if (opts.queryKey?.[0] === 'plans') return { data: [], isLoading: false }
+      if (opts.queryKey?.[0] === 'credit-packages') return { data: [], isLoading: false }
+      return { data: undefined, isLoading: false }
+    })
     renderPage(PlansRoute, '/(private)/(dashboard)/billing/plans/')
     await waitFor(() => {
       expect(screen.getByText('Monthly')).toBeInTheDocument()
       expect(screen.getByText('Annual')).toBeInTheDocument()
-      expect(screen.getByText('Credits')).toBeInTheDocument()
+      // The actual label is "Pay as you go" not "Credits"
+      expect(screen.getByText('Pay as you go')).toBeInTheDocument()
     })
   })
 
   it('renders loading state while plans are fetching', async () => {
-    mockUseQuery.mockReturnValue({ data: undefined, isLoading: true })
+    mockUseQuery.mockImplementation((opts: any) => {
+      if (opts.queryKey?.[0] === 'plans') return { data: undefined, isLoading: true }
+      return { data: undefined, isLoading: false }
+    })
     renderPage(PlansRoute, '/(private)/(dashboard)/billing/plans/')
     await waitFor(() => {
       // page renders without crashing in loading state
@@ -314,7 +326,10 @@ describe('PlansPage', () => {
       { id: 'plan-1', name: 'Basic', monthlyPrice: 49900, isActive: true, entitlements: [], includedTxPerMonth: 500, sortOrder: 1 },
       { id: 'plan-2', name: 'Premium', monthlyPrice: 99900, isActive: true, entitlements: [], includedTxPerMonth: -1, sortOrder: 2 },
     ]
-    mockUseQuery.mockReturnValue({ data: plans, isLoading: false } as any)
+    mockUseQuery.mockImplementation((opts: any) => {
+      if (opts.queryKey?.[0] === 'plans') return { data: plans, isLoading: false }
+      return { data: undefined, isLoading: false }
+    })
     renderPage(PlansRoute, '/(private)/(dashboard)/billing/plans/')
     await waitFor(() => {
       expect(screen.getByText('Basic')).toBeInTheDocument()
@@ -323,7 +338,14 @@ describe('PlansPage', () => {
   })
 
   it('renders "Save 20%" badge on Annual tab', async () => {
-    mockUseQuery.mockReturnValue({ data: [], isLoading: false })
+    // Need at least one paid plan for the savings badge to show
+    const plans = [
+      { id: 'plan-1', name: 'Basic', monthlyPrice: 49900, annualPrice: 479040, isActive: true, entitlements: [], includedTxPerMonth: 500, sortOrder: 1 },
+    ]
+    mockUseQuery.mockImplementation((opts: any) => {
+      if (opts.queryKey?.[0] === 'plans') return { data: plans, isLoading: false }
+      return { data: undefined, isLoading: false }
+    })
     renderPage(PlansRoute, '/(private)/(dashboard)/billing/plans/')
     await waitFor(() => {
       expect(screen.getByText('Save 20%')).toBeInTheDocument()
@@ -331,7 +353,10 @@ describe('PlansPage', () => {
   })
 
   it('renders link to custom/composable pricing', async () => {
-    mockUseQuery.mockReturnValue({ data: [], isLoading: false })
+    mockUseQuery.mockImplementation((opts: any) => {
+      if (opts.queryKey?.[0] === 'plans') return { data: [], isLoading: false }
+      return { data: undefined, isLoading: false }
+    })
     renderPage(PlansRoute, '/(private)/(dashboard)/billing/plans/')
     await waitFor(() => {
       expect(document.body.textContent).toMatch(/custom|composable|pricing/i)

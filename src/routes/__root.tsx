@@ -1,6 +1,7 @@
 import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { Toaster } from 'sonner'
+import { NavigationProgress } from '@/components/custom/navigation-progress'
 import { ThemeProvider } from '@/components/custom/theme/theme-provider'
 import { useSw } from '@/hooks/use-sw'
 import { getAuthUser } from '@/lib/better-auth/auth-server' // Import your server function
@@ -72,6 +73,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
+          <NavigationProgress />
           <MountManager />
           {children}
           <Toaster theme='system' richColors closeButton position='top-right' />

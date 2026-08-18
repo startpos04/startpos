@@ -38,8 +38,8 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 import { prisma as rootPrisma } from '@/lib/prisma-client'
-import { acceptPricingQuote } from '@/lib/queries/accept-pricing-quote'
-import { convertQuoteToSubscription } from '@/lib/queries/convert-quote-to-subscription'
+import { acceptPricingQuote } from '@/lib/server-fn/accept-pricing-quote'
+import { convertQuoteToSubscription } from '@/lib/server-fn/convert-quote-to-subscription'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing/quotes/$quoteId/')({

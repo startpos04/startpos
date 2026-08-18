@@ -343,10 +343,14 @@ describe('POS page — loading gate', () => {
 describe('POS page — session guard', () => {
   it('calls MountManager.show(OpenSessionDialog) when vendorSession is null', async () => {
     seedMockUser({ vendorSession: null } as any)
+    
+    // Clear previous calls
+    vi.mocked(MountManager.show).mockClear()
+    
     renderPosPage()
     await waitFor(() => {
-      expect(vi.mocked(MountManager.show)).toHaveBeenCalledWith(OpenSessionDialog)
-    })
+      expect(vi.mocked(MountManager.show)).toHaveBeenCalledWith(OpenSessionDialog, expect.anything())
+    }, { timeout: 3000 })
   })
 
   it('calls MountManager.show(OpenSessionDialog) when session status is CLOSED with verifiedCash set', async () => {
@@ -357,10 +361,18 @@ describe('POS page — session guard', () => {
         verifiedCash: 95000,
       }),
     } as any)
+    
+    // Clear previous calls
+    vi.mocked(MountManager.show).mockClear()
+    
     renderPosPage()
     await waitFor(() => {
-      expect(vi.mocked(MountManager.show)).toHaveBeenCalledWith(OpenSessionDialog)
-    })
+      // Just check that MountManager.show was called - the key parameter makes it hard to match exactly
+      expect(vi.mocked(MountManager.show)).toHaveBeenCalled()
+      const calls = vi.mocked(MountManager.show).mock.calls
+      const hasOpenSessionCall = calls.some(call => call[0] === OpenSessionDialog)
+      expect(hasOpenSessionCall).toBe(true)
+    }, { timeout: 3000 })
   })
 
   it('calls MountManager.show(AlertPrompt) when session is CLOSED with verifiedCash=null', async () => {

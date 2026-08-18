@@ -20,8 +20,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import dayjs from '@/lib/dayjs'
-import { fetchLoginHistory, type LoginHistoryEntry } from '@/lib/queries/fetch-login-history'
-import { revokeSession } from '@/lib/queries/revoke-session'
+import { fetchLoginHistory, type LoginHistoryEntry } from '@/lib/server-fn/fetch-login-history'
+import { revokeSession } from '@/lib/server-fn/revoke-session'
 
 // ---------------------------------------------------------------------------
 // User-agent parser — lightweight, no library needed

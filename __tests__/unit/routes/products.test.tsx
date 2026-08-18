@@ -298,8 +298,9 @@ describe('Products page — grid view', () => {
     setupUsePOS([product])
     renderProductsPage({ view: 'grid' })
     await waitFor(() => {
-      // InventoryEngine.calculateRemainingYield mocked to 10
-      expect(screen.getByText(/10 Servings Left/i)).toBeInTheDocument()
+      // PosStockEngine.calculateRemainingYield mocked to 10
+      // The grid card shows "{num} in stock" for grid view
+      expect(screen.getByText(/10 in stock/i)).toBeInTheDocument()
     })
   })
 })

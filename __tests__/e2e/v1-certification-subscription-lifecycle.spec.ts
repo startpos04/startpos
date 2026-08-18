@@ -371,9 +371,6 @@ test.describe('V1 Certification: Subscription Lifecycle', () => {
       // NOTE: Cannot verify actual invoices without real billing cycle
       console.log('NOT VERIFIED: Actual invoice creation requires webhook-driven billing cycle')
     })
-      const billingHistory = page.locator(SUBSCRIPTION_CONFIG.selectors.billingHistory)
-      await expect(billingHistory.locator('[data-testid="billing-entry"]').first()).toContainText('₱29.00')
-    })
 
     test('payment method management', async ({ page }) => {
       await loginWithBasicUser(page)

@@ -20,7 +20,7 @@ import {
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import dayjs from '@/lib/dayjs'
 import type { MountProps } from '@/lib/mount-manager'
-import { writeAudit } from '@/lib/queries/write-audit'
+import { writeAudit } from '@/lib/server-fn/write-audit'
 import { cn } from '@/lib/utils'
 import { closeEmployeeSidebar, showEmployeeSidebar } from '../-components/employee-sidebar'
 import { EditEmployeeSidebar } from './-edit-account'

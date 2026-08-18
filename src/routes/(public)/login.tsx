@@ -50,15 +50,15 @@ function RouteComponent() {
         </CardHeader>
         <Form onSubmit={form.handleSubmit} className='space-y-6'>
           <CardContent className='space-y-4'>
-            <form.Field name='email' children={field => <TextInput field={field} label='Email' placeholder='name@example.com' />} />
-            <form.Field name='password' children={field => <TextInput field={field} label='Password' type='password' />} />
+            <form.Field name='email' children={field => <TextInput field={field} label='Email' placeholder='name@example.com' data-testid='email-input' />} />
+            <form.Field name='password' children={field => <TextInput field={field} label='Password' type='password' data-testid='password-input' />} />
           </CardContent>
 
           <CardFooter className='flex flex-col gap-4'>
             <form.Subscribe
               selector={state => [state.canSubmit, state.isSubmitting]}
               children={([canSubmit, isSubmitting]) => (
-                <Button type='submit' className='w-full' disabled={!canSubmit}>
+                <Button type='submit' className='w-full' disabled={!canSubmit} data-testid='login-button'>
                   {isSubmitting ? <Loader2 className='size-4 mr-2 animate-spin' /> : 'Sign in'}
                 </Button>
               )}

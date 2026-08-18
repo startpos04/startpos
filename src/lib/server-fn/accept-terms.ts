@@ -12,7 +12,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { prisma as rootPrisma } from '../prisma-client'
-import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../queries/complete-registration'
+import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from './complete-registration'
 
 export const acceptTerms = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])

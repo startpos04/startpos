@@ -116,7 +116,7 @@ vi.mock('@/lib/queries/create-goods-receipt', () => ({
 vi.mock('@/lib/queries/void-purchase', () => ({
   voidPurchase: vi.fn().mockResolvedValue({ success: true }),
 }))
-vi.mock('@/lib/queries/purchase-workflow', () => ({
+vi.mock('@/lib/server-fn/purchase-workflow', () => ({
   getPurchaseStatusUIMetadata: vi.fn(() => ({ label: 'Pending', colorClass: '' })),
   purchaseWorkflow: {
     canTransition: vi.fn(() => ({ ok: true, value: undefined })),
@@ -260,9 +260,14 @@ describe('Purchases list page', () => {
   })
 
   it('renders status badge via getPurchaseStatusUIMetadata', async () => {
+    // Make sure getPurchaseStatusUIMetadata is properly mocked before rendering
+    const { getPurchaseStatusUIMetadata } = await import('@/lib/server-fn/purchase-workflow')
+    vi.mocked(getPurchaseStatusUIMetadata).mockReturnValue({ label: 'Pending', colorClass: 'text-muted-foreground', variant: 'secondary' } as any)
+    
     vi.mocked(fetchPurchases).mockReturnValue({ data: [makePurchase()], isLoading: false } as any)
     renderPurchases()
     await waitFor(() => {
+      // The mock returns { label: 'Pending', colorClass: '', variant: 'secondary' }
       expect(screen.getByText('Pending')).toBeInTheDocument()
     })
   })

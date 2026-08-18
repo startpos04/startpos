@@ -3,7 +3,7 @@ import { inventoryCollection, inventoryMovementCollection, paymentCollection, tr
 import { dbTransaction } from '@/db/local-db-transaction'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
-import { writeAudit } from '@/lib/queries/write-audit'
+import { writeAudit } from '@/lib/server-fn/write-audit'
 import type { TransactionComplianceData } from '@/lib/types'
 import { authStore } from '@/store/auth-store'
 import { fetchStructuredId } from './fetch-structured-id'

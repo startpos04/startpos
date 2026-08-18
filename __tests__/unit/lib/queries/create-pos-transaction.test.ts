@@ -396,10 +396,14 @@ describe('createPosTransaction — error handling', () => {
     const product = makeSaleProduct()
     const input = makeSaleInput(product)
 
-    // Pass empty posOrders — product won't be found
+    // Pass empty posOrders — but the function should fall back to the item's own product
+    // So this test needs to be updated - the function no longer fails in this case
+    // It falls back to the cart item's product for Quick Add support
     const result = await createPosTransaction(input, [])
 
-    expect(result.error).toBeDefined()
+    // Actually this should now succeed because of the fallback logic
+    expect(result.error).toBeUndefined()
+    expect(result.data).toBeDefined()
   })
 
   it('returns error when stock is insufficient for the variant', async () => {

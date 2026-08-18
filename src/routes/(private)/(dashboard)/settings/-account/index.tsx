@@ -23,7 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import dayjs from '@/lib/dayjs'
 import MountManager from '@/lib/mount-manager'
-import { requestAccountDeletion } from '@/lib/queries/request-account-deletion'
+import { requestAccountDeletion } from '@/lib/server-fn/request-account-deletion'
 import { authStore } from '@/store/auth-store'
 
 export function AccountPage() {

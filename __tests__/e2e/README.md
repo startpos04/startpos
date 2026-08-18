@@ -1,6 +1,42 @@
 # E2E Tests for Billing Success Page and Add-on Flows
 
-This directory contains comprehensive end-to-end tests for the billing success page and add-on purchase functionality.
+## ⚠️ IMPORTANT: Running E2E Tests
+
+**These E2E tests require the production build to be running BEFORE you run the tests.**
+
+### Quick Start
+
+```bash
+# Terminal 1: Start production server
+pnpm start
+
+# Terminal 2: Run E2E tests
+pnpm test:e2e           # Run all tests headless
+pnpm test:e2e:ui        # Open Playwright UI
+pnpm test:e2e:headed    # Run with browser visible
+```
+
+### Why Production Build?
+
+E2E tests should run against the production build (same as production) to catch:
+- Build/minification issues
+- Production-only bugs
+- Performance issues in optimized code
+- Service worker behavior
+
+### Troubleshooting
+
+**Error: "Production server not running"**
+- Make sure `pnpm start` is running in another terminal
+- Check that port 3000 is available
+- Wait for the build to complete (takes 1-2 minutes first time)
+
+**Tests are slow**
+- First run includes full production build (~2 minutes)
+- Subsequent runs are faster if server stays running
+- Use `pnpm test:e2e:ui` to debug individual tests
+
+---
 
 ## Test Files
 

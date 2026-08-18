@@ -522,20 +522,6 @@ test.describe('V1 Certification: Entitlement Enforcement', () => {
         console.log(`✅ V1 verification: API access properly hidden for ${plan} plan`);
       }
     })
-      
-      // V1 NOTE: API calls not available in V1 - this test is not applicable
-      console.log('SKIPPED: API call enforcement not applicable in V1 (API access not customer-facing)')
-      
-      // Instead, verify that API functionality is not exposed
-      await expect(page.locator('[data-testid="api-usage-section"]')).not.toBeVisible()
-      await expect(page.locator('[data-testid="developer-console"]')).not.toBeVisible()
-      await expect(page.locator('[data-testid="api-rate-exceeded"]')).toBeVisible()
-      await expect(page.locator('[data-testid="api-rate-exceeded"]')).toContainText('Monthly API limit reached')
-      
-      // API dashboard should show throttling information
-      await expect(page.locator('[data-testid="api-throttling-info"]')).toBeVisible()
-      await expect(page.locator('[data-testid="reset-date"]')).toBeVisible()
-    })
   })
 
   test.describe('Feature Gating and Capability Restrictions', () => {
