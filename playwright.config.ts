@@ -63,5 +63,13 @@ export default defineConfig({
         storageState: './__tests__/e2e/fixtures/.auth/cashier.json',
       },
     },
+    // ── Unauthenticated test runner (for registration/login flows) ────────────
+    {
+      name: 'unauthenticated',
+      use: {
+        ...devices['Desktop Chrome'],
+        // No storageState - starts with clean browser (no auth cookies)
+      },
+    },
   ],
 })

@@ -17,7 +17,13 @@ export const auth = betterAuth({
     provider: 'postgresql',
   }),
   baseURL: process.env['BETTER_AUTH_URL'],
-  trustedOrigins: [process.env['BETTER_AUTH_URL']!, process.env['BETTER_AUTH_INTERNAL_URL']!, 'https://*.vercel.app'].filter(Boolean),
+  trustedOrigins: [
+    process.env['BETTER_AUTH_URL']!,
+    process.env['BETTER_AUTH_INTERNAL_URL']!,
+    'http://localhost:3000', // E2E tests and local dev
+    'http://127.0.0.1:3000',
+    'https://*.vercel.app',
+  ].filter(Boolean),
   secret: process.env['BETTER_AUTH_SECRET'],
   emailAndPassword: {
     enabled: true,

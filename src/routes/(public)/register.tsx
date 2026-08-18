@@ -383,11 +383,29 @@ function RouteComponent() {
         return
       }
 
+      // DEBUG: Log the password being used for login
+      console.log('[DEBUG] Registration succeeded, attempting login with email:', accountValues.email)
+      console.log('[DEBUG] Password length:', accountValues.password?.length)
+      console.log('[DEBUG] Password first/last char:', accountValues.password?.charAt(0), accountValues.password?.charAt(accountValues.password.length - 1))
+
+      // Wait briefly to ensure database transaction is committed
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       // Sign in to get a fresh session with businessId/branchId
-      await AuthEngine.loginOnline(accountValues.email, accountValues.password, freshUser => {
-        setUser(freshUser)
-        navigate({ to: '/dashboard' })
-      })
+      try {
+        await AuthEngine.loginOnline(accountValues.email, accountValues.password, freshUser => {
+          setUser(freshUser)
+          navigate({ to: '/dashboard' })
+        })
+      } catch (loginError) {
+        console.error('[Registration] Login after registration failed:', loginError)
+        toast.error('Registration succeeded! Please log in to continue.')
+        navigate({ to: '/login' })
+      }
+    } catch (error) {
+      console.error('[Registration] Error:', error)
+      toast.error('An unexpected error occurred. Please try again.')
+      setStep('account')
     } finally {
       setIsSubmitting(false)
     }
@@ -467,11 +485,20 @@ function RouteComponent() {
 
         <Form onSubmit={form.handleSubmit} className='space-y-6'>
           <CardContent className='space-y-4 pt-4'>
-            <form.Field name='name' children={field => <TextInput field={field} label='Full name' placeholder='Juan dela Cruz' />} />
-            <form.Field name='email' children={field => <TextInput field={field} label='Email' placeholder='juan@example.com' />} />
-            <form.Field name='password' children={field => <TextInput field={field} label='Password' type='password' placeholder='At least 6 characters' />} />
-            <form.Field name='contactNumber' children={field => <TextInput field={field} label='Contact number' placeholder='+63 912 345 6789' />} />
-            <form.Field name='businessName' children={field => <TextInput field={field} label='Business name' placeholder="Juan's Store" />} />
+            <form.Field name='name' children={field => <TextInput field={field} label='Full name' placeholder='Juan dela Cruz' data-testid='name-input' />} />
+            <form.Field name='email' children={field => <TextInput field={field} label='Email' placeholder='juan@example.com' data-testid='email-input' />} />
+            <form.Field
+              name='password'
+              children={field => <TextInput field={field} label='Password' type='password' placeholder='At least 6 characters' data-testid='password-input' />}
+            />
+            <form.Field
+              name='contactNumber'
+              children={field => <TextInput field={field} label='Contact number' placeholder='+63 912 345 6789' data-testid='contact-number-input' />}
+            />
+            <form.Field
+              name='businessName'
+              children={field => <TextInput field={field} label='Business name' placeholder="Juan's Store" data-testid='business-name-input' />}
+            />
 
             {/* Legal consent checkbox — required before proceeding */}
             <form.Field name='termsAccepted'>
@@ -486,6 +513,7 @@ function RouteComponent() {
                       onBlur={field.handleBlur}
                       className='mt-0.5 h-4 w-4 shrink-0 rounded border border-input accent-primary cursor-pointer'
                       aria-describedby={field.state.meta.errors.length ? 'terms-error' : undefined}
+                      data-testid='terms-accepted-checkbox'
                     />
                     <label htmlFor='terms-accepted' className='text-sm text-muted-foreground leading-snug cursor-pointer'>
                       I agree to the{' '}
@@ -524,7 +552,7 @@ function RouteComponent() {
             <form.Subscribe
               selector={state => [state.canSubmit, state.isSubmitting]}
               children={([canSubmit, isSubmitting]) => (
-                <Button type='submit' className='w-full' disabled={!canSubmit || !isOnline}>
+                <Button type='submit' className='w-full' disabled={!canSubmit || !isOnline} data-testid='register-button'>
                   {isSubmitting ? <Loader2 className='size-4 mr-2 animate-spin' /> : 'Continue →'}
                 </Button>
               )}

@@ -13,12 +13,14 @@
  *   RESET_AUTO_CONFIRM=true   — skips the interactive reset confirmation
  *   SEED_AUTO_CONFIRM=true    — skips the interactive seed confirmation
  *   SEED_FOLDER=e2e           — targets the e2e CSV dataset
+ *   SKIP_DB_RESET=true        — skips database reset and seed entirely
  */
 
 import { execSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createInterface } from 'node:readline'
 import { chromium } from '@playwright/test'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -68,27 +70,33 @@ export default async function globalSetup() {
   }
 
   // ── 1. Reset DB ────────────────────────────────────────────────────────────
-  console.info('\n🔄 [E2E Setup] Resetting database...')
-  execSync('pnpm exec prisma db push --force-reset', {
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      RESET_AUTO_CONFIRM: 'true',
-    },
-  })
-  console.info('✅ [E2E Setup] Database schema reset complete.')
-
-  // ── 2. Seed with e2e dataset ───────────────────────────────────────────────
-  console.info('\n🌱 [E2E Setup] Seeding e2e dataset...')
-  execSync('pnpm seed', {
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      SEED_AUTO_CONFIRM: 'true',
-      SEED_FOLDER:       'e2e',
-    },
-  })
-  console.info('✅ [E2E Setup] Seed complete.')
+  // Check if user wants to skip DB reset (for faster test iterations)
+  const skipDbReset = process.env['SKIP_DB_RESET'] === 'true'
+  
+  if (skipDbReset) {
+    console.info('⏭️  [E2E Setup] SKIP_DB_RESET=true - Skipping database reset and seed')
+    console.info('   Using existing database state')
+  } else {
+    // Interactive prompt: ask user if they want to reset
+    const isInteractive = !process.env['CI'] && process.stdin.isTTY
+    
+    if (isInteractive) {
+      console.info('\n⚠️  [E2E Setup] Database reset will DELETE ALL DATA')
+      const answer = await promptUser('Do you want to reset the database? (y/n): ')
+      
+      if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
+        console.info('⏭️  [E2E Setup] Database reset skipped by user')
+        console.info('   Tip: Set SKIP_DB_RESET=true to skip this prompt')
+        console.info('   Example: $env:SKIP_DB_RESET="true"; pnpm test:e2e')
+      } else {
+        await resetAndSeedDatabase()
+      }
+    } else {
+      // In CI or non-interactive environment, always reset
+      console.info('[E2E Setup] Non-interactive mode detected (CI or no TTY), resetting database...')
+      await resetAndSeedDatabase()
+    }
+  }
 
   // ── 3. Generate auth-state files ──────────────────────────────────────────
   console.info('\n🔐 [E2E Setup] Generating auth state files...')
@@ -207,4 +215,49 @@ export default async function globalSetup() {
 
   await browser.close()
   console.info('\n✅ [E2E Setup] All auth states generated. Ready to run tests.\n')
+}
+
+// ── Helper Functions ────────────────────────────────────────────────────────
+
+/**
+ * Prompts the user for input in the terminal
+ */
+function promptUser(question: string): Promise<string> {
+  return new Promise(resolve => {
+    const readline = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    })
+    
+    readline.question(question, (answer: string) => {
+      readline.close()
+      resolve(answer)
+    })
+  })
+}
+
+/**
+ * Resets the database and seeds it with e2e data
+ */
+async function resetAndSeedDatabase() {
+  console.info('\n🔄 [E2E Setup] Resetting database...')
+  execSync('pnpm exec prisma db push --force-reset', {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      RESET_AUTO_CONFIRM: 'true',
+    },
+  })
+  console.info('✅ [E2E Setup] Database schema reset complete.')
+
+  console.info('\n🌱 [E2E Setup] Seeding e2e dataset...')
+  execSync('pnpm seed', {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      SEED_AUTO_CONFIRM: 'true',
+      SEED_FOLDER: 'e2e',
+    },
+  })
+  console.info('✅ [E2E Setup] Seed complete.')
 }

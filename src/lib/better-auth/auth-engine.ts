@@ -42,61 +42,66 @@ export const AuthEngine = {
    * Same-tenant re-logins (including offline recovery) are unaffected.
    */
   async loginOnline(email: string, password: string, onSuccess: (user: ServerUser) => void): Promise<void> {
-    await authClient.signIn.email(
-      { email, password },
-      {
-        onSuccess: async () => {
-          const fullUser = await getAuthUser()
-          if (!fullUser) {
-            toast.error('Login succeeded but user profile could not be loaded.')
-            return
-          }
+    return new Promise((resolve, reject) => {
+      authClient.signIn.email(
+        { email, password },
+        {
+          onSuccess: async () => {
+            const fullUser = await getAuthUser()
+            if (!fullUser) {
+              toast.error('Login succeeded but user profile could not be loaded.')
+              reject(new Error('User profile could not be loaded'))
+              return
+            }
 
-          // Detect a tenant switch: compare incoming businessId against the
-          // last businessId that was successfully logged in on this device.
-          // Use a dedicated key that is only written on successful login —
-          // never cleared on logout — so this survives the logout→login cycle.
-          const lastBusinessId = localStorage.getItem('last-business-id')
-          const incomingBusinessId = fullUser.business?.id
+            // Detect a tenant switch: compare incoming businessId against the
+            // last businessId that was successfully logged in on this device.
+            // Use a dedicated key that is only written on successful login —
+            // never cleared on logout — so this survives the logout→login cycle.
+            const lastBusinessId = localStorage.getItem('last-business-id')
+            const incomingBusinessId = fullUser.business?.id
 
-          if (incomingBusinessId && lastBusinessId && lastBusinessId !== incomingBusinessId) {
-            // Different tenant — wipe local cache so stale data never bleeds through
-            const queryClient = getQueryClient()
-            queryClient.resetQueries()
-            await clearLocalDatabase()
-          }
+            if (incomingBusinessId && lastBusinessId && lastBusinessId !== incomingBusinessId) {
+              // Different tenant — wipe local cache so stale data never bleeds through
+              const queryClient = getQueryClient()
+              queryClient.resetQueries()
+              await clearLocalDatabase()
+            }
 
-          // Always write the current businessId after a successful login
-          if (incomingBusinessId) {
-            localStorage.setItem('last-business-id', incomingBusinessId)
-          }
+            // Always write the current businessId after a successful login
+            if (incomingBusinessId) {
+              localStorage.setItem('last-business-id', incomingBusinessId)
+            }
 
-          const hashedPassword = await AuthEngine.hashCredentials(password)
-          const localUser = [...localAuthCollection.values()].find(u => u.email === email)
+            const hashedPassword = await AuthEngine.hashCredentials(password)
+            const localUser = [...localAuthCollection.values()].find(u => u.email === email)
 
-          if (localUser) {
-            await localAuthCollection.update(localUser.id, draft => {
-              draft.profile = fullUser
-              draft.hashedPassword = hashedPassword
-              draft.expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000
-            })
-          } else {
-            await localAuthCollection.insert({
-              id: fullUser.id,
-              email: fullUser.email,
-              hashedPassword,
-              profile: fullUser,
-              expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
-            })
-          }
+            if (localUser) {
+              await localAuthCollection.update(localUser.id, draft => {
+                draft.profile = fullUser
+                draft.hashedPassword = hashedPassword
+                draft.expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000
+              })
+            } else {
+              await localAuthCollection.insert({
+                id: fullUser.id,
+                email: fullUser.email,
+                hashedPassword,
+                profile: fullUser,
+                expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+              })
+            }
 
-          onSuccess(fullUser)
+            onSuccess(fullUser)
+            resolve()
+          },
+          onError: ctx => {
+            toast.error(ctx.error.message || 'Authentication failed')
+            reject(new Error(ctx.error.message || 'Authentication failed'))
+          },
         },
-        onError: ctx => {
-          toast.error(ctx.error.message || 'Authentication failed')
-        },
-      },
-    )
+      )
+    })
   },
 
   /**

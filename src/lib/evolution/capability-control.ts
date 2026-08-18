@@ -30,6 +30,7 @@
  *   - Does not call EntitlementEngine — that is runtime access gating, not setup.
  */
 
+import type { ConfigKey } from 'prisma/generated/prisma/enums'
 import { CAPABILITY_REGISTRY } from '../onboarding/capability-registry'
 import { DEFAULT_CHARACTERISTICS } from '../onboarding/defaults'
 import type { CapabilityDefinition, CapabilityOutput } from '../onboarding/types'
@@ -297,14 +298,14 @@ async function applyConfigOutputs(businessId: string, outputs: CapabilityOutput[
     await prisma.systemConfig.upsert({
       where: {
         key_businessId_scope: {
-          key: output.key as import('prisma/generated/prisma/enums').ConfigKey,
+          key: output.key as ConfigKey,
           businessId,
           scope: 'BUSINESS',
         },
       },
       update: { value: output.value },
       create: {
-        key: output.key as import('prisma/generated/prisma/enums').ConfigKey,
+        key: output.key as ConfigKey,
         value: output.value,
         scope: 'BUSINESS',
         businessId,
