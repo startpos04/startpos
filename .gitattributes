@@ -1,0 +1,10 @@
+# Ensure shell scripts always use LF line endings (Unix style)
+*.sh text eol=lf
+
+# Ensure all text files are normalized
+* text=auto
+
+# Force LF for specific files that need it
+*.bash text eol=lf
+Dockerfile text eol=lf
+docker-compose*.yml text eol=lf
