@@ -986,7 +986,7 @@ model Transaction {
   // --- REVENUE VS COST (Line Graph Source) ---
   totalAmount Int // Total charged to the customer (in cents)
   totalCost   Int // Total cost of goods/services sold (in cents)
-  bufferRate  Int // Snapshot of Branch buffer rate at time of transaction
+  snapshotBufferRate  Int // Snapshot of Branch buffer rate at time of transaction
 
   taxAmount Int // Tax amount (in cents)
   discount  Int @default(0) // Discount amount (in cents)
@@ -1005,9 +1005,24 @@ model Transaction {
 
   customerId   String?
   customer     Customer? @relation(fields: [customerId], references: [id])
-  buyerName    String?
-  buyerTaxId   String?
-  buyerAddress String?
+  snapshotCustomerName    String?
+  snapshotCustomerTaxId   String?
+  snapshotCustomerAddress String?
+
+  // --- SNAPSHOT FIELDS: Phase 3 (Business/Branch/Cashier) ---
+  // Captured at time of sale for accurate receipt reprints and BIR audit trail.
+  // NULL for transactions created before Phase 3 deployment.
+  snapshotBusinessName    String? // Business name at time of sale
+  snapshotBranchName      String? // Branch name at time of sale
+  snapshotBranchAddress   String? // Branch address for receipt printing
+  snapshotBranchSN        String? // Branch Serial Number (BIR requirement)
+  snapshotBusinessTIN     String? // Business TIN from ComplianceRegistry
+  snapshotBranchCode      String? // Branch code suffix (e.g., "00001")
+  // PATCH B2: snapshotVATRate REMOVED - Use TransactionTaxLine.rate instead (already captured per transaction)
+  snapshotIsVATRegistered String? // VAT registration status ("true"/"false")
+  // PATCH B1: snapshotPriceConfig REMOVED - Use Transaction.priceConfiguration instead (already set per transaction)
+  snapshotCurrency        String? // Currency code (e.g., "PHP")
+  snapshotCashierName     String? // Cashier name at time of sale
 
   cashierId             String
   cashier               User                 @relation("CashierRelation", fields: [cashierId], references: [id])
@@ -1070,6 +1085,23 @@ model OrderItem {
   unitId String
   unit   Unit   @relation(fields: [unitId], references: [id])
 
+  // --- SNAPSHOT FIELDS: Phase 1 (Product/Variant/Category) ---
+  // Captured at time of sale to preserve historical accuracy when master data changes.
+  // NULL for transactions created before Phase 1 deployment.
+  snapshotProductName  String?       // Product name at time of sale, e.g. "Fried Chicken"
+  snapshotVariantName  String?       // Variant name at time of sale, e.g. "Large", "Extra Spicy"
+  snapshotCategoryName String?       // Category name at time of sale, e.g. "Main Dishes"
+  snapshotSku          String?       // SKU at time of sale
+  snapshotProductType  ResourceType? // Product type at time of sale: "PHYSICAL_GOOD", "SERVICE", etc.
+  snapshotProductImage String?       // Product image URL at time of sale (for digital receipts)
+
+  // --- SNAPSHOT FIELDS: Phase 2 (Unit & Tax) ---
+  // Captured at time of sale for accurate unit conversions and tax compliance.
+  snapshotUnitName     String?      // Unit display name, e.g. "kilogram", "piece"
+  snapshotUnitAbbrev   String?      // Unit abbreviation, e.g. "kg", "pcs"
+  snapshotUnitType     String?      // Unit type, e.g. "WEIGHT", "COUNT"
+  snapshotTaxCategory  TaxCategory? // Tax category at time of sale: STANDARD, EXEMPT, ZERO_RATED
+
   selectedAddons OrderItemAddon[]
 
   businessId String
@@ -1093,8 +1125,19 @@ model OrderItemAddon {
   addonId     String // Points to a ProductVariant acting as addon
   addon       ProductVariant @relation("AddonToOrderItem", fields: [addonId], references: [id])
   quantity    Float // How much was added (e.g., 2 units)
-  priceAtSale Int // Price charged for this addon at time of sale (in cents)
-  costAtSale  Int            @default(0) // Cost of this addon at time of sale (in cents)
+  snapshotUnitPrice Int // Price charged for this addon at time of sale (in cents)
+  snapshotUnitCost  Int @default(0) // Cost of this addon at time of sale (in cents)
+
+  // --- SNAPSHOT FIELDS: Phase 1 (Addon Details) ---
+  // Captured at time of sale to preserve historical accuracy.
+  snapshotAddonProductName String? // Addon product name at time of sale, e.g. "Extra Cheese"
+  snapshotAddonVariantName String? // Addon variant name at time of sale
+  snapshotAddonSku         String? // Addon SKU at time of sale
+
+  // --- SNAPSHOT FIELDS: Phase 2 (Addon Unit & Tax) ---
+  snapshotAddonUnitName    String?      // Addon unit display name
+  snapshotAddonUnitAbbrev  String?      // Addon unit abbreviation
+  snapshotAddonTaxCategory TaxCategory? // Addon tax category at time of sale
 
   businessId String
   business   Business @relation(fields: [businessId], references: [id])

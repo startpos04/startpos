@@ -410,7 +410,7 @@ async function seedTransactions(prisma: PrismaClient, B1: string, BR1: string) {
         totalAmount,
         totalCost,
         taxAmount,
-        bufferRate: parseInt(row.bufferRate, 10) || 20,
+        snapshotBufferRate: parseInt(row.bufferRate, 10) || 20,
         priceConfiguration: row.priceConfiguration?.trim() || 'INCLUSIVE',
         invoiceType: row.invoiceType?.trim() || 'SALES_INVOICE',
         complianceData: {

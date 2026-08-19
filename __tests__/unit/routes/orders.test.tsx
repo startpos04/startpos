@@ -275,7 +275,7 @@ function makeAddon(overrides: Record<string, any> = {}) {
   return {
     id: makeId(),
     quantity: 1,
-    priceAtSale: 5000,
+    snapshotUnitPrice: 5000,
     addonId: makeId(),
     addon: {
       name: 'Extra Shot',
@@ -328,7 +328,7 @@ describe('Orders page — item and addon rendering', () => {
   })
 
   it('renders addon line with price under the item', async () => {
-    const addon = makeAddon({ priceAtSale: 5000 })
+    const addon = makeAddon({ snapshotUnitPrice: 5000 })
     const item = makeItem({ selectedAddons: [addon] })
     vi.mocked(fetchActiveOrders).mockReturnValue({
       data: [makeOrder({ items: [item] })],

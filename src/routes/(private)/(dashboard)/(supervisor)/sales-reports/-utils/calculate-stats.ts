@@ -45,7 +45,9 @@ export const calculateStats = (transactions: TransactionReport[]) => {
     tx.orderItems.forEach(item => {
       const key = item.variantId
       if (!productMap[key]) {
-        productMap[key] = { name: item.variant.product?.name || '', qty: 0, revenue: 0 }
+        // 📸 PHASE 1: Use snapshot fields with fallback to live data for old records
+        const productName = item.snapshotProductName || item.variant.product?.name || 'Unknown Product'
+        productMap[key] = { name: productName, qty: 0, revenue: 0 }
       }
       productMap[key].qty += item.quantity
       productMap[key].revenue += (item.unitPrice * item.quantity) / 100

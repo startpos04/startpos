@@ -195,12 +195,12 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
                   totalCost: tx.totalCost,
                   taxAmount: tx.taxAmount,
                   discount: tx.discount,
-                  bufferRate: ((tx as Record<string, unknown>)['bufferRate'] as number) ?? 0,
+                  snapshotBufferRate: ((tx as Record<string, unknown>)['snapshotBufferRate'] as number) ?? 0,
                   priceConfiguration: ((tx as Record<string, unknown>)['priceConfiguration'] as string) ?? 'INCLUSIVE',
                   invoiceType: ((tx as Record<string, unknown>)['invoiceType'] as string) ?? 'SALES_INVOICE',
                   cashierId: tx.cashierId,
                   orderId: tx.orderId,
-                  buyerName: tx.buyerName ?? null,
+                  snapshotCustomerName: tx.snapshotCustomerName ?? null,
                   complianceData: tx.complianceData as import('@/lib/types').TransactionComplianceData,
                   payments: [], // orders page doesn't have payment detail — omit
                   taxLines: [], // orders page doesn't have tax line detail — omit
@@ -265,7 +265,7 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
                               <span>
                                 + {addon.quantity} {addon.addon.product.name} {addon.addon.name ? `(${addon.addon.name})` : ''}
                               </span>
-                              {addon.priceAtSale > 0 && <span>₱{(addon.priceAtSale / 100).toFixed(2)}</span>}
+                              {addon.snapshotUnitPrice > 0 && <span>₱{(addon.snapshotUnitPrice / 100).toFixed(2)}</span>}
                             </div>
                           ))}
                         </div>

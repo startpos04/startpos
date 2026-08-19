@@ -286,8 +286,8 @@ describe('createPosOrder — new order', () => {
     expect(addonBatch[0]).toMatchObject({
       addonId: materialId,
       quantity: 1,
-      priceAtSale: 500,
-      costAtSale: 200,
+      snapshotUnitPrice: 500,
+      snapshotUnitCost: 200,
     })
   })
 

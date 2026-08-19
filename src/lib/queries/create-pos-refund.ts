@@ -29,13 +29,13 @@ export type TransactionSnapshot = {
   totalCost: number
   taxAmount: number
   discount: number | null
-  bufferRate: number
+  snapshotBufferRate: number
   priceConfiguration: string
   invoiceType: string
   // cashierId is required (NOT NULL) on the Transaction table
   cashierId: string
   orderId: string | null
-  buyerName: string | null
+  snapshotCustomerName: string | null
   complianceData: TransactionComplianceData
   payments: Array<{
     id: string
@@ -74,7 +74,7 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
       originalTransactionId: snapshot.id,
       priceConfiguration: snapshot.priceConfiguration as import('prisma/generated/prisma/browser').PriceConfiguration,
       invoiceType: snapshot.invoiceType as import('prisma/generated/prisma/browser').InvoiceType,
-      bufferRate: snapshot.bufferRate,
+      snapshotBufferRate: snapshot.snapshotBufferRate,
 
       // Invert financial amounts
       totalAmount: -snapshot.totalAmount,
@@ -85,7 +85,20 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
       // Carry over identity fields — orderId is required (NOT NULL) on Transaction
       cashierId: snapshot.cashierId,
       orderId: snapshot.orderId ?? snapshot.id, // fall back to transaction id if orderId missing
-      buyerName: snapshot.buyerName,
+      snapshotCustomerName: snapshot.snapshotCustomerName,
+
+      // 📸 PHASE 3 SNAPSHOTS: Inherit from original transaction (Patch B7)
+      // Refund receipt should match original sale receipt (business context preserved)
+      // EXCEPTION: Cashier field reflects who processed the refund
+      snapshotBusinessName: snapshot.snapshotBusinessName,
+      snapshotBranchName: snapshot.snapshotBranchName,
+      snapshotBranchAddress: snapshot.snapshotBranchAddress,
+      snapshotBranchSN: snapshot.snapshotBranchSN,
+      snapshotBusinessTIN: snapshot.snapshotBusinessTIN,
+      snapshotBranchCode: snapshot.snapshotBranchCode,
+      snapshotIsVATRegistered: snapshot.snapshotIsVATRegistered,
+      snapshotCurrency: snapshot.snapshotCurrency,
+      snapshotCashierName: user.name, // Fresh value - refund processor, NOT original cashier
 
       complianceData: {
         ...snapshot.complianceData,
@@ -96,8 +109,8 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
 
       // Optional / nullable fields — null for refund transactions
       customerId: null,
-      buyerTaxId: null,
-      buyerAddress: null,
+      snapshotCustomerTaxId: null,
+      snapshotCustomerAddress: null,
       providerId: null,
       sessionId: null,
       usageCounterId: null,

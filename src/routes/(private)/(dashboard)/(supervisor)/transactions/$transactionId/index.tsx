@@ -323,8 +323,8 @@ function RouteComponent({ transaction: propTransaction, onClose }: RouteComponen
         // the current user's id if somehow missing (shouldn't happen in prod)
         cashierId: transaction!.cashier?.id ?? user!.id,
         orderId: transaction!.order?.id ?? null,
-        buyerName: transaction!.buyerName ?? null,
-        bufferRate: ((transaction! as Record<string, unknown>)['bufferRate'] as number) ?? 0,
+        snapshotCustomerName: transaction!.snapshotCustomerName ?? null,
+        snapshotBufferRate: ((transaction! as Record<string, unknown>)['snapshotBufferRate'] as number) ?? 0,
         priceConfiguration: ((transaction! as Record<string, unknown>)['priceConfiguration'] as string) ?? 'INCLUSIVE',
         invoiceType: ((transaction! as Record<string, unknown>)['invoiceType'] as string) ?? 'SALES_INVOICE',
         complianceData: (transaction!.complianceData ?? {}) as unknown as import('@/lib/types').TransactionComplianceData,

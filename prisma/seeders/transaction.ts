@@ -159,7 +159,7 @@ export async function seedHistoricalTransactions(prisma: PrismaClient, options: 
         totalAmount,
         totalCost,
         taxAmount,
-        bufferRate: parseInt(row.bufferRate, 10) || 20,
+        snapshotBufferRate: parseInt(row.bufferRate, 10) || 20,
         priceConfiguration: row.priceConfiguration?.trim() || 'INCLUSIVE',
         invoiceType: row.invoiceType?.trim() || 'SALES_INVOICE',
         complianceData: {

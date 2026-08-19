@@ -96,15 +96,21 @@ export const downloadTransactionsCSV = createServerFn({ method: 'POST' })
         const variant = item.variant
         const product = variant.product
 
+        // 📸 PHASE 1: Use snapshot fields with fallback to live data for old records
+        const productName = item.snapshotProductName || product.name
+        const variantName = item.snapshotVariantName || variant.name || ''
+        const categoryName = item.snapshotCategoryName || product.category?.name || 'N/A'
+        const sku = item.snapshotSku || variant.sku || 'N/A'
+
         return {
           'Invoice No.': transaction.invoiceNo,
           Type: transaction.type,
           Date: dayjs(transaction.createdAt).format('YYYY-MM-DD HH:mm'),
           Cashier: transaction.cashier?.name || 'System',
-          SKU: variant.sku || 'N/A',
-          Product: product.name,
-          Variant: variant.name || '',
-          Category: product.category?.name || 'N/A',
+          SKU: sku,
+          Product: productName,
+          Variant: variantName,
+          Category: categoryName,
           Quantity: item.quantity,
           'Unit Price': PriceEngine.toDollars(item.unitPrice),
           Total: PriceEngine.toDollars(item.quantity * item.unitPrice),

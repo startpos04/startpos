@@ -35,7 +35,7 @@ export const fetchTransactionHistory = async (input: FetchTransactionHistoryInpu
             { invoiceNo: { contains: data.search, mode: 'insensitive' as const } },
             { cashier: { name: { contains: data.search, mode: 'insensitive' as const } } },
             { order: { orderNumber: { contains: data.search, mode: 'insensitive' as const } } },
-            { buyerName: { contains: data.search, mode: 'insensitive' as const } },
+            { snapshotCustomerName: { contains: data.search, mode: 'insensitive' as const } },
           ],
         }
       : {}),
