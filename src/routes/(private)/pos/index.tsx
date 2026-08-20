@@ -26,6 +26,7 @@ import { authStore } from '@/store/auth-store'
 import { ProfileDropdown } from '../orders/-components/profile-dropdown'
 import { ActiveOrdersButton } from './-components/active-orders-btn'
 import { CartAside } from './-components/cart-aside'
+import { OfflineModeIndicator } from './-components/offline-mode-indicator'
 import { OpenSessionDialog } from './-components/open-session-dialog'
 import type { PaymentLine } from './-components/payment-dialog'
 import { ProductItems } from './-components/product-items'
@@ -94,6 +95,7 @@ function POSPage() {
 
     if (result.error) {
       // Credit exhaustion gets its own modal with a billing link.
+      // Offline checkout restriction gets its own modal with clear guidance.
       // All other errors fall through to the generic toast.
       if (result.error.message?.includes('Credit balance is zero')) {
         MountManager.show(AlertPrompt, {
@@ -104,6 +106,22 @@ function POSPage() {
         })
         return
       }
+
+      if (result.error.message?.includes('Offline checkout is not available')) {
+        MountManager.show(AlertPrompt, {
+          title: 'Offline Checkout Disabled',
+          description: (
+            <div className='space-y-2'>
+              <p>Your device is not designated as the offline terminal for this branch.</p>
+              <p>Only one device per branch can process transactions while offline to prevent sequence number conflicts.</p>
+              <p>Please reconnect to the internet or ask an administrator to designate this device as the offline terminal in Branch Settings.</p>
+            </div>
+          ),
+          btnText: 'OK',
+        })
+        return
+      }
+
       toast.error('Failed to process transaction. Please try again.')
       return
     }
@@ -160,6 +178,21 @@ function POSPage() {
     )
 
     if (result.error) {
+      // Offline order creation restriction
+      if (result.error.message?.includes('Offline order creation is not available')) {
+        MountManager.show(AlertPrompt, {
+          title: 'Offline Order Creation Disabled',
+          description: (
+            <div className='space-y-2'>
+              <p>Your device is not designated as the offline terminal for this branch.</p>
+              <p>Please reconnect to the internet or ask an administrator to designate this device as the offline terminal in Branch Settings.</p>
+            </div>
+          ),
+          btnText: 'OK',
+        })
+        return
+      }
+
       toast.error('Failed to add order. Please try again.')
       return
     }
@@ -236,19 +269,26 @@ function POSPage() {
   }
 
   return (
-    <div className='flex h-screen flex-col md:flex-row w-full bg-background p-2 pb-0 md:p-4 gap-2 md:gap-4 overflow-hidden'>
-      {isMobile ? (
-        <div className='flex items-center justify-end gap-1'>
-          <div className='w-10 ml-5'>
-            <ThemeToggle />
+    <div className='flex h-screen flex-col w-full bg-background overflow-hidden'>
+      {/* Phase 2: Offline mode indicator */}
+      <div className='p-2 md:p-4 pb-0'>
+        <OfflineModeIndicator />
+      </div>
+
+      <div className='flex flex-1 flex-col md:flex-row p-2 pt-0 md:p-4 md:pt-2 gap-2 md:gap-4 overflow-hidden'>
+        {isMobile ? (
+          <div className='flex items-center justify-end gap-1'>
+            <div className='w-10 ml-5'>
+              <ThemeToggle />
+            </div>
+            {user.systemConfigs.ENABLE_ORDER ? <ActiveOrdersButton /> : null}
+            <ProfileDropdown />
           </div>
-          {user.systemConfigs.ENABLE_ORDER ? <ActiveOrdersButton /> : null}
-          <ProfileDropdown />
-        </div>
-      ) : (
-        <ProductItems form={form} />
-      )}
-      <CartAside form={form} />
+        ) : (
+          <ProductItems form={form} />
+        )}
+        <CartAside form={form} />
+      </div>
     </div>
   )
 }

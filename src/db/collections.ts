@@ -1,4 +1,5 @@
 import type {
+  AuditLog,
   Branch,
   Business,
   BusinessSubscription,
@@ -248,4 +249,10 @@ export const featureBundleCollection = createSyncableCollection<FeatureBundle>({
   apiKey: 'featureBundle',
   schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
+})
+
+export const auditLogCollection = createSyncableCollection<AuditLog>({
+  apiKey: 'auditLog',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand', // Write locally, sync to server automatically
 })

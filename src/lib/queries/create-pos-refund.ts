@@ -1,8 +1,16 @@
 import { MovementType, SequenceType, type TaxCategory, type TaxLineType, TransactionType } from 'prisma/generated/prisma/enums'
-import { inventoryCollection, inventoryMovementCollection, paymentCollection, transactionCollection, transactionTaxLineCollection } from '@/db/collections'
+import {
+  auditLogCollection,
+  inventoryCollection,
+  inventoryMovementCollection,
+  paymentCollection,
+  transactionCollection,
+  transactionTaxLineCollection,
+} from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
+import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
 import { writeAudit } from '@/lib/server-fn/write-audit'
 import type { TransactionComplianceData } from '@/lib/types'
 import { authStore } from '@/store/auth-store'
@@ -61,15 +69,48 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
   // when the user is on a plan that does not include inventory management.
   const canManageInventory = user?.entitlement?.capabilities?.includes(Capabilities.MANAGE_INVENTORY) ?? false
 
+  // ---------------------------------------------------------------------------
+  // PHASE 1 FIX: Allocate refund sequence SERVER-SIDE before transaction
+  // ---------------------------------------------------------------------------
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+  let refundInvoiceNo: string
+
+  if (isOffline) {
+    // -------------------------------------------------------------------------
+    // PHASE 2: Offline refund restriction
+    // Same offline guard as checkout - only designated terminal can refund offline
+    // -------------------------------------------------------------------------
+    if (!user.canCheckoutOffline) {
+      console.error('[createPosRefund] Offline refund blocked: user is not designated offline terminal')
+      return {
+        error: new Error(
+          'Offline refund is not available. Only the designated offline terminal can process refunds while offline. Please reconnect to the internet or contact your administrator.',
+        ),
+      }
+    }
+
+    // Offline: use client-side allocation (only for designated terminal)
+    refundInvoiceNo = fetchStructuredId(SequenceType.REFUND)
+  } else {
+    // Online: use server-side atomic allocation with retry
+    const sequenceResult = await sequenceAPI.allocateWithRetry(SequenceType.REFUND)
+
+    if (sequenceResult.isErr()) {
+      console.error('[createPosRefund] Failed to allocate refund sequence:', sequenceResult.error)
+      return { error: new Error(`Failed to allocate refund number: ${sequenceResult.error}`) }
+    }
+
+    refundInvoiceNo = sequenceResult.value.invoiceNo
+  }
+
   const result = await dbTransaction(() => {
     // 1. Generate Refund IDs
     const transactionId = crypto.randomUUID()
-    const refundInvoiceNo = fetchStructuredId(SequenceType.REFUND)
 
     // 2. Create Refund Transaction — built from the snapshot, not the collection
     transactionCollection.insert({
       id: transactionId,
-      invoiceNo: refundInvoiceNo,
+      invoiceNo: refundInvoiceNo, // Use pre-allocated sequence from above
       type: TransactionType.REFUND,
       originalTransactionId: snapshot.id,
       priceConfiguration: snapshot.priceConfiguration as import('prisma/generated/prisma/browser').PriceConfiguration,
@@ -201,10 +242,35 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
 
   if (result.isErr()) {
     console.error('Transaction failed:', result.error.message)
+
+    // -------------------------------------------------------------------------
+    // AUDIT: Log failed refund after successful sequence allocation
+    // Write to local collection so it syncs automatically (resilient to network failures)
+    // -------------------------------------------------------------------------
+    auditLogCollection.insert({
+      id: crypto.randomUUID(),
+      businessId: user.business.id,
+      actorId: user.id,
+      action: AuditAction.SEQUENCE_ALLOCATION_FAILED,
+      targetType: AuditTargetType.SequenceCounter,
+      targetId: refundInvoiceNo,
+      before: null,
+      after: {
+        sequenceType: SequenceType.REFUND,
+        refundInvoiceNo,
+        originalTransactionId: snapshot.id,
+        errorMessage: result.error.message,
+        timestamp: new Date().toISOString(),
+      },
+      ipAddress: null,
+      createdAt: new Date(),
+    })
+
     return { data: false as const, error: result.error }
   }
 
-  const { transactionId, refundInvoiceNo } = result.value
+  const { transactionId } = result.value
+  // Note: refundInvoiceNo already declared above from sequence allocation
 
   writeAudit({
     data: {

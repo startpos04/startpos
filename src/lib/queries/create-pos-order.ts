@@ -1,7 +1,9 @@
 import { OrderStatus, OrderType, SequenceType } from 'prisma/generated/prisma/enums'
-import { orderCollection, orderItemAddonCollection, orderItemCollection } from '@/db/collections'
+import { auditLogCollection, orderCollection, orderItemAddonCollection, orderItemCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { authStore } from '@/store/auth-store'
+import { AuditAction, AuditTargetType } from '../audit/types'
+import { sequenceAPI } from '../prisma-client/sequence-api'
 import type { CreateSaleInput } from './create-pos-transaction'
 import type { posProduct } from './fetch-pos-products'
 import { fetchStructuredId } from './fetch-structured-id'
@@ -13,6 +15,46 @@ export const createPosOrder = async (data: CreateSaleInput, posOrders: posProduc
 
   const orderId = data.orderId || crypto.randomUUID()
   const exists = orderCollection.has(orderId)
+
+  // ---------------------------------------------------------------------------
+  // PHASE 1 FIX: Allocate order sequence SERVER-SIDE before transaction
+  // ---------------------------------------------------------------------------
+  // Only allocate new sequence if creating a new order (not updating existing)
+  // ---------------------------------------------------------------------------
+  let orderNumber: string | null = null
+
+  if (!exists) {
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+
+    if (isOffline) {
+      // -------------------------------------------------------------------------
+      // PHASE 2: Offline order creation restriction
+      // Only the designated offline terminal can create orders while offline.
+      // This prevents sequence number collisions when multiple devices are offline.
+      // -------------------------------------------------------------------------
+      if (!user.canCheckoutOffline) {
+        console.error('[createPosOrder] Offline order creation blocked: user is not designated offline terminal')
+        return {
+          error: new Error(
+            'Offline order creation is not available. Only the designated offline terminal can create orders while offline. Please reconnect to the internet or contact your administrator.',
+          ),
+        }
+      }
+
+      // Offline: use client-side allocation (only for designated terminal)
+      orderNumber = fetchStructuredId(SequenceType.ORDER)
+    } else {
+      // Online: use server-side atomic allocation with retry
+      const sequenceResult = await sequenceAPI.allocateWithRetry(SequenceType.ORDER)
+
+      if (sequenceResult.isErr()) {
+        console.error('[createPosOrder] Failed to allocate order sequence:', sequenceResult.error)
+        return { error: new Error(`Failed to allocate order number: ${sequenceResult.error}`) }
+      }
+
+      orderNumber = sequenceResult.value.invoiceNo
+    }
+  }
 
   const result = await dbTransaction(() => {
     if (exists) {
@@ -38,13 +80,11 @@ export const createPosOrder = async (data: CreateSaleInput, posOrders: posProduc
         orderItemCollection.delete(itemIds)
       }
     } else {
-      // --- 2. PREPARE DATA STRUCTURES ---
-      const orderNumber = fetchStructuredId(SequenceType.ORDER)
-
+      // --- 2. INSERT NEW ORDER WITH PRE-ALLOCATED SEQUENCE ---
       // INSERT NEW ORDER
       orderCollection.insert({
         id: orderId,
-        orderNumber,
+        orderNumber: orderNumber!, // Use pre-allocated sequence from above
         status: OrderStatus.PENDING,
         orderType: OrderType.DINE_IN,
         customerReference: data.customer.customerReference || 'Walk-in Guest',
@@ -117,7 +157,34 @@ export const createPosOrder = async (data: CreateSaleInput, posOrders: posProduc
   })
 
   if (result.isErr()) {
-    console.error('Transaction failed:', result.error.message)
+    console.error('[createPosOrder] Transaction failed:', result.error.message)
+
+    // -------------------------------------------------------------------------
+    // AUDIT: Log failed order after successful sequence allocation
+    // Write to local collection so it syncs automatically (resilient to network failures)
+    // -------------------------------------------------------------------------
+    if (orderNumber) {
+      // Only log if we allocated a new sequence (not when updating existing order)
+      auditLogCollection.insert({
+        id: crypto.randomUUID(),
+        businessId: user.business.id,
+        actorId: user.id,
+        action: AuditAction.SEQUENCE_ALLOCATION_FAILED,
+        targetType: AuditTargetType.SequenceCounter,
+        targetId: orderNumber,
+        before: null,
+        after: {
+          sequenceType: SequenceType.ORDER,
+          orderNumber,
+          errorMessage: result.error.message,
+          timestamp: new Date().toISOString(),
+        },
+        ipAddress: null,
+        createdAt: new Date(),
+      })
+    }
+
+    return { error: result.error }
   }
 
   return { data: true }

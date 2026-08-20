@@ -16,7 +16,7 @@
 
 import { useLiveQuery } from '@tanstack/react-db'
 import { Building2, Edit2, MapPin, Plus, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getColumns } from '@/components/custom/data-view'
 import { MultiView } from '@/components/custom/data-view/multi-view'
@@ -26,13 +26,16 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { branchCollection } from '@/db/collections'
 import MountManager from '@/lib/mount-manager'
 import { createBranch } from '@/lib/server-fn/create-branch'
+import { fetchBranchUsers } from '@/lib/server-fn/fetch-branch-users'
 import { updateBranch } from '@/lib/server-fn/update-branch'
 import { BRANCH_TOGGLE_DEFAULTS, type BranchToggleConfig, fetchBranchConfig, updateBranchConfig } from '@/lib/server-fn/update-branch-config'
+import { updateOfflineTerminal } from '@/lib/server-fn/update-offline-terminal'
 import { authStore } from '@/store/auth-store'
 
 // ---------------------------------------------------------------------------
@@ -67,6 +70,9 @@ type EditFormState = {
   country: string
   toggles: BranchToggleConfig
   loadingToggles: boolean
+  offlineTerminalId: string | null
+  branchUsers: Array<{ id: string; name: string | null; email: string; role: string }>
+  loadingUsers: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -213,40 +219,53 @@ function EditBranchDialog({ branch, open, onOpenChange }: { branch: BranchRow | 
     country: 'PH',
     toggles: { ...BRANCH_TOGGLE_DEFAULTS },
     loadingToggles: false,
+    offlineTerminalId: null,
+    branchUsers: [],
+    loadingUsers: false,
   })
   const [saving, setSaving] = useState(false)
 
-  // Load branch data + toggles when dialog opens
-  const handleOpen = async (v: boolean) => {
-    onOpenChange(v)
-    if (v && branch) {
-      setForm({
+  // Load branch data + toggles + users when dialog opens
+  useEffect(() => {
+    if (open && branch) {
+      setForm(prev => ({
+        ...prev,
         name: branch.name,
         address: branch.address ?? '',
         country: branch.country ?? 'PH',
         toggles: { ...BRANCH_TOGGLE_DEFAULTS },
         loadingToggles: true,
+        loadingUsers: true,
+      }))
+
+      // Fetch branch config and users in parallel
+      Promise.all([
+        fetchBranchConfig({ data: { branchId: branch.id } }),
+        fetchBranchUsers({ data: { branchId: branch.id } }),
+        // Fetch the current branch data to get offlineTerminalId
+        fetch(`/api/branch/${branch.id}`).catch(() => null),
+      ]).then(([configResult, usersResult]) => {
+        setForm(prev => ({
+          ...prev,
+          toggles: configResult.success ? configResult.config : { ...BRANCH_TOGGLE_DEFAULTS },
+          loadingToggles: false,
+          branchUsers: usersResult.success ? usersResult.users : [],
+          loadingUsers: false,
+          // offlineTerminalId will be loaded from branchCollection
+          offlineTerminalId: branchCollection.get(branch.id)?.offlineTerminalId ?? null,
+        }))
       })
-      try {
-        const result = await fetchBranchConfig({ data: { branchId: branch.id } })
-        if (result.success) {
-          setForm(f => ({ ...f, toggles: result.config, loadingToggles: false }))
-        } else {
-          setForm(f => ({ ...f, loadingToggles: false }))
-        }
-      } catch {
-        setForm(f => ({ ...f, loadingToggles: false }))
-      }
     }
-  }
+  }, [open, branch])
 
   const handleSave = async () => {
     if (!branch || !form.name.trim()) return
     setSaving(true)
     try {
-      const [detailsResult, configResult] = await Promise.all([
+      const [detailsResult, configResult, offlineResult] = await Promise.all([
         updateBranch({ data: { branchId: branch.id, name: form.name, address: form.address || undefined, country: form.country } }),
         updateBranchConfig({ data: { branchId: branch.id, config: form.toggles } }),
+        updateOfflineTerminal({ data: { branchId: branch.id, offlineTerminalId: form.offlineTerminalId } }),
       ])
 
       if (!detailsResult.success) {
@@ -255,6 +274,10 @@ function EditBranchDialog({ branch, open, onOpenChange }: { branch: BranchRow | 
       }
       if (!configResult.success) {
         toast.error(configResult.error ?? 'Failed to save feature toggles')
+        return
+      }
+      if (!offlineResult.success) {
+        toast.error(offlineResult.error ?? 'Failed to update offline terminal designation')
         return
       }
 
@@ -272,8 +295,8 @@ function EditBranchDialog({ branch, open, onOpenChange }: { branch: BranchRow | 
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogContent className='sm:max-w-md'>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className='sm:max-w-md max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
           <DialogTitle>Edit Branch</DialogTitle>
         </DialogHeader>
@@ -319,6 +342,49 @@ function EditBranchDialog({ branch, open, onOpenChange }: { branch: BranchRow | 
 
           <Separator />
 
+          {/* Offline Terminal Designation */}
+          <div className='space-y-3'>
+            <div className='space-y-1'>
+              <p className='text-sm font-medium'>Offline Checkout</p>
+              <p className='text-xs text-muted-foreground'>
+                Designate which user can process checkouts when offline. This prevents sequence number collisions when multiple devices lose connection.
+              </p>
+            </div>
+
+            <div className='space-y-1.5'>
+              <Label htmlFor='offline-terminal'>Offline Terminal User</Label>
+              <Select
+                value={form.offlineTerminalId ?? 'none'}
+                onValueChange={v => setForm(f => ({ ...f, offlineTerminalId: v === 'none' ? null : v }))}
+                disabled={form.loadingUsers || saving}
+              >
+                <SelectTrigger id='offline-terminal'>
+                  <SelectValue placeholder='Select a user...' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='none'>
+                    <span className='text-muted-foreground italic'>None (offline checkout disabled)</span>
+                  </SelectItem>
+                  {form.branchUsers.map(user => (
+                    <SelectItem key={user.id} value={user.id}>
+                      <div className='flex items-center gap-2'>
+                        <span>{user.name ?? user.email}</span>
+                        <Badge variant='outline' className='text-[9px] uppercase'>
+                          {user.role}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className='text-xs text-muted-foreground'>
+                Only this user will be able to create transactions while offline. Set to "None" to block all offline checkouts.
+              </p>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Feature toggles */}
           <div className='space-y-1'>
             <p className='text-sm font-medium'>Feature Toggles</p>
@@ -347,7 +413,7 @@ function EditBranchDialog({ branch, open, onOpenChange }: { branch: BranchRow | 
           <Button variant='outline' onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!form.name.trim() || saving || form.loadingToggles}>
+          <Button onClick={handleSave} disabled={!form.name.trim() || saving || form.loadingToggles || form.loadingUsers}>
             Save Changes
           </Button>
         </DialogFooter>

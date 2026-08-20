@@ -247,6 +247,19 @@ model Branch {
 
   branchCode String @default("00001") // The "00001" or "000" suffix for the TIN
 
+  // ---------------------------------------------------------------------------
+  // PHASE 2: Offline Mode Restriction
+  // ---------------------------------------------------------------------------
+  // offlineTerminalId designates which user is allowed to perform checkouts
+  // while this branch is offline. Only one user can be designated at a time.
+  //
+  // - null = no offline terminal designated (offline checkout blocked)
+  // - userId = only this user can checkout offline for this branch
+  //
+  // Admin can assign this via Settings → Branch → Offline Mode
+  // ---------------------------------------------------------------------------
+  offlineTerminalId String? // User ID of designated offline terminal (nullable)
+
   members            Membership[]
   inventory          Inventory[]
   transactions       Transaction[]
@@ -276,6 +289,7 @@ model Branch {
   deletedAt DateTime?
 
   @@index([deletedAt])
+  @@index([offlineTerminalId]) // Index for quick lookups by designated terminal
   @@map("branches")
 }
 

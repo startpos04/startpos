@@ -20,9 +20,11 @@
  */
 
 import { PurchaseStatus, Role, SequenceType } from 'prisma/generated/prisma/enums'
-import { membershipCollection, purchaseCollection, purchaseItemCollection } from '@/db/collections'
+import { auditLogCollection, membershipCollection, purchaseCollection, purchaseItemCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
+import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
+import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
 import { authStore } from '@/store/auth-store'
 import { type CreatePurchaseInput, createPurchaseSchema } from './create-purchase'
 import { fetchStructuredId } from './fetch-structured-id'
@@ -43,9 +45,42 @@ export const createPurchaseRequest = async (data: CreatePurchaseInput, options: 
   const { user } = authStore.state
   const { originatingTaskId = null } = options
 
+  // ---------------------------------------------------------------------------
+  // PHASE 1 FIX: Allocate purchase sequence SERVER-SIDE before transaction
+  // ---------------------------------------------------------------------------
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+  let structuredId: string
+
+  if (isOffline) {
+    // -------------------------------------------------------------------------
+    // PHASE 2: Offline purchase request restriction
+    // Only designated terminal can create purchase requests offline
+    // -------------------------------------------------------------------------
+    if (!user.canCheckoutOffline) {
+      console.error('[createPurchaseRequest] Offline purchase request blocked: user is not designated offline terminal')
+      return {
+        error: new Error(
+          'Offline purchase request creation is not available. Only the designated offline terminal can create purchase requests while offline. Please reconnect to the internet or contact your administrator.',
+        ),
+      }
+    }
+
+    // Offline: use client-side allocation (only for designated terminal)
+    structuredId = fetchStructuredId(SequenceType.PURCHASE)
+  } else {
+    // Online: use server-side atomic allocation with retry
+    const sequenceResult = await sequenceAPI.allocateWithRetry(SequenceType.PURCHASE)
+
+    if (sequenceResult.isErr()) {
+      console.error('[createPurchaseRequest] Failed to allocate purchase sequence:', sequenceResult.error)
+      return { error: new Error(`Failed to allocate purchase number: ${sequenceResult.error}`) }
+    }
+
+    structuredId = sequenceResult.value.invoiceNo
+  }
+
   const result = await dbTransaction(() => {
     const purchaseId = crypto.randomUUID()
-    const structuredId = fetchStructuredId(SequenceType.PURCHASE)
     const totalCost = data.items.reduce((sum, i) => sum + Math.round(i.unitCost * i.quantity), 0)
 
     // 1. Create the purchase header at PENDING_APPROVAL — no inventory yet.
@@ -53,7 +88,7 @@ export const createPurchaseRequest = async (data: CreatePurchaseInput, options: 
     //    so the full audit trail (task → purchase → GRN) is queryable from a single record.
     purchaseCollection.insert({
       id: purchaseId,
-      purchaseId: structuredId,
+      purchaseId: structuredId, // Use pre-allocated sequence from above
       status: PurchaseStatus.PENDING_APPROVAL,
       supplierId: data.supplierId,
       totalCost,
@@ -84,6 +119,30 @@ export const createPurchaseRequest = async (data: CreatePurchaseInput, options: 
 
   if (result.isErr()) {
     console.error('Create purchase request failed:', result.error.message)
+
+    // -------------------------------------------------------------------------
+    // AUDIT: Log failed purchase request after successful sequence allocation
+    // Write to local collection so it syncs automatically (resilient to network failures)
+    // -------------------------------------------------------------------------
+    auditLogCollection.insert({
+      id: crypto.randomUUID(),
+      businessId: user.business.id,
+      actorId: user.id,
+      action: AuditAction.SEQUENCE_ALLOCATION_FAILED,
+      targetType: AuditTargetType.SequenceCounter,
+      targetId: structuredId,
+      before: null,
+      after: {
+        sequenceType: SequenceType.PURCHASE,
+        purchaseId: structuredId,
+        operationalTaskId: originatingTaskId,
+        errorMessage: result.error.message,
+        timestamp: new Date().toISOString(),
+      },
+      ipAddress: null,
+      createdAt: new Date(),
+    })
+
     return { data: null, error: result.error }
   }
 

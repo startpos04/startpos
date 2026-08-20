@@ -26,6 +26,9 @@ export const AuditAction = {
   TRANSACTION_REFUNDED: 'TRANSACTION_REFUNDED',
   PURCHASE_VOIDED: 'PURCHASE_VOIDED',
 
+  // Sequence allocation failures (Phase 1: Server-side atomic allocation)
+  SEQUENCE_ALLOCATION_FAILED: 'SEQUENCE_ALLOCATION_FAILED', // Sequence allocated but transaction failed
+
   // Account lifecycle
   ACCOUNT_DELETION_REQUESTED: 'ACCOUNT_DELETION_REQUESTED',
   ACCOUNT_DELETED: 'ACCOUNT_DELETED',
@@ -51,6 +54,7 @@ export const AuditTargetType = {
   Business: 'Business',
   BusinessSubscription: 'BusinessSubscription',
   Session: 'Session',
+  SequenceCounter: 'SequenceCounter', // For sequence allocation failures
 } as const
 
 export type AuditTargetType = (typeof AuditTargetType)[keyof typeof AuditTargetType]

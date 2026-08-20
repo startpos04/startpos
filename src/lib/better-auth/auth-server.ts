@@ -40,7 +40,20 @@ type DBUser = Prisma.UserGetPayload<{
   include: { systemConfigs: true }
 }>
 type DBBusiness = Prisma.BusinessGetPayload<{ include: { complianceRegistry: true; systemConfigs: true } }>
-type DBBranch = Prisma.BranchGetPayload<{ include: { complianceRegistry: true; systemConfigs: true } }>
+type DBBranch = Prisma.BranchGetPayload<{
+  select: {
+    id: true
+    name: true
+    address: true
+    businessId: true
+    createdAt: true
+    updatedAt: true
+    deletedAt: true
+    offlineTerminalId: true
+    complianceRegistry: true
+    systemConfigs: true
+  }
+}>
 type DBVendorSession = Prisma.VendorSessionGetPayload<object>
 type DBLocalOverrides = Prisma.UserGetPayload<{
   select: { id: true; name: true; email: true; role: true }
@@ -82,7 +95,18 @@ export const getAuthUser = createServerFn({ method: 'GET' })
 
       prisma.branch.findUnique({
         where: { id: branchId },
-        include: { complianceRegistry: true, systemConfigs: true },
+        select: {
+          id: true,
+          name: true,
+          address: true,
+          businessId: true,
+          createdAt: true,
+          updatedAt: true,
+          deletedAt: true,
+          offlineTerminalId: true, // Phase 2: offline checkout restriction
+          complianceRegistry: true,
+          systemConfigs: true,
+        },
       }) as Promise<DBBranch | null>,
 
       prisma.vendorSession.findFirst({
@@ -573,6 +597,15 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       ...subscriptionMeta,
       txAddonTotal: activeTxAddons.reduce((sum, a) => sum + a.quantity, 0),
     })
+
+    // -------------------------------------------------------------------------
+    // Phase 2: Offline checkout restriction
+    // canCheckoutOffline is true when the current user is designated as the
+    // branch's offline terminal (user.id === branch.offlineTerminalId).
+    // When offlineTerminalId is null, NO user can checkout offline for this branch.
+    // -------------------------------------------------------------------------
+    const canCheckoutOffline = branchData.offlineTerminalId === userId
+
     return {
       ...user,
       business,
@@ -589,6 +622,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       landingPage: RoleLandingPages[userData.role] ?? '/',
       localOverrides: localOverrides || [],
       entitlement,
+      canCheckoutOffline,
       // BOS fields — used by welcome modal, survey-aware tutorials, and setup guide
       deferredCapabilities: (bosData?.deferredCapabilities ?? []) as string[],
       onboardingCompletedAt: bosData?.onboardingCompletedAt ?? null,

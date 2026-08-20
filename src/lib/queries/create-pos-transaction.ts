@@ -2,6 +2,7 @@ import type { Order, OrderItem } from 'prisma/generated/prisma/browser'
 import type { OrderItemAddon } from 'prisma/generated/prisma/client'
 import { InvoiceType, OrderStatus, OrderType, PaymentMethod, SequenceType, TaxCategory, TaxLineType, TransactionType } from 'prisma/generated/prisma/enums'
 import {
+  auditLogCollection,
   creditLedgerCollection,
   inventoryCollection,
   inventoryMovementCollection,
@@ -16,6 +17,7 @@ import {
 import { dbTransaction } from '@/db/local-db-transaction'
 import type { PaymentLine } from '@/routes/(private)/pos/-components/payment-dialog'
 import { authStore } from '@/store/auth-store'
+import { AuditAction, AuditTargetType } from '../audit/types'
 import { CreditEngine } from '../billing/credit-engine'
 import { BillingModel } from '../billing/types'
 import { UsageEngine } from '../billing/usage-engine'
@@ -23,6 +25,7 @@ import { PosStockEngine, type posItem } from '../conversion/pos-stock-engine'
 import { TaxEngine } from '../conversion/tax-engine'
 import { CostingEngine } from '../costing'
 import { NotificationEngine } from '../notification/notification-engine'
+import { sequenceAPI } from '../prisma-client/sequence-api'
 import type { posProduct } from './fetch-pos-products'
 import { fetchStructuredId } from './fetch-structured-id'
 
@@ -62,6 +65,75 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       return fromCart?.product ?? null
     })
     .filter(Boolean) as posProduct[]
+
+  // ---------------------------------------------------------------------------
+  // PHASE 1 FIX: Allocate invoice sequence SERVER-SIDE before transaction
+  // ---------------------------------------------------------------------------
+  // Critical concurrency fix: Sequence numbers are now allocated atomically
+  // on the server BEFORE the transaction is created. This prevents race
+  // conditions where multiple concurrent checkouts could generate duplicate
+  // invoiceNos by reading the same lastNumber from their local OPFS.
+  //
+  // Online mode: Call server API with retry logic for serialization conflicts
+  // Offline mode: Fall back to local fetchStructuredId (Phase 2 restriction applies)
+  // ---------------------------------------------------------------------------
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+  let invoiceNo: string
+
+  if (isOffline) {
+    // -------------------------------------------------------------------------
+    // PHASE 2: Offline checkout restriction
+    // Only the designated offline terminal can perform checkouts while offline.
+    // This prevents sequence number collisions when multiple devices are offline.
+    // -------------------------------------------------------------------------
+    if (!user.canCheckoutOffline) {
+      console.error('[createPosTransaction] Offline checkout blocked: user is not designated offline terminal')
+      return {
+        error: new Error(
+          'Offline checkout is not available. Only the designated offline terminal can process transactions while offline. Please reconnect to the internet or contact your administrator.',
+        ),
+      }
+    }
+
+    // Offline: use client-side allocation (only for designated terminal)
+    invoiceNo = fetchStructuredId(SequenceType.INVOICE)
+  } else {
+    // Online: use server-side atomic allocation with retry
+    const sequenceResult = await sequenceAPI.allocateWithRetry(SequenceType.INVOICE)
+
+    if (sequenceResult.isErr()) {
+      console.error('[createPosTransaction] Failed to allocate sequence:', sequenceResult.error)
+      return { error: new Error(`Failed to allocate invoice number: ${sequenceResult.error}`) }
+    }
+
+    invoiceNo = sequenceResult.value.invoiceNo
+  }
+
+  // Similarly allocate ORDER sequence if creating new order
+  let orderNumber: string | null = null
+  if (!data.orderId || !orderCollection.has(data.orderId)) {
+    if (isOffline) {
+      // Phase 2: Same offline restriction applies for order sequences
+      // This check is redundant since we already blocked above, but kept
+      // for clarity and to handle any future refactoring.
+      if (!user.canCheckoutOffline) {
+        console.error('[createPosTransaction] Offline order creation blocked: user is not designated offline terminal')
+        return {
+          error: new Error(
+            'Offline checkout is not available. Only the designated offline terminal can process transactions while offline. Please reconnect to the internet or contact your administrator.',
+          ),
+        }
+      }
+      orderNumber = fetchStructuredId(SequenceType.ORDER)
+    } else {
+      const orderSeqResult = await sequenceAPI.allocateWithRetry(SequenceType.ORDER)
+      if (orderSeqResult.isErr()) {
+        console.error('[createPosTransaction] Failed to allocate order sequence:', orderSeqResult.error)
+        return { error: new Error(`Failed to allocate order number: ${orderSeqResult.error}`) }
+      }
+      orderNumber = orderSeqResult.value.invoiceNo
+    }
+  }
 
   const result = await dbTransaction(() => {
     // --- 1. VALIDATION & STOCK GUARD ---
@@ -129,7 +201,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
     } else {
       order = {
         id: orderId,
-        orderNumber: fetchStructuredId(SequenceType.ORDER),
+        orderNumber: orderNumber!, // Use pre-allocated sequence from above
         status: OrderStatus.PENDING,
         orderType: OrderType.DINE_IN,
         customerReference: data.customer.customerReference || 'Walk-in Guest',
@@ -363,7 +435,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
 
     const transaction = {
       id: transactionId,
-      invoiceNo: fetchStructuredId(SequenceType.INVOICE),
+      invoiceNo, // Use pre-allocated sequence from above (server-side or offline)
       orderId,
       type: TransactionType.SALE,
       priceConfiguration: user.systemConfigs.PRICE_CONFIGURATION,
@@ -398,10 +470,10 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       snapshotBusinessName: user.business.name,
       snapshotBranchName: user.branch.name,
       snapshotBranchAddress: user.branch.address,
-      snapshotBranchSN: user.branch.serialNumber,
+      snapshotBranchSN: user.branch.serialNumber || null,
       snapshotBusinessTIN: user.complianceRegistry.BIR_TIN || null,
-      snapshotBranchCode: user.branch.branchCode,
-      snapshotIsVATRegistered: user.systemConfigs.IS_VAT_REGISTERED || 'false',
+      snapshotBranchCode: user.branch.branchCode || null,
+      snapshotIsVATRegistered: user.systemConfigs.IS_VAT_REGISTERED ? 'true' : 'false',
       snapshotCurrency: user.systemConfigs.CURRENCY || 'PHP',
       snapshotCashierName: user.name,
       providerId: null,
@@ -508,6 +580,31 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
 
   if (result.isErr()) {
     console.error('Transaction failed:', result.error.message)
+
+    // -------------------------------------------------------------------------
+    // AUDIT: Log failed transaction after successful sequence allocation
+    // Write to local collection so it syncs automatically (resilient to network failures)
+    // This explains sequence number gaps for BIR compliance and debugging
+    // -------------------------------------------------------------------------
+    auditLogCollection.insert({
+      id: crypto.randomUUID(),
+      businessId: user.business.id,
+      actorId: user.id,
+      action: AuditAction.SEQUENCE_ALLOCATION_FAILED,
+      targetType: AuditTargetType.SequenceCounter,
+      targetId: invoiceNo, // Use the allocated invoice number as targetId
+      before: null,
+      after: {
+        sequenceType: SequenceType.INVOICE,
+        invoiceNo,
+        orderNumber,
+        errorMessage: result.error.message,
+        timestamp: new Date().toISOString(),
+      },
+      ipAddress: null,
+      createdAt: new Date(),
+    })
+
     return { error: result.error }
   }
 
