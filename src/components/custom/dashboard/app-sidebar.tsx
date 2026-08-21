@@ -60,7 +60,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     Capabilities.CREATE_PURCHASE,
     Capabilities.VIEW_SALES_REPORTS,
     Capabilities.MANAGE_INVENTORY,
-    Capabilities.VIEW_TRANSACTION_HISTORY,
     Capabilities.VIEW_ORDER_HISTORY,
   ])
 
@@ -103,6 +102,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           items: [
             { title: 'Employees', url: '/employees' },
             { title: 'Products', url: '/products' },
+            caps.BATCH_PREPARATION ? { title: 'Preparation', url: '/preparation' } : null,
             caps.CREATE_PURCHASE ? { title: 'Purchases', url: '/purchases' } : null,
             user.business?.businessType === BusinessType.RESTAURANT ? { title: 'Ingredients', url: '/ingredients' } : null,
           ].filter(Boolean),
@@ -115,7 +115,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           items: [
             caps.VIEW_SALES_REPORTS ? { title: 'Sales Report', url: '/sales-reports' } : null,
             caps.MANAGE_INVENTORY ? { title: 'Inventory Reports', url: '/inventory-reports' } : null,
-            caps.VIEW_TRANSACTION_HISTORY ? { title: 'Transactions', url: '/transactions' } : null,
+            { title: 'Transactions', url: '/transactions' },
             caps.VIEW_ORDER_HISTORY ? { title: 'Order History', url: '/order-history' } : null,
           ].filter(Boolean),
         },

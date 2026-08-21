@@ -152,18 +152,14 @@ function RouteComponent() {
             productCols.sku(h),
             productCols.category(h),
             productCols.unit(h),
-            productCols.ingredients(h),
+            ...(hasInventory ? [productCols.ingredients(h)] : []),
             productCols.addons(h),
             productCols.variants(h),
-            productCols.cost(h),
+            productCols.cost(h), // Always show cost
             productCols.price(h),
-            productCols.netMargin(h),
-            productCols.totalValue(h),
-
-            ...(hasInventory ? [productCols.stockStatus(h), productCols.stockTotal(h)] : []),
-
+            productCols.netMargin(h), // Always show net margin
+            ...(hasInventory ? [productCols.totalValue(h), productCols.stockStatus(h), productCols.stockTotal(h)] : []),
             productCols.showInPOS(h),
-
             tableCols.action(h, {
               cell: ({ row }) => (
                 <div className='flex justify-end gap-1'>

@@ -46,6 +46,7 @@ import {
   Q8_OPTIONS,
   Q9_OPTIONS,
   Q10_OPTIONS,
+  Q11_OPTIONS,
   type SurveyAnswers,
 } from '@/lib/onboarding/types'
 import { cn } from '@/lib/utils'
@@ -264,6 +265,18 @@ const Q10: QuestionConfig = {
   ],
 }
 
+const Q11: QuestionConfig = {
+  id: 'q11_batch_preparation',
+  type: 'single',
+  title: 'Do you prepare food items in batches ahead of time?',
+  subtitle: 'For example: sandwiches, pastries, meal prep, or pre-cooked dishes.',
+  options: [
+    { value: Q11_OPTIONS.YES_RECIPES, label: 'Yes — using recipes with ingredients', description: 'Track materials used in production' },
+    { value: Q11_OPTIONS.YES_NO_RECIPES, label: 'Yes — but without tracking ingredients' },
+    { value: Q11_OPTIONS.NO, label: 'No — we prepare items on-demand' },
+  ],
+}
+
 // ---------------------------------------------------------------------------
 // Derive the ordered question list from current answers (branching logic)
 // ---------------------------------------------------------------------------
@@ -320,6 +333,12 @@ function getVisibleQuestions(answers: SurveyAnswers): QuestionConfig[] {
   // Q10: Operational tasks — shown for all team sizes, including solo operators.
   // A solo operator may still want to manage personal checklists or future staff tasks.
   questions.push(Q10)
+
+  // Q11: Batch preparation — only shown for food & beverage businesses
+  const sellsFood = (answers.q1_business_type ?? []).includes(Q1_OPTIONS.FOOD_BEVERAGE)
+  if (sellsFood) {
+    questions.push(Q11)
+  }
 
   return questions
 }

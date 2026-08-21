@@ -42,6 +42,8 @@ import { authStore } from '@/store/auth-store'
 interface QuickAddDialogProps extends MountProps {
   /** Pre-filled from the search term — empty string for the no-catalog state */
   searchQuery: string
+  /** Optional SKU to pre-fill (e.g., from barcode scan) */
+  sku?: string
   onConfirm: (item: posItem) => void
 }
 
@@ -77,6 +79,7 @@ function resolveDefaults(businessId: string): QuickAddDefaults | null {
 
 const schema = z.object({
   name: z.string().min(1, 'Product name is required'),
+  sku: z.string().optional(),
   price: z.number().min(1, 'Price must be greater than 0'),
 })
 
@@ -84,12 +87,13 @@ const schema = z.object({
 // Component
 // ---------------------------------------------------------------------------
 
-export function QuickAddDialog({ open, onClose, searchQuery, onConfirm }: QuickAddDialogProps) {
+export function QuickAddDialog({ open, onClose, searchQuery, sku, onConfirm }: QuickAddDialogProps) {
   const user = useStore(authStore, s => s.user)
 
   const form = useForm({
     defaultValues: {
       name: searchQuery.trim(),
+      sku: sku?.trim() || '',
       price: 0,
     },
     validators: {
@@ -129,13 +133,13 @@ export function QuickAddDialog({ open, onClose, searchQuery, onConfirm }: QuickA
           deletedAt: null,
         })
 
-        // Create the default variant with the given price
+        // Create the default variant with the given price and SKU
         productVariantCollection.insert({
           id: variantId,
           productId,
           name: null,
           image: null,
-          sku: null,
+          sku: value.sku?.trim() || null,
           price: value.price,
           costPrice: 0,
           attributeType: VariantAttributeType.UNSPECIFIED,
@@ -189,7 +193,7 @@ export function QuickAddDialog({ open, onClose, searchQuery, onConfirm }: QuickA
             productId,
             name: null,
             image: null,
-            sku: null,
+            sku: value.sku?.trim() || null,
             price: value.price,
             costPrice: 0,
             attributeType: VariantAttributeType.UNSPECIFIED,
@@ -241,6 +245,10 @@ export function QuickAddDialog({ open, onClose, searchQuery, onConfirm }: QuickA
         <Form onSubmit={form.handleSubmit} className='p-6 space-y-4'>
           <form.Field name='name'>
             {field => <TextInput field={field} label='Product name' placeholder='e.g. Banana Chips, Haircut, Repair fee' autoFocus />}
+          </form.Field>
+
+          <form.Field name='sku'>
+            {field => <TextInput field={field} label='SKU (Optional)' placeholder='e.g. PROD-001' />}
           </form.Field>
 
           <form.Field name='price'>{field => <MoneyInput field={field} label='Price' placeholder='0.00' />}</form.Field>

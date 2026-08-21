@@ -4,6 +4,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Box, Edit, Package, X } from 'lucide-react'
 import { type Product, type ProductVariant, type Unit, VariantAttributeType } from 'prisma/generated/prisma/browser'
 import Tab from '@/components/custom/tab'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -12,6 +13,8 @@ import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import type { MountProps } from '@/lib/mount-manager'
 import { fetchPosProducts, type posProduct } from '@/lib/queries/fetch-pos-products'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
+import { useCapability } from '@/hooks/use-capability'
 import { closeProductSidebar, showProductSidebar } from '../-components/product-sidebar'
 import { EditProductSidebar } from './-edit-product'
 import { RestockProductSidebar } from './-restock-product'
@@ -174,6 +177,8 @@ function RecipeTab({ product, onRestockIngredient }: { product: any; onRestockIn
 function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
   // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
   const productId = propId || Route.useLoaderData().productId
+  const hasInventory = useCapability(Capabilities.MANAGE_INVENTORY)
+  const hasBatchPreparation = useCapability(Capabilities.BATCH_PREPARATION)
 
   const { data: products, isLoading } = fetchPosProducts({ page: 1, pageSize: 9999, all: true })
   const product = products.find(p => p.id === productId)
@@ -232,7 +237,10 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
           image: product.image ?? '',
           isAvailable: product.isAvailable,
           hasExpiry: product.hasExpiry,
+          isBatchPrepared: primaryVariant?.isBatchPrepared ?? false,
+          shelfLifeHours: primaryVariant?.shelfLifeHours ?? null,
           price: primaryVariant?.price || 0,
+          costPrice: primaryVariant?.costPrice || 0,
           sku: primaryVariant?.sku ?? '',
           ingredients: (primaryVariant?.components ?? [])
             .filter(c => !c.isAddon)
@@ -272,13 +280,16 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
       {/* Header band */}
       <div className='flex items-start justify-between p-4 border-b shrink-0'>
         <div className='flex gap-3'>
-          <div className='h-10 w-10 rounded-xl bg-secondary flex items-center justify-center border shadow-sm shrink-0 overflow-hidden'>
-            {product.image ? (
-              <img src={product.image} alt={product.name} className='h-full w-full object-cover' />
-            ) : (
+          <Avatar className='h-10 w-10 rounded-xl border shadow-sm shrink-0'>
+            <AvatarImage 
+              src={product.image ?? ''} 
+              alt={product.name} 
+              className='object-cover' 
+            />
+            <AvatarFallback className='rounded-xl bg-secondary'>
               <Box className='h-5 w-5 text-muted-foreground/40' />
-            )}
-          </div>
+            </AvatarFallback>
+          </Avatar>
           <div>
             <div className='flex items-center gap-2 flex-wrap'>
               <h2 className='text-base font-semibold leading-tight'>{product.name}</h2>
@@ -296,6 +307,11 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
               <Badge variant='outline' className='text-[10px] py-0 h-4'>
                 {product.variants.length} Variant(s)
               </Badge>
+              {hasBatchPreparation && primaryVariant?.isBatchPrepared && (
+                <Badge className='bg-purple-600 text-[10px] py-0 h-4'>
+                  Batch Prep
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -304,7 +320,7 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
         </Button>
       </div>
 
-      {/* Compact info row — price & sales, no card clutter */}
+      {/* Compact info row — price, cost & sales, no card clutter */}
       <div className='flex items-center gap-4 px-4 py-2.5 border-b bg-muted/20 shrink-0'>
         <div>
           <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Price</p>
@@ -312,20 +328,46 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
         </div>
         <div className='w-px h-6 bg-border' />
         <div>
-          <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Stock</p>
-          <p className='text-sm font-black'>{totalStock}</p>
+          <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Cost</p>
+          <p className='text-sm font-black font-mono text-muted-foreground'>{PriceEngine.format(primaryVariant?.costPrice || 0)}</p>
         </div>
+        {hasInventory && (
+          <>
+            <div className='w-px h-6 bg-border' />
+            <div>
+              <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Stock</p>
+              <p className='text-sm font-black'>{totalStock}</p>
+            </div>
+          </>
+        )}
         <div className='w-px h-6 bg-border' />
         <div>
           <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Sales</p>
           <p className='text-sm font-black'>{totalSales} units</p>
         </div>
-        <div className='w-px h-6 bg-border' />
-        <div className='flex items-center gap-1.5'>
-          <Badge variant='secondary' className='font-medium text-[10px]'>
-            {product.category?.name || 'Uncategorised'}
-          </Badge>
-        </div>
+        {hasBatchPreparation && primaryVariant?.isBatchPrepared && (
+          <>
+            <div className='w-px h-6 bg-border' />
+            <div>
+              <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Production</p>
+              <div className='flex gap-1 items-center'>
+                <p className='text-xs font-bold text-purple-600'>Batch Prep</p>
+                {primaryVariant.productionUsesRecipe && (
+                  <Badge variant='outline' className='text-[9px] py-0 h-3.5'>Recipe</Badge>
+                )}
+              </div>
+            </div>
+            {primaryVariant.shelfLifeHours && (
+              <>
+                <div className='w-px h-6 bg-border' />
+                <div>
+                  <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Shelf Life</p>
+                  <p className='text-xs font-bold'>{primaryVariant.shelfLifeHours}h</p>
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
 
       {/* Scrollable content */}
@@ -334,8 +376,8 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
           defaultValue='Variants'
           tabs={[
             { label: 'Variants', Component: VariantsTab, product },
-            { label: 'Stock', Component: StockTab, product },
-            { label: 'Recipe', Component: RecipeTab, product, onRestockIngredient: handleRestockIngredient },
+            ...(hasInventory ? [{ label: 'Stock', Component: StockTab, product }] : []),
+            ...(hasInventory ? [{ label: 'Recipe', Component: RecipeTab, product, onRestockIngredient: handleRestockIngredient }] : []),
           ]}
         />
       </div>

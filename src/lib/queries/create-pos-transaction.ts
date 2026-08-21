@@ -26,6 +26,7 @@ import { TaxEngine } from '../conversion/tax-engine'
 import { CostingEngine } from '../costing'
 import { NotificationEngine } from '../notification/notification-engine'
 import { sequenceAPI } from '../prisma-client/sequence-api'
+import { ConcurrencyError, FinishedGoodsEngine } from '../production'
 import type { posProduct } from './fetch-pos-products'
 import { fetchStructuredId } from './fetch-structured-id'
 
@@ -343,27 +344,61 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       })
       usageCounterId = openCounterEntry.id
     } else {
-      // No open counter found in the collection (e.g. start of a new period,
-      // or collection not yet synced). Create a new counter entry locally.
-      // The server-side sync will upsert this into the DB.
-      const now = new Date()
-      // Use a placeholder period if subscription dates are unavailable
-      const periodStart = now
-      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate())
-
-      const newCounterId = crypto.randomUUID()
-      usageCounterCollection.insert({
-        id: newCounterId,
-        businessId,
-        billingPeriodStart: periodStart,
-        billingPeriodEnd: periodEnd,
-        txCount: 1,
-        overageTxCount: 0,
-        isClosed: false,
-        createdAt: now,
-        updatedAt: now,
-      })
-      usageCounterId = newCounterId
+      // ═══════════════════════════════════════════════════════════════════════
+      // USAGE COUNTER: Not found in local collection
+      // ═══════════════════════════════════════════════════════════════════════
+      //
+      // Scenarios:
+      // 1. First transaction of a new billing period (counter not created yet)
+      // 2. Counter exists in DB but hasn't synced to local collection yet
+      // 3. Offline mode and this is the first transaction after app start
+      //
+      // OFFLINE-FIRST SOLUTION:
+      // Set usageCounterId = null and let the transaction proceed.
+      // The server will handle counter reconciliation when the transaction syncs.
+      //
+      // FLOW:
+      // ┌─────────────────────────────────────────────────────────────────────┐
+      // │ ONLINE:                                                              │
+      // │ 1. Transaction created with usageCounterId = null                   │
+      // │ 2. dbTransaction syncs to server via transactionAPI                 │
+      // │ 3. Server detects null usageCounterId                               │
+      // │ 4. Server finds/creates appropriate UsageCounter                    │
+      // │ 5. Server increments counter and links transaction                  │
+      // │ 6. Server returns updated transaction with counterId                │
+      // │ 7. Client collection updated with linked counterId                  │
+      // │                                                                      │
+      // │ OFFLINE:                                                             │
+      // │ 1. Transaction created with usageCounterId = null                   │
+      // │ 2. Transaction stored in local collection (not synced)              │
+      // │ 3. User continues working offline                                   │
+      // │ 4. When back online, pending transactions sync                      │
+      // │ 5. Server performs reconciliation for each transaction              │
+      // │ 6. All counters updated retroactively                               │
+      // └─────────────────────────────────────────────────────────────────────┘
+      //
+      // GUARANTEES:
+      // ✅ Transactions always succeed (never blocked by missing counter)
+      // ✅ Transaction limits enforced at auth time (txRemaining from EntitlementEngine)
+      // ✅ Full offline capability maintained
+      // ✅ Server reconciliation ensures accurate billing
+      // ✅ No client-side ID conflicts (server controls counter IDs)
+      //
+      // TRADE-OFFS:
+      // ⚠️  This specific transaction temporarily unlinked until sync
+      // ⚠️  txRemaining display won't update until next auth refresh
+      // ⚠️  Usage reports may undercount until sync completes
+      //
+      // These trade-offs are acceptable because:
+      // - Transaction limits are enforced via EntitlementEngine (not real-time counter)
+      // - Billing happens periodically (not per-transaction)
+      // - Server reconciliation backfills all links before billing runs
+      // ═══════════════════════════════════════════════════════════════════════
+      console.info(
+        '[createPosTransaction] No usage counter in local collection.',
+        isOffline ? 'Offline mode: transaction will link when synced.' : 'Online: server will reconcile counter.',
+      )
+      usageCounterId = null
     }
 
     // --- 5b. DEDUCT CREDIT (Phase 3 — PREPAID_CREDITS billing model only) ---
@@ -524,9 +559,12 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
     paymentCollection.insert(payments)
 
     // --- 6. DECREMENT INVENTORY (FIFO) ---
+    // Updated for Production Module: Check if variant is batch-prepared
+    // Batch-prepared products consume FINISHED_GOOD inventory only (no fallback to raw materials)
     const reservedMap = PosStockEngine.getReservedMap(cartForValidation)
     for (const [vId, totalQty] of Object.entries(reservedMap)) {
       const productWithVariant = dbProducts.find(p => p.variants.some(v => v.id === vId))
+      const variant = productWithVariant?.variants.find(v => v.id === vId)
       const unit =
         productWithVariant?.baseUnit ||
         dbProducts
@@ -536,36 +574,69 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
 
       if (!unit) continue
 
-      const inventoryBatches = [...inventoryCollection.values()]
-        .filter(i => i.variantId === vId && i.quantity > 0)
-        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      // PRODUCTION MODULE INTEGRATION: Check if this is a batch-prepared product
+      if (variant?.isBatchPrepared) {
+        // NEW FLOW: Consume finished goods only (no fallback to raw materials)
+        try {
+          const consumptionResult = FinishedGoodsEngine.consumeFinishedGoods({
+            variantId: vId,
+            quantity: totalQty,
+            unitId: unit.id,
+            transactionId: transaction.id,
+            inventoryCollection,
+            movementCollection: inventoryMovementCollection,
+            ctx: {
+              userId: user.id,
+              branchId: user.branch.id,
+              businessId: user.business.id,
+            },
+          })
 
-      const plan = CostingEngine.prepareConsumption('FIFO', { variantId: vId, quantity: totalQty, unit }, inventoryBatches)
+          // Consumption successful - movements already created by FinishedGoodsEngine
+          // Note: totalCost from consumptionResult could be used for COGS tracking
+          console.log(`[POS] Consumed ${totalQty} units of finished goods for variant ${vId}, cost: ${consumptionResult.totalCost}`)
+        } catch (error) {
+          // ConcurrencyError will bubble up and trigger retry at the wrapper level
+          // Other errors (out-of-stock, etc.) will fail the transaction immediately
+          if (error instanceof ConcurrencyError) {
+            console.log(`[POS] ConcurrencyError for variant ${vId}, will retry transaction`)
+          }
+          throw error // Re-throw to abort transaction and trigger retry if needed
+        }
+      } else {
+        // EXISTING FLOW: Not batch-prepared, use existing FIFO logic
+        // This handles both purchased inventory and recipe-based deduction at sale time
+        const inventoryBatches = [...inventoryCollection.values()]
+          .filter(i => i.variantId === vId && i.quantity > 0)
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
-      for (const usage of plan.consumed || []) {
-        inventoryCollection.update(usage.inventoryId, draft => {
-          draft.quantity -= usage.quantity
-        })
+        const plan = CostingEngine.prepareConsumption('FIFO', { variantId: vId, quantity: totalQty, unit }, inventoryBatches)
 
-        inventoryMovementCollection.insert({
-          id: crypto.randomUUID(),
-          variantId: vId,
-          transactionId: transaction.id,
-          inventoryId: usage.inventoryId,
-          userId: user?.id,
-          type: 'OUT',
-          quantity: usage.quantity,
-          reason: `Sale: ${transaction.invoiceNo}`,
-          unitId: unit.id,
-          purchaseId: null,
-          locationId: null,
-          targetBranchId: null,
-          businessId: user.business.id,
-          branchId: user.branch.id,
-          updatedAt: new Date(),
-          createdAt: new Date(),
-          operationalTaskId: null,
-        })
+        for (const usage of plan.consumed || []) {
+          inventoryCollection.update(usage.inventoryId, draft => {
+            draft.quantity -= usage.quantity
+          })
+
+          inventoryMovementCollection.insert({
+            id: crypto.randomUUID(),
+            variantId: vId,
+            transactionId: transaction.id,
+            inventoryId: usage.inventoryId,
+            userId: user?.id,
+            type: 'OUT',
+            quantity: usage.quantity,
+            reason: `Sale: ${transaction.invoiceNo}`,
+            unitId: unit.id,
+            purchaseId: null,
+            locationId: null,
+            targetBranchId: null,
+            businessId: user.business.id,
+            branchId: user.branch.id,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+            operationalTaskId: null,
+          })
+        }
       }
     }
 
@@ -623,6 +694,56 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
   return {
     data: result.value,
   }
+}
+
+/**
+ * createPosTransactionWithRetry
+ *
+ * Wrapper function that handles ConcurrencyError retries for batch-prepared products.
+ * 
+ * CRITICAL: This implements the retry logic required by the production module's
+ * optimistic locking mechanism. When two terminals attempt to sell the last units
+ * of a batch-prepared product simultaneously, one will succeed and the other will
+ * throw ConcurrencyError. This wrapper retries the failed transaction with
+ * exponential backoff.
+ *
+ * Retry behavior:
+ *   - ConcurrencyError: Retry with exponential backoff (max 3 attempts)
+ *   - Other errors: Throw immediately (do NOT retry out-of-stock errors)
+ *
+ * Reference: CONCURRENCY-CONTROL-REQUIREMENT.md, production-edge-cases.md §3
+ */
+export const createPosTransactionWithRetry = async (
+  data: CreateSaleInput,
+  posOrders: posProduct[],
+  maxAttempts = 3
+): Promise<CreatePosTransactionResponse> => {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await createPosTransaction(data, posOrders)
+    } catch (error) {
+      // Only retry on ConcurrencyError (version mismatch)
+      // Do NOT retry on genuine out-of-stock errors
+      if (error instanceof ConcurrencyError && attempt < maxAttempts) {
+        // Exponential backoff: 100ms, 200ms, 400ms
+        const backoffMs = 100 * Math.pow(2, attempt - 1)
+        console.log(
+          `[createPosTransactionWithRetry] Concurrency conflict detected, ` +
+          `retry ${attempt}/${maxAttempts} after ${backoffMs}ms`
+        )
+        await new Promise(resolve => setTimeout(resolve, backoffMs))
+        continue
+      }
+      // Re-throw if:
+      //   - Not a ConcurrencyError (could be out-of-stock, validation error, etc.)
+      //   - Max retry attempts reached
+      throw error
+    }
+  }
+  
+  // This should never be reached due to the throw in the loop,
+  // but TypeScript needs a return statement
+  throw new Error('Max retry attempts reached without success or error')
 }
 
 type CreatePosTransactionFn = typeof createPosTransaction

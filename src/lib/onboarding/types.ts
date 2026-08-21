@@ -99,6 +99,10 @@ export type BusinessCharacteristics = {
   intentToOfferDelivery: boolean
   intentToOpenMoreLocations: boolean
   intentToIntegrateExternalSystems: boolean
+
+  // ── Batch preparation (Phase 6+) ────────────────────────────────────────────
+  preparesBatches: boolean // Prepares items in batches (with or without recipes)
+  preparesBatchesWithRecipes: boolean // Uses recipes/ingredients for batch prep
 }
 
 // ---------------------------------------------------------------------------
@@ -164,6 +168,9 @@ export type SurveyAnswers = {
 
   // Q10: Do you assign tasks to your staff (stock counts, shelf refills, etc.)?
   q10_operational_tasks?: string
+
+  // Q11: Do you prepare products in batches ahead of sale?
+  q11_batch_preparation?: string
 }
 
 // Q1 answer values (multi-select)
@@ -286,6 +293,13 @@ export const Q9_OPTIONS = {
 // Q10 answer values
 export const Q10_OPTIONS = {
   YES: 'yes',
+  NO: 'no',
+} as const
+
+// Q11 answer values
+export const Q11_OPTIONS = {
+  YES_RECIPES: 'yes_recipes',
+  YES_NO_RECIPES: 'yes_no_recipes',
   NO: 'no',
 } as const
 
@@ -557,6 +571,7 @@ export type SuggestedPlan = 'Basic' | 'Premium' | 'Enterprise'
 export type BusinessUsageSummaryInput = {
   supplierCount?: number
   purchaseOrderCount?: number
+  productionOrderCount?: number
   employeeCount?: number
   branchCount?: number
   customerCount?: number

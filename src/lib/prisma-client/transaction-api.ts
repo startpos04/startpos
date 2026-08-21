@@ -75,7 +75,101 @@ const transactionServerFn = createServerFn({ method: 'POST' })
       (e: any) => e.message || 'Transaction batch execution failed',
     )
 
-    return txResult.isOk() ? { value: txResult.value } : { error: txResult.error }
+    if (txResult.isErr()) {
+      return { error: txResult.error }
+    }
+
+    // -------------------------------------------------------------------------
+    // USAGE COUNTER RECONCILIATION (Phase 2 — R2 offline-first compliance)
+    // -------------------------------------------------------------------------
+    // After the main transaction completes successfully, check for Transaction
+    // creates with null usageCounterId and reconcile them.
+    //
+    // This runs OUTSIDE the main Prisma transaction because:
+    // - UsageCounter operations require rootPrisma (business-level, no branchId)
+    // - Main transaction has already committed (can't modify it)
+    // - Counter linking is idempotent and can be retried if it fails
+    //
+    // If reconciliation fails, we log the error but don't fail the request.
+    // The transaction was already committed successfully, and counter linking
+    // can be backfilled later by billing jobs or manual reconciliation.
+    // -------------------------------------------------------------------------
+    try {
+      const { rootPrisma } = await import('@/lib/prisma-client')
+      const executionResults = txResult.value
+
+      for (let i = 0; i < data.operations.length; i++) {
+        const op = data.operations[i]
+        const result = executionResults[i]
+
+        // Only process Transaction creates with null usageCounterId
+        if (op.table === 'transaction' && op.action === 'create' && result?.usageCounterId === null) {
+          const transactionId = result.id
+          const transactionCreatedAt = result.createdAt ? new Date(result.createdAt) : new Date()
+
+          // Find the open counter for this business's current billing period
+          const openCounter = await rootPrisma.usageCounter.findFirst({
+            where: {
+              businessId,
+              isClosed: false,
+              billingPeriodStart: { lte: transactionCreatedAt },
+              billingPeriodEnd: { gte: transactionCreatedAt },
+            },
+            select: { id: true, txCount: true, overageTxCount: true },
+          })
+
+          let counterId: string
+
+          if (openCounter) {
+            // Counter exists — increment it
+            const updated = await rootPrisma.usageCounter.update({
+              where: { id: openCounter.id },
+              data: {
+                txCount: { increment: 1 },
+                updatedAt: new Date(),
+              },
+              select: { id: true },
+            })
+            counterId = updated.id
+          } else {
+            // No counter exists — create one for this period
+            // Calculate period boundaries (simplified: current month)
+            const periodStart = new Date(transactionCreatedAt.getFullYear(), transactionCreatedAt.getMonth(), 1)
+            const periodEnd = new Date(transactionCreatedAt.getFullYear(), transactionCreatedAt.getMonth() + 1, 0, 23, 59, 59, 999)
+
+            const newCounter = await rootPrisma.usageCounter.create({
+              data: {
+                businessId,
+                billingPeriodStart: periodStart,
+                billingPeriodEnd: periodEnd,
+                txCount: 1,
+                overageTxCount: 0,
+                isClosed: false,
+              },
+              select: { id: true },
+            })
+            counterId = newCounter.id
+          }
+
+          // Link the transaction to the counter using rootPrisma
+          await rootPrisma.transaction.update({
+            where: { id: transactionId, businessId },
+            data: { usageCounterId: counterId },
+          })
+
+          // Update the result so the client receives the linked counter ID
+          executionResults[i] = { ...result, usageCounterId: counterId }
+        }
+      }
+    } catch (error) {
+      // Log the error but don't fail the entire request
+      // The main transaction has already been committed successfully
+      // Counter linking can be retried or backfilled later
+      console.error('[transactionAPI] Usage counter reconciliation failed:', error)
+      // Don't throw - allow the response to return successfully with the original results
+    }
+
+    return { value: txResult.value }
   })
 
 // --- EXPORTED PUBLIC API ---

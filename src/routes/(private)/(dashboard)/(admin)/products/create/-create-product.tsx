@@ -17,6 +17,8 @@ import { PriceEngine } from '@/lib/conversion/price-engine'
 import MountManager from '@/lib/mount-manager'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
+import { useCapability } from '@/hooks/use-capability'
 import { AddAddonModal } from './-add-addon'
 import { AddIngredientModal } from './-add-ingredient'
 
@@ -45,12 +47,17 @@ const createProductSchema = (variantId?: string) =>
         { message: 'This SKU is already in use', path: ['sku'] },
       ),
     price: z.number().nonnegative('Price must be 0 or greater'),
+    costPrice: z.number().nonnegative('Cost must be 0 or greater'),
     type: z.enum(ResourceType),
     categoryId: z.string().min(1, 'Category is required'),
     baseUnitId: z.string().min(1, 'Base Unit is required'),
     image: z.string(),
     isAvailable: z.boolean(),
     hasExpiry: z.boolean(),
+    
+    // Batch Preparation
+    isBatchPrepared: z.boolean(),
+    shelfLifeHours: z.number().nullable(),
 
     // These will be mapped to Variants in the handleSubmit
     ingredients: z.array(
@@ -133,6 +140,8 @@ export type CreateProductFormData = z.infer<typeof schema>
 export function CreateProduct({ variantId, onSubmit, defaultValues, children, textBtn }: CreateProductProps) {
   const { data: categoryOptions = [] } = fetchCategoryOptions()
   const { data: unitOptions = [] } = fetchUnitOptions()
+  const hasBatchPreparation = useCapability(Capabilities.BATCH_PREPARATION)
+  const hasInventory = useCapability(Capabilities.MANAGE_INVENTORY)
 
   const form = useForm({
     defaultValues,
@@ -192,6 +201,7 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
             <form.Field name='sku' children={field => <TextInput field={field} label='SKU Base' placeholder='LAT-00' />} />
             <form.Field name='price' children={field => <MoneyInput field={field} label='Base Price' />} />
           </div>
+          <form.Field name='costPrice' children={field => <MoneyInput field={field} label='Cost Price' />} />
           <div className='grid grid-cols-2 gap-3'>
             <form.Field name='categoryId' children={field => <SelectInput field={field} label='Category' options={categoryOptions} />} />
             <form.Field name='baseUnitId' children={field => <SelectInput field={field} label='Base Unit' options={unitOptions} />} />
@@ -227,6 +237,81 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
         </div>
 
         <Separator />
+
+        {/* Production / Batch Preparation */}
+        {hasBatchPreparation && hasInventory && (
+          <>
+            <div className='space-y-3'>
+              <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+                <Package className='w-3 h-3 text-purple-500' /> Production
+              </h4>
+              <form.Subscribe
+                selector={state => state.values.ingredients}
+                children={ingredients => {
+                  const hasRecipe = ingredients.length > 0
+                  return (
+                    <form.Field
+                      name='isBatchPrepared'
+                      children={field => (
+                        <div className='flex items-center justify-between'>
+                          <div>
+                            <Label className={!hasRecipe ? 'text-muted-foreground' : ''}>Batch Prepared</Label>
+                            <p className='text-[10px] text-muted-foreground'>
+                              {hasRecipe ? 'Requires preparation before sale' : 'Add ingredients first to enable batch prep'}
+                            </p>
+                          </div>
+                          <Switch 
+                            checked={field.state.value && hasRecipe} 
+                            onCheckedChange={(checked) => {
+                              if (hasRecipe) {
+                                field.handleChange(checked)
+                              }
+                            }}
+                            disabled={!hasRecipe}
+                          />
+                        </div>
+                      )}
+                    />
+                  )
+                }}
+              />
+              <form.Subscribe
+                selector={state => ({ isBatchPrepared: state.values.isBatchPrepared, ingredients: state.values.ingredients })}
+                children={({ isBatchPrepared, ingredients }) => (
+                  <>
+                    {isBatchPrepared && ingredients.length > 0 && (
+                      <>
+                        <form.Field
+                          name='shelfLifeHours'
+                          children={field => (
+                            <div className='space-y-1.5'>
+                              <Label>Shelf Life (hours)</Label>
+                              <input
+                                type='number'
+                                min='0'
+                                step='1'
+                                placeholder='e.g. 24'
+                                className='flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50'
+                                value={field.state.value ?? ''}
+                                onChange={e => {
+                                  const val = e.target.value
+                                  field.handleChange(val === '' ? null : Number(val))
+                                }}
+                              />
+                              <p className='text-[10px] text-muted-foreground'>Optional: Hours until product expires after prep</p>
+                            </div>
+                          )}
+                        />
+                      </>
+                    )}
+                  </>
+                )}
+              />
+            </div>
+
+            <Separator />
+          </>
+        )}
 
         {/* Variants */}
         <div className='space-y-3'>
@@ -281,50 +366,56 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
         </div>
 
         <Separator />
-        <div className='space-y-3'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
-                <Utensils className='w-3 h-3 text-emerald-500' /> Master Recipe
-              </h4>
-              <p className='text-[10px] text-muted-foreground mt-0.5'>Applies to all variants.</p>
-            </div>
-            <Button type='button' variant='outline' size='sm' className='rounded-full shrink-0' onClick={handleAddIngredient}>
-              <Plus className='size-4 mr-1' /> Add
-            </Button>
-          </div>
-          <form.Subscribe
-            selector={state => state.values.ingredients}
-            children={ingredients => (
-              <div className='space-y-2'>
-                {ingredients.length === 0 && <p className='text-[11px] text-muted-foreground py-2 text-center'>No ingredients added yet.</p>}
-                {ingredients.map((ing, idx) => (
-                  <div key={ing.id || idx} className='flex items-center justify-between p-2.5 bg-muted/30 rounded-xl border border-border/50'>
-                    <div className='flex flex-col min-w-0'>
-                      <span className='font-medium text-sm truncate'>
-                        {[ing.material.name, ing.variant?.name ? `(${ing.variant.name})` : ''].filter(Boolean).join(' ')}
-                      </span>
-                      <span className='text-[10px] text-muted-foreground uppercase font-bold'>
-                        {ing.quantityUsed} {ing.unit.abbreviation}
-                      </span>
-                    </div>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon'
-                      className='h-8 w-8 text-muted-foreground shrink-0'
-                      onClick={() => removeItem('ingredients', idx)}
-                    >
-                      <X className='size-4' />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          />
-        </div>
 
-        <Separator />
+        {/* Master Recipe */}
+        {hasInventory && (
+          <>
+            <div className='space-y-3'>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <h4 className='text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+                    <Utensils className='w-3 h-3 text-emerald-500' /> Master Recipe
+                  </h4>
+                  <p className='text-[10px] text-muted-foreground mt-0.5'>Applies to all variants.</p>
+                </div>
+                <Button type='button' variant='outline' size='sm' className='rounded-full shrink-0' onClick={handleAddIngredient}>
+                  <Plus className='size-4 mr-1' /> Add
+                </Button>
+              </div>
+              <form.Subscribe
+                selector={state => state.values.ingredients}
+                children={ingredients => (
+                  <div className='space-y-2'>
+                    {ingredients.length === 0 && <p className='text-[11px] text-muted-foreground py-2 text-center'>No ingredients added yet.</p>}
+                    {ingredients.map((ing, idx) => (
+                      <div key={ing.id || idx} className='flex items-center justify-between p-2.5 bg-muted/30 rounded-xl border border-border/50'>
+                        <div className='flex flex-col min-w-0'>
+                          <span className='font-medium text-sm truncate'>
+                            {[ing.material.name, ing.variant?.name ? `(${ing.variant.name})` : ''].filter(Boolean).join(' ')}
+                          </span>
+                          <span className='text-[10px] text-muted-foreground uppercase font-bold'>
+                            {ing.quantityUsed} {ing.unit.abbreviation}
+                          </span>
+                        </div>
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='icon'
+                          className='h-8 w-8 text-muted-foreground shrink-0'
+                          onClick={() => removeItem('ingredients', idx)}
+                        >
+                          <X className='size-4' />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              />
+            </div>
+
+            <Separator />
+          </>
+        )}
 
         {/* Add-ons */}
         <div className='space-y-3'>

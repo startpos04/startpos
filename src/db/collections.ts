@@ -24,6 +24,8 @@ import type {
   Product,
   ProductComponent,
   ProductVariant,
+  ProductionOrder,
+  ProductionOrderItem,
   Purchase,
   PurchaseItem,
   SequenceCounter,
@@ -255,4 +257,16 @@ export const auditLogCollection = createSyncableCollection<AuditLog>({
   apiKey: 'auditLog',
   schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand', // Write locally, sync to server automatically
+})
+
+export const productionOrderCollection = createSyncableCollection<ProductionOrder>({
+  apiKey: 'productionOrder',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand',
+})
+
+export const productionOrderItemCollection = createSyncableCollection<ProductionOrderItem>({
+  apiKey: 'productionOrderItem',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand',
 })

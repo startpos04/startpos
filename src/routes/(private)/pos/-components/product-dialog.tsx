@@ -3,6 +3,7 @@ import { useSearch } from '@tanstack/react-router'
 import { ImageIcon, Minus, Plus, Sparkles, X } from 'lucide-react'
 import { useMemo } from 'react'
 import { Form } from '@/components/custom/form'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -81,14 +82,17 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
       <DialogContent className='sm:max-w-[440px] p-0 overflow-hidden gap-0 rounded-3xl [&>button]:hidden'>
         {/* --- HERO IMAGE HEADER --- */}
         <div className='relative w-full h-48 bg-muted flex items-center justify-center overflow-hidden border-b select-none'>
-          {product?.image ? (
-            <img src={product.image} alt={product?.name} className='w-full h-full object-cover' />
-          ) : (
-            <div className='flex flex-col items-center gap-2 text-muted-foreground/60'>
-              <ImageIcon className='w-8 h-8 stroke-[1.5]' />
-              <span className='text-xs font-medium tracking-wide uppercase'>No Preview Available</span>
-            </div>
-          )}
+          <Avatar className='w-full h-full [&>img]:rounded-none [&>span]:rounded-none [&:after]:border-none'>
+            <AvatarImage 
+              src={product?.image ?? ''} 
+              alt={product?.name} 
+              className='object-cover' 
+            />
+            <AvatarFallback className='rounded-none bg-muted flex flex-col items-center justify-center gap-2'>
+              <ImageIcon className='w-8 h-8 stroke-[1.5] text-muted-foreground/60' />
+              <span className='text-xs font-medium tracking-wide uppercase text-muted-foreground/60'>No Preview Available</span>
+            </AvatarFallback>
+          </Avatar>
 
           {/* Top Left: Stock State */}
           <div className='absolute top-4 left-4 z-10'>

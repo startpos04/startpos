@@ -21,7 +21,7 @@ export function CreateProductSidebar({ onClose }: CreateProductSidebarProps) {
   const handleClose = onClose ?? closeProductSidebar
 
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
-    const { ingredients, allowedAddons, sku: productSku, price: productPrice, variants, ...productData } = value
+    const { ingredients, allowedAddons, sku: productSku, price: productPrice, costPrice: productCostPrice, variants, isBatchPrepared, shelfLifeHours, ...productData } = value
     const { user } = authStore.state
 
     const result = await dbTransaction(() => {
@@ -47,10 +47,13 @@ export function CreateProductSidebar({ onClose }: CreateProductSidebarProps) {
         sku: productSku,
         price: productPrice,
         image: null,
-        costPrice: productPrice,
+        costPrice: productCostPrice,
         attributeType: VariantAttributeType.UNSPECIFIED,
         taxCategory: TaxCategory.STANDARD,
         lowStockThreshold: Number(user.systemConfigs.LOW_STOCK_THRESHOLD),
+        isBatchPrepared,
+        productionUsesRecipe: ingredients.length > 0, // Auto-detect from ingredients
+        shelfLifeHours,
         businessId: user.business.id,
         updatedAt: new Date(),
         createdAt: new Date(),
@@ -107,12 +110,15 @@ export function CreateProductSidebar({ onClose }: CreateProductSidebarProps) {
         name: '',
         sku: '',
         price: 0,
+        costPrice: 0,
         type: 'BUNDLE',
         categoryId: '',
         baseUnitId: '',
         image: '',
         isAvailable: true,
         hasExpiry: false,
+        isBatchPrepared: false,
+        shelfLifeHours: null,
         ingredients: [],
         variants: [],
         allowedAddons: [],

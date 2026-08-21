@@ -631,6 +631,33 @@ const CONDITIONAL: Omit<CapabilityDefinition, 'trackingEvents'>[] = [
     minimumPlan: 'Enterprise',
     recommendationScore: c => (c.needsExternalIntegrations ? 0.9 : 0.4),
   },
+  // ── Batch Preparation ──────────────────────────────────────────────────────
+  {
+    id: 'BATCH_PREPARATION',
+    label: 'Batch Preparation',
+    description: 'Prepare products in batches ahead of sale, track shelf life, and manage finished goods inventory.',
+    category: 'OPERATIONS',
+    required: c => c.preparesBatches, // Auto-enable if they said yes in the survey
+    boosters: [
+      { label: 'prepares batches with recipes', signal: c => (c.preparesBatchesWithRecipes ? 1.0 : 0) },
+      { label: 'sells prepared food', signal: c => (c.sellsPreparedFood ? 0.9 : 0) },
+      { label: 'tracks inventory', signal: c => (c.tracksInventory ? 0.7 : 0) },
+      { label: 'strict inventory', signal: c => (c.inventoryCriticality === 'strict' ? 0.6 : 0) },
+    ],
+    threshold: 0.5,
+    outputs: () => [],
+    rollbackOutputs: () => [],
+    deferrable: true,
+    configuredSignal: s => (s.productionOrderCount ?? 0) >= 3,
+    estimatedSetupMinutes: 15,
+    isComplex: false,
+    businessValue: 'Prepare items like sandwiches, pastries, or meal prep in batches. Track shelf life and reduce waste.',
+    hardDependencies: ['MANAGE_INVENTORY', 'MANAGE_PRODUCTS'],
+    relatedCapabilities: ['MANAGE_INVENTORY', 'VIEW_INVENTORY_REPORTS'],
+    conflicts: [],
+    minimumPlan: 'Premium',
+    recommendationScore: c => (c.preparesBatchesWithRecipes && c.tracksInventory ? 1.0 : c.preparesBatches ? 0.8 : 0.3),
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -807,6 +834,10 @@ const TRACKING_EVENTS_MAP: Record<string, CapabilityDefinition['trackingEvents']
   ],
   KITCHEN_DISPLAY: [{ event: 'CAPABILITY_STATE_CHANGED', when: 'User accepts recommendation or admin enables' }],
   DELIVERY_MANAGEMENT: [{ event: 'CAPABILITY_STATE_CHANGED', when: 'User accepts recommendation or admin enables' }],
+  BATCH_PREPARATION: [
+    { event: 'CAPABILITY_STATE_CHANGED', when: 'User accepts recommendation or admin enables' },
+    { event: 'PRODUCTION_ORDER_CREATED', when: 'User completes first batch preparation' },
+  ],
 }
 
 /**

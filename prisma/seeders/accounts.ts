@@ -7,6 +7,7 @@ import { hashPassword } from 'better-auth/crypto'
 import Papa from 'papaparse'
 import type { PrismaClient } from 'prisma/generated/prisma/client'
 import { BusinessType, Role } from 'prisma/generated/prisma/enums'
+import { CAPABILITY_REGISTRY } from '../../src/lib/onboarding/capability-registry'
 // fallow-ignore-next-line unused-export
 export const order = 0
 
@@ -189,6 +190,72 @@ export async function Accounts(prisma: PrismaClient, options: { folder: string }
       console.info(`✨ Credentials compiled successfully: ${user.email}`)
     }
   }
+
+  // =========================================================================
+  // ENABLE REQUIRED CAPABILITIES
+  // =========================================================================
+  console.info('🔐 Initializing required capabilities for business...')
+  
+  // Get all capabilities that are always required (no context needed)
+  const requiredCapabilities = CAPABILITY_REGISTRY.filter(cap => {
+    // Only enable capabilities where required is a function that returns true
+    // without needing characteristics context (i.e., () => true)
+    if (typeof cap.required === 'function') {
+      try {
+        // Try calling with empty context - if it throws or returns false, skip it
+        const result = cap.required({} as any)
+        return result === true
+      } catch {
+        // If function needs context (like c.paymentTiming), skip it
+        // These will be enabled during normal onboarding flow
+        return false
+      }
+    }
+    return cap.required === true
+  })
+
+  console.info(`   Found ${requiredCapabilities.length} always-required capabilities to enable`)
+
+  const enabledAt = new Date()
+
+  for (const capability of requiredCapabilities) {
+    // Build state history entry
+    const historyEntry = {
+      state: 'ENABLED',
+      changedAt: enabledAt.toISOString(),
+      changedBy: 'system',
+      reason: 'Required capability - auto-enabled during seed',
+    }
+
+    await prisma.businessCapabilityState.upsert({
+      where: {
+        businessId_capabilityId: {
+          businessId: org.id,
+          capabilityId: capability.id,
+        },
+      },
+      update: {
+        state: 'ENABLED',
+        confidence: 1.0,
+        enteredBy: 'system',
+        enteredAt: enabledAt,
+        enabledAt: enabledAt,
+        stateHistory: [historyEntry],
+      },
+      create: {
+        businessId: org.id,
+        capabilityId: capability.id,
+        state: 'ENABLED',
+        confidence: 1.0,
+        enteredBy: 'system',
+        enteredAt: enabledAt,
+        enabledAt: enabledAt,
+        stateHistory: [historyEntry],
+      },
+    })
+  }
+
+  console.info(`✅ Enabled ${requiredCapabilities.length} required capabilities`)
 
   // Bubble up dynamic context keys directly to seed.ts runner pipeline
   return { org: { id: org.id }, branch: { id: branch.id } }

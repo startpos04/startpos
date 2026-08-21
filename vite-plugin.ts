@@ -16,7 +16,13 @@ export function tanstackSerwistPlugin(): Plugin {
       isProduction = config.command === 'build'
     },
     async buildStart() {
-      if (!isProduction && !isBuilding) {
+      // Skip service worker build entirely in development to prevent module resolution issues
+      // Service worker will only be built and active in production
+      if (!isProduction) {
+        console.log('[SERWIST] Skipping service worker build in development mode')
+        return
+      }
+      if (!isBuilding) {
         isBuilding = true
         await buildServiceWorker(rootDir, false)
         isBuilding = false

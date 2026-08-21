@@ -12,9 +12,12 @@ import { ThemeToggle } from '@/components/custom/theme/theme-toggle'
 import { useSubscriptionGate } from '@/components/feature-disabled'
 import { sequenceCounterCollection } from '@/db/collections'
 import { useAppForm } from '@/hooks/form'
+import { useBarcodeScanner } from '@/hooks/use-barcode-scanner'
 import { useCapability } from '@/hooks/use-capability'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
+import { handleBarcodeScan, mergeCartItem } from '@/lib/barcode-handler'
+import { getBluetoothPrinter } from '@/lib/bluetooth-printer'
 import type { posItem } from '@/lib/conversion/pos-stock-engine'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager from '@/lib/mount-manager'
@@ -29,7 +32,9 @@ import { CartAside } from './-components/cart-aside'
 import { OfflineModeIndicator } from './-components/offline-mode-indicator'
 import { OpenSessionDialog } from './-components/open-session-dialog'
 import type { PaymentLine } from './-components/payment-dialog'
+import { ProductDialog } from './-components/product-dialog'
 import { ProductItems } from './-components/product-items'
+import { QuickAddDialog } from './-components/quick-add-dialog'
 import { ReceiptPDF } from './-components/receipt-ticket'
 
 export const posFormOpts = formOptions({
@@ -66,9 +71,14 @@ function POSPage() {
   const isMobile = useIsMobile()
   const user = useStore(authStore, state => state.user)
   const canReconcile = useCapability(Capabilities.START_VENDOR_SESSION)
+  const canPrintReceipt = useCapability(Capabilities.PRINT_RECEIPT)
   const { orderId, search = '', page = 1, pageSize = 20 } = useSearch({ from: '/(private)/pos/' })
   const { data: activeOrders = [], isLoading: isFetchingActiveOrders } = fetchActiveOrders()
   const { data: posProducts = [], isLoading: isPosProductsLoading } = fetchPosProducts({ searchQuery: search, page, pageSize })
+  
+  // Fetch all products for barcode scanning (not limited by pagination)
+  const { data: allPosProducts = [] } = fetchPosProducts({ searchQuery: '', page: 1, pageSize: 1000, all: true })
+  
   useLiveQuery(q => q.from({ sequence: sequenceCounterCollection }))
 
   const handleConfirm = async (
@@ -136,8 +146,24 @@ function POSPage() {
     form.reset()
     navigate({ to: '.', search: (prev: Record<string, unknown>) => ({ ...prev, orderId: undefined }), replace: true })
 
+    // Open cash drawer if payment includes cash and Bluetooth printer is connected
+    const hasCashPayment = value.payments.some(p => p.method === 'CASH')
+    if (hasCashPayment) {
+      const printer = getBluetoothPrinter()
+      if (printer.isConnected()) {
+        try {
+          await printer.openCashDrawer()
+          console.log('Cash drawer opened successfully')
+        } catch (error) {
+          console.error('Failed to open cash drawer (transaction completed):', error)
+          // Don't show error to user - transaction was successful
+        }
+      }
+    }
+
     // Attempt to print receipt — failure must never block or revert the completed sale
-    if (user.systemConfigs.ENABLE_PRINT_RECEIPT) {
+    // Only print if both the capability is granted AND the system config is enabled
+    if (canPrintReceipt && user.systemConfigs.ENABLE_PRINT_RECEIPT) {
       try {
         const doc = <ReceiptPDF result={result} data={value} />
         const asBlob = await pdf(doc).toBlob()
@@ -245,6 +271,114 @@ function POSPage() {
     },
   })
 
+  // Barcode scanner integration
+  const cartItems = useStore(form.store, s => s.values.items)
+  
+  // Get order items for stock calculation
+  const orderItems = useMemo(() => {
+    if (!orderId || !activeOrders.length) return []
+    const existingOrder = activeOrders.find(o => o.id === orderId)
+    if (!existingOrder) return []
+    
+    return existingOrder.items.map(item => {
+      const product = allPosProducts.find(p => p.id === item.variant.productId)
+      if (!product) return null
+      const variant = product.variants.find(v => v.id === item.variantId) || null
+      if (!variant) return null
+      const addons = item.selectedAddons.map(a => variant.components.find(c => c.isAddon && c.materialId === a.addonId)).filter(Boolean)
+
+      return {
+        cartId: uuid(),
+        product,
+        variant,
+        quantity: item.quantity,
+        addons,
+      }
+    }).filter(Boolean) as posItem[]
+  }, [orderId, activeOrders, allPosProducts])
+
+  // Centralized barcode handler (used by both scanner and test input)
+  const handleBarcodeScanned = (barcode: string) => {
+    const result = handleBarcodeScan({
+      barcode,
+      products: allPosProducts,
+      cartItems,
+      orderItems,
+      quantity: 1,
+    })
+
+    if (result.action === 'auto-add' && result.item) {
+      // Auto-add simple product to cart
+      const currentItems = form.getFieldValue('items') as posItem[]
+      const updatedItems = mergeCartItem(currentItems, result.item)
+      form.setFieldValue('items', updatedItems)
+      
+      // Enhanced success feedback with product details
+      toast.success(
+        `Added ${result.item.product.name}`,
+        {
+          description: `${result.item.quantity}x ${result.item.variant.name} • SKU: ${barcode}`,
+          duration: 2000,
+        }
+      )
+    } else if (result.action === 'show-dialog' && result.product) {
+      // Show dialog for complex product
+      MountManager.show(ProductDialog, {
+        product: result.product,
+        cartItems,
+        onConfirm: (item: posItem) => {
+          const currentItems = form.getFieldValue('items') as posItem[]
+          const updatedItems = mergeCartItem(currentItems, item)
+          form.setFieldValue('items', updatedItems)
+        },
+      })
+      toast.info(
+        `${result.product.name} requires selection`,
+        {
+          description: 'Choose variant or customization options',
+          duration: 3000,
+        }
+      )
+    } else if (result.action === 'out-of-stock') {
+      toast.error(
+        'Out of stock',
+        {
+          description: result.message || 'Product is not available',
+          duration: 3000,
+        }
+      )
+    } else if (result.action === 'not-found') {
+      // Show QuickAddDialog with the scanned barcode as the SKU
+      MountManager.show(QuickAddDialog, {
+        searchQuery: '', // Empty product name - user will fill this
+        sku: barcode, // Barcode becomes the SKU
+        onConfirm: (item: posItem) => {
+          const currentItems = form.getFieldValue('items') as posItem[]
+          const updatedItems = mergeCartItem(currentItems, item)
+          form.setFieldValue('items', updatedItems)
+        },
+      })
+      toast.info(
+        'Product not found',
+        {
+          description: `No product with SKU: ${barcode}. Add it now?`,
+          duration: 3000,
+        }
+      )
+    }
+  }
+
+  const { isScanning } = useBarcodeScanner({
+    enabled: true,
+    onScan: handleBarcodeScanned,
+    onError: (error) => {
+      toast.error('Scan error', {
+        description: error,
+        duration: 2000,
+      })
+    },
+  })
+
   useEffect(() => {
     // Only enforce shift sessions when cash reconciliation is enabled
     if (!canReconcile) return
@@ -271,8 +405,15 @@ function POSPage() {
   return (
     <div className='flex h-screen flex-col w-full bg-background overflow-hidden'>
       {/* Phase 2: Offline mode indicator */}
-      <div className='p-2 md:p-4 pb-0'>
+      <div className='p-2 md:p-4 pb-0 empty:hidden'>
         <OfflineModeIndicator />
+        {/* Barcode scanning indicator */}
+        {isScanning && (
+          <div className='mt-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center gap-2 animate-pulse'>
+            <div className='w-2 h-2 rounded-full bg-blue-500' />
+            <span className='text-xs font-medium text-blue-600 dark:text-blue-400'>Scanning barcode...</span>
+          </div>
+        )}
       </div>
 
       <div className='flex flex-1 flex-col md:flex-row p-2 pt-0 md:p-4 md:pt-2 gap-2 md:gap-4 overflow-hidden'>

@@ -4,6 +4,25 @@ import { toast } from 'sonner'
 
 export const useSw = () => {
   useEffect(() => {
+    // Completely disable service worker in development to prevent module resolution issues
+    const isDev = import.meta.env.DEV
+    if (isDev) {
+      console.log('[SW] Service worker disabled in development mode')
+      
+      // Unregister any existing service worker from previous sessions
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (const registration of registrations) {
+            registration.unregister().then(() => {
+              console.log('[SW] Unregistered existing service worker for development')
+            })
+          }
+        })
+      }
+      
+      return
+    }
+
     if (!('serviceWorker' in navigator)) return
 
     // Captured once, at mount — distinguishes "this page had no SW yet"

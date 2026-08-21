@@ -56,7 +56,11 @@ export const fetchPosProducts = ({ searchQuery, page, pageSize, all }: fetchPosP
         .where(({ variant, product }) =>
           and(
             gt(variant.price, 0),
-            or(searchQuery ? ilike(product.name, `%${searchQuery}%`) : undefined, searchQuery ? ilike(variant.name, `%${searchQuery}%`) : undefined),
+            or(
+              searchQuery ? ilike(product.name, `%${searchQuery}%`) : undefined,
+              searchQuery ? ilike(variant.name, `%${searchQuery}%`) : undefined,
+              searchQuery ? ilike(variant.sku, `%${searchQuery}%`) : undefined,
+            ),
           ),
         )
         .distinct()
@@ -75,7 +79,11 @@ export const fetchPosProducts = ({ searchQuery, page, pageSize, all }: fetchPosP
         .where(({ variant, product }) =>
           and(
             gt(variant.price, 0),
-            or(searchQuery ? ilike(product.name, `%${searchQuery}%`) : undefined, searchQuery ? ilike(variant.name, `%${searchQuery}%`) : undefined),
+            or(
+              searchQuery ? ilike(product.name, `%${searchQuery}%`) : undefined,
+              searchQuery ? ilike(variant.name, `%${searchQuery}%`) : undefined,
+              searchQuery ? ilike(variant.sku, `%${searchQuery}%`) : undefined,
+            ),
           ),
         )
         .distinct()

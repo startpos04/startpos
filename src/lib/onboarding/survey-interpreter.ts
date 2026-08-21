@@ -35,6 +35,7 @@ import {
   Q8_OPTIONS,
   Q9_OPTIONS,
   Q10_OPTIONS,
+  Q11_OPTIONS,
 } from './types'
 
 /**
@@ -156,6 +157,11 @@ export function interpretSurvey(answers: SurveyAnswers): BusinessCharacteristics
   // No auto-enable for unanswered cases — survey is now shown to all team sizes.
   const usesOperationalTasks = q10 === Q10_OPTIONS.YES
 
+  // ── Q11: Do you prepare items in batches? ───────────────────────────────────
+  const q11 = answers.q11_batch_preparation
+  const preparesBatchesWithRecipes = q11 === Q11_OPTIONS.YES_RECIPES
+  const preparesBatches = q11 === Q11_OPTIONS.YES_RECIPES || q11 === Q11_OPTIONS.YES_NO_RECIPES
+
   // ── Derived fields ───────────────────────────────────────────────────────────
 
   // Daily transaction volume is not directly surveyed in Phase 1 — inferred from
@@ -233,5 +239,8 @@ export function interpretSurvey(answers: SurveyAnswers): BusinessCharacteristics
     intentToOfferDelivery: d.intentToOfferDelivery,
     intentToOpenMoreLocations: d.intentToOpenMoreLocations,
     intentToIntegrateExternalSystems: d.intentToIntegrateExternalSystems,
+    // Batch preparation fields
+    preparesBatches,
+    preparesBatchesWithRecipes,
   }
 }

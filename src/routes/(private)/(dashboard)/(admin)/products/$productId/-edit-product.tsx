@@ -19,7 +19,7 @@ interface EditProductSidebarProps extends MountProps {
 export function EditProductSidebar({ productId, variantId, defaultValues, open: _open, onClose, onBack }: EditProductSidebarProps) {
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
     const { user } = authStore.state
-    const { sku, price, variants, ingredients, allowedAddons, ...productData } = value
+    const { sku, price, costPrice, variants, ingredients, allowedAddons, isBatchPrepared, shelfLifeHours, ...productData } = value
 
     const result = await dbTransaction(() => {
       // 1. UPDATE PRODUCT
@@ -45,7 +45,11 @@ export function EditProductSidebar({ productId, variantId, defaultValues, open: 
             draft.name = finalName
             draft.sku = finalSku
             draft.price = price
+            draft.costPrice = costPrice
             draft.attributeType = isDefault ? VariantAttributeType.UNSPECIFIED : v.attributeType
+            draft.isBatchPrepared = isBatchPrepared
+            draft.productionUsesRecipe = ingredients.length > 0 // Auto-detect from ingredients
+            draft.shelfLifeHours = shelfLifeHours
             draft.updatedAt = new Date()
           })
         } else {
@@ -55,11 +59,14 @@ export function EditProductSidebar({ productId, variantId, defaultValues, open: 
             name: finalName,
             sku: finalSku,
             price: price,
-            costPrice: 0,
+            costPrice: costPrice,
             image: null,
             attributeType: isDefault ? VariantAttributeType.UNSPECIFIED : v.attributeType,
             taxCategory: TaxCategory.STANDARD,
             lowStockThreshold: user.systemConfigs.LOW_STOCK_THRESHOLD,
+            isBatchPrepared,
+            productionUsesRecipe: ingredients.length > 0, // Auto-detect from ingredients
+            shelfLifeHours,
             businessId: user.business.id,
             updatedAt: new Date(),
             createdAt: new Date(),

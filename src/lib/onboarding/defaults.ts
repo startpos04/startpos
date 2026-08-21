@@ -77,4 +77,8 @@ export const DEFAULT_CHARACTERISTICS: BusinessCharacteristics = {
   intentToOfferDelivery: false,
   intentToOpenMoreLocations: false,
   intentToIntegrateExternalSystems: false,
+
+  // Batch preparation
+  preparesBatches: false,
+  preparesBatchesWithRecipes: false,
 }

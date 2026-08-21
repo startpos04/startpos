@@ -78,6 +78,7 @@ export const Capabilities = {
   LOYALTY_POINTS: 'LOYALTY_POINTS',
   KITCHEN_DISPLAY: 'KITCHEN_DISPLAY',
   DELIVERY_MANAGEMENT: 'DELIVERY_MANAGEMENT',
+  BATCH_PREPARATION: 'BATCH_PREPARATION',
 } as const
 
 /**
@@ -102,4 +103,5 @@ export const OPERATIONAL_CAPABILITIES = new Set<CapabilityKey>([
   Capabilities.CREATE_PURCHASE,
   Capabilities.MANAGE_INVENTORY,
   Capabilities.CREATE_TASK,
+  Capabilities.BATCH_PREPARATION,
 ])

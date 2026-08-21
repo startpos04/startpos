@@ -5,6 +5,7 @@ import { ProfileDropdown } from '../../orders/-components/profile-dropdown'
 import { SearchInput } from '../../orders/-components/search-input'
 import Title from '../../orders/-components/title'
 import { ActiveOrdersButton } from './active-orders-btn'
+import { BluetoothPrinterControl } from './bluetooth-printer-control'
 
 export const PosHeader = () => {
   const user = useStore(authStore, state => state.user)
@@ -14,6 +15,7 @@ export const PosHeader = () => {
       <Title />
       <SearchInput />
       <div className='flex items-center gap-1'>
+        <BluetoothPrinterControl />
         <div className='w-10 ml-5'>
           <ThemeToggle />
         </div>
