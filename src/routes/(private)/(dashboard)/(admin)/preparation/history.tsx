@@ -39,11 +39,7 @@ function RouteComponent() {
 
   // Get selected order details
   const selectedOrder = selectedOrderId ? productionOrderCollection.get(selectedOrderId) : null
-  const selectedOrderItems = selectedOrder
-    ? [...productionOrderItemCollection.values()].filter(
-        item => item.productionOrderId === selectedOrderId
-      )
-    : []
+  const selectedOrderItems = selectedOrder ? [...productionOrderItemCollection.values()].filter(item => item.productionOrderId === selectedOrderId) : []
 
   const getStatusBadge = (status: ProductionStatus) => {
     const variants: Record<ProductionStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
@@ -62,7 +58,7 @@ function RouteComponent() {
     const durationMs = new Date(end).getTime() - new Date(start).getTime()
     const minutes = Math.floor(durationMs / (1000 * 60))
     const hours = Math.floor(minutes / 60)
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes % 60}m`
     }
@@ -75,9 +71,7 @@ function RouteComponent() {
       <div className='flex items-center justify-between'>
         <div>
           <h1 className='text-3xl font-bold tracking-tight'>Production History</h1>
-          <p className='text-muted-foreground mt-1'>
-            View past preparation batches and material consumption
-          </p>
+          <p className='text-muted-foreground mt-1'>View past preparation batches and material consumption</p>
         </div>
         <Button variant='outline' onClick={() => window.history.back()}>
           Back to Preparation
@@ -93,7 +87,7 @@ function RouteComponent() {
           <div className='flex gap-4'>
             <div className='w-64'>
               <label className='text-sm font-medium mb-2 block'>Status</label>
-              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as FilterStatus)}>
+              <Select value={statusFilter} onValueChange={value => setStatusFilter(value as FilterStatus)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -122,9 +116,7 @@ function RouteComponent() {
           </CardHeader>
           <CardContent className='space-y-2 max-h-[600px] overflow-y-auto'>
             {productionOrders.length === 0 ? (
-              <div className='text-center py-8 text-muted-foreground'>
-                No production orders found
-              </div>
+              <div className='text-center py-8 text-muted-foreground'>No production orders found</div>
             ) : (
               productionOrders.map(order => {
                 const variant = productVariantCollection.get(order.targetVariantId)
@@ -135,31 +127,25 @@ function RouteComponent() {
                     key={order.id}
                     className={cn(
                       'p-4 rounded-lg border cursor-pointer transition-colors',
-                      isSelected
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border bg-card hover:bg-accent'
+                      isSelected ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-accent',
                     )}
                     onClick={() => setSelectedOrderId(order.id)}
                   >
                     <div className='flex items-start justify-between mb-2'>
                       <div>
                         <h4 className='font-semibold'>{order.orderNumber}</h4>
-                        <p className='text-sm text-muted-foreground'>
-                          {variant?.name || 'Unknown Product'}
-                        </p>
+                        <p className='text-sm text-muted-foreground'>{variant?.name || 'Unknown Product'}</p>
                       </div>
                       {getStatusBadge(order.status)}
                     </div>
 
                     <div className='grid grid-cols-2 gap-2 text-sm mt-2'>
                       <div>
-                        <span className='text-muted-foreground'>Target:</span>{' '}
-                        <span className='font-medium'>{order.targetQuantity}</span>
+                        <span className='text-muted-foreground'>Target:</span> <span className='font-medium'>{order.targetQuantity}</span>
                       </div>
                       {order.actualQuantity !== null && (
                         <div>
-                          <span className='text-muted-foreground'>Actual:</span>{' '}
-                          <span className='font-medium'>{order.actualQuantity}</span>
+                          <span className='text-muted-foreground'>Actual:</span> <span className='font-medium'>{order.actualQuantity}</span>
                         </div>
                       )}
                     </div>
@@ -187,9 +173,7 @@ function RouteComponent() {
         <Card>
           <CardHeader>
             <CardTitle>Order Details</CardTitle>
-            <CardDescription>
-              {selectedOrder ? `${selectedOrder.orderNumber} details` : 'Select an order to view details'}
-            </CardDescription>
+            <CardDescription>{selectedOrder ? `${selectedOrder.orderNumber} details` : 'Select an order to view details'}</CardDescription>
           </CardHeader>
           <CardContent>
             {!selectedOrder ? (
@@ -209,24 +193,18 @@ function RouteComponent() {
                   <div className='grid grid-cols-2 gap-4 text-sm'>
                     <div>
                       <span className='text-muted-foreground block mb-1'>Created</span>
-                      <span className='font-medium'>
-                        {new Date(selectedOrder.createdAt).toLocaleString()}
-                      </span>
+                      <span className='font-medium'>{new Date(selectedOrder.createdAt).toLocaleString()}</span>
                     </div>
                     {selectedOrder.startedAt && (
                       <div>
                         <span className='text-muted-foreground block mb-1'>Started</span>
-                        <span className='font-medium'>
-                          {new Date(selectedOrder.startedAt).toLocaleString()}
-                        </span>
+                        <span className='font-medium'>{new Date(selectedOrder.startedAt).toLocaleString()}</span>
                       </div>
                     )}
                     {selectedOrder.completedAt && (
                       <div>
                         <span className='text-muted-foreground block mb-1'>Completed</span>
-                        <span className='font-medium'>
-                          {new Date(selectedOrder.completedAt).toLocaleString()}
-                        </span>
+                        <span className='font-medium'>{new Date(selectedOrder.completedAt).toLocaleString()}</span>
                       </div>
                     )}
                   </div>
@@ -235,7 +213,7 @@ function RouteComponent() {
                 {/* Production Details */}
                 <div className='space-y-3'>
                   <h4 className='font-semibold'>Production Details</h4>
-                  
+
                   <div className='p-4 rounded-lg border bg-muted/50 space-y-2'>
                     <div className='flex justify-between'>
                       <span className='text-sm text-muted-foreground'>Target Quantity</span>
@@ -250,19 +228,19 @@ function RouteComponent() {
                         {selectedOrder.actualQuantity !== selectedOrder.targetQuantity && (
                           <div className='flex justify-between items-center'>
                             <span className='text-sm text-muted-foreground'>Variance</span>
-                            <span className={cn(
-                              'font-medium flex items-center gap-1',
-                              selectedOrder.actualQuantity < selectedOrder.targetQuantity
-                                ? 'text-orange-600'
-                                : 'text-green-600'
-                            )}>
+                            <span
+                              className={cn(
+                                'font-medium flex items-center gap-1',
+                                selectedOrder.actualQuantity < selectedOrder.targetQuantity ? 'text-orange-600' : 'text-green-600',
+                              )}
+                            >
                               {selectedOrder.actualQuantity < selectedOrder.targetQuantity ? (
                                 <TrendingDown className='w-4 h-4' />
                               ) : (
                                 <TrendingUp className='w-4 h-4' />
                               )}
-                              {Math.abs(selectedOrder.actualQuantity - selectedOrder.targetQuantity)}
-                              {' '}({((selectedOrder.actualQuantity - selectedOrder.targetQuantity) / selectedOrder.targetQuantity * 100).toFixed(1)}%)
+                              {Math.abs(selectedOrder.actualQuantity - selectedOrder.targetQuantity)} (
+                              {(((selectedOrder.actualQuantity - selectedOrder.targetQuantity) / selectedOrder.targetQuantity) * 100).toFixed(1)}%)
                             </span>
                           </div>
                         )}
@@ -285,21 +263,14 @@ function RouteComponent() {
                       {selectedOrderItems.map(item => {
                         const material = productVariantCollection.get(item.materialVariantId)
                         return (
-                          <div
-                            key={item.id}
-                            className='flex items-center justify-between p-3 rounded-lg border bg-card'
-                          >
+                          <div key={item.id} className='flex items-center justify-between p-3 rounded-lg border bg-card'>
                             <div>
                               <p className='font-medium text-sm'>{material?.name || 'Unknown'}</p>
-                              <p className='text-xs text-muted-foreground'>
-                                Cost: {PriceEngine.format(item.unitCost)} per unit
-                              </p>
+                              <p className='text-xs text-muted-foreground'>Cost: {PriceEngine.format(item.unitCost)} per unit</p>
                             </div>
                             <div className='text-right'>
                               <p className='font-medium'>{item.quantityUsed}</p>
-                              <p className='text-xs text-muted-foreground'>
-                                {PriceEngine.format(Math.round(item.unitCost * item.quantityUsed))} total
-                              </p>
+                              <p className='text-xs text-muted-foreground'>{PriceEngine.format(Math.round(item.unitCost * item.quantityUsed))} total</p>
                             </div>
                           </div>
                         )
@@ -312,9 +283,7 @@ function RouteComponent() {
                 {selectedOrder.notes && (
                   <div className='space-y-2'>
                     <h4 className='font-semibold'>Notes</h4>
-                    <p className='text-sm text-muted-foreground whitespace-pre-wrap'>
-                      {selectedOrder.notes}
-                    </p>
+                    <p className='text-sm text-muted-foreground whitespace-pre-wrap'>{selectedOrder.notes}</p>
                   </div>
                 )}
               </div>

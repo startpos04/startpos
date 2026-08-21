@@ -141,13 +141,7 @@ export const FinishedGoodsEngine = {
 
     // Get finished goods batches sorted by producedAt (oldest first = FIFO)
     const finishedBatches = [...inventoryCollection.values()]
-      .filter(
-        i =>
-          i.variantId === variantId &&
-          i.branchId === ctx.branchId &&
-          i.inventoryType === InventoryType.FINISHED_GOOD &&
-          i.quantity > 0
-      )
+      .filter(i => i.variantId === variantId && i.branchId === ctx.branchId && i.inventoryType === InventoryType.FINISHED_GOOD && i.quantity > 0)
       .sort((a, b) => {
         const aTime = (a.producedAt || a.createdAt).getTime()
         const bTime = (b.producedAt || b.createdAt).getTime()
@@ -159,9 +153,7 @@ export const FinishedGoodsEngine = {
 
     if (totalAvailable < quantity) {
       throw new Error(
-        `Insufficient finished goods for variant ${variantId}. ` +
-          `Available: ${totalAvailable}, Required: ${quantity}. ` +
-          `Please prepare more inventory.`
+        `Insufficient finished goods for variant ${variantId}. ` + `Available: ${totalAvailable}, Required: ${quantity}. ` + `Please prepare more inventory.`,
       )
     }
 
@@ -184,7 +176,7 @@ export const FinishedGoodsEngine = {
           throw new ConcurrencyError(
             `Inventory ${batch.id} was modified by another transaction. ` +
               `Expected version ${expectedVersion}, found ${draft.version}. ` +
-              `This transaction will be retried.`
+              `This transaction will be retried.`,
           )
         }
 
@@ -232,8 +224,7 @@ export const FinishedGoodsEngine = {
     // Verify we consumed exactly what was requested
     if (remaining > 0.000001) {
       throw new Error(
-        `Consumption verification failed: ${remaining} units remaining after FIFO consumption. ` +
-          `This should not happen if total availability check passed.`
+        `Consumption verification failed: ${remaining} units remaining after FIFO consumption. ` + `This should not happen if total availability check passed.`,
       )
     }
 
@@ -251,20 +242,9 @@ export const FinishedGoodsEngine = {
    *
    * Use this for UI validation or pre-flight checks before attempting a transaction.
    */
-  checkAvailability(
-    variantId: string,
-    quantity: number,
-    branchId: string,
-    inventoryCollection: typeof InventoryCollectionType
-  ): boolean {
+  checkAvailability(variantId: string, quantity: number, branchId: string, inventoryCollection: typeof InventoryCollectionType): boolean {
     const totalAvailable = [...inventoryCollection.values()]
-      .filter(
-        i =>
-          i.variantId === variantId &&
-          i.branchId === branchId &&
-          i.inventoryType === InventoryType.FINISHED_GOOD &&
-          i.quantity > 0
-      )
+      .filter(i => i.variantId === variantId && i.branchId === branchId && i.inventoryType === InventoryType.FINISHED_GOOD && i.quantity > 0)
       .reduce((sum, b) => sum + b.quantity, 0)
 
     return totalAvailable >= quantity
@@ -283,14 +263,14 @@ export const FinishedGoodsEngine = {
     branchId: string,
     hoursThreshold: number,
     inventoryCollection: typeof InventoryCollectionType,
-    productVariantCollection: typeof ProductVariantCollectionType
+    productVariantCollection: typeof ProductVariantCollectionType,
   ): ExpiringBatch[] {
     const now = new Date()
     const expiringBatches: ExpiringBatch[] = []
 
     // Get all finished goods with shelf life configured
     const finishedGoods = [...inventoryCollection.values()].filter(
-      i => i.branchId === branchId && i.inventoryType === InventoryType.FINISHED_GOOD && i.quantity > 0
+      i => i.branchId === branchId && i.inventoryType === InventoryType.FINISHED_GOOD && i.quantity > 0,
     )
 
     for (const batch of finishedGoods) {
@@ -326,19 +306,9 @@ export const FinishedGoodsEngine = {
    * Simple aggregation across all finished goods batches.
    * Used for low stock detection and UI displays.
    */
-  getTotalFinishedGoods(
-    variantId: string,
-    branchId: string,
-    inventoryCollection: typeof InventoryCollectionType
-  ): number {
+  getTotalFinishedGoods(variantId: string, branchId: string, inventoryCollection: typeof InventoryCollectionType): number {
     return [...inventoryCollection.values()]
-      .filter(
-        i =>
-          i.variantId === variantId &&
-          i.branchId === branchId &&
-          i.inventoryType === InventoryType.FINISHED_GOOD &&
-          i.quantity > 0
-      )
+      .filter(i => i.variantId === variantId && i.branchId === branchId && i.inventoryType === InventoryType.FINISHED_GOOD && i.quantity > 0)
       .reduce((sum, b) => sum + b.quantity, 0)
   },
 
@@ -352,7 +322,7 @@ export const FinishedGoodsEngine = {
     variantId: string,
     branchId: string,
     inventoryCollection: typeof InventoryCollectionType,
-    productVariantCollection: typeof ProductVariantCollectionType
+    productVariantCollection: typeof ProductVariantCollectionType,
   ): Array<{
     inventoryId: string
     quantity: number
@@ -367,13 +337,7 @@ export const FinishedGoodsEngine = {
     const variant = productVariantCollection.get(variantId)
 
     return [...inventoryCollection.values()]
-      .filter(
-        i =>
-          i.variantId === variantId &&
-          i.branchId === branchId &&
-          i.inventoryType === InventoryType.FINISHED_GOOD &&
-          i.quantity > 0
-      )
+      .filter(i => i.variantId === variantId && i.branchId === branchId && i.inventoryType === InventoryType.FINISHED_GOOD && i.quantity > 0)
       .sort((a, b) => {
         const aTime = (a.producedAt || a.createdAt).getTime()
         const bTime = (b.producedAt || b.createdAt).getTime()

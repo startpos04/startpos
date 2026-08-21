@@ -8,7 +8,7 @@ export const useSw = () => {
     const isDev = import.meta.env.DEV
     if (isDev) {
       console.log('[SW] Service worker disabled in development mode')
-      
+
       // Unregister any existing service worker from previous sessions
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -19,7 +19,7 @@ export const useSw = () => {
           }
         })
       }
-      
+
       return
     }
 

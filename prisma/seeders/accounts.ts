@@ -195,7 +195,7 @@ export async function Accounts(prisma: PrismaClient, options: { folder: string }
   // ENABLE REQUIRED CAPABILITIES
   // =========================================================================
   console.info('🔐 Initializing required capabilities for business...')
-  
+
   // Get all capabilities that are always required (no context needed)
   const requiredCapabilities = CAPABILITY_REGISTRY.filter(cap => {
     // Only enable capabilities where required is a function that returns true

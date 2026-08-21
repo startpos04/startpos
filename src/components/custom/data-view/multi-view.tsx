@@ -1,5 +1,5 @@
 import type { ColumnDef, Row } from '@tanstack/react-table'
-import { debounce } from 'lodash'
+import _ from 'lodash'
 import { Grid3X3, Plus, TablePropertiesIcon } from 'lucide-react'
 import { type ChangeEvent, useCallback } from 'react'
 import { GridView } from '@/components/custom/data-view/grid-view'
@@ -46,7 +46,7 @@ export function MultiView<T>({ views, creatable, searchable, label, description,
   const SearchComponent = searchable ? searchable.Component : null
 
   const handleSearchChange = useCallback(
-    debounce((e: ChangeEvent<HTMLInputElement, HTMLInputElement>) => {
+    _.debounce((e: ChangeEvent<HTMLInputElement, HTMLInputElement>) => {
       if (searchable) {
         searchable.onSearchChange(e.target.value)
       }

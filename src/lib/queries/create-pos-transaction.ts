@@ -700,7 +700,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
  * createPosTransactionWithRetry
  *
  * Wrapper function that handles ConcurrencyError retries for batch-prepared products.
- * 
+ *
  * CRITICAL: This implements the retry logic required by the production module's
  * optimistic locking mechanism. When two terminals attempt to sell the last units
  * of a batch-prepared product simultaneously, one will succeed and the other will
@@ -713,11 +713,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
  *
  * Reference: CONCURRENCY-CONTROL-REQUIREMENT.md, production-edge-cases.md §3
  */
-export const createPosTransactionWithRetry = async (
-  data: CreateSaleInput,
-  posOrders: posProduct[],
-  maxAttempts = 3
-): Promise<CreatePosTransactionResponse> => {
+export const createPosTransactionWithRetry = async (data: CreateSaleInput, posOrders: posProduct[], maxAttempts = 3): Promise<CreatePosTransactionResponse> => {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await createPosTransaction(data, posOrders)
@@ -726,11 +722,8 @@ export const createPosTransactionWithRetry = async (
       // Do NOT retry on genuine out-of-stock errors
       if (error instanceof ConcurrencyError && attempt < maxAttempts) {
         // Exponential backoff: 100ms, 200ms, 400ms
-        const backoffMs = 100 * Math.pow(2, attempt - 1)
-        console.log(
-          `[createPosTransactionWithRetry] Concurrency conflict detected, ` +
-          `retry ${attempt}/${maxAttempts} after ${backoffMs}ms`
-        )
+        const backoffMs = 100 * 2 ** (attempt - 1)
+        console.log(`[createPosTransactionWithRetry] Concurrency conflict detected, ` + `retry ${attempt}/${maxAttempts} after ${backoffMs}ms`)
         await new Promise(resolve => setTimeout(resolve, backoffMs))
         continue
       }
@@ -740,7 +733,7 @@ export const createPosTransactionWithRetry = async (
       throw error
     }
   }
-  
+
   // This should never be reached due to the throw in the loop,
   // but TypeScript needs a return statement
   throw new Error('Max retry attempts reached without success or error')

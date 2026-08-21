@@ -1,4 +1,5 @@
 import { AlertTriangle, Check, Loader2, Package, X } from 'lucide-react'
+import { SequenceType } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -14,14 +15,13 @@ import {
   productVariantCollection,
 } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
-import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
-import { SequenceType } from 'prisma/generated/prisma/enums'
-import { ProductionEngine } from '@/lib/production'
-import { authStore } from '@/store/auth-store'
-import { fetchStructuredId } from '@/lib/queries/fetch-structured-id'
 import type { MountProps } from '@/lib/mount-manager'
-import { closePreparationSidebar } from './preparation-sidebar'
+import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
+import { ProductionEngine } from '@/lib/production'
 import type { BatchPreparedProduct } from '@/lib/queries/fetch-batch-prepared-products'
+import { fetchStructuredId } from '@/lib/queries/fetch-structured-id'
+import { authStore } from '@/store/auth-store'
+import { closePreparationSidebar } from './preparation-sidebar'
 
 interface PrepareProductSidebarProps extends MountProps {
   products: BatchPreparedProduct[]
@@ -32,12 +32,12 @@ export function PrepareProductSidebar({ products, preSelectedVariantId, open: _o
   const user = authStore.state.user
   const [step, setStep] = useState<'select' | 'confirm'>('select')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   // Form state
   const [selectedVariantId, setSelectedVariantId] = useState(preSelectedVariantId || '')
   const [quantity, setQuantity] = useState(0)
   const [notes, setNotes] = useState('')
-  
+
   const [materialRequirements, setMaterialRequirements] = useState<
     Array<{
       materialName: string
@@ -47,7 +47,7 @@ export function PrepareProductSidebar({ products, preSelectedVariantId, open: _o
       sufficient: boolean
     }>
   >([])
-  
+
   const selectedVariant = products.find(p => p.id === selectedVariantId)
   const usesRecipe = selectedVariant?.components && selectedVariant.components.filter(c => !c.isAddon).length > 0
 
@@ -70,13 +70,15 @@ export function PrepareProductSidebar({ products, preSelectedVariantId, open: _o
           return
         }
 
-        setMaterialRequirements(requirements.map(req => ({
-          materialName: req.materialName,
-          required: req.requiredQuantity,
-          unit: req.requiredUnit.abbreviation || '',
-          available: req.availableQuantity,
-          sufficient: req.sufficient,
-        })))
+        setMaterialRequirements(
+          requirements.map(req => ({
+            materialName: req.materialName,
+            required: req.requiredQuantity,
+            unit: req.requiredUnit.abbreviation || '',
+            available: req.availableQuantity,
+            sufficient: req.sufficient,
+          })),
+        )
         setStep('confirm')
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to calculate requirements')
@@ -253,11 +255,9 @@ export function PrepareProductSidebar({ products, preSelectedVariantId, open: _o
                   step='1'
                   placeholder='0'
                   value={quantity || ''}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  onChange={e => setQuantity(Number(e.target.value))}
                 />
-                <div className='flex items-center px-3 border rounded-md bg-muted text-sm'>
-                  {selectedVariant?.product.baseUnit.abbreviation || 'units'}
-                </div>
+                <div className='flex items-center px-3 border rounded-md bg-muted text-sm'>{selectedVariant?.product.baseUnit.abbreviation || 'units'}</div>
               </div>
             </div>
 
@@ -276,7 +276,7 @@ export function PrepareProductSidebar({ products, preSelectedVariantId, open: _o
                 placeholder='Add any notes about this preparation batch...'
                 rows={3}
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={e => setNotes(e.target.value)}
               />
             </div>
           </div>
@@ -286,8 +286,7 @@ export function PrepareProductSidebar({ products, preSelectedVariantId, open: _o
           <div className='space-y-4'>
             <div className='rounded-lg border bg-muted/50 p-4'>
               <h3 className='font-semibold mb-1'>
-                Preparing {quantity} {selectedVariant?.product.baseUnit.abbreviation} of{' '}
-                {selectedVariant?.product.name}
+                Preparing {quantity} {selectedVariant?.product.baseUnit.abbreviation} of {selectedVariant?.product.name}
                 {selectedVariant?.name !== selectedVariant?.product.name && ` - ${selectedVariant?.name}`}
               </h3>
             </div>
@@ -299,17 +298,11 @@ export function PrepareProductSidebar({ products, preSelectedVariantId, open: _o
                   <div
                     key={idx}
                     className={`flex items-center justify-between p-3 rounded-lg border ${
-                      mat.sufficient
-                        ? 'border-border bg-card'
-                        : 'border-red-400/40 bg-red-50/40 dark:bg-red-950/20'
+                      mat.sufficient ? 'border-border bg-card' : 'border-red-400/40 bg-red-50/40 dark:bg-red-950/20'
                     }`}
                   >
                     <div className='flex items-center gap-2'>
-                      {mat.sufficient ? (
-                        <Check className='w-4 h-4 text-green-600' />
-                      ) : (
-                        <AlertTriangle className='w-4 h-4 text-red-600' />
-                      )}
+                      {mat.sufficient ? <Check className='w-4 h-4 text-green-600' /> : <AlertTriangle className='w-4 h-4 text-red-600' />}
                       <span className='font-medium'>{mat.materialName}</span>
                     </div>
                     <div className='text-sm'>
@@ -329,8 +322,8 @@ export function PrepareProductSidebar({ products, preSelectedVariantId, open: _o
             {hasInsufficientMaterials && (
               <div className='rounded-lg border border-red-400/40 bg-red-50/40 dark:bg-red-950/20 p-3'>
                 <p className='text-sm text-red-700 dark:text-red-400'>
-                  <strong>Insufficient materials!</strong> You don't have enough raw materials to complete this preparation.
-                  Please restock the materials or reduce the quantity.
+                  <strong>Insufficient materials!</strong> You don't have enough raw materials to complete this preparation. Please restock the materials or
+                  reduce the quantity.
                 </p>
               </div>
             )}
@@ -345,11 +338,7 @@ export function PrepareProductSidebar({ products, preSelectedVariantId, open: _o
             <Button variant='outline' onClick={handleClose} className='flex-1'>
               Cancel
             </Button>
-            <Button
-              onClick={handleContinue}
-              disabled={!selectedVariantId || quantity <= 0}
-              className='flex-1'
-            >
+            <Button onClick={handleContinue} disabled={!selectedVariantId || quantity <= 0} className='flex-1'>
               {usesRecipe ? 'Continue' : 'Prepare'}
             </Button>
           </div>
@@ -360,11 +349,7 @@ export function PrepareProductSidebar({ products, preSelectedVariantId, open: _o
             <Button variant='outline' onClick={() => setStep('select')} className='flex-1'>
               Back
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={hasInsufficientMaterials || isSubmitting}
-              className='flex-1'
-            >
+            <Button onClick={handleSubmit} disabled={hasInsufficientMaterials || isSubmitting} className='flex-1'>
               {isSubmitting ? (
                 <>
                   <Loader2 className='w-4 h-4 mr-2 animate-spin' />

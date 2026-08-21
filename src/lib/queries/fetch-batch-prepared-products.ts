@@ -1,10 +1,5 @@
 import { eq, toArray, useLiveQuery } from '@tanstack/react-db'
-import {
-  productCollection,
-  productVariantCollection,
-  productComponentCollection,
-  unitCollection,
-} from '@/db/collections'
+import { productCollection, productComponentCollection, productVariantCollection, unitCollection } from '@/db/collections'
 
 export interface BatchPreparedProduct {
   id: string
@@ -82,9 +77,9 @@ export function fetchBatchPreparedProducts() {
                     name: materialProduct.name,
                   },
                 },
-              }))
+              })),
           ),
         })),
-    []
+    [],
   )
 }

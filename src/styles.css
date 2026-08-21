@@ -178,3 +178,8 @@ body > [data-radix-portal]:has([data-slot="dialog-overlay"])
   [data-slot="dialog-overlay"] {
   display: none;
 }
+
+
+div[data-slot="sidebar-container"] {
+  position: absolute;
+}

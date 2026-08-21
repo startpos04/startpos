@@ -15,8 +15,8 @@
  * Reference: production-module-spec.md Phase 2.1
  */
 
-import { InventoryType, MovementType, ProductionStatus } from 'prisma/generated/prisma/enums'
 import type { Unit } from 'prisma/generated/prisma/browser'
+import { InventoryType, MovementType, ProductionStatus } from 'prisma/generated/prisma/enums'
 import type {
   inventoryCollection as InventoryCollectionType,
   inventoryMovementCollection as MovementCollectionType,
@@ -122,10 +122,10 @@ export interface CalculateMaterialRequirementsParams {
 export const ProductionEngine = {
   /**
    * Create a new production order (DRAFT status).
-   * 
+   *
    * For recipe-based: validates that variant has components
    * For recipe-free: just records the intention to prepare
-   * 
+   *
    * Does NOT consume raw materials yet — that happens in startProduction()
    */
   createProductionOrder(
@@ -144,15 +144,10 @@ export const ProductionEngine = {
 
     // For recipe-based production, verify variant has components
     if (usesRecipe) {
-      const components = [...productVariantCollection.values()].filter(
-        v => v.components?.some((c: any) => c.hostId === variantId && !c.isAddon)
-      )
-      
+      const components = [...productVariantCollection.values()].filter(v => v.components?.some((c: any) => c.hostId === variantId && !c.isAddon))
+
       if (components.length === 0) {
-        return opFail(
-          'PRECONDITION_FAILED',
-          `Variant ${variant.name} has no recipe defined. Set productionUsesRecipe to false for recipe-free production.`
-        )
+        return opFail('PRECONDITION_FAILED', `Variant ${variant.name} has no recipe defined. Set productionUsesRecipe to false for recipe-free production.`)
       }
     }
 
@@ -184,15 +179,13 @@ export const ProductionEngine = {
 
   /**
    * Calculate material requirements for recipe-based production.
-   * 
+   *
    * Uses UnitEngine to convert between recipe units and inventory units.
    * Checks availability across all inventory batches.
-   * 
+   *
    * Returns null for recipe-free production (usesRecipe = false)
    */
-  calculateMaterialRequirements(
-    params: CalculateMaterialRequirementsParams
-  ): MaterialRequirement[] | null {
+  calculateMaterialRequirements(params: CalculateMaterialRequirementsParams): MaterialRequirement[] | null {
     const { variantId, quantity, productVariantCollection, inventoryCollection, branchId } = params
 
     const variant = productVariantCollection.get(variantId)
@@ -200,7 +193,7 @@ export const ProductionEngine = {
 
     // Get recipe components (excluding addons)
     const components = variant.components?.filter((c: any) => !c.isAddon) || []
-    
+
     if (components.length === 0) {
       return null // No recipe (recipe-free production)
     }
@@ -212,34 +205,26 @@ export const ProductionEngine = {
       if (!material) continue
 
       const componentUnit = { id: component.unitId } as Unit // Will be populated from collection
-      
+
       // Calculate required quantity in recipe unit
       const requiredInRecipeUnit = component.quantityUsed * quantity
 
       // Get all inventory batches for this material
       const inventoryBatches = [...inventoryCollection.values()].filter(
-        i => 
-          i.variantId === component.materialId && 
-          i.branchId === branchId &&
-          i.inventoryType === InventoryType.RAW_MATERIAL &&
-          i.quantity > 0
+        i => i.variantId === component.materialId && i.branchId === branchId && i.inventoryType === InventoryType.RAW_MATERIAL && i.quantity > 0,
       )
 
       // Convert each batch to recipe unit and sum
       let availableInRecipeUnit = 0
       for (const batch of inventoryBatches) {
         try {
-          const batchUnit = { 
+          const batchUnit = {
             id: batch.unitId,
             type: componentUnit.type,
             conversionFactor: 1, // Will be looked up properly
           } as Unit
 
-          const converted = UnitEngine.convert(
-            batch.quantity,
-            batchUnit,
-            componentUnit
-          )
+          const converted = UnitEngine.convert(batch.quantity, batchUnit, componentUnit)
           availableInRecipeUnit += converted
         } catch (error) {
           // Unit conversion error - skip this batch
@@ -262,26 +247,18 @@ export const ProductionEngine = {
 
   /**
    * Start production (DRAFT → IN_PROGRESS).
-   * 
+   *
    * For recipe-based production:
    *   - Validates sufficient raw materials exist
    *   - Consumes raw materials using FIFO
    *   - Creates ProductionOrderItem records
    *   - Creates PRODUCTION_OUT movements
-   * 
+   *
    * For recipe-free production:
    *   - Just changes status to IN_PROGRESS
    */
   startProduction(params: StartProductionParams): OperationResult<void> {
-    const {
-      orderId,
-      productionOrderCollection,
-      productionOrderItemCollection,
-      productVariantCollection,
-      inventoryCollection,
-      movementCollection,
-      ctx,
-    } = params
+    const { orderId, productionOrderCollection, productionOrderItemCollection, productVariantCollection, inventoryCollection, movementCollection, ctx } = params
 
     const order = productionOrderCollection.get(orderId)
     if (!order) {
@@ -323,13 +300,7 @@ export const ProductionEngine = {
 
       // Get available inventory batches for this material
       const inventoryBatches = [...inventoryCollection.values()]
-        .filter(
-          i =>
-            i.variantId === component.materialId &&
-            i.branchId === ctx.branchId &&
-            i.inventoryType === InventoryType.RAW_MATERIAL &&
-            i.quantity > 0
-        )
+        .filter(i => i.variantId === component.materialId && i.branchId === ctx.branchId && i.inventoryType === InventoryType.RAW_MATERIAL && i.quantity > 0)
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
         .map(i => ({
           id: i.id,
@@ -344,7 +315,7 @@ export const ProductionEngine = {
       } catch (error) {
         return opFail(
           'PRECONDITION_FAILED',
-          `Insufficient inventory for ${component.material?.name || 'material'}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `Insufficient inventory for ${component.material?.name || 'material'}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         )
       }
 
@@ -406,26 +377,19 @@ export const ProductionEngine = {
 
   /**
    * Complete production (IN_PROGRESS → COMPLETED).
-   * 
+   *
    * Adds finished goods to inventory with proper cost allocation:
    *   - Recipe-based: costPerUnit = totalCost / actualQuantity
    *   - Recipe-free: costPerUnit = 0
-   * 
+   *
    * Creates PRODUCTION_IN movements for finished goods.
-   * 
+   *
    * Handles variance:
    *   - If actualQuantity < target: loss absorbed into higher unit cost
    *   - If actualQuantity = 0: no finished goods created (total loss)
    */
   completeProduction(params: CompleteProductionParams): OperationResult<void> {
-    const {
-      orderId,
-      actualQuantity,
-      productionOrderCollection,
-      inventoryCollection,
-      movementCollection,
-      ctx,
-    } = params
+    const { orderId, actualQuantity, productionOrderCollection, inventoryCollection, movementCollection, ctx } = params
 
     const order = productionOrderCollection.get(orderId)
     if (!order) {
@@ -445,9 +409,7 @@ export const ProductionEngine = {
     // Calculate cost per unit
     // Recipe-based: allocate total material cost across actual output
     // Recipe-free: no cost tracking (costPerUnit = 0)
-    const costPerUnit = actualQuantity > 0 && order.usesRecipe
-      ? Math.round(order.totalCost / actualQuantity)
-      : 0
+    const costPerUnit = actualQuantity > 0 && order.usesRecipe ? Math.round(order.totalCost / actualQuantity) : 0
 
     // Create finished goods inventory (only if actualQuantity > 0)
     if (actualQuantity > 0) {
@@ -502,11 +464,11 @@ export const ProductionEngine = {
       draft.actualQuantity = actualQuantity
       draft.completedAt = now
       draft.updatedAt = now
-      
+
       if (actualQuantity === 0) {
         draft.notes = `${draft.notes || ''}\nTotal loss: No finished goods produced`.trim()
       } else if (actualQuantity < order.targetQuantity) {
-        const variance = ((order.targetQuantity - actualQuantity) / order.targetQuantity * 100).toFixed(1)
+        const variance = (((order.targetQuantity - actualQuantity) / order.targetQuantity) * 100).toFixed(1)
         draft.notes = `${draft.notes || ''}\nVariance: ${variance}% below target (${actualQuantity} of ${order.targetQuantity})`.trim()
       }
     })
@@ -516,7 +478,7 @@ export const ProductionEngine = {
 
   /**
    * Cancel production order (DRAFT → CANCELLED).
-   * 
+   *
    * Can only cancel DRAFT orders (before materials are consumed).
    * Once IN_PROGRESS, must complete the production even if output is 0.
    */
@@ -531,8 +493,7 @@ export const ProductionEngine = {
     if (order.status !== ProductionStatus.DRAFT) {
       return opFail(
         'PRECONDITION_FAILED',
-        `Can only cancel DRAFT orders. Order is ${order.status}. ` +
-        `For IN_PROGRESS orders, complete with actualQuantity = 0 instead.`
+        `Can only cancel DRAFT orders. Order is ${order.status}. ` + `For IN_PROGRESS orders, complete with actualQuantity = 0 instead.`,
       )
     }
 
@@ -549,27 +510,24 @@ export const ProductionEngine = {
 
   /**
    * Check if a variant can be batch-prepared.
-   * 
+   *
    * Returns true if variant has isBatchPrepared flag set.
    */
-  canBatchPrepare(
-    variantId: string,
-    productVariantCollection: typeof ProductVariantCollectionType
-  ): boolean {
+  canBatchPrepare(variantId: string, productVariantCollection: typeof ProductVariantCollectionType): boolean {
     const variant = productVariantCollection.get(variantId)
     return variant?.isBatchPrepared ?? false
   },
 
   /**
    * Get finished goods inventory summary for a variant.
-   * 
+   *
    * Returns total quantity and batch details sorted by age (oldest first).
    */
   getFinishedInventory(
     variantId: string,
     branchId: string,
     inventoryCollection: typeof InventoryCollectionType,
-    productVariantCollection: typeof ProductVariantCollectionType
+    productVariantCollection: typeof ProductVariantCollectionType,
   ): {
     totalQuantity: number
     batches: Array<{
@@ -584,13 +542,7 @@ export const ProductionEngine = {
     const now = new Date()
 
     const batches = [...inventoryCollection.values()]
-      .filter(
-        i =>
-          i.variantId === variantId &&
-          i.branchId === branchId &&
-          i.inventoryType === InventoryType.FINISHED_GOOD &&
-          i.quantity > 0
-      )
+      .filter(i => i.variantId === variantId && i.branchId === branchId && i.inventoryType === InventoryType.FINISHED_GOOD && i.quantity > 0)
       .sort((a, b) => {
         const aTime = (a.producedAt || a.createdAt).getTime()
         const bTime = (b.producedAt || b.createdAt).getTime()
@@ -599,9 +551,7 @@ export const ProductionEngine = {
       .map(i => {
         const producedAt = i.producedAt || i.createdAt
         const ageHours = (now.getTime() - producedAt.getTime()) / (1000 * 60 * 60)
-        const expiresAt = variant?.shelfLifeHours
-          ? new Date(producedAt.getTime() + variant.shelfLifeHours * 60 * 60 * 1000)
-          : null
+        const expiresAt = variant?.shelfLifeHours ? new Date(producedAt.getTime() + variant.shelfLifeHours * 60 * 60 * 1000) : null
 
         return {
           inventoryId: i.id,

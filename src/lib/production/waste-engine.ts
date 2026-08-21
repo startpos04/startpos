@@ -14,10 +14,7 @@
  */
 
 import { InventoryType, MovementType } from 'prisma/generated/prisma/enums'
-import type {
-  inventoryCollection as InventoryCollectionType,
-  inventoryMovementCollection as MovementCollectionType,
-} from '@/db/collections'
+import type { inventoryCollection as InventoryCollectionType, inventoryMovementCollection as MovementCollectionType } from '@/db/collections'
 
 // ---------------------------------------------------------------------------
 // Shared tenant-context type
@@ -80,10 +77,10 @@ export interface DateRange {
 export const WasteEngine = {
   /**
    * Record waste for finished goods.
-   * 
+   *
    * IMPORTANT: This is ONLY called when user explicitly records waste through UI.
    * There is NO automatic waste at end of day or when shelf life expires.
-   * 
+   *
    * Uses FIFO to select oldest batches first (unless specific inventoryIds provided).
    * Creates WASTE movements for audit trail.
    * Reduces inventory quantity.
@@ -103,14 +100,9 @@ export const WasteEngine = {
     const wastedBatches: Array<{ inventoryId: string; quantity: number; cost: number }> = []
 
     // Get finished goods batches
-    let batches = [...inventoryCollection.values()]
-      .filter(
-        i =>
-          i.variantId === variantId &&
-          i.branchId === ctx.branchId &&
-          i.inventoryType === InventoryType.FINISHED_GOOD &&
-          i.quantity > 0
-      )
+    let batches = [...inventoryCollection.values()].filter(
+      i => i.variantId === variantId && i.branchId === ctx.branchId && i.inventoryType === InventoryType.FINISHED_GOOD && i.quantity > 0,
+    )
 
     // If specific inventory IDs provided, filter to those
     if (inventoryIds && inventoryIds.length > 0) {
@@ -127,9 +119,7 @@ export const WasteEngine = {
     // Check total available
     const totalAvailable = batches.reduce((sum, b) => sum + b.quantity, 0)
     if (totalAvailable < quantity) {
-      throw new Error(
-        `Insufficient finished goods to waste. Available: ${totalAvailable}, Requested: ${quantity}`
-      )
+      throw new Error(`Insufficient finished goods to waste. Available: ${totalAvailable}, Requested: ${quantity}`)
     }
 
     // Consume from oldest batches first (FIFO)
@@ -148,7 +138,7 @@ export const WasteEngine = {
 
       // Create WASTE movement
       const reasonText = notes ? `${reason} - ${notes}` : reason
-      
+
       movementCollection.insert({
         id: crypto.randomUUID(),
         variantId,
@@ -187,7 +177,7 @@ export const WasteEngine = {
 
   /**
    * Get waste summary for reporting.
-   * 
+   *
    * Aggregates waste movements by reason and product for analytics.
    * Used for waste analysis dashboard and reports.
    */
@@ -199,16 +189,12 @@ export const WasteEngine = {
   ): WasteSummary {
     // Get all waste movements in date range
     const wasteMovements = [...movementCollection.values()].filter(
-      m =>
-        m.branchId === branchId &&
-        m.type === MovementType.WASTE &&
-        new Date(m.createdAt) >= dateRange.start &&
-        new Date(m.createdAt) <= dateRange.end
+      m => m.branchId === branchId && m.type === MovementType.WASTE && new Date(m.createdAt) >= dateRange.start && new Date(m.createdAt) <= dateRange.end,
     )
 
     // Aggregate by reason
     const byReasonMap = new Map<string, { quantity: number; value: number; count: number }>()
-    
+
     for (const movement of wasteMovements) {
       // Extract reason from movement reason text (format: "Waste: {reason}")
       const reasonMatch = movement.reason?.match(/^Waste: (.+?)(?:\s-\s.+)?$/)
@@ -237,7 +223,7 @@ export const WasteEngine = {
 
     // Aggregate by product
     const byProductMap = new Map<string, { productName: string; quantity: number; value: number }>()
-    
+
     for (const movement of wasteMovements) {
       const inventory = inventoryCollection.get(movement.inventoryId)
       if (!inventory) continue

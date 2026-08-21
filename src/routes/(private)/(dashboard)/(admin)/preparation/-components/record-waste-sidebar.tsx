@@ -9,20 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { inventoryCollection, inventoryMovementCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
+import type { MountProps } from '@/lib/mount-manager'
 import { FinishedGoodsEngine } from '@/lib/production'
 import { authStore } from '@/store/auth-store'
-import type { MountProps } from '@/lib/mount-manager'
 import { closePreparationSidebar } from './preparation-sidebar'
 
-const wasteReasons = [
-  'Past Shelf Life',
-  'Expired',
-  'Spoiled',
-  'Damaged',
-  'Failed Preparation',
-  'Quality Issue',
-  'Other',
-] as const
+const wasteReasons = ['Past Shelf Life', 'Expired', 'Spoiled', 'Damaged', 'Failed Preparation', 'Quality Issue', 'Other'] as const
 
 interface RecordWasteSidebarProps extends MountProps {
   variantId: string
@@ -31,17 +23,10 @@ interface RecordWasteSidebarProps extends MountProps {
   unit: string
 }
 
-export function RecordWasteSidebar({
-  variantId,
-  productName,
-  availableQuantity,
-  unit,
-  open: _open,
-  onClose,
-}: RecordWasteSidebarProps) {
+export function RecordWasteSidebar({ variantId, productName, availableQuantity, unit, open: _open, onClose }: RecordWasteSidebarProps) {
   const user = authStore.state.user
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   // Form state
   const [quantity, setQuantity] = useState(0)
   const [reason, setReason] = useState('')
@@ -72,8 +57,8 @@ export function RecordWasteSidebar({
           variantId,
           user.branch.id,
           inventoryCollection,
-          // @ts-ignore - productVariantCollection type issue
-          { get: () => null }
+          // @ts-expect-error - productVariantCollection type issue
+          { get: () => null },
         )
 
         if (batches.length === 0) {
@@ -181,11 +166,9 @@ export function RecordWasteSidebar({
               step='0.01'
               placeholder='0'
               value={quantity || ''}
-              onChange={(e) => setQuantity(Number(e.target.value))}
+              onChange={e => setQuantity(Number(e.target.value))}
             />
-            <div className='flex items-center px-3 border rounded-md bg-muted text-sm'>
-              {unit}
-            </div>
+            <div className='flex items-center px-3 border rounded-md bg-muted text-sm'>{unit}</div>
           </div>
           {quantity > availableQuantity && (
             <p className='text-sm text-red-600'>
@@ -212,16 +195,8 @@ export function RecordWasteSidebar({
 
         <div className='space-y-2'>
           <Label htmlFor='notes'>Notes (optional)</Label>
-          <Textarea
-            id='notes'
-            placeholder='Add any additional details...'
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-          <p className='text-xs text-muted-foreground'>
-            Provide additional context about the waste
-          </p>
+          <Textarea id='notes' placeholder='Add any additional details...' rows={3} value={notes} onChange={e => setNotes(e.target.value)} />
+          <p className='text-xs text-muted-foreground'>Provide additional context about the waste</p>
         </div>
 
         {quantity > 0 && (
@@ -229,8 +204,11 @@ export function RecordWasteSidebar({
             <div className='flex items-start gap-2'>
               <AlertTriangle className='w-4 h-4 text-orange-600 shrink-0 mt-0.5' />
               <p className='text-sm text-orange-700 dark:text-orange-400'>
-                This action will remove <strong>{quantity} {unit}</strong> from your inventory.
-                This cannot be undone.
+                This action will remove{' '}
+                <strong>
+                  {quantity} {unit}
+                </strong>{' '}
+                from your inventory. This cannot be undone.
               </p>
             </div>
           </div>

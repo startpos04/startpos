@@ -1,9 +1,9 @@
 /**
  * bluetooth-printer.ts
- * 
+ *
  * Bluetooth ESC/POS printer integration for receipt printing and cash drawer control
  * Works on tablets, mobile devices, and desktops via Web Bluetooth API
- * 
+ *
  * Supports:
  * - Receipt printing with ESC/POS commands
  * - Cash drawer opening

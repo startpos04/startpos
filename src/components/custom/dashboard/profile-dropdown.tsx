@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
-import { LogOut, UserCircle } from 'lucide-react'
+import { LogOut, User, UserCircle } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -55,6 +55,13 @@ export const ProfileDropdown = ({ children }: { children?: ReactNode }) => {
 
         <DropdownMenuSeparator className='my-2' />
         {children}
+
+        <DropdownMenuItem className='flex items-center gap-3 rounded-xl cursor-pointer py-3 px-3 transition-all' onClick={() => navigate({ to: '/account' })}>
+          <User className='size-4' />
+          <span className='font-bold'>My Account</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator className='my-2' />
 
         <DropdownMenuItem
           className='flex items-center gap-3 rounded-xl cursor-pointer py-3 px-3 text-destructive transition-all focus:bg-destructive/10 hover:bg-destructive/10'

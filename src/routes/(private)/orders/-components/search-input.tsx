@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { debounce } from 'lodash'
+import _ from 'lodash'
 import { Search } from 'lucide-react'
 import { type ChangeEvent, useCallback } from 'react'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,7 @@ export const SearchInput = () => {
   const navigate = useNavigate({ from: '/pos/' })
 
   const handleSearchChange = useCallback(
-    debounce((e: ChangeEvent<HTMLInputElement, HTMLInputElement>) => {
+    _.debounce((e: ChangeEvent<HTMLInputElement, HTMLInputElement>) => {
       navigate({ search: prev => ({ ...prev, search: e.target.value }) })
     }, 250),
     [],

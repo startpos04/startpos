@@ -21,7 +21,17 @@ export function CreateProductSidebar({ onClose }: CreateProductSidebarProps) {
   const handleClose = onClose ?? closeProductSidebar
 
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
-    const { ingredients, allowedAddons, sku: productSku, price: productPrice, costPrice: productCostPrice, variants, isBatchPrepared, shelfLifeHours, ...productData } = value
+    const {
+      ingredients,
+      allowedAddons,
+      sku: productSku,
+      price: productPrice,
+      costPrice: productCostPrice,
+      variants,
+      isBatchPrepared,
+      shelfLifeHours,
+      ...productData
+    } = value
     const { user } = authStore.state
 
     const result = await dbTransaction(() => {

@@ -1,6 +1,6 @@
 /**
  * bluetooth-printer-control.tsx
- * 
+ *
  * UI component for connecting and managing Bluetooth printer/cash drawer
  * Shows connection status and provides manual drawer open button
  */
@@ -89,41 +89,21 @@ export function BluetoothPrinterControl() {
       {/* Connection Status & Button */}
       {isConnected ? (
         <>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={handleDisconnect}
-            className='gap-2 text-xs'
-          >
+          <Button variant='outline' size='sm' onClick={handleDisconnect} className='gap-2 text-xs'>
             <BluetoothConnected className='w-4 h-4 text-blue-500' />
             <span className='hidden md:inline'>{deviceName || 'Connected'}</span>
           </Button>
 
           {/* Open Drawer Button */}
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={handleOpenDrawer}
-            disabled={isOpening}
-            className='gap-2 text-xs'
-            title='Open cash drawer'
-          >
+          <Button variant='outline' size='sm' onClick={handleOpenDrawer} disabled={isOpening} className='gap-2 text-xs' title='Open cash drawer'>
             <DollarSign className='w-4 h-4' />
             <span className='hidden md:inline'>{isOpening ? 'Opening...' : 'Open Drawer'}</span>
           </Button>
         </>
       ) : (
-        <Button
-          variant='outline'
-          size='sm'
-          onClick={handleConnect}
-          disabled={isConnecting}
-          className='gap-2 text-xs'
-        >
+        <Button variant='outline' size='sm' onClick={handleConnect} disabled={isConnecting} className='gap-2 text-xs'>
           <Bluetooth className='w-4 h-4' />
-          <span className='hidden md:inline'>
-            {isConnecting ? 'Connecting...' : 'Connect Printer'}
-          </span>
+          <span className='hidden md:inline'>{isConnecting ? 'Connecting...' : 'Connect Printer'}</span>
         </Button>
       )}
     </div>

@@ -9,12 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { orderItemCollection, productVariantCollection } from '@/db/collections'
+import { useCapability } from '@/hooks/use-capability'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import type { MountProps } from '@/lib/mount-manager'
 import { fetchPosProducts, type posProduct } from '@/lib/queries/fetch-pos-products'
-import { Capabilities } from '@/lib/entitlement/capability-keys'
-import { useCapability } from '@/hooks/use-capability'
 import { closeProductSidebar, showProductSidebar } from '../-components/product-sidebar'
 import { EditProductSidebar } from './-edit-product'
 import { RestockProductSidebar } from './-restock-product'
@@ -281,11 +281,7 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
       <div className='flex items-start justify-between p-4 border-b shrink-0'>
         <div className='flex gap-3'>
           <Avatar className='h-10 w-10 rounded-xl border shadow-sm shrink-0'>
-            <AvatarImage 
-              src={product.image ?? ''} 
-              alt={product.name} 
-              className='object-cover' 
-            />
+            <AvatarImage src={product.image ?? ''} alt={product.name} className='object-cover' />
             <AvatarFallback className='rounded-xl bg-secondary'>
               <Box className='h-5 w-5 text-muted-foreground/40' />
             </AvatarFallback>
@@ -307,11 +303,7 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
               <Badge variant='outline' className='text-[10px] py-0 h-4'>
                 {product.variants.length} Variant(s)
               </Badge>
-              {hasBatchPreparation && primaryVariant?.isBatchPrepared && (
-                <Badge className='bg-purple-600 text-[10px] py-0 h-4'>
-                  Batch Prep
-                </Badge>
-              )}
+              {hasBatchPreparation && primaryVariant?.isBatchPrepared && <Badge className='bg-purple-600 text-[10px] py-0 h-4'>Batch Prep</Badge>}
             </div>
           </div>
         </div>
@@ -353,7 +345,9 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
               <div className='flex gap-1 items-center'>
                 <p className='text-xs font-bold text-purple-600'>Batch Prep</p>
                 {primaryVariant.productionUsesRecipe && (
-                  <Badge variant='outline' className='text-[9px] py-0 h-3.5'>Recipe</Badge>
+                  <Badge variant='outline' className='text-[9px] py-0 h-3.5'>
+                    Recipe
+                  </Badge>
                 )}
               </div>
             </div>

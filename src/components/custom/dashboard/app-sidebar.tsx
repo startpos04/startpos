@@ -81,6 +81,72 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { team, items } = React.useMemo(() => {
     if (!user?.business) return { team: { name: APP_NAME, logo: <GalleryVerticalEndIcon />, plan: 'Guest' }, items: [] }
 
+    const isBusinessContext = location.pathname.startsWith('/business')
+    const isAdmin = user.role === Role.ADMIN
+    const isSupervisor = user.role === Role.SUPERVISOR
+
+    // Business context navigation (admin and supervisor for certain pages)
+    if (isBusinessContext && (isAdmin || isSupervisor)) {
+      return {
+        team: {
+          name: APP_NAME,
+          logo: <GalleryVerticalEndIcon />,
+          plan: 'Business Admin',
+        },
+        items: [
+          {
+            title: 'Overview',
+            url: '/business',
+            icon: <LayoutDashboardIcon />,
+            allowedRoles: [Role.ADMIN],
+          },
+          {
+            title: 'Capabilities',
+            url: '/business/capabilities',
+            icon: <TerminalSquareIcon />,
+            allowedRoles: [Role.ADMIN],
+          },
+          {
+            title: 'Branches',
+            url: '/business/branches',
+            icon: <BotIcon />,
+            allowedRoles: [Role.ADMIN],
+          },
+          {
+            title: 'Billing',
+            url: '/business/billing',
+            icon: <CreditCardIcon />,
+            allowedRoles: [Role.ADMIN],
+          },
+          {
+            title: 'Suppliers',
+            url: '/business/suppliers',
+            icon: <ClipboardPenLine />,
+            allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+          },
+          {
+            title: 'Customers',
+            url: '/business/customers',
+            icon: <BookOpenIcon />,
+            allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+          },
+          {
+            title: 'Profile',
+            url: '/business/profile',
+            icon: <SettingsIcon />,
+            allowedRoles: [Role.ADMIN],
+          },
+        ]
+          .filter(item => user && item.allowedRoles.includes(user.role as Role))
+          .map(item => ({
+            ...item,
+            items: [],
+            isActive: isRouteActive(item.url),
+          })) as Items[],
+      }
+    }
+
+    // Branch context navigation (default)
     const data = {
       team: {
         name: APP_NAME,
@@ -139,18 +205,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           icon: <SettingsIcon />,
           allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
         },
-        {
-          title: 'Contact us',
-          url: '/contact-us',
-          icon: <LifeBuoyIcon />,
-          allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER, Role.SERVICE_PROVIDER],
-        },
-        {
-          title: 'Billing',
-          url: '/billing',
-          icon: <CreditCardIcon />,
-          allowedRoles: [Role.ADMIN],
-        },
+        // Note: Contact Us and Billing have been moved to the Context Switcher and Business section
       ].filter(Boolean) as Items[],
     }
 
@@ -174,7 +229,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       })
 
     return data
-  }, [isRouteActive, user, caps])
+  }, [isRouteActive, user, caps, location.pathname])
 
   return (
     <Sidebar collapsible='icon' {...props}>
@@ -191,7 +246,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarMenu>
             {items.map(item =>
-              item.items ? (
+              item.items && item.items.length > 0 ? (
                 <Collapsible key={item.title} asChild defaultOpen={item.isActive} className='group/collapsible'>
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
@@ -263,7 +318,7 @@ function SubscriptionStatusFooter() {
   return (
     <SidebarFooter className='p-2'>
       <Link
-        to='/billing'
+        to='/business/billing'
         className={cn('flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-colors hover:opacity-80', colorClass)}
       >
         <CreditCardIcon className='h-3.5 w-3.5 shrink-0' />

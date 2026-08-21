@@ -83,11 +83,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
         {/* --- HERO IMAGE HEADER --- */}
         <div className='relative w-full h-48 bg-muted flex items-center justify-center overflow-hidden border-b select-none'>
           <Avatar className='w-full h-full [&>img]:rounded-none [&>span]:rounded-none [&:after]:border-none'>
-            <AvatarImage 
-              src={product?.image ?? ''} 
-              alt={product?.name} 
-              className='object-cover' 
-            />
+            <AvatarImage src={product?.image ?? ''} alt={product?.name} className='object-cover' />
             <AvatarFallback className='rounded-none bg-muted flex flex-col items-center justify-center gap-2'>
               <ImageIcon className='w-8 h-8 stroke-[1.5] text-muted-foreground/60' />
               <span className='text-xs font-medium tracking-wide uppercase text-muted-foreground/60'>No Preview Available</span>

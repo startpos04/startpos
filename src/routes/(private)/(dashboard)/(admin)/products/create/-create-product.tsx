@@ -13,12 +13,12 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { productVariantCollection } from '@/db/collections'
+import { useCapability } from '@/hooks/use-capability'
 import { PriceEngine } from '@/lib/conversion/price-engine'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager from '@/lib/mount-manager'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
-import { Capabilities } from '@/lib/entitlement/capability-keys'
-import { useCapability } from '@/hooks/use-capability'
 import { AddAddonModal } from './-add-addon'
 import { AddIngredientModal } from './-add-ingredient'
 
@@ -54,7 +54,7 @@ const createProductSchema = (variantId?: string) =>
     image: z.string(),
     isAvailable: z.boolean(),
     hasExpiry: z.boolean(),
-    
+
     // Batch Preparation
     isBatchPrepared: z.boolean(),
     shelfLifeHours: z.number().nullable(),
@@ -260,9 +260,9 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
                               {hasRecipe ? 'Requires preparation before sale' : 'Add ingredients first to enable batch prep'}
                             </p>
                           </div>
-                          <Switch 
-                            checked={field.state.value && hasRecipe} 
-                            onCheckedChange={(checked) => {
+                          <Switch
+                            checked={field.state.value && hasRecipe}
+                            onCheckedChange={checked => {
                               if (hasRecipe) {
                                 field.handleChange(checked)
                               }

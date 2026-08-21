@@ -247,9 +247,7 @@ export function QuickAddDialog({ open, onClose, searchQuery, sku, onConfirm }: Q
             {field => <TextInput field={field} label='Product name' placeholder='e.g. Banana Chips, Haircut, Repair fee' autoFocus />}
           </form.Field>
 
-          <form.Field name='sku'>
-            {field => <TextInput field={field} label='SKU (Optional)' placeholder='e.g. PROD-001' />}
-          </form.Field>
+          <form.Field name='sku'>{field => <TextInput field={field} label='SKU (Optional)' placeholder='e.g. PROD-001' />}</form.Field>
 
           <form.Field name='price'>{field => <MoneyInput field={field} label='Price' placeholder='0.00' />}</form.Field>
 

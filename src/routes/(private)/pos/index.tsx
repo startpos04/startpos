@@ -15,8 +15,8 @@ import { useAppForm } from '@/hooks/form'
 import { useBarcodeScanner } from '@/hooks/use-barcode-scanner'
 import { useCapability } from '@/hooks/use-capability'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import { handleBarcodeScan, mergeCartItem } from '@/lib/barcode-handler'
+import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import { getBluetoothPrinter } from '@/lib/bluetooth-printer'
 import type { posItem } from '@/lib/conversion/pos-stock-engine'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
@@ -75,10 +75,10 @@ function POSPage() {
   const { orderId, search = '', page = 1, pageSize = 20 } = useSearch({ from: '/(private)/pos/' })
   const { data: activeOrders = [], isLoading: isFetchingActiveOrders } = fetchActiveOrders()
   const { data: posProducts = [], isLoading: isPosProductsLoading } = fetchPosProducts({ searchQuery: search, page, pageSize })
-  
+
   // Fetch all products for barcode scanning (not limited by pagination)
   const { data: allPosProducts = [] } = fetchPosProducts({ searchQuery: '', page: 1, pageSize: 1000, all: true })
-  
+
   useLiveQuery(q => q.from({ sequence: sequenceCounterCollection }))
 
   const handleConfirm = async (
@@ -273,28 +273,30 @@ function POSPage() {
 
   // Barcode scanner integration
   const cartItems = useStore(form.store, s => s.values.items)
-  
+
   // Get order items for stock calculation
   const orderItems = useMemo(() => {
     if (!orderId || !activeOrders.length) return []
     const existingOrder = activeOrders.find(o => o.id === orderId)
     if (!existingOrder) return []
-    
-    return existingOrder.items.map(item => {
-      const product = allPosProducts.find(p => p.id === item.variant.productId)
-      if (!product) return null
-      const variant = product.variants.find(v => v.id === item.variantId) || null
-      if (!variant) return null
-      const addons = item.selectedAddons.map(a => variant.components.find(c => c.isAddon && c.materialId === a.addonId)).filter(Boolean)
 
-      return {
-        cartId: uuid(),
-        product,
-        variant,
-        quantity: item.quantity,
-        addons,
-      }
-    }).filter(Boolean) as posItem[]
+    return existingOrder.items
+      .map(item => {
+        const product = allPosProducts.find(p => p.id === item.variant.productId)
+        if (!product) return null
+        const variant = product.variants.find(v => v.id === item.variantId) || null
+        if (!variant) return null
+        const addons = item.selectedAddons.map(a => variant.components.find(c => c.isAddon && c.materialId === a.addonId)).filter(Boolean)
+
+        return {
+          cartId: uuid(),
+          product,
+          variant,
+          quantity: item.quantity,
+          addons,
+        }
+      })
+      .filter(Boolean) as posItem[]
   }, [orderId, activeOrders, allPosProducts])
 
   // Centralized barcode handler (used by both scanner and test input)
@@ -312,15 +314,12 @@ function POSPage() {
       const currentItems = form.getFieldValue('items') as posItem[]
       const updatedItems = mergeCartItem(currentItems, result.item)
       form.setFieldValue('items', updatedItems)
-      
+
       // Enhanced success feedback with product details
-      toast.success(
-        `Added ${result.item.product.name}`,
-        {
-          description: `${result.item.quantity}x ${result.item.variant.name} • SKU: ${barcode}`,
-          duration: 2000,
-        }
-      )
+      toast.success(`Added ${result.item.product.name}`, {
+        description: `${result.item.quantity}x ${result.item.variant.name} • SKU: ${barcode}`,
+        duration: 2000,
+      })
     } else if (result.action === 'show-dialog' && result.product) {
       // Show dialog for complex product
       MountManager.show(ProductDialog, {
@@ -332,21 +331,15 @@ function POSPage() {
           form.setFieldValue('items', updatedItems)
         },
       })
-      toast.info(
-        `${result.product.name} requires selection`,
-        {
-          description: 'Choose variant or customization options',
-          duration: 3000,
-        }
-      )
+      toast.info(`${result.product.name} requires selection`, {
+        description: 'Choose variant or customization options',
+        duration: 3000,
+      })
     } else if (result.action === 'out-of-stock') {
-      toast.error(
-        'Out of stock',
-        {
-          description: result.message || 'Product is not available',
-          duration: 3000,
-        }
-      )
+      toast.error('Out of stock', {
+        description: result.message || 'Product is not available',
+        duration: 3000,
+      })
     } else if (result.action === 'not-found') {
       // Show QuickAddDialog with the scanned barcode as the SKU
       MountManager.show(QuickAddDialog, {
@@ -358,20 +351,17 @@ function POSPage() {
           form.setFieldValue('items', updatedItems)
         },
       })
-      toast.info(
-        'Product not found',
-        {
-          description: `No product with SKU: ${barcode}. Add it now?`,
-          duration: 3000,
-        }
-      )
+      toast.info('Product not found', {
+        description: `No product with SKU: ${barcode}. Add it now?`,
+        duration: 3000,
+      })
     }
   }
 
   const { isScanning } = useBarcodeScanner({
     enabled: true,
     onScan: handleBarcodeScanned,
-    onError: (error) => {
+    onError: error => {
       toast.error('Scan error', {
         description: error,
         duration: 2000,

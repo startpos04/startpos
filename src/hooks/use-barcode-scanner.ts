@@ -45,10 +45,10 @@ export interface BarcodeScannerOptions {
 
 /**
  * Hook for detecting barcode scanner input
- * 
+ *
  * Barcode scanners work by rapidly typing characters as if from a keyboard.
  * This hook detects that rapid input pattern and distinguishes it from manual typing.
- * 
+ *
  * @example
  * ```tsx
  * useBarcodeScanner({
@@ -62,15 +62,7 @@ export interface BarcodeScannerOptions {
  * ```
  */
 export function useBarcodeScanner(options: BarcodeScannerOptions) {
-  const {
-    minCharacterInterval = 50,
-    scanTimeout = 100,
-    minLength = 3,
-    endCharacter = 'Enter',
-    onScan,
-    onError,
-    enabled = true,
-  } = options
+  const { minCharacterInterval = 50, scanTimeout = 100, minLength = 3, endCharacter = 'Enter', onScan, onError, enabled = true } = options
 
   const bufferRef = useRef<string>('')
   const lastKeyTimeRef = useRef<number>(0)
@@ -83,11 +75,7 @@ export function useBarcodeScanner(options: BarcodeScannerOptions) {
     const handleKeyPress = (event: KeyboardEvent) => {
       // Ignore if user is typing in an input field (except our barcode input)
       const target = event.target as HTMLElement
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         // Allow if it's specifically marked as barcode input
         if (!target.dataset.barcodeInput) {
           return
@@ -130,7 +118,7 @@ export function useBarcodeScanner(options: BarcodeScannerOptions) {
 
     const processScan = () => {
       const scannedValue = bufferRef.current.trim()
-      
+
       if (scannedValue.length >= minLength) {
         onScan(scannedValue)
       } else if (scannedValue.length > 0) {
