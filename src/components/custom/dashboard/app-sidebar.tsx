@@ -10,6 +10,7 @@ import {
   LayoutDashboardIcon,
   LifeBuoyIcon,
   SettingsIcon,
+  ShieldIcon,
   TerminalSquareIcon,
 } from 'lucide-react'
 import { BusinessType, Role } from 'prisma/generated/prisma/enums'
@@ -30,6 +31,8 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar'
 import { useCapabilities } from '@/hooks/use-capability'
+import { usePermissions } from '@/hooks/use-permission'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
 import { APP_NAME } from '@/lib/constants'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
@@ -63,6 +66,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     Capabilities.VIEW_ORDER_HISTORY,
   ])
 
+  // Permission checks — replaces role-based checks
+  const perms = usePermissions([
+    // Business section permissions
+    Permissions.BUSINESS_VIEW_BILLING,
+    Permissions.BUSINESS_VIEW_PROFILE,
+    Permissions.BUSINESS_VIEW_CAPABILITIES,
+    Permissions.BUSINESS_VIEW_BRANCHES,
+    Permissions.BUSINESS_VIEW_SUPPLIERS,
+    Permissions.BUSINESS_VIEW_CUSTOMERS,
+    // User management permissions
+    Permissions.USER_MANAGE_PERMISSIONS,
+    // Branch section permissions
+    Permissions.BRANCH_VIEW_EMPLOYEES,
+    Permissions.BRANCH_VIEW_PRODUCTS,
+    Permissions.BRANCH_VIEW_PURCHASES,
+    Permissions.BRANCH_VIEW_PRODUCTION,
+    Permissions.BRANCH_VIEW_SALES_REPORTS,
+    Permissions.BRANCH_VIEW_INVENTORY_REPORTS,
+    Permissions.BRANCH_VIEW_TRANSACTIONS,
+    Permissions.BRANCH_VIEW_ORDERS,
+    Permissions.BRANCH_CREATE_ORDER,
+    Permissions.BRANCH_VIEW_SETTINGS,
+  ])
+
   // Helper to determine if a route is a match or a sub-path of the current location
   const isRouteActive = React.useCallback(
     (itemUrl: string) => {
@@ -82,11 +109,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (!user?.business) return { team: { name: APP_NAME, logo: <GalleryVerticalEndIcon />, plan: 'Guest' }, items: [] }
 
     const isBusinessContext = location.pathname.startsWith('/business')
-    const isAdmin = user.role === Role.ADMIN
-    const isSupervisor = user.role === Role.SUPERVISOR
 
-    // Business context navigation (admin and supervisor for certain pages)
-    if (isBusinessContext && (isAdmin || isSupervisor)) {
+    // Check if user has any business-level permissions (replaces isAdmin check)
+    const hasBusinessAccess =
+      perms[Permissions.BUSINESS_VIEW_BILLING] || perms[Permissions.BUSINESS_VIEW_PROFILE] || perms[Permissions.BUSINESS_VIEW_CAPABILITIES]
+
+    // Check if user has supervisor-level permissions (view reports, transactions)
+    const hasSupervisorAccess = perms[Permissions.BRANCH_VIEW_SALES_REPORTS] || perms[Permissions.BRANCH_VIEW_TRANSACTIONS]
+
+    // Business context navigation (for users with business-level permissions)
+    if (isBusinessContext && hasBusinessAccess) {
       return {
         team: {
           name: APP_NAME,
@@ -94,54 +126,76 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           plan: 'Business Admin',
         },
         items: [
-          {
-            title: 'Overview',
-            url: '/business',
-            icon: <LayoutDashboardIcon />,
-            allowedRoles: [Role.ADMIN],
-          },
-          {
-            title: 'Capabilities',
-            url: '/business/capabilities',
-            icon: <TerminalSquareIcon />,
-            allowedRoles: [Role.ADMIN],
-          },
-          {
-            title: 'Branches',
-            url: '/business/branches',
-            icon: <BotIcon />,
-            allowedRoles: [Role.ADMIN],
-          },
-          {
-            title: 'Billing',
-            url: '/business/billing',
-            icon: <CreditCardIcon />,
-            allowedRoles: [Role.ADMIN],
-          },
-          {
-            title: 'Suppliers',
-            url: '/business/suppliers',
-            icon: <ClipboardPenLine />,
-            allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
-          },
-          {
-            title: 'Customers',
-            url: '/business/customers',
-            icon: <BookOpenIcon />,
-            allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
-          },
-          {
-            title: 'Profile',
-            url: '/business/profile',
-            icon: <SettingsIcon />,
-            allowedRoles: [Role.ADMIN],
-          },
+          perms[Permissions.BUSINESS_VIEW_PROFILE]
+            ? {
+                title: 'Overview',
+                url: '/business',
+                icon: <LayoutDashboardIcon />,
+                allowedRoles: [] as Role[], // Not used anymore, kept for type compatibility
+              }
+            : null,
+          perms[Permissions.BUSINESS_VIEW_CAPABILITIES]
+            ? {
+                title: 'Capabilities',
+                url: '/business/capabilities',
+                icon: <TerminalSquareIcon />,
+                allowedRoles: [] as Role[],
+              }
+            : null,
+          perms[Permissions.BUSINESS_VIEW_BRANCHES]
+            ? {
+                title: 'Branches',
+                url: '/business/branches',
+                icon: <BotIcon />,
+                allowedRoles: [] as Role[],
+              }
+            : null,
+          perms[Permissions.BUSINESS_VIEW_BILLING]
+            ? {
+                title: 'Billing',
+                url: '/business/billing',
+                icon: <CreditCardIcon />,
+                allowedRoles: [] as Role[],
+              }
+            : null,
+          perms[Permissions.BUSINESS_VIEW_SUPPLIERS]
+            ? {
+                title: 'Suppliers',
+                url: '/business/suppliers',
+                icon: <ClipboardPenLine />,
+                allowedRoles: [] as Role[],
+              }
+            : null,
+          perms[Permissions.BUSINESS_VIEW_CUSTOMERS]
+            ? {
+                title: 'Customers',
+                url: '/business/customers',
+                icon: <BookOpenIcon />,
+                allowedRoles: [] as Role[],
+              }
+            : null,
+          perms[Permissions.USER_MANAGE_PERMISSIONS]
+            ? {
+                title: 'Permissions',
+                url: '/business/permissions',
+                icon: <ShieldIcon />,
+                allowedRoles: [] as Role[],
+              }
+            : null,
+          perms[Permissions.BUSINESS_VIEW_PROFILE]
+            ? {
+                title: 'Profile',
+                url: '/business/profile',
+                icon: <SettingsIcon />,
+                allowedRoles: [] as Role[],
+              }
+            : null,
         ]
-          .filter(item => user && item.allowedRoles.includes(user.role as Role))
+          .filter(Boolean)
           .map(item => ({
-            ...item,
+            ...item!,
             items: [],
-            isActive: isRouteActive(item.url),
+            isActive: isRouteActive(item!.url),
           })) as Items[],
       }
     }
@@ -154,37 +208,45 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         plan: user.role || 'Guest',
       },
       items: [
-        {
-          title: 'Dashboard',
-          url: '/dashboard',
-          icon: <LayoutDashboardIcon />,
-          allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
-        },
-        {
-          title: 'Admin',
-          url: '#',
-          icon: <TerminalSquareIcon />,
-          allowedRoles: [Role.ADMIN],
-          items: [
-            { title: 'Employees', url: '/employees' },
-            { title: 'Products', url: '/products' },
-            caps.BATCH_PREPARATION ? { title: 'Preparation', url: '/preparation' } : null,
-            caps.CREATE_PURCHASE ? { title: 'Purchases', url: '/purchases' } : null,
-            user.business?.businessType === BusinessType.RESTAURANT ? { title: 'Ingredients', url: '/ingredients' } : null,
-          ].filter(Boolean),
-        },
-        {
-          title: 'Supervisor',
-          url: '#',
-          icon: <BotIcon />,
-          allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
-          items: [
-            caps.VIEW_SALES_REPORTS ? { title: 'Sales Report', url: '/sales-reports' } : null,
-            caps.MANAGE_INVENTORY ? { title: 'Inventory Reports', url: '/inventory-reports' } : null,
-            { title: 'Transactions', url: '/transactions' },
-            caps.VIEW_ORDER_HISTORY ? { title: 'Order History', url: '/order-history' } : null,
-          ].filter(Boolean),
-        },
+        perms[Permissions.BRANCH_VIEW_SALES_REPORTS] || hasSupervisorAccess
+          ? {
+              title: 'Dashboard',
+              url: '/dashboard',
+              icon: <LayoutDashboardIcon />,
+              allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+            }
+          : null,
+        perms[Permissions.BRANCH_VIEW_EMPLOYEES] || perms[Permissions.BRANCH_VIEW_PRODUCTS]
+          ? {
+              title: 'Admin',
+              url: '#',
+              icon: <TerminalSquareIcon />,
+              allowedRoles: [Role.ADMIN],
+              items: [
+                perms[Permissions.BRANCH_VIEW_EMPLOYEES] ? { title: 'Employees', url: '/employees' } : null,
+                perms[Permissions.BRANCH_VIEW_PRODUCTS] ? { title: 'Products', url: '/products' } : null,
+                caps.BATCH_PREPARATION && perms[Permissions.BRANCH_VIEW_PRODUCTION] ? { title: 'Preparation', url: '/preparation' } : null,
+                caps.CREATE_PURCHASE && perms[Permissions.BRANCH_VIEW_PURCHASES] ? { title: 'Purchases', url: '/purchases' } : null,
+                user.business?.businessType === BusinessType.RESTAURANT && perms[Permissions.BRANCH_VIEW_PRODUCTS]
+                  ? { title: 'Ingredients', url: '/ingredients' }
+                  : null,
+              ].filter(Boolean),
+            }
+          : null,
+        perms[Permissions.BRANCH_VIEW_SALES_REPORTS] || perms[Permissions.BRANCH_VIEW_TRANSACTIONS]
+          ? {
+              title: 'Supervisor',
+              url: '#',
+              icon: <BotIcon />,
+              allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+              items: [
+                caps.VIEW_SALES_REPORTS && perms[Permissions.BRANCH_VIEW_SALES_REPORTS] ? { title: 'Sales Report', url: '/sales-reports' } : null,
+                caps.MANAGE_INVENTORY && perms[Permissions.BRANCH_VIEW_INVENTORY_REPORTS] ? { title: 'Inventory Reports', url: '/inventory-reports' } : null,
+                perms[Permissions.BRANCH_VIEW_TRANSACTIONS] ? { title: 'Transactions', url: '/transactions' } : null,
+                caps.VIEW_ORDER_HISTORY && perms[Permissions.BRANCH_VIEW_ORDERS] ? { title: 'Order History', url: '/order-history' } : null,
+              ].filter(Boolean),
+            }
+          : null,
         caps.CREATE_TASK
           ? {
               title: 'Tasks',
@@ -193,43 +255,45 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER],
             }
           : null,
-        {
-          title: 'POS',
-          url: '/pos',
-          icon: <BookOpenIcon />,
-          allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER],
-        },
-        {
-          title: 'Settings',
-          url: '/settings',
-          icon: <SettingsIcon />,
-          allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
-        },
+        perms[Permissions.BRANCH_CREATE_ORDER] || perms[Permissions.BRANCH_VIEW_ORDERS]
+          ? {
+              title: 'POS',
+              url: '/pos',
+              icon: <BookOpenIcon />,
+              allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER],
+            }
+          : null,
+        perms[Permissions.BRANCH_VIEW_SETTINGS]
+          ? {
+              title: 'Settings',
+              url: '/settings',
+              icon: <SettingsIcon />,
+              allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+            }
+          : null,
         // Note: Contact Us and Billing have been moved to the Context Switcher and Business section
       ].filter(Boolean) as Items[],
     }
 
-    data.items = data.items
-      .filter(item => user && item.allowedRoles.includes(user.role as Role))
-      .map(item => {
-        // Map sub-items and check if any are active
-        const subItems = item.items?.map(subItem => ({
-          ...subItem,
-          isActive: isRouteActive(subItem.url),
-        }))
+    data.items = data.items.map(item => {
+      // Map sub-items and check if any are active
+      const subItems = item.items?.map(subItem => ({
+        ...subItem,
+        isActive: isRouteActive(subItem.url),
+      }))
 
-        const isChildActive = !!subItems?.some(child => child.isActive)
-        const isParentActive = isRouteActive(item.url)
+      const isChildActive = !!subItems?.some(child => child.isActive)
+      const isParentActive = isRouteActive(item.url)
 
-        return {
-          ...item,
-          items: subItems,
-          isActive: isParentActive || isChildActive,
-        }
-      })
+      return {
+        ...item,
+        items: subItems,
+        isActive: isParentActive || isChildActive,
+      }
+    })
 
     return data
-  }, [isRouteActive, user, caps, location.pathname])
+  }, [isRouteActive, user, caps, perms, location.pathname])
 
   return (
     <Sidebar collapsible='icon' {...props}>
@@ -295,12 +359,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 // ---------------------------------------------------------------------------
 // SubscriptionStatusFooter
 // Shows a compact subscription status badge at the bottom of the sidebar.
-// Only visible for ADMIN users (they're the ones managing billing).
+// Only visible for users with billing view permission.
 // Shows an upgrade CTA when in TRIAL (warning window) or blocked states.
 // ---------------------------------------------------------------------------
 function SubscriptionStatusFooter() {
   const user = useStore(authStore, state => state.user)
-  if (user?.role !== Role.ADMIN) return null
+  const authorization = useStore(authStore, state => state.authorization)
+
+  // Check if user has permission to view billing (replaces role check)
+  const canViewBilling = authorization?.permissions.includes(Permissions.BUSINESS_VIEW_BILLING) ?? false
+  if (!canViewBilling) return null
 
   const status = user?.entitlement?.status
   if (!status || status === SubscriptionStatus.ACTIVE) return null

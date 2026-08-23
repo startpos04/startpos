@@ -28,7 +28,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
 
 // ---------------------------------------------------------------------------
@@ -109,7 +111,7 @@ function getStripePriceId(envKey: string): string {
 // ---------------------------------------------------------------------------
 
 export const fetchAddonCatalog = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING)])
   .handler(async () =>
     ADDON_CATALOG.map(a => ({
       id: a.id,
@@ -139,7 +141,7 @@ const PurchaseAddonInputSchema = z.object({
 export type PurchaseAddonInput = z.infer<typeof PurchaseAddonInputSchema>
 
 export const purchaseAddonSubscription = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
   .inputValidator((data: PurchaseAddonInput) => PurchaseAddonInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     if (!context?.user?.businessId) {

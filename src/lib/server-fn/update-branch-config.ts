@@ -23,7 +23,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { requirePermission } from '@/lib/better-auth/permission-middleware'
 import { prisma as rootPrisma } from '@/lib/prisma-client'
 
 // ---------------------------------------------------------------------------
@@ -56,7 +58,7 @@ export const BRANCH_TOGGLE_DEFAULTS: BranchToggleConfig = {
 // ---------------------------------------------------------------------------
 
 export const fetchBranchConfig = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BRANCHES)])
   .inputValidator((data: { branchId: string }) => data)
   .handler(async ({ data, context }) => {
     if (!context?.user?.businessId) {
@@ -114,7 +116,7 @@ const UpdateBranchConfigInputSchema = z.object({
 export type UpdateBranchConfigInput = z.infer<typeof UpdateBranchConfigInputSchema>
 
 export const updateBranchConfig = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BRANCHES)])
   .inputValidator((data: UpdateBranchConfigInput) => UpdateBranchConfigInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     if (!context?.user?.businessId) {

@@ -11,7 +11,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { requirePermission } from '@/lib/better-auth/permission-middleware'
 import { prisma as rootPrisma } from '@/lib/prisma-client'
 
 export const CreateBranchInputSchema = z.object({
@@ -23,7 +25,7 @@ export const CreateBranchInputSchema = z.object({
 export type CreateBranchInput = z.infer<typeof CreateBranchInputSchema>
 
 export const createBranch = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_CREATE_BRANCH)])
   .inputValidator((data: CreateBranchInput) => CreateBranchInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     if (!context?.user?.businessId) {

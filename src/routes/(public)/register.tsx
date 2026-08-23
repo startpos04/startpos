@@ -394,7 +394,7 @@ function RouteComponent() {
       // Sign in to get a fresh session with businessId/branchId
       try {
         await AuthEngine.loginOnline(accountValues.email, accountValues.password, freshUser => {
-          setUser(freshUser)
+          setUser(freshUser, freshUser.authorization)
           navigate({ to: '/dashboard' })
         })
       } catch (loginError) {

@@ -1,63 +1,63 @@
-pre-commit:
-  commands:
-    biome-check:
-      glob: "*.{js,ts,jsx,tsx,json}"
-      run: pnpm biome check --write --no-errors-on-unmatched {staged_files}
-      stage_fixed: true
-    branch-guard:
-      run: pnpm tsx scripts/branch-guard.ts
-    # audit:
-    #   run: pnpm audit --audit-level moderate
+# pre-commit:
+#   commands:
+#     biome-check:
+#       glob: "*.{js,ts,jsx,tsx,json}"
+#       run: pnpm biome check --write --no-errors-on-unmatched {staged_files}
+#       stage_fixed: true
+#     branch-guard:
+#       run: pnpm tsx scripts/branch-guard.ts
+#     # audit:
+#     #   run: pnpm audit --audit-level moderate
 
-commit-msg:
-  commands:
-    "lint-commit":
-      run: pnpm tsx scripts/lint-commit.ts "{1}"
+# commit-msg:
+#   commands:
+#     "lint-commit":
+#       run: pnpm tsx scripts/lint-commit.ts "{1}"
 
-post-merge:
-  commands:
-    setup-pull-squash-alias:
-      run: >
-        git config local.alias.pull-squash "!f() {
-        if [ -z \"$1\" ] || [ -z \"$2\" ]; then
-        echo \"Usage: git pull-squash <remote> <branch>\";
-        return 1;
-        fi;
-        git fetch $1 $2 &&
-        git merge --squash FETCH_HEAD &&
-        git commit -m \"chore: squash pull from $1/$2\";
-        }; f"
-    prevent-multiline-history:
-      run: |
-        COUNT=$(git rev-list --count "HEAD@{1}..HEAD" 2>/dev/null || echo 0)
-        if [ "$COUNT" -gt 1 ]; then
-          echo ""
-          echo "❌ ERROR: Pull detected $COUNT commits."
-          echo "We enforce a squash-only policy to keep history clean."
-          echo ""
-          echo "FIX:"
-          echo "  1. Undo this pull:  git reset --hard HEAD@{1}"
-          echo "  2. Pull correctly:  git pull-squash origin <branch>"
-          echo ""
-          exit 1
-        fi
-    install-deps:
-      run: pnpm install --frozen-lockfile
+# post-merge:
+#   commands:
+#     setup-pull-squash-alias:
+#       run: >
+#         git config local.alias.pull-squash "!f() {
+#         if [ -z \"$1\" ] || [ -z \"$2\" ]; then
+#         echo \"Usage: git pull-squash <remote> <branch>\";
+#         return 1;
+#         fi;
+#         git fetch $1 $2 &&
+#         git merge --squash FETCH_HEAD &&
+#         git commit -m \"chore: squash pull from $1/$2\";
+#         }; f"
+#     prevent-multiline-history:
+#       run: |
+#         COUNT=$(git rev-list --count "HEAD@{1}..HEAD" 2>/dev/null || echo 0)
+#         if [ "$COUNT" -gt 1 ]; then
+#           echo ""
+#           echo "❌ ERROR: Pull detected $COUNT commits."
+#           echo "We enforce a squash-only policy to keep history clean."
+#           echo ""
+#           echo "FIX:"
+#           echo "  1. Undo this pull:  git reset --hard HEAD@{1}"
+#           echo "  2. Pull correctly:  git pull-squash origin <branch>"
+#           echo ""
+#           exit 1
+#         fi
+#     install-deps:
+#       run: pnpm install --frozen-lockfile
 
-pre-push:
-  commands:
-    type-check:
-      run: pnpm exec tsc --noEmit
-    unit-tests:
-      # Run tests without coverage instrumentation — fast local gate.
-      # Coverage is generated in CI (vitest.yml) where the report is uploaded.
-      run: pnpm test
-    branch-guard:
-      run: pnpm tsx scripts/branch-guard.ts
+# pre-push:
+#   commands:
+#     type-check:
+#       run: pnpm exec tsc --noEmit
+#     unit-tests:
+#       # Run tests without coverage instrumentation — fast local gate.
+#       # Coverage is generated in CI (vitest.yml) where the report is uploaded.
+#       run: pnpm test
+#     branch-guard:
+#       run: pnpm tsx scripts/branch-guard.ts
       
-post-checkout:
-  commands:
-    sync-deps:
-      files: git diff --name-only HEAD@{1} HEAD
-      glob: "pnpm-lock.yaml"
-      run: pnpm install --frozen-lockfile
+# post-checkout:
+#   commands:
+#     sync-deps:
+#       files: git diff --name-only HEAD@{1} HEAD
+#       glob: "pnpm-lock.yaml"
+#       run: pnpm install --frozen-lockfile

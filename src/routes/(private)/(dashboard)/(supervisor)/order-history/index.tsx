@@ -6,8 +6,11 @@ import { useCallback, useMemo, useState } from 'react'
 import { getColumns } from '@/components/custom/data-view'
 import { TableView } from '@/components/custom/data-view/table-view'
 import { type DateRange, DateRangeInput } from '@/components/custom/form/date-rage-input'
+import { OfflineIndicator } from '@/components/custom/offline-indicator'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { orderCollection, orderItemCollection, paymentCollection, transactionCollection, userCollection } from '@/db/collections'
+import { useIsOnline } from '@/hooks/use-is-online'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import MountManager from '@/lib/mount-manager'
@@ -54,16 +57,89 @@ function RouteComponent() {
   const searchParams = useSearch({ from: '/(private)/(dashboard)/(supervisor)/order-history/' })
   const navigate = useNavigate({ from: Route.fullPath })
   const [selectedId, setSelectedId] = useState<string>('')
+  const isOnline = useIsOnline()
 
   const { from, to, status, orderType, page, pageSize } = searchParams
 
-  const { data: result, isLoading } = useQuery({
+  // Online: Use server function for optimal performance
+  const { data: onlineResult, isLoading: onlineLoading } = useQuery({
     queryKey: ['order-history', searchParams],
     queryFn: () => fetchOrderHistory(searchParams),
+    enabled: isOnline,
   })
 
+  // Offline: Use collections with basic filtering
+  const offlineData = useMemo(() => {
+    if (isOnline) return null
+
+    const fromDate = dayjs(from).startOf('day').toDate()
+    const toDate = dayjs(to).endOf('day').toDate()
+
+    // Get all orders and filter by date range
+    let filtered = [...orderCollection.values()].filter(order => {
+      const orderDate = new Date(order.createdAt)
+      return orderDate >= fromDate && orderDate <= toDate
+    })
+
+    // Filter by status if specified
+    if (status) {
+      filtered = filtered.filter(order => order.status === status)
+    }
+
+    // Filter by order type if specified
+    if (orderType) {
+      filtered = filtered.filter(order => order.orderType === orderType)
+    }
+
+    // Sort by date (newest first)
+    filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+    // Limit to 200 most recent orders for offline viewing
+    const limited = filtered.slice(0, 200)
+
+    // Paginate
+    const paginated = limited.slice((page - 1) * pageSize, page * pageSize)
+
+    // Enrich with related data
+    const enriched: OrderHistoryItem[] = paginated.map(order => {
+      const items = [...orderItemCollection.values()]
+        .filter(i => i.orderId === order.id)
+        .map(item => ({
+          ...item,
+          variant: null as any, // Skip deep variant/product joins offline
+          selectedAddons: [],
+        }))
+
+      const transaction = order.transactionId ? transactionCollection.get(order.transactionId) : null
+      const cashier = transaction?.cashierId ? userCollection.get(transaction.cashierId) : null
+      const payments = transaction ? [...paymentCollection.values()].filter(p => p.transactionId === transaction.id) : []
+
+      return {
+        ...order,
+        items,
+        transaction: transaction
+          ? {
+              ...transaction,
+              cashier: cashier ? { id: cashier.id, name: cashier.name } : null,
+              payments,
+            }
+          : null,
+      } as OrderHistoryItem
+    })
+
+    return {
+      data: enriched,
+      totalItems: Math.min(limited.length, 200), // Cap at 200 for pagination
+      page,
+      pageSize,
+      isOfflineMode: true,
+    }
+  }, [isOnline, from, to, status, orderType, page, pageSize])
+
+  const result = isOnline ? onlineResult : offlineData
   const orders = result?.data ?? []
   const totalItems = result?.totalItems ?? 0
+  const isLoading = isOnline ? onlineLoading : false
 
   const handleSelectRow = useCallback((order: OrderHistoryItem) => {
     setSelectedId(order.id)
@@ -166,6 +242,9 @@ function RouteComponent() {
   return (
     <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
       <div className='flex-1 min-w-0 h-full px-4 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
+        {/* Offline Indicator */}
+        <OfflineIndicator message='Viewing cached orders (up to 200 most recent). Search filter unavailable offline.' />
+
         {/* Header */}
         <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
           <div>

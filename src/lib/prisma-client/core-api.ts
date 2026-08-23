@@ -37,6 +37,9 @@ export const PLATFORM_MODELS = [
   'billingInvoiceItem',
   'subscriptionStatusHistory',
   'businessSubscriptionFeature',
+  'permission',
+  'userPermission',
+  'roleDefaultPermission',
 ] as const
 
 export type PlatformModelName = (typeof PLATFORM_MODELS)[number]

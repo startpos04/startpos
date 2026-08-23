@@ -1,13 +1,16 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
-import { Role } from 'prisma/generated/prisma/enums'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { authStore } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/settings')({
   component: () => <Outlet />,
   beforeLoad: async ctx => {
-    const { user } = authStore.state
-    const allowedRoles = [Role.ADMIN, Role.SUPERVISOR] as Role[]
-    if (!allowedRoles.includes(user.role as Role)) {
+    const { authorization } = authStore.state
+
+    // Check if user has permission to view settings
+    const canViewSettings = authorization?.permissions?.includes(Permissions.BRANCH_VIEW_SETTINGS) ?? false
+
+    if (!canViewSettings) {
       throw redirect({ to: '/login' })
     }
 

@@ -6,9 +6,12 @@ import { useCallback, useMemo, useState } from 'react'
 import { getColumns } from '@/components/custom/data-view'
 import { TableView } from '@/components/custom/data-view/table-view'
 import { type DateRange, DateRangeInput } from '@/components/custom/form/date-rage-input'
+import { OfflineIndicator } from '@/components/custom/offline-indicator'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { orderCollection, orderItemCollection, paymentCollection, transactionCollection, transactionTaxLineCollection, userCollection } from '@/db/collections'
+import { useIsOnline } from '@/hooks/use-is-online'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import MountManager from '@/lib/mount-manager'
@@ -64,16 +67,92 @@ function RouteComponent() {
   const searchParams = useSearch({ from: '/(private)/(dashboard)/(supervisor)/transactions/' })
   const navigate = useNavigate({ from: Route.fullPath })
   const [selectedId, setSelectedId] = useState<string>('')
+  const isOnline = useIsOnline()
 
   const { from, to, method, type, page, pageSize } = searchParams
 
-  const { data: result, isLoading } = useQuery({
+  // Online: Use server function for optimal performance
+  const { data: onlineResult, isLoading: onlineLoading } = useQuery({
     queryKey: ['transaction-history', searchParams],
     queryFn: () => fetchTransactionHistory(searchParams),
+    enabled: isOnline,
   })
 
+  // Offline: Use collections with basic filtering
+  const offlineData = useMemo(() => {
+    if (isOnline) return null
+
+    const fromDate = dayjs(from).startOf('day').toDate()
+    const toDate = dayjs(to).endOf('day').toDate()
+
+    // Get all transactions and filter by date range
+    let filtered = [...transactionCollection.values()].filter(tx => {
+      const txDate = new Date(tx.createdAt)
+      return txDate >= fromDate && txDate <= toDate
+    })
+
+    // Filter by type if specified
+    if (type) {
+      filtered = filtered.filter(tx => tx.type === type)
+    }
+
+    // Sort by date (newest first)
+    filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+    // Limit to 200 most recent transactions for offline viewing
+    const limited = filtered.slice(0, 200)
+
+    // Paginate
+    const paginated = limited.slice((page - 1) * pageSize, page * pageSize)
+
+    // Enrich with related data
+    const enriched: TransactionHistoryItem[] = paginated.map(tx => {
+      const cashier = tx.cashierId ? userCollection.get(tx.cashierId) : null
+      const payments = [...paymentCollection.values()].filter(p => p.transactionId === tx.id)
+      const taxLines = [...transactionTaxLineCollection.values()].filter(t => t.transactionId === tx.id)
+      const order = tx.orderId ? orderCollection.get(tx.orderId) : null
+      const originalTransaction = tx.originalTransactionId ? transactionCollection.get(tx.originalTransactionId) : null
+      const refunds = [...transactionCollection.values()].filter(r => r.originalTransactionId === tx.id)
+
+      return {
+        ...tx,
+        cashier: cashier ? { id: cashier.id, name: cashier.name, email: cashier.email } : null,
+        payments,
+        taxLines,
+        order: order
+          ? {
+              ...order,
+              items: [...orderItemCollection.values()]
+                .filter(i => i.orderId === order.id)
+                .map(item => ({
+                  ...item,
+                  variant: null as any, // Skip deep variant/product joins offline
+                  selectedAddons: [],
+                })),
+            }
+          : null,
+        originalTransaction: originalTransaction ? { id: originalTransaction.id, invoiceNo: originalTransaction.invoiceNo } : null,
+        refunds: refunds.map(r => ({
+          id: r.id,
+          invoiceNo: r.invoiceNo,
+          createdAt: r.createdAt,
+        })),
+      } as TransactionHistoryItem
+    })
+
+    return {
+      data: enriched,
+      totalItems: Math.min(limited.length, 200), // Cap at 200 for pagination
+      page,
+      pageSize,
+      isOfflineMode: true,
+    }
+  }, [isOnline, from, to, type, page, pageSize])
+
+  const result = isOnline ? onlineResult : offlineData
   const transactions = result?.data ?? []
   const totalItems = result?.totalItems ?? 0
+  const isLoading = isOnline ? onlineLoading : false
 
   const handleSelectRow = useCallback((tx: TransactionHistoryItem) => {
     setSelectedId(tx.id)
@@ -178,6 +257,9 @@ function RouteComponent() {
   return (
     <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
       <div className='flex-1 min-w-0 h-full px-4 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
+        {/* Offline Indicator */}
+        <OfflineIndicator message='Viewing cached transactions (up to 200 most recent). Payment method and search filters unavailable offline.' />
+
         {/* Header */}
         <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
           <div>
@@ -187,7 +269,7 @@ function RouteComponent() {
             </h1>
             <p className='text-muted-foreground text-sm'>Full history of all sales, refunds, and adjustments.</p>
           </div>
-          <Button size='sm' variant='outline' onClick={handleDownload}>
+          <Button size='sm' variant='outline' onClick={handleDownload} disabled={!isOnline}>
             <Download className='size-4' /> Export CSV
           </Button>
         </div>
@@ -218,6 +300,7 @@ function RouteComponent() {
           <Select
             value={method ?? 'all'}
             onValueChange={val => navigate({ search: prev => ({ ...prev, method: val === 'all' ? undefined : (val as PaymentMethod), page: 1 }) })}
+            disabled={!isOnline}
           >
             <SelectTrigger className='h-8 w-36 text-xs'>
               <SelectValue placeholder='All methods' />

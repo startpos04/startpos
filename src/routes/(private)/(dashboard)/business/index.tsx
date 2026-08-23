@@ -1,7 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
-import { Building2, CreditCard, Sparkles, Users } from 'lucide-react'
+import { Building2, CreditCard, Shield, Sparkles, Users } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { usePermission } from '@/hooks/use-permission'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { authStore } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/')({
@@ -11,6 +13,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/business/')({
 function BusinessOverview() {
   const user = useStore(authStore, state => state.user)
   const business = user?.business
+  const canManagePermissions = usePermission(Permissions.USER_MANAGE_PERMISSIONS)
 
   if (!business) {
     return (
@@ -95,6 +98,9 @@ function BusinessOverview() {
             />
             <QuickActionCard title='Branches' description='Manage your branches' icon={<Building2 className='h-6 w-6' />} href='/business/branches' />
             <QuickActionCard title='Billing' description='View plans and invoices' icon={<CreditCard className='h-6 w-6' />} href='/business/billing' />
+            {canManagePermissions && (
+              <QuickActionCard title='Permissions' description='Manage user permissions' icon={<Shield className='h-6 w-6' />} href='/business/permissions' />
+            )}
           </div>
         </CardContent>
       </Card>

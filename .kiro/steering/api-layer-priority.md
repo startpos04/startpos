@@ -1,5 +1,7 @@
 # API Layer Priority Rule
 
+**⚠️ IMPORTANT**: This project follows an **offline-first architecture**. See `development-context.md` for offline requirements and current development priorities.
+
 This project has three data access layers. Always use them in this priority order. Only drop to the next layer when there is a concrete reason the higher-priority layer cannot satisfy the requirement.
 
 ---

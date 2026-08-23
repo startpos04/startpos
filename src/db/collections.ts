@@ -11,6 +11,8 @@ import type {
   FeatureDependency,
   GoodsReceipt,
   GoodsReceiptItem,
+  Hint,
+  HintLog,
   Inventory,
   InventoryMovement,
   Location,
@@ -21,6 +23,7 @@ import type {
   OrderItem,
   OrderItemAddon,
   Payment,
+  Permission,
   Product,
   ProductComponent,
   ProductionOrder,
@@ -36,6 +39,7 @@ import type {
   Unit,
   UsageCounter,
   User,
+  UserPermission,
   VendorSession,
 } from 'prisma/generated/prisma/browser'
 import type { TaskMetadata, TransactionComplianceData } from '@/lib/types'
@@ -269,4 +273,32 @@ export const productionOrderItemCollection = createSyncableCollection<Production
   apiKey: 'productionOrderItem',
   schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand',
+})
+
+// --- AUTHORIZATION SYSTEM COLLECTIONS (Phase 1: Offline Support) ---
+
+export const permissionCollection = createSyncableCollection<Permission>({
+  apiKey: 'permission',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'eager', // Always sync on login for offline authorization
+})
+
+export const userPermissionCollection = createSyncableCollection<UserPermission>({
+  apiKey: 'userPermission',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'eager', // Always sync on login for offline authorization
+})
+
+// --- HINT SYSTEM COLLECTIONS (Phase 4: Optional Offline Enhancements) ---
+
+export const hintCollection = createSyncableCollection<Hint>({
+  apiKey: 'hint',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand', // Sync when dashboard is accessed, cache for offline
+})
+
+export const hintLogCollection = createSyncableCollection<HintLog>({
+  apiKey: 'hintLog',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'on-demand', // Track hint viewing history, sync when needed
 })

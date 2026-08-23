@@ -20,16 +20,22 @@ import { createFileRoute } from '@tanstack/react-router'
 import { AlertTriangle, CheckCircle, Clock, Edit3, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { RequirePermission } from '@/components/require-permission'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { correctCharacteristicFn } from '@/lib/server-fn/capability-actions'
 import { fetchBusinessProfile, type ProfileFieldRow } from '@/lib/server-fn/fetch-business-profile'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/profile/')({
-  component: BusinessProfilePage,
+  component: () => (
+    <RequirePermission permission={Permissions.BUSINESS_VIEW_PROFILE}>
+      <BusinessProfilePage />
+    </RequirePermission>
+  ),
 })
 
 // ---------------------------------------------------------------------------

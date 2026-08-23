@@ -2,10 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { ClipboardList, Receipt, X } from 'lucide-react'
 import type { OrderStatus, OrderType, PaymentMethod } from 'prisma/generated/prisma/enums'
+import { useMemo } from 'react'
 import Tab from '@/components/custom/tab'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { orderCollection, orderItemCollection, paymentCollection, transactionCollection, userCollection } from '@/db/collections'
+import { useIsOnline } from '@/hooks/use-is-online'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import type { MountProps } from '@/lib/mount-manager'
@@ -184,19 +187,52 @@ function RouteComponent({ order: propOrder, onClose }: RouteComponentProps) {
   // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
   const loaderData = propOrder ? null : Route.useLoaderData()
   const orderId = propOrder ? null : (loaderData?.orderId ?? '')
+  const isOnline = useIsOnline()
 
   const today = dayjs().format('YYYY-MM-DD')
   const startOfYear = dayjs().startOf('year').format('YYYY-MM-DD')
 
-  // Only fetch when rendered as a standalone route (no prop passed from list page)
-  const { data: result, isLoading } = useQuery({
+  // Online: Use server function to fetch order
+  const { data: onlineResult, isLoading: onlineLoading } = useQuery({
     queryKey: ['order-detail-route', orderId],
     queryFn: () => fetchOrderHistory({ from: startOfYear, to: today, page: 1, pageSize: 9999 }),
-    enabled: !!orderId && !propOrder,
+    enabled: !!orderId && !propOrder && isOnline,
   })
 
-  const order = propOrder ?? result?.data?.find(o => o.id === orderId)
-  const isLoading_ = propOrder ? false : isLoading
+  // Offline: Use collections to fetch order
+  const offlineOrder = useMemo(() => {
+    if (isOnline || !orderId || propOrder) return null
+
+    const ord = orderCollection.get(orderId)
+    if (!ord) return null
+
+    const items = [...orderItemCollection.values()]
+      .filter(i => i.orderId === ord.id)
+      .map(item => ({
+        ...item,
+        variant: null as any, // Skip deep variant/product joins offline
+        selectedAddons: [],
+      }))
+
+    const transaction = ord.transactionId ? transactionCollection.get(ord.transactionId) : null
+    const cashier = transaction?.cashierId ? userCollection.get(transaction.cashierId) : null
+    const payments = transaction ? [...paymentCollection.values()].filter(p => p.transactionId === transaction.id) : []
+
+    return {
+      ...ord,
+      items,
+      transaction: transaction
+        ? {
+            ...transaction,
+            cashier: cashier ? { id: cashier.id, name: cashier.name } : null,
+            payments,
+          }
+        : null,
+    } as OrderHistoryItem
+  }, [isOnline, orderId, propOrder])
+
+  const order = propOrder ?? (isOnline ? onlineResult?.data?.find(o => o.id === orderId) : offlineOrder)
+  const isLoading_ = propOrder ? false : isOnline ? onlineLoading : false
 
   const handleClose = () => {
     if (onClose) onClose()

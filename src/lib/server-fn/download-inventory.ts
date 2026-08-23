@@ -4,7 +4,9 @@ import Papa from 'papaparse'
 import type { Prisma } from 'prisma/generated/prisma/browser'
 import z from 'zod'
 import dayjs from '@/lib/dayjs'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { PriceEngine } from '../conversion/price-engine'
 import { getTenantPrisma } from '../prisma-client'
 import type { Prettify } from '../types'
@@ -15,7 +17,7 @@ const inventorySearchSchema = z.object({
 })
 
 export const downloadInventoryCsv = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_INVENTORY_REPORTS)])
   .inputValidator(d => inventorySearchSchema.parse(d))
   .handler(async ({ context, data }) => {
     const prisma = getTenantPrisma(context.user.businessId, context.user.branchId!)

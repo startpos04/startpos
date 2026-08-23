@@ -31,6 +31,28 @@
  *     <AnalyticsDashboard />
  *   </RequireCapability>
  *
+ * Usage — nested with RequirePermission for dual gating:
+ *   <RequireCapability cap={Capabilities.MANAGE_BILLING}>
+ *     <RequirePermission permission={PermissionKeys.BUSINESS.MANAGE_BILLING}>
+ *       <BillingSettings />
+ *     </RequirePermission>
+ *   </RequireCapability>
+ *
+ * When to use RequireCapability vs RequirePermission:
+ *   - RequireCapability: Business-wide feature enablement
+ *     → "Is this feature enabled for the business?"
+ *     → Checks subscription plan, capability states, survey answers
+ *     → Example: Is inventory tracking enabled?
+ *
+ *   - RequirePermission: User-level authorization
+ *     → "Does this user have permission to perform this action?"
+ *     → Checks role-based and custom-assigned permissions
+ *     → Example: Can this CASHIER edit business settings?
+ *
+ *   - Use both (nested): Feature must be enabled AND user must have permission
+ *     → Outer: RequireCapability (business-level gate)
+ *     → Inner: RequirePermission (user-level gate)
+ *
  * Architecture:
  *   - Reads from authStore.user.entitlement.capabilities (session-loaded).
  *   - No server call on render — purely reactive to the session.

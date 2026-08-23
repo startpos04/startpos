@@ -25,7 +25,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     try {
       const user = await getAuthUser()
 
-      setUser(user!)
+      setUser(user!, user?.authorization)
       return { user }
     } catch {
       return { user: undefined }
@@ -62,7 +62,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
   useMemo(() => {
     if (user) {
-      setUser(user)
+      setUser(user, user.authorization)
     }
   }, [user])
 

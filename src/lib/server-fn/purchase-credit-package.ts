@@ -26,7 +26,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
 import type { CreditPackage } from '../billing/types'
 
@@ -79,7 +81,7 @@ export type PurchaseCreditPackageInput = z.infer<typeof PurchaseCreditPackageInp
  * without hardcoding amounts or prices.
  */
 export const fetchCreditPackages = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING)])
   .handler(async () => {
     return buildCreditPackages().map(pkg => ({
       id: pkg.id,
@@ -97,7 +99,7 @@ export type CreditPackageOption = Awaited<ReturnType<typeof fetchCreditPackages>
 // ---------------------------------------------------------------------------
 
 export const purchaseCreditPackage = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
   .inputValidator((data: PurchaseCreditPackageInput) => PurchaseCreditPackageInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     if (!context?.user?.businessId) {

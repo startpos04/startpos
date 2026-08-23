@@ -4,6 +4,8 @@ import { BookOpen, Building2, HelpCircle } from 'lucide-react'
 import { Role } from 'prisma/generated/prisma/enums'
 import { Separator } from '@/components/ui/separator'
 import { useBranchSwitch } from '@/hooks/use-branch-switch'
+import { usePermission } from '@/hooks/use-permission'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { authStore } from '@/store/auth-store'
 import { ContextSwitcherItem } from './context-switcher-item'
 
@@ -17,11 +19,13 @@ export function ContextSwitcher() {
   const navigate = useNavigate()
   const { switchBranch } = useBranchSwitch()
 
+  // Permission check (replaces role check)
+  const canViewBusiness = usePermission(Permissions.BUSINESS_VIEW_PROFILE)
+
   // Don't render if no user (shouldn't happen in dashboard, but safe check)
   if (!user) return null
 
   const isBusinessActive = location.pathname.startsWith('/business')
-  const isAdmin = user.role === Role.ADMIN
   const currentBranchId = user.branch?.id
 
   // Get all branches (for now, just current branch - will expand later when multi-branch support is added)
@@ -31,8 +35,8 @@ export function ContextSwitcher() {
     <div className='hidden md:flex bg-card w-12 border-r flex-col items-center shrink-0 h-screen sticky top-0 z-20'>
       {/* Business + Branches - Top Section */}
       <div className='flex flex-col gap-2 items-center flex-1 overflow-y-auto py-4 w-full px-2 overflow-x-hidden'>
-        {/* Business Admin (Admin only) */}
-        {isAdmin && (
+        {/* Business Admin (users with business permissions) */}
+        {canViewBusiness && (
           <ContextSwitcherItem
             label='Business Admin'
             icon={<Building2 className='size-5' />}

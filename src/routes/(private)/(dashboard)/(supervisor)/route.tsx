@@ -1,14 +1,27 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
-import { Role } from 'prisma/generated/prisma/enums'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { authStore } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/(supervisor)')({
   component: RouteComponent,
   beforeLoad: async () => {
-    const { user } = authStore.state
-    const allowedRoles = [Role.ADMIN, Role.SUPERVISOR] as Role[]
-    if (!allowedRoles.includes(user.role as Role)) {
-      throw redirect({ to: '/login' })
+    const { authorization } = authStore.state
+
+    // Check if user has ANY supervisor-level permission (grants access to supervisor section)
+    // Supervisor section includes: sales reports, inventory reports, transactions, order history
+    const supervisorPermissions = [
+      Permissions.BRANCH_VIEW_SALES_REPORTS,
+      Permissions.BRANCH_VIEW_INVENTORY_REPORTS,
+      Permissions.BRANCH_VIEW_TRANSACTIONS,
+      Permissions.BRANCH_VIEW_ORDERS,
+      Permissions.BRANCH_EXPORT_REPORTS,
+    ]
+
+    const hasSupervisorPermission = authorization?.permissions.some(p => supervisorPermissions.includes(p as (typeof Permissions)[keyof typeof Permissions]))
+
+    if (!hasSupervisorPermission) {
+      // Redirect to dashboard instead of login (user is authenticated, just not authorized)
+      throw redirect({ to: '/dashboard' })
     }
   },
 })

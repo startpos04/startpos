@@ -38,6 +38,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { RequirePermission } from '@/components/require-permission'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +56,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { getAuthUser } from '@/lib/better-auth/auth-server'
 import { SubscriptionPolicy } from '@/lib/billing/policies/subscription-policy'
 import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
@@ -67,7 +69,11 @@ import { cn } from '@/lib/utils'
 import { authStore, refreshUser } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/billing/')({
-  component: BillingDashboard,
+  component: () => (
+    <RequirePermission permission={Permissions.BUSINESS_VIEW_BILLING}>
+      <BillingDashboard />
+    </RequirePermission>
+  ),
 })
 
 // ---------------------------------------------------------------------------

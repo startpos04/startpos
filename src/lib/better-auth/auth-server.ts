@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import _ from 'lodash'
 import type { Prisma } from 'prisma/generated/prisma/client'
 import { type ComplianceKey, type ConfigKey, Role } from 'prisma/generated/prisma/enums'
+import { AuthorizationEngine } from '../authorization/authorization-engine'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 import { BillingModel, type LifecycleThresholds } from '../billing/types'
 import { Capabilities, type CapabilityKey } from '../entitlement/capability-keys'
@@ -13,6 +14,7 @@ import { auth } from './auth'
 import { authMiddleware } from './auth-middleware'
 
 export const RoleLandingPages: Record<Role, string> = {
+  [Role.OWNER]: '/business',
   [Role.ADMIN]: '/dashboard',
   [Role.SUPERVISOR]: '/sales-reports',
   [Role.CASHIER]: '/pos',
@@ -606,6 +608,16 @@ export const getAuthUser = createServerFn({ method: 'GET' })
     // -------------------------------------------------------------------------
     const canCheckoutOffline = branchData.offlineTerminalId === userId
 
+    // -------------------------------------------------------------------------
+    // Authorization Summary — Phase 1
+    // Build permission summary for the current user based on their role and
+    // any custom grants/revokes. This mirrors the EntitlementEngine pattern.
+    // -------------------------------------------------------------------------
+    const authorization = await AuthorizationEngine.buildSummary({
+      userId,
+      role: userData.role,
+    })
+
     return {
       ...user,
       business,
@@ -627,6 +639,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       deferredCapabilities: (bosData?.deferredCapabilities ?? []) as string[],
       onboardingCompletedAt: bosData?.onboardingCompletedAt ?? null,
       currentProfile: bosData?.currentProfile ?? null,
+      authorization,
     }
   })
 

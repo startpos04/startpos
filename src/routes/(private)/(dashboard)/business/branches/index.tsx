@@ -21,6 +21,7 @@ import { toast } from 'sonner'
 import { getColumns } from '@/components/custom/data-view'
 import { MultiView } from '@/components/custom/data-view/multi-view'
 import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
+import { RequirePermission } from '@/components/require-permission'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -30,6 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { branchCollection } from '@/db/collections'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import MountManager from '@/lib/mount-manager'
 import { createBranch } from '@/lib/server-fn/create-branch'
 import { fetchBranchUsers } from '@/lib/server-fn/fetch-branch-users'
@@ -39,7 +41,11 @@ import { updateOfflineTerminal } from '@/lib/server-fn/update-offline-terminal'
 import { authStore } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/branches/')({
-  component: BranchesPage,
+  component: () => (
+    <RequirePermission permission={Permissions.BUSINESS_VIEW_BRANCHES}>
+      <BranchesPage />
+    </RequirePermission>
+  ),
 })
 
 // ---------------------------------------------------------------------------

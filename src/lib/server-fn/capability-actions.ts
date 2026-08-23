@@ -10,8 +10,10 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { requireCapability } from '../better-auth/entitlement-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { Capabilities } from '../entitlement/capability-keys'
 import type { ControlResult } from '../evolution/capability-control'
 import { accept, correctCharacteristic, dismiss, enable, pause, restore } from '../evolution/capability-control'
@@ -105,7 +107,7 @@ export const dismissCapability = createServerFn({ method: 'POST' })
 // ---------------------------------------------------------------------------
 
 export const correctCharacteristicFn = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_PROFILE)])
   .inputValidator((d: CorrectCharacteristicInput) => d)
   .handler(async ({ data, context }) => {
     if (!context?.user?.id || !context?.user?.businessId) {

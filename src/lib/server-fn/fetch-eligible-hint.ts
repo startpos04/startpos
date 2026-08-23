@@ -15,7 +15,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { HintEngine } from '../hint/hint-engine'
 import type { HintDTO, HintLogDTO } from '../hint/hint-types'
 import { prisma as rootPrisma } from '../prisma-client'
@@ -29,7 +31,7 @@ const FetchEligibleHintInputSchema = z.object({
 export type FetchEligibleHintInput = z.infer<typeof FetchEligibleHintInputSchema>
 
 export const fetchEligibleHint = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_DASHBOARD)])
   .inputValidator((data: FetchEligibleHintInput) => FetchEligibleHintInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     if (!context?.user?.id) return null

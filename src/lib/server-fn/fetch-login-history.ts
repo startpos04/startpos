@@ -14,7 +14,9 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { prisma as rootPrisma } from '../prisma-client'
 
 export type LoginHistoryEntry = {
@@ -27,7 +29,7 @@ export type LoginHistoryEntry = {
 }
 
 export const fetchLoginHistory = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.USER_VIEW_LOGIN_HISTORY)])
   .handler(async ({ context }): Promise<LoginHistoryEntry[]> => {
     const userId = context.user.id
 

@@ -6,11 +6,13 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { getTenantPrisma } from '../prisma-client'
 
 export const fetchBranchUsers = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_EMPLOYEES)])
   .inputValidator((data: { branchId: string }) => data)
   .handler(async ({ data, context }) => {
     if (!context?.user?.businessId || !context?.user?.branchId) {

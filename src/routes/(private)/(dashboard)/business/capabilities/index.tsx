@@ -18,17 +18,23 @@ import { createFileRoute } from '@tanstack/react-router'
 import { CheckCircle2, ChevronDown, ChevronUp, Clock, Eye, EyeOff, Pause, Play, RefreshCw, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { RequirePermission } from '@/components/require-permission'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { acceptCapability, dismissCapability, enableCapability, pauseCapability, restoreCapability } from '@/lib/server-fn/capability-actions'
 import { type CapabilityStateRow, fetchCapabilityStates } from '@/lib/server-fn/fetch-capability-states'
 import { cn } from '@/lib/utils'
 import { refreshAuthUser } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/capabilities/')({
-  component: CapabilitiesPage,
+  component: () => (
+    <RequirePermission permission={Permissions.BUSINESS_VIEW_CAPABILITIES}>
+      <CapabilitiesPage />
+    </RequirePermission>
+  ),
 })
 
 // ---------------------------------------------------------------------------

@@ -10,11 +10,13 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { prisma as rootPrisma } from '../prisma-client'
 
 export const fetchDashboardHints = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_DASHBOARD)])
   .handler(async ({ context }) => {
     if (!context?.user?.id) return []
 

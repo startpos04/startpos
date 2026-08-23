@@ -1,24 +1,34 @@
 import { Store } from '@tanstack/react-store'
+import type { PermissionKey } from '@/lib/authorization/permission-keys'
 import type { ServerUser } from '@/lib/better-auth/auth-server'
 import { getAuthUser } from '@/lib/better-auth/auth-server'
 import type { Prettify } from '@/lib/types'
+
+// Authorization summary type - mirrors PermissionSummary from authorization-engine
+export interface AuthorizationSummary {
+  permissions: PermissionKey[]
+  role: string
+  customGrants: PermissionKey[]
+  customRevokes: PermissionKey[]
+}
 
 const defaultValue = {
   isAuthenticated: false as const,
   isLoggingOut: false as boolean,
   user: {} as unknown as ServerUser,
+  authorization: null as AuthorizationSummary | null,
 }
 
 export type AuthState = Prettify<typeof defaultValue | (Omit<typeof defaultValue, 'isAuthenticated'> & { isAuthenticated: true })>
 
 export const authStore = new Store<AuthState>(defaultValue)
 
-export const setUser = (user: ServerUser) => {
+export const setUser = (user: ServerUser, authorization?: AuthorizationSummary | null) => {
   authStore.setState(state => {
     // Do not overwrite an already-authenticated user — prevents accidental
     // re-seeding when multiple components call setUser on the same session.
     if (state.isAuthenticated && state.user?.id) return state
-    return user ? { ...state, isAuthenticated: true, user } : defaultValue
+    return user ? { ...state, isAuthenticated: true, user, authorization: authorization ?? null } : defaultValue
   })
 }
 
@@ -28,11 +38,12 @@ export const setUser = (user: ServerUser) => {
  * where the entitlement/subscription data needs to be re-read from the server.
  * Unlike setUser, this bypasses the "already authenticated" guard.
  */
-export const refreshUser = (user: ServerUser) => {
+export const refreshUser = (user: ServerUser, authorization?: AuthorizationSummary | null) => {
   authStore.setState(state => ({
     ...state,
     isAuthenticated: true,
     user,
+    authorization: authorization ?? null,
   }))
 }
 

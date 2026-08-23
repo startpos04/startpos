@@ -1,6 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { requirePermission } from '@/lib/better-auth/permission-middleware'
 import { prisma as rootPrisma } from '@/lib/prisma-client'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 
@@ -22,7 +24,7 @@ export type FetchCreditLedgerInput = z.infer<typeof fetchCreditLedgerSchema>
 // (which uses the Node.js Buffer global) into the browser bundle.
 // ---------------------------------------------------------------------------
 export const fetchCreditLedger = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING)])
   .inputValidator((data: FetchCreditLedgerInput) => fetchCreditLedgerSchema.parse(data))
   .handler(async ({ data }) => {
     const where = {}

@@ -3,13 +3,15 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { AlertTriangle, Download, Receipt, RotateCcw, X } from 'lucide-react'
 import { type PaymentMethod, TransactionType } from 'prisma/generated/prisma/enums'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import Tab from '@/components/custom/tab'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { orderCollection, orderItemCollection, paymentCollection, transactionCollection, transactionTaxLineCollection, userCollection } from '@/db/collections'
+import { useIsOnline } from '@/hooks/use-is-online'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
@@ -283,19 +285,60 @@ function RouteComponent({ transaction: propTransaction, onClose }: RouteComponen
   // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
   const loaderData = propTransaction ? null : Route.useLoaderData()
   const transactionId = propTransaction ? null : (loaderData?.transactionId ?? '')
+  const isOnline = useIsOnline()
 
   const today = dayjs().format('YYYY-MM-DD')
   const startOfYear = dayjs().startOf('year').format('YYYY-MM-DD')
 
-  // Only fetch when rendered as a standalone route (no prop passed from list page)
-  const { data: result, isLoading } = useQuery({
+  // Online: Use server function to fetch transaction
+  const { data: onlineResult, isLoading: onlineLoading } = useQuery({
     queryKey: ['transaction-detail-route', transactionId],
     queryFn: () => fetchTransactionHistory({ from: startOfYear, to: today, page: 1, pageSize: 9999 }),
-    enabled: !!transactionId && !propTransaction,
+    enabled: !!transactionId && !propTransaction && isOnline,
   })
 
-  const transaction = propTransaction ?? result?.data?.find(t => t.id === transactionId)
-  const isLoading_ = propTransaction ? false : isLoading
+  // Offline: Use collections to fetch transaction
+  const offlineTransaction = useMemo(() => {
+    if (isOnline || !transactionId || propTransaction) return null
+
+    const tx = transactionCollection.get(transactionId)
+    if (!tx) return null
+
+    const cashier = tx.cashierId ? userCollection.get(tx.cashierId) : null
+    const payments = [...paymentCollection.values()].filter(p => p.transactionId === tx.id)
+    const taxLines = [...transactionTaxLineCollection.values()].filter(t => t.transactionId === tx.id)
+    const order = tx.orderId ? orderCollection.get(tx.orderId) : null
+    const originalTransaction = tx.originalTransactionId ? transactionCollection.get(tx.originalTransactionId) : null
+    const refunds = [...transactionCollection.values()].filter(r => r.originalTransactionId === tx.id)
+
+    return {
+      ...tx,
+      cashier: cashier ? { id: cashier.id, name: cashier.name, email: cashier.email } : null,
+      payments,
+      taxLines,
+      order: order
+        ? {
+            ...order,
+            items: [...orderItemCollection.values()]
+              .filter(i => i.orderId === order.id)
+              .map(item => ({
+                ...item,
+                variant: null as any, // Skip deep variant/product joins offline
+                selectedAddons: [],
+              })),
+          }
+        : null,
+      originalTransaction: originalTransaction ? { id: originalTransaction.id, invoiceNo: originalTransaction.invoiceNo } : null,
+      refunds: refunds.map(r => ({
+        id: r.id,
+        invoiceNo: r.invoiceNo,
+        createdAt: r.createdAt,
+      })),
+    } as TransactionHistoryItem
+  }, [isOnline, transactionId, propTransaction])
+
+  const transaction = propTransaction ?? (isOnline ? onlineResult?.data?.find(t => t.id === transactionId) : offlineTransaction)
+  const isLoading_ = propTransaction ? false : isOnline ? onlineLoading : false
 
   // Refund dialog state
   const [refundDialogOpen, setRefundDialogOpen] = useState(false)
@@ -497,13 +540,13 @@ function RouteComponent({ transaction: propTransaction, onClose }: RouteComponen
               variant='destructive'
               className='w-full h-9 gap-2 rounded-xl'
               onClick={() => setRefundDialogOpen(true)}
-              disabled={alreadyRefunded || refundMutation.isPending}
+              disabled={alreadyRefunded || refundMutation.isPending || !isOnline}
             >
               <RotateCcw className='size-3.5' />
-              {alreadyRefunded ? 'Already Refunded' : 'Issue Refund'}
+              {alreadyRefunded ? 'Already Refunded' : isOnline ? 'Issue Refund' : 'Refund (Offline)'}
             </Button>
           )}
-          <Button variant='outline' className='w-full h-9 gap-2 rounded-xl' onClick={handleExport}>
+          <Button variant='outline' className='w-full h-9 gap-2 rounded-xl' onClick={handleExport} disabled={!isOnline}>
             <Download className='size-3.5' /> Export This Transaction
           </Button>
         </div>

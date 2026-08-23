@@ -7,8 +7,12 @@
  * automatically scopes all queries to context.user.businessId.
  */
 
+import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
+import { Permissions } from '../authorization/permission-keys'
+import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import type { InvoiceSummaryDTO } from '../billing/types'
 
 const FetchInvoicesSchema = z.object({
@@ -18,57 +22,58 @@ const FetchInvoicesSchema = z.object({
 
 export type FetchInvoicesInput = z.infer<typeof FetchInvoicesSchema>
 
-export const fetchInvoices = async (input: FetchInvoicesInput) => {
-  const data = FetchInvoicesSchema.parse(input)
+export const fetchInvoices = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING)])
+  .inputValidator((input: FetchInvoicesInput) => FetchInvoicesSchema.parse(input))
+  .handler(async ({ data }) => {
+    const where = {}
 
-  const where = {}
+    const [rowsResult, countResult] = await Promise.all([
+      crudAPI.billingInvoice('findMany', {
+        where,
+        orderBy: { billingPeriodStart: 'desc' as const },
+        skip: (data.page - 1) * data.pageSize,
+        take: data.pageSize,
+        select: {
+          id: true,
+          billingPeriodStart: true,
+          billingPeriodEnd: true,
+          status: true,
+          subtotalAmount: true,
+          taxAmount: true,
+          totalAmount: true,
+          dueAt: true,
+          paidAt: true,
+          externalInvoiceId: true,
+        },
+      }),
+      crudAPI.billingInvoice('count', { where }),
+    ])
 
-  const [rowsResult, countResult] = await Promise.all([
-    crudAPI.billingInvoice('findMany', {
-      where,
-      orderBy: { billingPeriodStart: 'desc' as const },
-      skip: (data.page - 1) * data.pageSize,
-      take: data.pageSize,
-      select: {
-        id: true,
-        billingPeriodStart: true,
-        billingPeriodEnd: true,
-        status: true,
-        subtotalAmount: true,
-        taxAmount: true,
-        totalAmount: true,
-        dueAt: true,
-        paidAt: true,
-        externalInvoiceId: true,
-      },
-    }),
-    crudAPI.billingInvoice('count', { where }),
-  ])
+    if (rowsResult.isErr()) throw new Error(rowsResult.error)
+    if (countResult.isErr()) throw new Error(countResult.error)
 
-  if (rowsResult.isErr()) throw new Error(rowsResult.error)
-  if (countResult.isErr()) throw new Error(countResult.error)
+    const invoices: InvoiceSummaryDTO[] = rowsResult.value.map(row => ({
+      id: row.id,
+      billingPeriodStart: row.billingPeriodStart,
+      billingPeriodEnd: row.billingPeriodEnd,
+      status: row.status as import('../billing/types').InvoiceStatus,
+      subtotalAmount: row.subtotalAmount,
+      taxAmount: row.taxAmount,
+      totalAmount: row.totalAmount,
+      dueAt: row.dueAt,
+      paidAt: row.paidAt,
+      externalInvoiceId: row.externalInvoiceId,
+      hostedInvoiceUrl: null,
+      pdfUrl: null,
+    }))
 
-  const invoices: InvoiceSummaryDTO[] = rowsResult.value.map(row => ({
-    id: row.id,
-    billingPeriodStart: row.billingPeriodStart,
-    billingPeriodEnd: row.billingPeriodEnd,
-    status: row.status as import('../billing/types').InvoiceStatus,
-    subtotalAmount: row.subtotalAmount,
-    taxAmount: row.taxAmount,
-    totalAmount: row.totalAmount,
-    dueAt: row.dueAt,
-    paidAt: row.paidAt,
-    externalInvoiceId: row.externalInvoiceId,
-    hostedInvoiceUrl: null,
-    pdfUrl: null,
-  }))
-
-  return {
-    invoices,
-    totalItems: countResult.value,
-    page: data.page,
-    pageSize: data.pageSize,
-  }
-}
+    return {
+      invoices,
+      totalItems: countResult.value,
+      page: data.page,
+      pageSize: data.pageSize,
+    }
+  })
 
 export type InvoiceListResponse = Awaited<ReturnType<typeof fetchInvoices>>

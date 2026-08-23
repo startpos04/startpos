@@ -5,7 +5,9 @@ import type { Prisma } from 'prisma/generated/prisma/browser'
 import { PaymentMethod, TransactionType } from 'prisma/generated/prisma/enums'
 import z from 'zod'
 import dayjs from '@/lib/dayjs'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { PriceEngine } from '../conversion/price-engine'
 import { getTenantPrisma } from '../prisma-client'
 import type { Prettify } from '../types'
@@ -19,7 +21,7 @@ const downloadTransactionsSchema = z.object({
 })
 
 export const downloadTransactionsCSV = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_TRANSACTIONS)])
   .inputValidator(d => downloadTransactionsSchema.parse(d))
   .handler(async ({ context, data }) => {
     const prisma = getTenantPrisma(context.user.businessId, context.user.branchId!)

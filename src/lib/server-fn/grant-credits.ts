@@ -17,7 +17,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { CreditEngine, CreditEventType } from '../billing/credit-engine'
 import { prisma as rootPrisma } from '../prisma-client'
 
@@ -38,7 +40,7 @@ export type GrantCreditsInput = z.infer<typeof GrantCreditsInputSchema>
 // ---------------------------------------------------------------------------
 
 export const grantCredits = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
   .inputValidator((data: GrantCreditsInput) => GrantCreditsInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     if (!context?.user?.businessId) {

@@ -23,7 +23,7 @@ import { RecommendationCard } from '@/components/custom/bos/recommendation-card'
 import { FeatureLibrary } from '@/components/feature-library'
 import { FirstRunGuide, useFirstRun } from '@/components/first-run-guide'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { creditLedgerCollection, orderCollection, productCollection, userCollection } from '@/db/collections'
+import { creditLedgerCollection, hintCollection, orderCollection, productCollection, userCollection } from '@/db/collections'
 import { HEALTH_STAGE_HINTS } from '@/lib/evolution/business-health-model'
 import { fetchCapabilityStates } from '@/lib/server-fn/fetch-capability-states'
 import { fetchDashboardHints } from '@/lib/server-fn/fetch-dashboard-hints'
@@ -59,11 +59,23 @@ function DashboardPage() {
   const creditBalance = latestLedgerEntry?.balanceAfter ?? user?.entitlement?.creditBalance
 
   // Tips & hints for the dashboard section
-  const { data: dashboardHints = [] } = useQuery({
+  // Hybrid approach: online uses server function (shuffled), offline uses collection
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+
+  // Online: Fetch from server (shuffled on every call)
+  const { data: serverHints = [] } = useQuery({
     queryKey: ['dashboard-hints'],
     queryFn: () => fetchDashboardHints(),
     staleTime: 0,
+    enabled: isOnline,
   })
+
+  // Offline: Use cached hints from collection
+  const offlineHints = useLiveQuery(() => [...hintCollection.values()].filter(h => h.isActive).sort((a, b) => a.sortOrder - b.sortOrder))
+
+  // Use server hints when online, fall back to collection when offline
+  const dashboardHints = isOnline ? serverHints : (offlineHints.data ?? [])
+
   const { data: capabilities } = useQuery({
     queryKey: ['capability-states'],
     queryFn: () => fetchCapabilityStates(),

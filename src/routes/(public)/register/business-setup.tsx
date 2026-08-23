@@ -79,7 +79,7 @@ function RouteComponent() {
 
       const refreshResult = await refreshSession()
       if (refreshResult.success && refreshResult.user) {
-        setUser(refreshResult.user)
+        setUser(refreshResult.user, refreshResult.user.authorization)
       }
 
       navigate({ to: '/dashboard', replace: true })

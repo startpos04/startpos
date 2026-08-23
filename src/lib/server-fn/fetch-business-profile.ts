@@ -8,7 +8,9 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { getStaleIntentFields } from '../evolution/intent-expiry-checker'
 import type { CharacteristicSource, LivingCharacteristics, SourcedValue } from '../evolution/types'
 import { DEFAULT_CHARACTERISTICS } from '../onboarding/defaults'
@@ -66,7 +68,7 @@ const SOURCE_LABELS: Record<CharacteristicSource | 'DEFAULT', string> = {
 // ---------------------------------------------------------------------------
 
 export const fetchBusinessProfile = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_PROFILE)])
   .handler(async ({ context }): Promise<BusinessProfileData> => {
     if (!context?.user?.businessId) {
       return { characteristics: [], healthStage: null, currentProfile: null, staleIntentPrompts: [] }

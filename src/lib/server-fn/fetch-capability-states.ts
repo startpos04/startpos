@@ -7,7 +7,9 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { isAlwaysOn } from '../evolution/capability-lifecycle'
 import { CAPABILITY_REGISTRY } from '../onboarding/capability-registry'
 import type { CapabilityLifecycleState } from '../onboarding/types'
@@ -42,7 +44,7 @@ export type CapabilityStateRow = {
 // ---------------------------------------------------------------------------
 
 export const fetchCapabilityStates = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_CAPABILITIES)])
   .handler(async ({ context }): Promise<CapabilityStateRow[]> => {
     if (!context?.user?.businessId) return []
 
