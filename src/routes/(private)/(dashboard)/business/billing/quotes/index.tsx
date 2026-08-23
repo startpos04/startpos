@@ -16,61 +16,18 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { ArrowLeftIcon, ArrowRightIcon, CheckCircle2Icon, ClockIcon, FileTextIcon, RefreshCwIcon, XCircleIcon } from 'lucide-react'
-import { z } from 'zod'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { authMiddleware } from '@/lib/better-auth/auth-middleware'
-import { prisma as rootPrisma } from '@/lib/prisma-client'
+import { fetchPricingQuotes } from '@/lib/server-fn/fetch-pricing-quotes'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/billing/quotes/')({
   component: QuotesPage,
 })
-
-// ---------------------------------------------------------------------------
-// Server function — fetch quotes for the current business
-// ---------------------------------------------------------------------------
-
-const fetchQuotesInputSchema = z.object({ page: z.number().int().min(1).default(1) })
-
-const fetchQuotes = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
-  .inputValidator((data: { page?: number }) => fetchQuotesInputSchema.parse(data))
-  .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) return { quotes: [], totalItems: 0 }
-    const { businessId } = context.user
-    const PAGE_SIZE = 20
-    const skip = (data.page - 1) * PAGE_SIZE
-
-    const [quotes, totalItems] = await Promise.all([
-      rootPrisma.pricingQuote.findMany({
-        where: { businessId },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: PAGE_SIZE,
-        select: {
-          id: true,
-          status: true,
-          grandTotal: true,
-          subtotalMonthly: true,
-          discountAmount: true,
-          validUntil: true,
-          createdAt: true,
-          acceptedAt: true,
-          convertedAt: true,
-          _count: { select: { items: { where: { lineType: 'FEATURE' } } } },
-        },
-      }),
-      rootPrisma.pricingQuote.count({ where: { businessId } }),
-    ])
-
-    return { quotes, totalItems }
-  })
 
 // ---------------------------------------------------------------------------
 // Status config
@@ -134,7 +91,7 @@ function getStatusConfig(status: QuoteStatusKey) {
 function QuotesPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['billing-quotes'],
-    queryFn: () => fetchQuotes({ data: { page: 1 } }),
+    queryFn: () => fetchPricingQuotes({ data: { page: 1 } }),
   })
 
   const quotes = data?.quotes ?? []

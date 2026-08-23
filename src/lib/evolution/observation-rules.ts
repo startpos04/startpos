@@ -17,7 +17,7 @@
  *
  * Phase 3b (10 rules — secondary signals):
  *   8.  inventoryCriticality = strict   — adjustments/30d > 4           (0.85)
- *   9.  inventoryCriticality = standard — inventoryAdjustmentCount ≥ 10 (0.80)
+ *   9.  inventoryCriticality = strict   — inventoryAdjustmentCount ≥ 10 (0.80)
  *   10. hasProductComponents            — componentRecipeCount ≥ 3      (0.95)
  *   11. hasRegularWaste                 — wasteRecordCount ≥ 2          (0.80)
  *   12. reconcilesCash                  — reconciliationCount ≥ 5       (0.90)
@@ -162,14 +162,14 @@ const ruleInventoryCriticalityStrict: ObservationRule<'inventoryCriticality'> = 
 }
 
 /**
- * Rule: inventoryCriticality = 'standard' when ≥ 10 inventory adjustments total.
- * Standard criticality: the business clearly cares about stock but isn't high-frequency.
- * Lower confidence than strict — this is a floor, not a ceiling.
+ * Rule: inventoryCriticality = 'strict' when ≥ 10 inventory adjustments total.
+ * Strict criticality variant with lower frequency: the business clearly cares about stock.
+ * Lower confidence than high-frequency strict — this is a floor, not a ceiling.
  */
-const ruleInventoryCriticalityStandard: ObservationRule<'inventoryCriticality'> = {
-  label: 'Standard inventory criticality (10+ total adjustments)',
+const ruleInventoryCriticalityStrictLowFreq: ObservationRule<'inventoryCriticality'> = {
+  label: 'Strict inventory criticality (10+ total adjustments)',
   characteristic: 'inventoryCriticality',
-  value: 'standard',
+  value: 'strict',
   condition: s => (s.inventoryAdjustmentCount ?? 0) >= 10,
   confidence: 0.8,
   evidence: 'Based on {count} inventory adjustment(s) recorded',
@@ -393,7 +393,7 @@ export const OBSERVATION_RULES: ObservationRule[] = [
   ruleTracksCustomers,
   // Phase 3b
   ruleInventoryCriticalityStrict,
-  ruleInventoryCriticalityStandard,
+  ruleInventoryCriticalityStrictLowFreq,
   ruleHasProductComponents,
   ruleHasRegularWaste,
   ruleReconcilesCash,

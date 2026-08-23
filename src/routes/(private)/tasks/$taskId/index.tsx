@@ -10,6 +10,7 @@ import { inventoryCollection, inventoryMovementCollection, operationalTaskCollec
 import { dbTransaction } from '@/db/local-db-transaction'
 import { useAppForm } from '@/hooks/form'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
+import { getInventoryMode } from '@/lib/inventory'
 import type { MountProps } from '@/lib/mount-manager'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
@@ -124,6 +125,7 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
             branchId: user.branch.id,
             businessId: user.business.id,
           },
+          inventoryMode: getInventoryMode(user.business.id),
         })
       }
     })

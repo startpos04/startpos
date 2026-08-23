@@ -15,7 +15,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { prisma as rootPrisma } from '../prisma-client'
 
 // ---------------------------------------------------------------------------
@@ -33,7 +35,7 @@ export type AcceptPricingQuoteInput = z.infer<typeof AcceptPricingQuoteInputSche
 // ---------------------------------------------------------------------------
 
 export const acceptPricingQuote = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
   .inputValidator((data: AcceptPricingQuoteInput) => AcceptPricingQuoteInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     if (!context?.user?.businessId) {

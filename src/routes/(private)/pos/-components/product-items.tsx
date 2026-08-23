@@ -13,7 +13,7 @@ import { useCapability } from '@/hooks/use-capability'
 import { usePOS } from '@/hooks/use-pos'
 import { productCols } from '@/lib/columns/product-columns'
 import { tableCols } from '@/lib/columns/table-columns'
-import { PosStockEngine, type posItem } from '@/lib/conversion/pos-stock-engine'
+import { PosStockEngine, type posItem, stockResultToNumber } from '@/lib/conversion/pos-stock-engine'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager, { type MountProps } from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
@@ -109,7 +109,9 @@ export const Products = withForm({
 
     const handleOpenConfig = (product: posProduct) => {
       const variant = product.variants[0]!
-      if (PosStockEngine.calculateRemainingYield(product, variant, [], cartItems, orderItems) < 1) return
+      const stockResult = PosStockEngine.calculateRemainingYield(product, variant, [], cartItems, orderItems)
+      const available = stockResultToNumber(stockResult)
+      if (available < 1) return
 
       MountManager.show(ProductDialog, {
         product,

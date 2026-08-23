@@ -22,6 +22,63 @@ export type posItem = {
   addons: Prettify<Prisma.ProductComponentGetPayload<{ include: typeof posProductComponentProps }>>[]
 }
 
+/**
+ * StockResult — discriminated union for inventory availability
+ * 
+ * Replaces the magic number 999 with a type-safe representation.
+ * 
+ * - unlimited: Product has no inventory tracking (SERVICE, provisional products)
+ * - tracked: Product has inventory; quantity can be positive, zero, or negative
+ *   (negative in relaxed mode when overselling is allowed)
+ */
+export type StockResult = 
+  | { type: 'unlimited' }
+  | { type: 'tracked'; quantity: number }
+
+/**
+ * Type guard: checks if stock result is unlimited
+ */
+export function isUnlimitedStock(result: StockResult): result is { type: 'unlimited' } {
+  return result.type === 'unlimited'
+}
+
+/**
+ * Type guard: checks if stock result is tracked
+ */
+export function isTrackedStock(result: StockResult): result is { type: 'tracked'; quantity: number } {
+  return result.type === 'tracked'
+}
+
+/**
+ * Helper: converts StockResult to a display-friendly number
+ * Returns Infinity for unlimited, or the quantity for tracked stock
+ */
+export function stockResultToNumber(result: StockResult): number {
+  return result.type === 'unlimited' ? Infinity : result.quantity
+}
+
+/**
+ * Helper: checks if stock is available for a given quantity request
+ * Takes inventory mode into account
+ */
+export function hasAvailableStock(
+  result: StockResult, 
+  requestedQty: number,
+  inventoryMode: 'none' | 'relaxed' | 'strict'
+): boolean {
+  // No inventory mode: always available
+  if (inventoryMode === 'none') return true
+  
+  // Unlimited stock: always available
+  if (result.type === 'unlimited') return true
+  
+  // Relaxed mode: always allow (can go negative)
+  if (inventoryMode === 'relaxed') return true
+  
+  // Strict mode: must have enough stock
+  return result.quantity >= requestedQty
+}
+
 export const PosStockEngine = {
   /**
    * CALCULATION LAYER: Sums up all materials.
@@ -85,10 +142,14 @@ export const PosStockEngine = {
    * VALIDATION LAYER: Standard signature preserved.
    * When calling this, pass [...localCart, ...dbOrders] to the cartItems param.
    *
-   * Returns a large sentinel (999) when the product has no inventory to track:
-   *   - ResourceType.SERVICE — services are unlimited by definition
-   *   - No components AND no inventory records — provisional Quick Add products
-   *     created before stock is entered; treat as unlimited until owner adds stock
+   * Returns StockResult indicating whether stock is tracked and the available quantity:
+   *   - { type: 'unlimited' } when the product has no inventory to track:
+   *     • ResourceType.SERVICE — services are unlimited by definition
+   *     • No components AND no inventory records — provisional Quick Add products
+   *       created before stock is entered; treat as unlimited until owner adds stock
+   *   - { type: 'tracked', quantity: N } when inventory is tracked:
+   *     • quantity can be positive, zero, or negative (in relaxed mode)
+   *     • the caller is responsible for mode-specific enforcement
    */
   calculateRemainingYield: (
     product: posProduct,
@@ -96,16 +157,18 @@ export const PosStockEngine = {
     selectedComponentIds: string[],
     cartItems: posItem[],
     orderItems?: posItem[],
-  ) => {
-    const UNLIMITED = 999
-
+  ): StockResult => {
     // SERVICE type — no physical stock, always available
-    if (product.type === 'SERVICE') return UNLIMITED
+    if (product.type === 'SERVICE') {
+      return { type: 'unlimited' }
+    }
 
     // No components + no inventory records → provisional product, treat as unlimited
     const hasComponents = variant.components && variant.components.length > 0
     const hasInventory = variant.inventory && variant.inventory.length > 0
-    if (!hasComponents && !hasInventory) return UNLIMITED
+    if (!hasComponents && !hasInventory) {
+      return { type: 'unlimited' }
+    }
 
     const reserved = PosStockEngine.getReservedMap(cartItems, orderItems)
     const unitReqs = PosStockEngine.getUnitRequirements(variant, selectedComponentIds)
@@ -114,10 +177,12 @@ export const PosStockEngine = {
       const { stock } = PosStockEngine.findPhysicalStock(materialId, product)
       const availableTotal = stock - (reserved[materialId] || 0)
 
-      return Math.floor(Math.max(0, availableTotal) / amountPerUnit)
+      // Return actual quantity without clamping — can be negative
+      return Math.floor(availableTotal / amountPerUnit)
     })
 
-    return yields.length > 0 ? Math.min(...yields) : UNLIMITED
+    const quantity = yields.length > 0 ? Math.min(...yields) : 0
+    return { type: 'tracked', quantity }
   },
 
   /**

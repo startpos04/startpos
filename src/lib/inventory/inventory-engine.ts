@@ -27,6 +27,8 @@ import type {
   operationalTaskCollection as TaskCollectionType,
 } from '@/db/collections'
 import type { feTask } from '@/lib/queries/fetch-tasks'
+import { InventoryPolicy } from '@/lib/inventory/inventory-policy'
+import type { InventoryMode } from '@/lib/onboarding/types'
 
 // ---------------------------------------------------------------------------
 // Shared tenant-context type — passed explicitly by every caller
@@ -85,6 +87,7 @@ export interface ApplyPurchaseVoidParams {
   inventoryCollection: typeof InventoryCollectionType
   movementCollection: typeof MovementCollectionType
   ctx: TenantContext
+  inventoryMode: InventoryMode
 }
 
 // ---------------------------------------------------------------------------
@@ -116,6 +119,7 @@ export interface ApplyTaskFulfillmentParams {
   inventoryCollection: typeof InventoryCollectionType
   movementCollection: typeof MovementCollectionType
   ctx: TenantContext
+  inventoryMode: InventoryMode
 }
 
 // ---------------------------------------------------------------------------
@@ -233,15 +237,34 @@ export const InventoryEngine = {
    * batch lookup when no movements were recorded.
    *
    * Called from void-purchase.ts inside dbTransaction.
+   *
+   * INVENTORY MODE ENFORCEMENT:
+   *   - 'none': always allows void (no validation)
+   *   - 'relaxed': allows void even if it would result in negative inventory
+   *   - 'strict': throws InsufficientStockError if void would cause negative inventory
    */
-  applyPurchaseVoid({ purchaseId, purchaseIdDisplay, items, movementsToReverse, inventoryCollection, movementCollection, ctx }: ApplyPurchaseVoidParams): void {
+  applyPurchaseVoid({ purchaseId, purchaseIdDisplay, items, movementsToReverse, inventoryCollection, movementCollection, ctx, inventoryMode }: ApplyPurchaseVoidParams): void {
     const now = new Date()
 
     if (movementsToReverse.length > 0) {
       for (const movement of movementsToReverse) {
         if (inventoryCollection.has(movement.inventoryId)) {
+          const batch = inventoryCollection.get(movement.inventoryId)
+          if (batch) {
+            // Validate BEFORE mutation in strict mode
+            InventoryPolicy.validateDeduction({
+              mode: inventoryMode,
+              variantId: movement.variantId,
+              requested: movement.quantity,
+              available: batch.quantity,
+              batchId: batch.id,
+              operation: 'purchase void',
+            })
+          }
+
           inventoryCollection.update(movement.inventoryId, draft => {
-            draft.quantity = Math.max(0, draft.quantity - movement.quantity)
+            // Remove Math.max(0) clamping — allow negative in relaxed mode
+            draft.quantity -= movement.quantity
           })
         }
 
@@ -273,8 +296,19 @@ export const InventoryEngine = {
       const batch = [...inventoryCollection.values()].find(i => i.variantId === item.variantId && i.batchNumber === `PO-${purchaseIdDisplay}`)
       if (!batch) continue
 
+      // Validate BEFORE mutation in strict mode
+      InventoryPolicy.validateDeduction({
+        mode: inventoryMode,
+        variantId: item.variantId,
+        requested: item.quantity,
+        available: batch.quantity,
+        batchId: batch.id,
+        operation: 'purchase void',
+      })
+
       inventoryCollection.update(batch.id, draft => {
-        draft.quantity = Math.max(0, draft.quantity - item.quantity)
+        // Remove Math.max(0) clamping — allow negative in relaxed mode
+        draft.quantity -= item.quantity
       })
 
       movementCollection.insert({
@@ -392,9 +426,14 @@ export const InventoryEngine = {
    * B7 fix applied: BRANCH_TRANSFER now inserts a second IN movement scoped to the
    *                 receiving branch's branchId, providing the cross-branch audit trail entry.
    *
+   * INVENTORY MODE ENFORCEMENT:
+   *   - 'none': always allows task fulfillment (no validation)
+   *   - 'relaxed': allows task fulfillment even if it would result in negative inventory
+   *   - 'strict': throws InsufficientStockError if task would cause negative inventory
+   *
    * Called from tasks/$taskId/index.tsx inside dbTransaction.
    */
-  applyTaskFulfillment({ task, inventoryCollection, movementCollection, ctx }: ApplyTaskFulfillmentParams): void {
+  applyTaskFulfillment({ task, inventoryCollection, movementCollection, ctx, inventoryMode }: ApplyTaskFulfillmentParams): void {
     const meta = task.metadata
     const variantId = meta?.variantId
     // C4: Use the most specific quantity available.
@@ -425,8 +464,19 @@ export const InventoryEngine = {
       const sourceBatch = [...inventoryCollection.values()].find(i => i.variantId === variantId && i.locationId === sourceId && i.quantity > 0)
 
       if (sourceBatch) {
+        // Validate BEFORE mutation in strict mode
+        InventoryPolicy.validateDeduction({
+          mode: inventoryMode,
+          variantId,
+          requested: qty,
+          available: sourceBatch.quantity,
+          batchId: sourceBatch.id,
+          operation: 'shelf refill',
+        })
+
         inventoryCollection.update(sourceBatch.id, draft => {
-          draft.quantity -= Math.min(qty, sourceBatch.quantity)
+          // Remove Math.min — allow negative in relaxed mode
+          draft.quantity -= qty
         })
       }
 
@@ -474,8 +524,18 @@ export const InventoryEngine = {
       const sourceBatch = [...inventoryCollection.values()].find(i => i.variantId === variantId && i.quantity > 0)
 
       if (sourceBatch) {
+        // Validate BEFORE mutation in strict mode
+        InventoryPolicy.validateBatchTransfer({
+          mode: inventoryMode,
+          variantId,
+          requested: qty,
+          available: sourceBatch.quantity,
+          batchId: sourceBatch.id,
+        })
+
         inventoryCollection.update(sourceBatch.id, draft => {
-          draft.quantity -= Math.min(qty, sourceBatch.quantity)
+          // Remove Math.min — allow negative in relaxed mode
+          draft.quantity -= qty
         })
       }
 
@@ -545,8 +605,18 @@ export const InventoryEngine = {
       const batch = [...inventoryCollection.values()].find(i => i.variantId === variantId && i.locationId === wasteLocationId && i.quantity > 0)
 
       if (batch) {
+        // Validate BEFORE mutation in strict mode
+        InventoryPolicy.validateWasteDisposal({
+          mode: inventoryMode,
+          variantId,
+          requested: qty,
+          available: batch.quantity,
+          batchId: batch.id,
+        })
+
         inventoryCollection.update(batch.id, draft => {
-          draft.quantity -= Math.min(qty, batch.quantity)
+          // Remove Math.min — allow negative in relaxed mode
+          draft.quantity -= qty
         })
         movementCollection.insert({
           ...movementBase,

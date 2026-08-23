@@ -93,7 +93,7 @@ export function interpretSurvey(answers: SurveyAnswers): BusinessCharacteristics
     sellsPhysicalGoods || sellsRawMaterials || sellsPreparedFood || q1.length === 0 ? q4 !== Q4_OPTIONS.NO && q4 !== undefined : d.tracksInventory
 
   const inventoryCriticality: BusinessCharacteristics['inventoryCriticality'] =
-    q4 === Q4_OPTIONS.YES_STRICT ? 'strict' : q4 === Q4_OPTIONS.YES_RELAXED ? 'standard' : q4 === Q4_OPTIONS.PERIODIC ? 'relaxed' : 'none'
+    q4 === Q4_OPTIONS.YES_STRICT ? 'strict' : q4 === Q4_OPTIONS.YES_RELAXED ? 'relaxed' : q4 === Q4_OPTIONS.PERIODIC ? 'relaxed' : 'none'
 
   // ── Q4a: How do you replenish stock? ────────────────────────────────────────
   const q4a = answers.q4a_restock_method

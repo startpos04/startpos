@@ -11,10 +11,12 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { usePOS } from '@/hooks/use-pos'
-import { PosStockEngine, type posItem } from '@/lib/conversion/pos-stock-engine'
+import { PosStockEngine, type posItem, isUnlimitedStock, stockResultToNumber } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
+import { getInventoryMode } from '@/lib/inventory'
 import type { MountProps } from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
+import { authStore } from '@/store/auth-store'
 import { cn } from '@/lib/utils'
 
 interface ProductDialogProps extends MountProps {
@@ -26,6 +28,8 @@ interface ProductDialogProps extends MountProps {
 export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: ProductDialogProps) {
   const { orderId, search = '', page = 1, pageSize = 20 } = useSearch({ from: '/(private)/pos/' })
   const { orderItems } = usePOS({ orderId, searchQuery: search, page, pageSize })
+  const user = useStore(authStore, state => state.user)
+  const inventoryMode = useMemo(() => getInventoryMode(user?.business?.id ?? ''), [user?.business?.id])
 
   const hasMultipleVariants = useMemo(() => (product.variants?.length ?? 0) > 1, [product])
 
@@ -60,9 +64,13 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
   const availableAddons = useMemo(() => currentVariant?.components?.filter(c => c.isAddon) || [], [currentVariant])
 
   const remainingYield = useMemo(() => {
-    if (!currentVariant) return 0
+    if (!currentVariant) return { type: 'tracked' as const, quantity: 0 }
     return PosStockEngine.calculateRemainingYield(product, currentVariant, selectedAddonIds, cartItems, orderItems)
   }, [product, currentVariant, selectedAddonIds, cartItems, orderItems])
+
+  // Convert StockResult to number for display/logic
+  const remainingQuantity = stockResultToNumber(remainingYield)
+  const isUnlimited = isUnlimitedStock(remainingYield)
 
   // Calculates total price live including chosen options and quantities
   const dynamicTotalPrice = useMemo(() => {
@@ -91,16 +99,41 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
           </Avatar>
 
           {/* Top Left: Stock State */}
-          <div className='absolute top-4 left-4 z-10'>
-            <Badge
-              className={cn(
-                'backdrop-blur-md border-none px-3 py-1 text-xs font-bold shadow-sm',
-                remainingYield > 0 ? 'bg-emerald-500/90 text-white' : 'bg-destructive/90 text-white',
+          {inventoryMode !== 'none' && (
+            <div className='absolute top-4 left-4 z-10'>
+              {inventoryMode === 'relaxed' && remainingYield.type === 'tracked' && remainingQuantity < 0 ? (
+                /* Relaxed mode: Show warning when stock will be negative */
+                <Badge className='backdrop-blur-md border-none px-3 py-1 text-xs font-bold shadow-sm bg-amber-500/90 text-white'>
+                  Stock: {remainingQuantity} (inventory will be negative)
+                </Badge>
+              ) : inventoryMode === 'strict' && remainingYield.type === 'tracked' ? (
+                /* Strict mode: Show stock quantity with color coding */
+                <Badge
+                  className={cn(
+                    'backdrop-blur-md border-none px-3 py-1 text-xs font-bold shadow-sm',
+                    remainingQuantity > 10 ? 'bg-emerald-500/90 text-white' : 'bg-amber-500/90 text-white',
+                  )}
+                >
+                  {remainingQuantity} units available
+                </Badge>
+              ) : isUnlimited ? (
+                /* Unlimited stock (services/provisional) */
+                <Badge className='backdrop-blur-md border-none px-3 py-1 text-xs font-bold shadow-sm bg-emerald-500/90 text-white'>
+                  Available
+                </Badge>
+              ) : remainingQuantity > 0 ? (
+                /* Default: show remaining quantity */
+                <Badge className='backdrop-blur-md border-none px-3 py-1 text-xs font-bold shadow-sm bg-emerald-500/90 text-white'>
+                  {remainingQuantity} units left
+                </Badge>
+              ) : (
+                /* Out of stock */
+                <Badge className='backdrop-blur-md border-none px-3 py-1 text-xs font-bold shadow-sm bg-destructive/90 text-white'>
+                  Out of Stock
+                </Badge>
               )}
-            >
-              {remainingYield <= 0 ? 'Out of Stock' : remainingYield >= 999 ? 'Available' : `${remainingYield} units left`}
-            </Badge>
-          </div>
+            </div>
+          )}
 
           {/* Top Right: High-Contrast Prominent Close Control */}
           <Button
@@ -236,7 +269,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                       variant='ghost'
                       size='icon'
                       className='rounded-xl w-9 h-9 hover:bg-background text-foreground'
-                      disabled={remainingYield < 999 && field.state.value >= remainingYield}
+                      disabled={!isUnlimited && field.state.value >= remainingQuantity}
                       onClick={() => field.handleChange(field.state.value + 1)}
                     >
                       <Plus className='size-4' />
@@ -249,11 +282,11 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                 {([canSubmit, isSubmitting, qty]) => (
                   <Button
                     type='submit'
-                    disabled={!canSubmit || (remainingYield < 999 && Number(qty) > remainingYield) || remainingYield === 0}
+                    disabled={!canSubmit || (!isUnlimited && Number(qty) > remainingQuantity) || remainingQuantity === 0}
                     className='rounded-2xl h-11 px-6 font-bold shadow-sm transition-all active:scale-[0.98] flex items-center gap-2 justify-between min-w-[160px]'
                   >
-                    <span>{isSubmitting ? 'Processing...' : remainingYield === 0 ? 'Sold Out' : 'Add to Order'}</span>
-                    {remainingYield > 0 && (
+                    <span>{isSubmitting ? 'Processing...' : remainingQuantity === 0 ? 'Sold Out' : 'Add to Order'}</span>
+                    {remainingQuantity > 0 && (
                       <span className='pl-2 border-l border-primary-foreground/20 font-mono text-xs opacity-95'>{PriceEngine.format(dynamicTotalPrice)}</span>
                     )}
                   </Button>

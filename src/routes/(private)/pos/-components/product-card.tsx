@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePOS } from '@/hooks/use-pos'
-import { PosStockEngine, type posItem } from '@/lib/conversion/pos-stock-engine'
+import { PosStockEngine, type posItem, isUnlimitedStock, stockResultToNumber } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import MountManager from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
@@ -24,13 +24,13 @@ export function ProductCard({ cartItems, product, onAdd }: ProductCardProps) {
   const { orderItems } = usePOS({ orderId, searchQuery: search, page, pageSize })
 
   const addonComponents = useMemo(() => variant.components?.filter(c => c.isAddon) || [], [variant])
-  const maxAvailable = useMemo(
+  const stockResult = useMemo(
     () => PosStockEngine.calculateRemainingYield(product, variant, [], cartItems, orderItems),
     [product, variant, cartItems, orderItems],
   )
 
-  // SERVICE type or provisional products have no real stock count to show
-  const isUnlimited = maxAvailable >= 999
+  const maxAvailable = stockResultToNumber(stockResult)
+  const isUnlimited = isUnlimitedStock(stockResult)
 
   const handleOpenConfig = () => {
     if (maxAvailable <= 0) return

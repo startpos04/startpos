@@ -16,10 +16,8 @@
 
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { AlertTriangleIcon, ArrowLeftIcon, CheckCircle2Icon, ChevronRightIcon, ClockIcon, Loader2Icon, XCircleIcon } from 'lucide-react'
 import { useState } from 'react'
-import { z } from 'zod'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,67 +34,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { authMiddleware } from '@/lib/better-auth/auth-middleware'
-import { prisma as rootPrisma } from '@/lib/prisma-client'
 import { acceptPricingQuote } from '@/lib/server-fn/accept-pricing-quote'
+import { cancelPricingQuote } from '@/lib/server-fn/cancel-pricing-quote'
 import { convertQuoteToSubscription } from '@/lib/server-fn/convert-quote-to-subscription'
+import { fetchPricingQuote } from '@/lib/server-fn/fetch-pricing-quote'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/billing/quotes/$quoteId/')({
   component: QuoteDetailPage,
 })
-
-// ---------------------------------------------------------------------------
-// Server function — fetch quote detail
-// ---------------------------------------------------------------------------
-
-const fetchQuoteDetail = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
-  .inputValidator((data: { quoteId: string }) => z.object({ quoteId: z.string() }).parse(data))
-  .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) return null
-    const { businessId } = context.user
-
-    return rootPrisma.pricingQuote.findFirst({
-      where: { id: data.quoteId, businessId },
-      include: {
-        items: { orderBy: { sortOrder: 'asc' } },
-        catalog: { select: { version: true, label: true } },
-      },
-    })
-  })
-
-// ---------------------------------------------------------------------------
-// Server function — cancel a quote
-// ---------------------------------------------------------------------------
-
-const cancelPricingQuote = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
-  .inputValidator((data: { quoteId: string }) => z.object({ quoteId: z.string() }).parse(data))
-  .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) return { success: false as const, error: 'No business context' }
-    const { businessId } = context.user
-
-    const quote = await rootPrisma.pricingQuote.findUnique({
-      where: { id: data.quoteId },
-      select: { id: true, businessId: true, status: true },
-    })
-
-    if (!quote || quote.businessId !== businessId) {
-      return { success: false as const, error: 'Quote not found' }
-    }
-
-    if (['CONVERTED', 'CANCELLED', 'EXPIRED'].includes(quote.status)) {
-      return { success: false as const, error: `Quote is already ${quote.status.toLowerCase()}` }
-    }
-
-    await rootPrisma.pricingQuote.update({
-      where: { id: data.quoteId },
-      data: { status: 'CANCELLED', cancelledAt: new Date() },
-    })
-
-    return { success: true as const }
-  })
 
 // ---------------------------------------------------------------------------
 // QuoteDetailPage
@@ -113,7 +59,7 @@ function QuoteDetailPage() {
     refetch,
   } = useQuery({
     queryKey: ['quote-detail', quoteId],
-    queryFn: () => fetchQuoteDetail({ data: { quoteId } }),
+    queryFn: () => fetchPricingQuote({ data: { quoteId } }),
   })
 
   const acceptMutation = useMutation({

@@ -4,6 +4,7 @@ import { err, ok, type Result, ResultAsync } from 'neverthrow'
 import type { Prisma } from 'prisma/generated/prisma/client'
 import { getTenantPrisma, type prisma } from '@/lib/prisma-client'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { getRequiredPermission, requiresEntitlementCheck } from '@/lib/authorization/model-permissions'
 
 // --- ADVANCED TYPES ---
 
@@ -46,12 +47,151 @@ export async function executeOperation(dbInstance: any, payload: DBPayload): Pro
   return await delegate[payload.action](payload.args)
 }
 
+/**
+ * Check subscription entitlements for create operations
+ * Validates that the business/branch has not exceeded their limits
+ */
+async function checkEntitlements(
+  context: any,
+  model: string,
+): Promise<{ allowed: boolean; reason?: string }> {
+  const { rootPrisma } = await import('@/lib/prisma-client')
+  const { businessId, branchId } = context.user
+
+  try {
+    // Fetch business capabilities and entitlements
+    const capabilities = await rootPrisma.capability.findMany({
+      where: {
+        businessId,
+        branchId: branchId || null, // Business-level capabilities have null branchId
+      },
+      include: {
+        entitlements: true,
+      },
+    })
+
+    // Model-specific limit checks
+    switch (model) {
+      case 'branch': {
+        // Check branch limit
+        const branchEntitlement = capabilities
+          .flatMap(c => c.entitlements)
+          .find(e => e.feature === 'BRANCHES' && e.quantityLimit !== null)
+
+        if (branchEntitlement) {
+          const currentBranchCount = await rootPrisma.branch.count({
+            where: { businessId },
+          })
+
+          if (currentBranchCount >= branchEntitlement.quantityLimit!) {
+            return {
+              allowed: false,
+              reason: `Branch limit reached (${branchEntitlement.quantityLimit}). Upgrade your plan to create more branches.`,
+            }
+          }
+        }
+        break
+      }
+
+      case 'employee': {
+        // Check employee limit per branch
+        const employeeEntitlement = capabilities
+          .flatMap(c => c.entitlements)
+          .find(e => e.feature === 'EMPLOYEES' && e.quantityLimit !== null)
+
+        if (employeeEntitlement && branchId) {
+          const currentEmployeeCount = await rootPrisma.employee.count({
+            where: { businessId, branchId },
+          })
+
+          if (currentEmployeeCount >= employeeEntitlement.quantityLimit!) {
+            return {
+              allowed: false,
+              reason: `Employee limit reached (${employeeEntitlement.quantityLimit}) for this branch. Upgrade your plan to add more employees.`,
+            }
+          }
+        }
+        break
+      }
+
+      case 'product': {
+        // Check product limit per branch
+        const productEntitlement = capabilities
+          .flatMap(c => c.entitlements)
+          .find(e => e.feature === 'PRODUCTS' && e.quantityLimit !== null)
+
+        if (productEntitlement && branchId) {
+          const tenantPrisma = getTenantPrisma(businessId, branchId)
+          const currentProductCount = await tenantPrisma.product.count({
+            where: { businessId, branchId },
+          })
+
+          if (currentProductCount >= productEntitlement.quantityLimit!) {
+            return {
+              allowed: false,
+              reason: `Product limit reached (${productEntitlement.quantityLimit}) for this branch. Upgrade your plan to add more products.`,
+            }
+          }
+        }
+        break
+      }
+
+      // Add other models as needed
+      default:
+        // No specific limit check for this model
+        break
+    }
+
+    // All checks passed
+    return { allowed: true }
+  } catch (error) {
+    console.error('[crudAPI] Entitlement check failed:', error)
+    // On error, allow the operation (fail open)
+    // This prevents entitlement check failures from blocking legitimate operations
+    return { allowed: true }
+  }
+}
+
 // --- SERVER FUNCTION ---
 
 const crudServerFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .inputValidator((d: DBPayload) => d)
   .handler(async ({ context, data }): Promise<{ value: any } | { error: any }> => {
+    // ---------------------------------------------------------------------------
+    // SECURITY GATES - Phase 0: Authorization Foundation
+    // ---------------------------------------------------------------------------
+    // 1. Permission Check: Verify user has required permission for this operation
+    // 2. Entitlement Check: Verify subscription limits for create operations
+    // ---------------------------------------------------------------------------
+
+    // Gate 1: Permission Check
+    const requiredPermission = getRequiredPermission(data.table, data.action)
+
+    if (requiredPermission) {
+      const userPermissions = context.authorization?.permissions || []
+      const hasPermission = userPermissions.includes(requiredPermission)
+
+      if (!hasPermission) {
+        return {
+          error: `Permission denied: ${requiredPermission} required for ${data.action} on ${data.table}`,
+        }
+      }
+    }
+
+    // Gate 2: Entitlement Check (for create operations on limited models)
+    if (requiresEntitlementCheck(data.table, data.action)) {
+      // Check subscription limits before allowing create
+      const entitlementCheck = await checkEntitlements(context, data.table)
+
+      if (!entitlementCheck.allowed) {
+        return {
+          error: entitlementCheck.reason || `Subscription limit reached for ${data.table}`,
+        }
+      }
+    }
+
+    // Execute the operation
     const tenantPrisma = getTenantPrisma(context.user.businessId, context.user.branchId!)
 
     // Reuses the core engine passing the global prisma client instance

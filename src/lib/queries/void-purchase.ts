@@ -2,6 +2,7 @@ import { PurchaseStatus } from 'prisma/generated/prisma/enums'
 import { inventoryCollection, inventoryMovementCollection, purchaseCollection, purchaseItemCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
+import { getInventoryMode } from '@/lib/inventory'
 import { authStore } from '@/store/auth-store'
 
 /**
@@ -59,6 +60,7 @@ export const voidPurchase = async (purchaseId: string) => {
         branchId: user.branch.id,
         businessId: user.business.id,
       },
+      inventoryMode: getInventoryMode(user.business.id),
     })
 
     return { purchaseId, purchaseNo: purchase.purchaseId }

@@ -20,7 +20,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { createPricingCatalogRepositoryWithDeps } from '../billing/pricing/pricing-catalog-repository'
 import { PricingEngine } from '../billing/pricing/pricing-engine'
 import type { PricingConfig } from '../billing/pricing/types'
@@ -45,7 +47,7 @@ export type CreatePricingQuoteInput = z.infer<typeof CreatePricingQuoteInputSche
 // ---------------------------------------------------------------------------
 
 export const createPricingQuote = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING)])
   .inputValidator((data: CreatePricingQuoteInput) => CreatePricingQuoteInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     if (!context?.user?.businessId) {

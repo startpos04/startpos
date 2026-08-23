@@ -24,6 +24,7 @@ import { UsageEngine } from '../billing/usage-engine'
 import { PosStockEngine, type posItem } from '../conversion/pos-stock-engine'
 import { TaxEngine } from '../conversion/tax-engine'
 import { CostingEngine } from '../costing'
+import { getInventoryMode, InventoryPolicy } from '../inventory'
 import { NotificationEngine } from '../notification/notification-engine'
 import { sequenceAPI } from '../prisma-client/sequence-api'
 import { ConcurrencyError, FinishedGoodsEngine } from '../production'
@@ -612,6 +613,18 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
 
         const plan = CostingEngine.prepareConsumption('FIFO', { variantId: vId, quantity: totalQty, unit }, inventoryBatches)
 
+        // Get inventory mode and validate before consumption
+        const inventoryMode = getInventoryMode(user.business.id)
+        const totalAvailable = inventoryBatches.reduce((sum, b) => sum + b.quantity, 0)
+        
+        // Validate stock availability based on inventory mode
+        InventoryPolicy.validateProductionConsumption({
+          mode: inventoryMode,
+          variantId: vId,
+          requested: totalQty,
+          available: totalAvailable,
+        })
+
         for (const usage of plan.consumed || []) {
           inventoryCollection.update(usage.inventoryId, draft => {
             draft.quantity -= usage.quantity
@@ -628,6 +641,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
             reason: `Sale: ${transaction.invoiceNo}`,
             unitId: unit.id,
             purchaseId: null,
+            productionOrderId: null,
             locationId: null,
             targetBranchId: null,
             businessId: user.business.id,

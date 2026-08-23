@@ -21,7 +21,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { requirePermission } from '../better-auth/permission-middleware'
 import { prisma as rootPrisma } from '../prisma-client'
 
 // ---------------------------------------------------------------------------
@@ -44,7 +46,7 @@ export type ConvertQuoteInput = z.infer<typeof ConvertQuoteInputSchema>
 // ---------------------------------------------------------------------------
 
 export const convertQuoteToSubscription = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
   .inputValidator((data: ConvertQuoteInput) => ConvertQuoteInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     if (!context?.user?.businessId) {

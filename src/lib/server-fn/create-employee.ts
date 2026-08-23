@@ -13,7 +13,9 @@
 import { createServerFn } from '@tanstack/react-start'
 import type { Role } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { requirePermission } from '@/lib/better-auth/permission-middleware'
 import { prisma as rootPrisma } from '@/lib/prisma-client'
 
 export const CreateEmployeeInputSchema = z.object({
@@ -26,7 +28,7 @@ export const CreateEmployeeInputSchema = z.object({
 export type CreateEmployeeInput = z.infer<typeof CreateEmployeeInputSchema>
 
 export const createEmployee = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_CREATE_EMPLOYEE)])
   .inputValidator((data: CreateEmployeeInput) => CreateEmployeeInputSchema.parse(data))
   .handler(async ({ data, context }) => {
     if (!context?.user?.businessId || !context?.user?.branchId) {

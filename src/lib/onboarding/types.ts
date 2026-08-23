@@ -62,7 +62,7 @@ export type BusinessCharacteristics = {
 
   // ── Inventory ──────────────────────────────────────────────────────────────
   tracksInventory: boolean
-  inventoryCriticality: 'none' | 'relaxed' | 'standard' | 'strict'
+  inventoryCriticality: 'none' | 'relaxed' | 'strict'
   hasMultipleStockLocations: boolean
   usesSuppliers: boolean
   requiresGoodsReceipt: boolean

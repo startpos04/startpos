@@ -125,7 +125,7 @@ describe('classifyProfile — WHOLESALE_DISTRIBUTION', () => {
       chars({
         sellsRawMaterials: true,
         usesSuppliers: true,
-        inventoryCriticality: 'standard',
+        inventoryCriticality: 'relaxed',
         tracksInventory: true,
         teamSize: 'small',
         paymentTiming: 'immediate',
@@ -228,7 +228,7 @@ describe('classifyProfile — MULTI_BRANCH_ENTERPRISE', () => {
 
 describe('classifyProfile — GENERAL', () => {
   it('mixed signals with no dominant pattern → GENERAL', () => {
-    // Services + physical + small team + medium payment + standard inventory
+    // Services + physical + small team + medium payment + relaxed inventory
     // → does not match SERVICE_BUSINESS (has physical goods), not F&B, not simple retailer
     //   (has mixed payment), not wholesale (not raw materials + strict)
     const result = classifyProfile(
@@ -238,7 +238,7 @@ describe('classifyProfile — GENERAL', () => {
         paymentTiming: 'mixed',
         teamSize: 'small',
         tracksInventory: true,
-        inventoryCriticality: 'standard',
+        inventoryCriticality: 'relaxed',
         usesSuppliers: false,
       }),
       noResolved(),

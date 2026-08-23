@@ -238,13 +238,13 @@ describe('interpretSurvey — Q4 inventory tracking', () => {
     expect(result.inventoryCriticality).toBe('strict')
   })
 
-  it('yes_relaxed → tracksInventory=true, inventoryCriticality=standard', () => {
+  it('yes_relaxed → tracksInventory=true, inventoryCriticality=relaxed', () => {
     const result = interpretSurvey({
       q1_business_type: [Q1_OPTIONS.PHYSICAL_GOODS],
       q4_inventory_tracking: Q4_OPTIONS.YES_RELAXED,
     })
     expect(result.tracksInventory).toBe(true)
-    expect(result.inventoryCriticality).toBe('standard')
+    expect(result.inventoryCriticality).toBe('relaxed')
   })
 
   it('periodic → tracksInventory=true, inventoryCriticality=relaxed', () => {

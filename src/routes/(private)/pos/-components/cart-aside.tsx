@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { withForm } from '@/hooks/form'
 import { usePOS } from '@/hooks/use-pos'
-import { PosStockEngine } from '@/lib/conversion/pos-stock-engine'
+import { PosStockEngine, isUnlimitedStock, stockResultToNumber } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { TaxEngine, type TaxEngineConfig } from '@/lib/conversion/tax-engine'
 import MountManager from '@/lib/mount-manager'
@@ -130,13 +130,15 @@ export const CartAside = withForm({
                 <div className='space-y-4'>
                   {field.state.value.map((item, index: number) => {
                     const selectedAddonIds = item.addons?.map(a => a.id) || []
-                    const additionalYieldPossible = PosStockEngine.calculateRemainingYield(
+                    const stockResult = PosStockEngine.calculateRemainingYield(
                       item.product,
                       item.variant,
                       selectedAddonIds,
                       field.state.value,
                       orderItems,
                     )
+                    const additionalYieldPossible = stockResultToNumber(stockResult)
+                    const isUnlimited = isUnlimitedStock(stockResult)
 
                     const currentLineTotal = TaxEngine.buildLineItems([item]).reduce((sum, line) => sum + line.grossAmount, 0)
 
@@ -198,9 +200,9 @@ export const CartAside = withForm({
                                 size='icon'
                                 variant='ghost'
                                 className='h-6 w-6 rounded-lg text-foreground'
-                                disabled={additionalYieldPossible === 0}
+                                disabled={!isUnlimited && additionalYieldPossible === 0}
                                 onClick={() => {
-                                  if (additionalYieldPossible > 0) {
+                                  if (isUnlimited || additionalYieldPossible > 0) {
                                     form.setFieldValue(`items[${index}].quantity`, item.quantity + 1)
                                   }
                                 }}

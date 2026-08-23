@@ -3,8 +3,8 @@
  *
  * Coverage (boundary conditions per rule):
  *  - inventoryCriticality = strict: fires when > 4 adjustments, not at ≤ 4
- *  - inventoryCriticality = standard: fires at ≥ 10, not at 9; lower confidence than strict
- *  - strict beats standard for same field (higher confidence wins in engine)
+ *  - inventoryCriticality = strict (low freq): fires at ≥ 10, not at 9; lower confidence than high-freq strict
+ *  - high-freq strict beats low-freq strict for same field (higher confidence wins in engine)
  *  - hasProductComponents: fires at ≥ 3 recipes, not at 2
  *  - hasRegularWaste: fires at ≥ 2, not at 1
  *  - reconcilesCash: fires at ≥ 5, not at 4
@@ -100,39 +100,58 @@ describe('rule: inventoryCriticality = strict (> 4 adjustments)', () => {
 })
 
 // ---------------------------------------------------------------------------
-// inventoryCriticality = standard
+// inventoryCriticality = strict (low frequency variant)
 // ---------------------------------------------------------------------------
 
-describe('rule: inventoryCriticality = standard (≥ 10 adjustments)', () => {
-  const rule = () => findRule('inventoryCriticality', 'standard')
+describe('rule: inventoryCriticality = strict low-freq (≥ 10 adjustments)', () => {
+  const rule = () => findRule('inventoryCriticality', 'strict')
 
   it('fires when inventoryAdjustmentCount = 10 (at threshold)', () => {
-    expect(rule().condition(summary({ inventoryAdjustmentCount: 10 }))).toBe(true)
+    // Note: This finds the LOW confidence strict rule (0.80)
+    const lowFreqRule = OBSERVATION_RULES.filter(
+      r => r.characteristic === 'inventoryCriticality' && r.value === 'strict' && r.confidence === 0.8
+    )[0]
+    expect(lowFreqRule).toBeDefined()
+    expect(lowFreqRule!.condition(summary({ inventoryAdjustmentCount: 10 }))).toBe(true)
   })
 
   it('fires when inventoryAdjustmentCount = 20', () => {
-    expect(rule().condition(summary({ inventoryAdjustmentCount: 20 }))).toBe(true)
+    const lowFreqRule = OBSERVATION_RULES.filter(
+      r => r.characteristic === 'inventoryCriticality' && r.value === 'strict' && r.confidence === 0.8
+    )[0]
+    expect(lowFreqRule!.condition(summary({ inventoryAdjustmentCount: 20 }))).toBe(true)
   })
 
   it('does NOT fire when inventoryAdjustmentCount = 9 (one below)', () => {
-    expect(rule().condition(summary({ inventoryAdjustmentCount: 9 }))).toBe(false)
+    const lowFreqRule = OBSERVATION_RULES.filter(
+      r => r.characteristic === 'inventoryCriticality' && r.value === 'strict' && r.confidence === 0.8
+    )[0]
+    expect(lowFreqRule!.condition(summary({ inventoryAdjustmentCount: 9 }))).toBe(false)
   })
 
-  it('has confidence 0.80 (lower than strict)', () => {
-    expect(rule().confidence).toBe(0.80)
+  it('has confidence 0.80 (lower than high-frequency strict)', () => {
+    const lowFreqRule = OBSERVATION_RULES.filter(
+      r => r.characteristic === 'inventoryCriticality' && r.value === 'strict' && r.confidence === 0.8
+    )[0]
+    expect(lowFreqRule!.confidence).toBe(0.80)
   })
 })
 
-describe('inventoryCriticality priority: strict (0.85) beats standard (0.80)', () => {
-  it('both rules fire when adjustmentCount = 10, strict has higher confidence', () => {
+describe('inventoryCriticality priority: high-freq strict (0.85) beats low-freq strict (0.80)', () => {
+  it('both rules fire when adjustmentCount = 10, high-freq strict has higher confidence', () => {
     const s = summary({ inventoryAdjustmentCount: 10 })
-    const strictRule = findRule('inventoryCriticality', 'strict')
-    const standardRule = findRule('inventoryCriticality', 'standard')
-    // At count=10 strict fires (>4), standard fires (≥10)
-    expect(strictRule.condition(s)).toBe(true)
-    expect(standardRule.condition(s)).toBe(true)
-    // Strict has higher confidence — engine will use it
-    expect(strictRule.confidence).toBeGreaterThan(standardRule.confidence)
+    const highFreqStrict = OBSERVATION_RULES.filter(
+      r => r.characteristic === 'inventoryCriticality' && r.value === 'strict' && r.confidence === 0.85
+    )[0]
+    const lowFreqStrict = OBSERVATION_RULES.filter(
+      r => r.characteristic === 'inventoryCriticality' && r.value === 'strict' && r.confidence === 0.8
+    )[0]
+    
+    // At count=10 high-freq strict fires (>4), low-freq strict fires (≥10)
+    expect(highFreqStrict!.condition(s)).toBe(true)
+    expect(lowFreqStrict!.condition(s)).toBe(true)
+    // High-freq strict has higher confidence — engine will use it
+    expect(highFreqStrict!.confidence).toBeGreaterThan(lowFreqStrict!.confidence)
   })
 })
 
@@ -356,10 +375,13 @@ describe('rule: hasProductVariants = true (≥ 3 variants)', () => {
 // ---------------------------------------------------------------------------
 
 describe('getRulesForCharacteristic — Phase 3b', () => {
-  it('returns 2 rules for inventoryCriticality (strict + standard)', () => {
+  it('returns 2 rules for inventoryCriticality (high-freq strict + low-freq strict)', () => {
     const rules = getRulesForCharacteristic('inventoryCriticality')
     expect(rules).toHaveLength(2)
-    expect(rules.map((r) => r.value).sort()).toEqual(['standard', 'strict'])
+    expect(rules.map((r) => r.value).sort()).toEqual(['strict', 'strict'])
+    // Both target strict, different confidence levels
+    expect(rules.filter((r) => r.confidence === 0.85)).toHaveLength(1)
+    expect(rules.filter((r) => r.confidence === 0.80)).toHaveLength(1)
   })
 
   it('returns 3 rules for dailyTransactionVolume (medium + high + rapid-growth high)', () => {

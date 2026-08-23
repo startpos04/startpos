@@ -144,8 +144,24 @@ const ENUM_OPTIONS: Partial<Record<string, string[]>> = {
   locationCount: ['one', 'multiple'],
   catalogueSize: ['tiny', 'small', 'medium', 'large'],
   paymentTiming: ['immediate', 'deferred', 'mixed'],
-  inventoryCriticality: ['none', 'relaxed', 'standard', 'strict'],
+  inventoryCriticality: ['none', 'relaxed', 'strict'],
   taxDisplayMode: ['inclusive', 'exclusive', 'mixed'],
+}
+
+// Descriptive labels and descriptions for inventory criticality modes
+const INVENTORY_MODE_INFO: Record<string, { label: string; description: string }> = {
+  none: {
+    label: 'No Inventory Tracking',
+    description: "Don't track stock levels. Best for services or when inventory management isn't needed.",
+  },
+  relaxed: {
+    label: 'Loose Inventory Tracking',
+    description: 'Track inventory without blocking sales. Allow negative stock and reconcile through physical counts. Best for restaurants, cafes, and batch-produced items.',
+  },
+  strict: {
+    label: 'Strict Inventory Tracking',
+    description: 'Block sales when stock reaches zero. Prevents overselling. Best for retail and businesses with precise inventory requirements.',
+  },
 }
 
 // ---------------------------------------------------------------------------
@@ -220,22 +236,55 @@ function FieldRow({ row, onCorrected }: { row: ProfileFieldRow; onCorrected: () 
 
         {/* Inline enum picker */}
         {editing && isEnum && (
-          <div className='flex flex-wrap gap-1.5 mt-2'>
-            {enumOptions!.map(opt => (
-              <Button
-                key={opt}
-                size='sm'
-                variant={row.value === opt ? 'default' : 'outline'}
-                className='h-7 text-xs'
-                disabled={saving}
-                onClick={() => correct(opt)}
-              >
-                {formatValue(opt)}
-              </Button>
-            ))}
-            <Button size='sm' variant='ghost' className='h-7 text-xs' onClick={() => setEditing(false)}>
-              Cancel
-            </Button>
+          <div className='space-y-2 mt-2'>
+            {/* Special handling for inventoryCriticality with descriptions */}
+            {row.field === 'inventoryCriticality' ? (
+              <div className='space-y-2'>
+                {enumOptions!.map(opt => {
+                  const info = INVENTORY_MODE_INFO[opt]
+                  return (
+                    <button
+                      key={opt}
+                      type='button'
+                      disabled={saving}
+                      onClick={() => correct(opt)}
+                      className={cn(
+                        'w-full text-left p-3 rounded-md border-2 transition-colors',
+                        row.value === opt
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50 hover:bg-accent',
+                        saving && 'opacity-50 cursor-not-allowed'
+                      )}
+                    >
+                      <div className='font-medium text-sm'>{info.label}</div>
+                      <div className='text-xs text-muted-foreground mt-1'>{info.description}</div>
+                    </button>
+                  )
+                })}
+                <Button size='sm' variant='ghost' className='h-7 text-xs' onClick={() => setEditing(false)}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              /* Default enum picker for other fields */
+              <div className='flex flex-wrap gap-1.5'>
+                {enumOptions!.map(opt => (
+                  <Button
+                    key={opt}
+                    size='sm'
+                    variant={row.value === opt ? 'default' : 'outline'}
+                    className='h-7 text-xs'
+                    disabled={saving}
+                    onClick={() => correct(opt)}
+                  >
+                    {formatValue(opt)}
+                  </Button>
+                ))}
+                <Button size='sm' variant='ghost' className='h-7 text-xs' onClick={() => setEditing(false)}>
+                  Cancel
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

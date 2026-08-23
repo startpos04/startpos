@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { err, ok, type Result, ResultAsync } from 'neverthrow'
 import { getTenantPrisma } from '@/lib/prisma-client'
 import { authMiddleware } from '../better-auth/auth-middleware'
+import { getRequiredPermission, requiresEntitlementCheck } from '@/lib/authorization/model-permissions'
 // Import the shared execution engine directly from your crud-api file
 import { type DBPayload, executeOperation } from './crud-api'
 
@@ -30,11 +31,116 @@ interface TransactionInput {
 //   2. Operations are validated: empty batch is rejected to prevent no-op calls
 //      that may mask client-side bugs.
 //   3. Session identity is asserted before any DB work begins.
+//   4. [NEW] Permission and entitlement gates added (Phase 0 Authorization):
+//      - Each operation in the batch is checked for required permissions
+//      - Create operations are checked against subscription limits
+//      - Batch fails fast if any operation lacks authorization
 //
 // Note: Reads are also scoped to the tenant. A batch that attempts to read
 // another tenant's data will return empty results (tenant filter applied) rather
 // than throwing, which is the same behaviour as crudAPI.
 // ---------------------------------------------------------------------------
+
+/**
+ * Check subscription entitlements for batch operations
+ * Validates that the business/branch has not exceeded their limits
+ */
+async function checkBatchEntitlements(
+  context: any,
+  operations: DBPayload[],
+): Promise<{ allowed: boolean; reason?: string; operationIndex?: number }> {
+  const { rootPrisma } = await import('@/lib/prisma-client')
+  const { businessId, branchId } = context.user
+
+  try {
+    // Fetch business capabilities and entitlements once for the entire batch
+    const capabilities = await rootPrisma.capability.findMany({
+      where: {
+        businessId,
+        branchId: branchId || null,
+      },
+      include: {
+        entitlements: true,
+      },
+    })
+
+    // Count creates by model type to check against limits
+    const createCounts: Record<string, number> = {}
+    
+    for (const op of operations) {
+      if (op.action === 'create') {
+        createCounts[op.table] = (createCounts[op.table] || 0) + 1
+      }
+    }
+
+    // Check branch limit
+    if (createCounts.branch) {
+      const branchEntitlement = capabilities
+        .flatMap(c => c.entitlements)
+        .find(e => e.feature === 'BRANCHES' && e.quantityLimit !== null)
+
+      if (branchEntitlement) {
+        const currentBranchCount = await rootPrisma.branch.count({
+          where: { businessId },
+        })
+
+        if (currentBranchCount + createCounts.branch > branchEntitlement.quantityLimit!) {
+          return {
+            allowed: false,
+            reason: `Branch limit would be exceeded (${branchEntitlement.quantityLimit}). This batch creates ${createCounts.branch} branches.`,
+          }
+        }
+      }
+    }
+
+    // Check employee limit
+    if (createCounts.employee && branchId) {
+      const employeeEntitlement = capabilities
+        .flatMap(c => c.entitlements)
+        .find(e => e.feature === 'EMPLOYEES' && e.quantityLimit !== null)
+
+      if (employeeEntitlement) {
+        const currentEmployeeCount = await rootPrisma.employee.count({
+          where: { businessId, branchId },
+        })
+
+        if (currentEmployeeCount + createCounts.employee > employeeEntitlement.quantityLimit!) {
+          return {
+            allowed: false,
+            reason: `Employee limit would be exceeded (${employeeEntitlement.quantityLimit}). This batch creates ${createCounts.employee} employees.`,
+          }
+        }
+      }
+    }
+
+    // Check product limit
+    if (createCounts.product && branchId) {
+      const productEntitlement = capabilities
+        .flatMap(c => c.entitlements)
+        .find(e => e.feature === 'PRODUCTS' && e.quantityLimit !== null)
+
+      if (productEntitlement) {
+        const tenantPrisma = getTenantPrisma(businessId, branchId)
+        const currentProductCount = await tenantPrisma.product.count({
+          where: { businessId, branchId },
+        })
+
+        if (currentProductCount + createCounts.product > productEntitlement.quantityLimit!) {
+          return {
+            allowed: false,
+            reason: `Product limit would be exceeded (${productEntitlement.quantityLimit}). This batch creates ${createCounts.product} products.`,
+          }
+        }
+      }
+    }
+
+    return { allowed: true }
+  } catch (error) {
+    console.error('[transactionAPI] Entitlement check failed:', error)
+    // Fail open: allow operation if entitlement check fails
+    return { allowed: true }
+  }
+}
 
 // --- TRANSACTION SERVER FUNCTION ---
 
@@ -50,6 +156,35 @@ const transactionServerFn = createServerFn({ method: 'POST' })
     // R9 — Validate batch is non-empty.
     if (!data.operations || data.operations.length === 0) {
       return { error: 'Transaction batch must contain at least one operation.' }
+    }
+
+    // ---------------------------------------------------------------------------
+    // SECURITY GATES - Phase 0: Authorization Foundation
+    // ---------------------------------------------------------------------------
+    // 1. Permission Check: Verify user has required permissions for ALL operations
+    // 2. Entitlement Check: Verify subscription limits for create operations in batch
+    // ---------------------------------------------------------------------------
+
+    const userPermissions = context.authorization?.permissions || []
+
+    // Gate 1: Permission Check - validate ALL operations before executing ANY
+    for (let i = 0; i < data.operations.length; i++) {
+      const op = data.operations[i]
+      const requiredPermission = getRequiredPermission(op.table, op.action)
+
+      if (requiredPermission && !userPermissions.includes(requiredPermission)) {
+        return {
+          error: `Permission denied: ${requiredPermission} required for operation ${i + 1} (${op.action} on ${op.table})`,
+        }
+      }
+    }
+
+    // Gate 2: Entitlement Check - validate limits for create operations
+    const entitlementCheck = await checkBatchEntitlements(context, data.operations)
+    if (!entitlementCheck.allowed) {
+      return {
+        error: entitlementCheck.reason || 'Subscription limit would be exceeded by this batch',
+      }
     }
 
     const { businessId, branchId } = context.user
