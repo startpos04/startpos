@@ -44,7 +44,6 @@ import { Capabilities, type CapabilityKey } from '../entitlement/capability-keys
 import { EntitlementEngine } from '../entitlement/entitlement-engine'
 import type { EntitlementContext, EntitlementOverrideDTO } from '../entitlement/entitlement-types'
 import { prisma as rootPrisma } from '../prisma-client'
-import { ConfigKeySchema } from '../types'
 
 // ---------------------------------------------------------------------------
 // Entitlement error — thrown when the capability is denied
@@ -84,7 +83,7 @@ export function requireCapability(capability: CapabilityKey) {
     // -----------------------------------------------------------------------
     // Rebuild EntitlementContext from DB — not from the client session
     // -----------------------------------------------------------------------
-    const [subscription, overrides, openCounter, latestCredit, activeTxAddons, branchConfigs] = await Promise.all([
+    const [subscription, overrides, openCounter, latestCredit, activeTxAddons] = await Promise.all([
       rootPrisma.businessSubscription.findUnique({
         where: { businessId },
         select: {
@@ -120,14 +119,6 @@ export function requireCapability(capability: CapabilityKey) {
         },
         select: { quantity: true },
       }),
-      // Branch-scoped SystemConfig rows — used to populate branchDisabledFeatures.
-      // Only fetched when a branchId is present in the request context.
-      branchId
-        ? rootPrisma.systemConfig.findMany({
-            where: { branchId, scope: 'BRANCH' },
-            select: { key: true, value: true },
-          })
-        : Promise.resolve([]),
     ])
 
     // If no subscription exists yet, use open context (dev / first login)

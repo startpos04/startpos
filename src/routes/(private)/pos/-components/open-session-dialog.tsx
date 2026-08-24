@@ -124,7 +124,7 @@ export function OpenSessionDialog({ open, onClose }: MountProps) {
         </DialogHeader>
 
         <Form onSubmit={form.handleSubmit} className='space-y-4'>
-          <form.Field name='openingCash' children={field => <MoneyInput field={field} label={`Starting Cash (${user.systemConfigs.CURRENCY})`} />} />
+          <form.Field name='openingCash' children={field => <MoneyInput field={field} label={`Starting Cash (${user.configs.CURRENCY})`} />} />
 
           <form.Field name='notes' children={field => <TextAreaInput field={field} label='Optional Notes' placeholder='e.g. Shift 1 - Monday' />} />
 

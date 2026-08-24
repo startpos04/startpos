@@ -143,16 +143,16 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
         <View style={styles.totalsContainer}>
           <View style={styles.infoRow}>
             <Text>Vatable Sales</Text>
-            <Text>{PriceEngine.toDollars(transaction.totalAmount / (1 + (user.systemConfigs?.VAT_RATE ?? 0.12))).toFixed(2)}</Text>
+            <Text>{PriceEngine.toDollars(transaction.totalAmount / (1 + (user.configs?.VAT_RATE ?? 0.12))).toFixed(2)}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text>VAT Amount ({(user.systemConfigs?.VAT_RATE ?? 0.12) * 100}%)</Text>
+            <Text>VAT Amount ({(user.configs?.VAT_RATE ?? 0.12) * 100}%)</Text>
             <Text>{PriceEngine.toDollars(transaction.taxAmount).toFixed(2)}</Text>
           </View>
           <View style={[styles.infoRow, styles.totalText]}>
             <Text>TOTAL AMOUNT</Text>
             <Text>
-              {user?.systemConfigs?.CURRENCY} {PriceEngine.toDollars(transaction.totalAmount).toFixed(2)}
+              {user?.configs?.CURRENCY} {PriceEngine.toDollars(transaction.totalAmount).toFixed(2)}
             </Text>
           </View>
           <View style={{ marginTop: 5, borderTopWidth: 0.5, borderTopStyle: 'dashed', paddingTop: 5 }}>

@@ -368,7 +368,7 @@ describe('Products page — grid card profitability panel', () => {
     const variant = { price: 11200, costPrice: 9000, components: [], inventory: [], sku: 'SKU-LOW', id: makeId(), productId: makeId(), name: 'Regular' }
     const product = makeProduct()
     product.variants[0] = { ...product.variants[0], price: 11200, costPrice: 9000 } as any
-    seedMockUser({ systemConfigs: { BUFFER_RATE: 30, ENABLE_ORDER: true } } as any)
+    seedMockUser({ configs: { BUFFER_RATE: 30, ENABLE_ORDER: true } } as any)
     setupUsePOS([product])
     renderProductsPage({ view: 'grid' })
     await waitFor(() => {

@@ -171,7 +171,7 @@ export type EntitlementContext = {
    * A feature in this set is denied even if the business plan grants it —
    * but only at this branch. Other branches are unaffected.
    *
-   * Populated by the Application Layer from branch-scoped SystemConfig rows
+   * Populated by the Application Layer from branch-scoped BusinessConfiguration rows
    * (e.g. ENABLE_ORDER = "false" → disables CREATE_ORDER at this branch).
    *
    * Rules:

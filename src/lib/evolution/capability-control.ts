@@ -25,12 +25,12 @@
  *   Always-on capabilities cannot be paused — returns `{ ok: false, code: 'PRECONDITION_FAILED' }`.
  *
  * Architecture:
- *   - Uses rootPrisma for all DB writes (BusinessCapabilityState + SystemConfig).
- *   - Config outputs are written as SystemConfig rows at BUSINESS scope.
+ *   - Uses rootPrisma for all DB writes (BusinessCapabilityState + Configuration).
+ *   - Config outputs are written as Configuration rows at BUSINESS scope.
  *   - Does not call EntitlementEngine — that is runtime access gating, not setup.
  */
 
-import type { ConfigKey } from 'prisma/generated/prisma/enums'
+import type { ConfigurationKey } from 'prisma/generated/prisma/enums'
 import { CAPABILITY_REGISTRY } from '../onboarding/capability-registry'
 import { DEFAULT_CHARACTERISTICS } from '../onboarding/defaults'
 import type { CapabilityDefinition, CapabilityOutput } from '../onboarding/types'
@@ -54,7 +54,7 @@ export type ControlResult = { ok: true; newState: CapabilityLifecycleState } | {
 
 /**
  * Accept a recommendation: RECOMMENDED → ENABLED.
- * Applies capability outputs to SystemConfig.
+ * Applies capability outputs to Configuration.
  */
 export async function accept(businessId: string, capabilityId: string, actorId: string): Promise<ControlResult> {
   return transition(businessId, capabilityId, actorId, 'USER_ACCEPT', {
@@ -65,7 +65,7 @@ export async function accept(businessId: string, capabilityId: string, actorId: 
 
 /**
  * Manually enable a capability: HIDDEN|RECOMMENDED → ENABLED.
- * Applies capability outputs to SystemConfig.
+ * Applies capability outputs to Configuration.
  */
 export async function enable(businessId: string, capabilityId: string, actorId: string): Promise<ControlResult> {
   return transition(businessId, capabilityId, actorId, 'USER_ENABLE', {
@@ -76,7 +76,7 @@ export async function enable(businessId: string, capabilityId: string, actorId: 
 
 /**
  * Pause a capability: ENABLED|CONFIGURED → PAUSED.
- * Applies rollback outputs to SystemConfig.
+ * Applies rollback outputs to Configuration.
  * Always-on capabilities (checkout, products, etc.) cannot be paused.
  */
 export async function pause(businessId: string, capabilityId: string, actorId: string): Promise<ControlResult> {
@@ -101,7 +101,7 @@ export async function pause(businessId: string, capabilityId: string, actorId: s
 
 /**
  * Restore a paused capability: PAUSED → ENABLED.
- * Re-applies capability outputs to SystemConfig.
+ * Re-applies capability outputs to Configuration.
  */
 export async function restore(businessId: string, capabilityId: string, actorId: string): Promise<ControlResult> {
   return transition(businessId, capabilityId, actorId, 'USER_RESTORE', {
@@ -286,26 +286,26 @@ function findCapability(capabilityId: string): CapabilityDefinition | undefined 
 }
 
 /**
- * Applies a set of config key=value pairs to the business's SystemConfig table.
+ * Applies a set of config key=value pairs to the business's BusinessConfiguration table.
  * Uses upsert so re-enabling is idempotent.
  */
 async function applyConfigOutputs(businessId: string, outputs: CapabilityOutput[], prisma: typeof rootPrisma): Promise<void> {
   for (const output of outputs) {
     if (!output.key) continue
 
-    // Map the string key to the ConfigKey enum value — cast is safe because
-    // capability outputs use the same key names as the ConfigKey enum.
-    await prisma.systemConfig.upsert({
+    // Map the string key to the ConfigurationKey enum value — cast is safe because
+    // capability outputs use the same key names as the ConfigurationKey enum.
+    await prisma.configuration.upsert({
       where: {
         key_businessId_scope: {
-          key: output.key as ConfigKey,
+          key: output.key as ConfigurationKey,
           businessId,
           scope: 'BUSINESS',
         },
       },
       update: { value: output.value },
       create: {
-        key: output.key as ConfigKey,
+        key: output.key as ConfigurationKey,
         value: output.value,
         scope: 'BUSINESS',
         businessId,

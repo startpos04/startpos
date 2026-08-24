@@ -60,7 +60,7 @@ const SUBSCRIPTION_SELECT = {
  * Run the subscription lifecycle background job.
  *
  * @param rootPrisma - The root Prisma client (platform-level, not tenant-scoped)
- * @param thresholds - Policy thresholds loaded from SystemConfig by the caller
+ * @param thresholds - Policy thresholds loaded from configuration by the caller
  * @param now - Current time — passed explicitly for determinism; defaults to new Date()
  */
 export async function runSubscriptionLifecycleJob(rootPrisma: PrismaClient, thresholds: LifecycleThresholds, now: Date = new Date()): Promise<JobResult> {

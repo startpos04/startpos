@@ -30,9 +30,9 @@ export const CartAside = withForm({
     const isProcessing = useRef(false)
 
     const vatConfig: TaxEngineConfig = {
-      vatRate: (user?.systemConfigs?.VAT_RATE ?? 12) / 100,
-      priceConfiguration: user?.systemConfigs?.PRICE_CONFIGURATION || PriceConfiguration.INCLUSIVE,
-      isVatRegistered: user?.systemConfigs?.IS_VAT_REGISTERED ?? true,
+      vatRate: (user?.configs?.VAT_RATE ?? 12) / 100,
+      priceConfiguration: user?.configs?.PRICE_CONFIGURATION || PriceConfiguration.INCLUSIVE,
+      isVatRegistered: user?.configs?.IS_VAT_REGISTERED ?? true,
     }
 
     const handleConfirm = (total: number) => {

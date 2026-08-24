@@ -44,13 +44,13 @@ function notApplicable(id: string): ResolvedCapability {
 describe('buildConfiguration — safe defaults', () => {
   it('produces EXCLUSIVE pricing when no VAT signal', () => {
     const config = buildConfiguration(chars(), [], 'LITE_POS')
-    const price = config.systemConfigs.find((c) => c.key === 'PRICE_CONFIGURATION')
+    const price = config.configs.find((c) => c.key === 'PRICE_CONFIGURATION')
     expect(price?.value).toBe('EXCLUSIVE')
   })
 
   it('produces IS_VAT_REGISTERED=false when not VAT registered', () => {
     const config = buildConfiguration(chars({ isVatRegistered: false }), [], 'LITE_POS')
-    const vat = config.systemConfigs.find((c) => c.key === 'IS_VAT_REGISTERED')
+    const vat = config.configs.find((c) => c.key === 'IS_VAT_REGISTERED')
     expect(vat?.value).toBe('false')
   })
 
@@ -71,12 +71,12 @@ describe('buildConfiguration — safe defaults', () => {
 // ---------------------------------------------------------------------------
 
 describe('buildConfiguration — capability outputs', () => {
-  it('ENABLED capability output is written to systemConfigs', () => {
+  it('ENABLED capability output is written to business configurations', () => {
     const resolved = [
       enabled('CREATE_ORDER', [{ key: 'SOME_CONFIG_KEY', value: 'true' }]),
     ]
     const config = buildConfiguration(chars({ paymentTiming: 'deferred' }), resolved, 'FOOD_AND_BEVERAGE')
-    const someConfig = config.systemConfigs.find((c) => c.key === 'SOME_CONFIG_KEY')
+    const someConfig = config.configs.find((c) => c.key === 'SOME_CONFIG_KEY')
     expect(someConfig?.value).toBe('true')
   })
 
@@ -86,14 +86,14 @@ describe('buildConfiguration — capability outputs', () => {
     ]
     const config = buildConfiguration(chars(), resolved, 'LITE_POS')
     // No capability-specific configs should be written for DEFERRED
-    expect(config.systemConfigs.every(c => c.key === 'PRICE_CONFIGURATION' || c.key === 'IS_VAT_REGISTERED')).toBe(true)
+    expect(config.configs.every(c => c.key === 'PRICE_CONFIGURATION' || c.key === 'IS_VAT_REGISTERED')).toBe(true)
   })
 
   it('NOT_APPLICABLE capability does not write outputs', () => {
     const resolved = [notApplicable('CREATE_ORDER')]
     const config = buildConfiguration(chars(), resolved, 'LITE_POS')
     // Only operational configs should exist
-    expect(config.systemConfigs.every(c => c.key === 'PRICE_CONFIGURATION' || c.key === 'IS_VAT_REGISTERED')).toBe(true)
+    expect(config.configs.every(c => c.key === 'PRICE_CONFIGURATION' || c.key === 'IS_VAT_REGISTERED')).toBe(true)
   })
 
   it('enabledCapabilities lists only ENABLED ids', () => {
@@ -132,7 +132,7 @@ describe('buildConfiguration — profile overrides', () => {
       [],
       'FOOD_AND_BEVERAGE',
     )
-    const price = config.systemConfigs.find((c) => c.key === 'PRICE_CONFIGURATION')
+    const price = config.configs.find((c) => c.key === 'PRICE_CONFIGURATION')
     expect(price?.value).toBe('INCLUSIVE')
   })
 
@@ -142,7 +142,7 @@ describe('buildConfiguration — profile overrides', () => {
       [],
       'FOOD_AND_BEVERAGE',
     )
-    const price = config.systemConfigs.find((c) => c.key === 'PRICE_CONFIGURATION')
+    const price = config.configs.find((c) => c.key === 'PRICE_CONFIGURATION')
     expect(price?.value).toBe('EXCLUSIVE')
   })
 
@@ -151,7 +151,7 @@ describe('buildConfiguration — profile overrides', () => {
       enabled('SOME_CAP', [{ key: 'PRICE_CONFIGURATION', value: 'INCLUSIVE' }]),
     ]
     const config = buildConfiguration(chars(), resolved, 'WHOLESALE_DISTRIBUTION')
-    const price = config.systemConfigs.find((c) => c.key === 'PRICE_CONFIGURATION')
+    const price = config.configs.find((c) => c.key === 'PRICE_CONFIGURATION')
     expect(price?.value).toBe('EXCLUSIVE')
   })
 
@@ -161,8 +161,8 @@ describe('buildConfiguration — profile overrides', () => {
       [],
       'GENERAL',
     )
-    const price = config.systemConfigs.find((c) => c.key === 'PRICE_CONFIGURATION')
-    const vat = config.systemConfigs.find((c) => c.key === 'IS_VAT_REGISTERED')
+    const price = config.configs.find((c) => c.key === 'PRICE_CONFIGURATION')
+    const vat = config.configs.find((c) => c.key === 'IS_VAT_REGISTERED')
     expect(price?.value).toBe('INCLUSIVE')
     expect(vat?.value).toBe('true')
   })
@@ -173,8 +173,8 @@ describe('buildConfiguration — profile overrides', () => {
       [],
       'GENERAL',
     )
-    const price = config.systemConfigs.find((c) => c.key === 'PRICE_CONFIGURATION')
-    const vat = config.systemConfigs.find((c) => c.key === 'IS_VAT_REGISTERED')
+    const price = config.configs.find((c) => c.key === 'PRICE_CONFIGURATION')
+    const vat = config.configs.find((c) => c.key === 'IS_VAT_REGISTERED')
     expect(price?.value).toBe('EXCLUSIVE')
     expect(vat?.value).toBe('true')
   })

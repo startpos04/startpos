@@ -5,18 +5,18 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import Papa from 'papaparse'
 import type { PrismaClient } from 'prisma/generated/prisma/client'
-import { type ComplianceKey, type ConfigKey, ConfigScope } from 'prisma/generated/prisma/enums'
-import type { SystemConfigWhereUniqueInput } from 'prisma/generated/prisma/models'
+import { type ComplianceKey, type ConfigurationKey, ConfigurationScope } from 'prisma/generated/prisma/enums'
+import type { ConfigurationWhereUniqueInput } from 'prisma/generated/prisma/models'
 import { getAccounts } from './accounts'
 export const order = 1
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CONFIGS_CSV_DIR = path.join(__dirname, 'csv')
 
-interface SystemConfigRow {
-  key: ConfigKey
+interface BusinessConfigRow {
+  key: ConfigurationKey
   value: string
-  scope: ConfigScope
+  scope: ConfigurationScope
 }
 
 interface ComplianceRow {
@@ -48,13 +48,13 @@ function parseConfigsCsvRequired<T>(folder: string, fileName: string, requiredHe
 export async function configs(prisma: PrismaClient, options: { folder: string }) {
   const accounts = getAccounts(options.folder)
 
-  // --- RESOLVE SYSTEM CONFIGURATIONS ---
+  // --- RESOLVE BUSINESS CONFIGURATIONS ---
   const configsCsv = parseConfigsCsvRequired<any>(options.folder, 'system-configs.csv', ['key', 'value', 'scope'])
-  console.info(`📈 Hydrating system configs from csv/${options.folder}/system-configs.csv...`)
-  const runtimeConfigs: SystemConfigRow[] = configsCsv.map(row => ({
-    key: String(row.key).trim() as ConfigKey,
+  console.info(`📈 Hydrating business configs from csv/${options.folder}/system-configs.csv...`)
+  const runtimeConfigs: BusinessConfigRow[] = configsCsv.map(row => ({
+    key: String(row.key).trim() as ConfigurationKey,
     value: String(row.value).trim(),
-    scope: (String(row.scope).trim() as ConfigScope) || ConfigScope.BUSINESS,
+    scope: (String(row.scope).trim() as ConfigurationScope) || ConfigurationScope.BUSINESS,
   }))
 
   // --- RESOLVE COMPLIANCE DATA REGISTRIES ---
@@ -66,29 +66,29 @@ export async function configs(prisma: PrismaClient, options: { folder: string })
   }))
 
   // =======================================================
-  // EXECUTION LAYER: SYSTEM CONFIGURATIONS
+  // EXECUTION LAYER: BUSINESS CONFIGURATIONS
   // =======================================================
-  console.info('⚙️ Syncing system localization and settings configurations...')
+  console.info('⚙️ Syncing business configurations...')
   for (const config of runtimeConfigs) {
-    const isBusiness = config.scope === ConfigScope.BUSINESS
+    const isBusiness = config.scope === ConfigurationScope.BUSINESS
 
-    const whereUnique: SystemConfigWhereUniqueInput = isBusiness
+    const whereUnique: ConfigurationWhereUniqueInput = isBusiness
       ? {
           key_businessId_scope: {
             key: config.key,
             businessId: accounts.business.id,
-            scope: ConfigScope.BUSINESS,
+            scope: ConfigurationScope.BUSINESS,
           },
         }
       : {
           key_branchId_scope: {
             key: config.key,
             branchId: accounts.branch.id,
-            scope: ConfigScope.BRANCH,
+            scope: ConfigurationScope.BRANCH,
           },
         }
 
-    await prisma.systemConfig.upsert({
+    await prisma.configuration.upsert({
       where: whereUnique,
       update: { value: config.value },
       create: {

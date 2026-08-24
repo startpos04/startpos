@@ -291,7 +291,7 @@ function RouteComponent() {
                   const marginPercentage = priceCents > 0 ? profitCents / priceCents : 0
 
                   // 1. Convert the 1-100 whole number from DB into a decimal fraction
-                  const targetMargin = (user.systemConfigs.BUFFER_RATE || 30) / 100
+                  const targetMargin = (user.configs.BUFFER_RATE || 30) / 100
                   const isLowMargin = marginPercentage < targetMargin
 
                   // 2. Determine explicit visual color tiers
@@ -308,7 +308,7 @@ function RouteComponent() {
                   const suggestedPriceCents = targetMargin < 1 ? finalCostCents / (1 - targetMargin) : finalCostCents
 
                   const stockPercentage = Math.min(Math.max((maxServings / 100) * 100, 0), 100)
-                  const isLowStock = maxServings < primaryVariant.lowStockThreshold! || user.systemConfigs.LOW_STOCK_THRESHOLD
+                  const isLowStock = maxServings < primaryVariant.lowStockThreshold! || user.configs.LOW_STOCK_THRESHOLD
 
                   return (
                     <Card

@@ -102,7 +102,7 @@ export function getDeferredCapabilities(resolved: ResolvedCapability[]): Resolve
 
 /**
  * Collects all unique CapabilityOutput entries from a set of resolved capabilities.
- * Deduplicates by key — last write wins (mirrors how SystemConfig upserts work).
+ * Deduplicates by key — last write wins (mirrors how BusinessConfiguration upserts work).
  */
 export function collectOutputs(resolved: ResolvedCapability[]): Array<{ key: string; value: string }> {
   const map = new Map<string, string>()

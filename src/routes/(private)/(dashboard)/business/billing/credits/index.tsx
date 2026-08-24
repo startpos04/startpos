@@ -206,7 +206,7 @@ function CreditsPage() {
   const entries = data?.entries ?? []
   const totalItems = data?.totalItems ?? 0
 
-  const rawThreshold = (user?.systemConfigs as Record<string, unknown> | undefined)?.['CREDIT_LOW_BALANCE_THRESHOLD']
+  const rawThreshold = (user?.configs as Record<string, unknown> | undefined)?.['CREDIT_LOW_BALANCE_THRESHOLD']
   const threshold = typeof rawThreshold === 'number' ? rawThreshold : typeof rawThreshold === 'string' ? Number(rawThreshold) : LOW_BALANCE_DEFAULT_THRESHOLD
 
   const isLow = currentBalance <= threshold

@@ -26,8 +26,8 @@
  *   The overall run is fail-fast per job: if a job returns outcome='error'
  *   it is recorded but subsequent jobs still run (non-fatal isolation).
  *
- * OveragePolicy is read from SystemConfig global defaults.
- * LifecycleThresholds are read from SystemConfig global defaults.
+ * OveragePolicy is read from configuration global defaults.
+ * LifecycleThresholds are read from configuration global defaults.
  * Both fall back to the documented defaults when not configured.
  *
  * The Stripe adapter is constructed only when STRIPE_SECRET_KEY is present —
@@ -41,6 +41,7 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 import type { BillingProviderAdapter } from '@/lib/billing/billing-provider'
+import { ConfigurationEngine } from '@/lib/configuration/configuration-engine'
 import type { JobResult } from '@/lib/jobs'
 import { runBillingInvoiceGenerationJob } from '@/lib/jobs/billing-invoice-generation'
 import { runComposableRenewalPreviewJob } from '@/lib/jobs/composable-renewal-preview'
@@ -85,25 +86,18 @@ export const Route = createFileRoute('/api/cron/daily/' as never)({
         }
 
         // -------------------------------------------------------------------
-        // 2. Load policy configuration from SystemConfig global defaults
+        // 2. Load policy configuration from platform-level configuration
         //    Fall back to documented defaults when keys are not seeded.
         // -------------------------------------------------------------------
 
-        // Read the one global OVERAGE_BILLING_ENABLED config (no businessId —
-        // this is used as a platform default for the invoice generation job)
-        const overageConfig = await rootPrisma.systemConfig.findFirst({
-          where: { key: 'OVERAGE_BILLING_ENABLED', businessId: null, branchId: null },
-          select: { value: true },
-        })
-        const vatConfig = await rootPrisma.systemConfig.findFirst({
-          where: { key: 'COMPOSABLE_TAX_RATE', businessId: null, branchId: null },
-          select: { value: true },
-        })
+        // Read platform-level configuration (no businessId context)
+        const overageValue = await ConfigurationEngine.get('OVERAGE_BILLING_ENABLED', {})
+        const vatValue = await ConfigurationEngine.get('COMPOSABLE_TAX_RATE', {})
 
         const overagePolicy = {
-          overageBillingEnabled: overageConfig?.value === 'true',
+          overageBillingEnabled: overageValue === 'true',
           overageRatePerTx: 0, // Per-plan rate — InvoiceEngine reads from plan directly
-          vatRate: vatConfig ? Number(vatConfig.value) / 10000 : 0.12,
+          vatRate: vatValue ? Number(vatValue) / 10000 : 0.12,
         }
 
         const thresholds = {

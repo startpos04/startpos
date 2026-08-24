@@ -64,9 +64,9 @@ export const createPricingQuote = createServerFn({ method: 'POST' })
       return { success: false as const, error: 'No active pricing catalog found. Please contact support.' }
     }
 
-    // Assemble PricingConfig from SystemConfig defaults
+    // Assemble PricingConfig from configuration defaults
     // For Phase 5 initial implementation, we use sensible defaults.
-    // The Application Layer would normally read these from SystemConfig.
+    // The Application Layer would normally read these from Configuration.
     const config: PricingConfig = {
       branchMonthlyRate: 0,
       maxFeatures: 0,

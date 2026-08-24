@@ -136,13 +136,13 @@ describe('PosHeader — rendering', () => {
 
 describe('PosHeader — conditional ActiveOrdersButton', () => {
   it('renders ActiveOrdersButton when ENABLE_ORDER is true', () => {
-    seedMockUser({ systemConfigs: { ENABLE_ORDER: true } } as any)
+    seedMockUser({ configs: { ENABLE_ORDER: true } } as any)
     render(<PosHeader />)
     expect(screen.getByTestId('active-orders-btn')).toBeInTheDocument()
   })
 
   it('does NOT render ActiveOrdersButton when ENABLE_ORDER is false', () => {
-    seedMockUser({ systemConfigs: { ENABLE_ORDER: false } } as any)
+    seedMockUser({ configs: { ENABLE_ORDER: false } } as any)
     render(<PosHeader />)
     expect(screen.queryByTestId('active-orders-btn')).not.toBeInTheDocument()
   })

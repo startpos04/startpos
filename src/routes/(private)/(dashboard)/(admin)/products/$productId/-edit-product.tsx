@@ -63,7 +63,7 @@ export function EditProductSidebar({ productId, variantId, defaultValues, open: 
             image: null,
             attributeType: isDefault ? VariantAttributeType.UNSPECIFIED : v.attributeType,
             taxCategory: TaxCategory.STANDARD,
-            lowStockThreshold: user.systemConfigs.LOW_STOCK_THRESHOLD,
+            lowStockThreshold: user.configs.LOW_STOCK_THRESHOLD,
             isBatchPrepared,
             productionUsesRecipe: ingredients.length > 0, // Auto-detect from ingredients
             shelfLifeHours,

@@ -31,7 +31,7 @@ vi.mock('@/lib/prisma-client', () => ({
   prisma: {
     businessCapabilityState: { findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
     business: { findUnique: vi.fn(), update: vi.fn() },
-    systemConfig: { upsert: vi.fn() },
+    configuration: { upsert: vi.fn() },
   },
 }))
 
@@ -71,7 +71,7 @@ beforeEach(() => {
   vi.mocked(mockPrisma.business.findUnique).mockResolvedValue({ livingCharacteristics: null } as never)
   vi.mocked(mockPrisma.businessCapabilityState.findUnique).mockResolvedValue(null as never)
   vi.mocked(mockPrisma.businessCapabilityState.update).mockResolvedValue({} as never)
-  vi.mocked(mockPrisma.systemConfig.upsert).mockResolvedValue({} as never)
+  vi.mocked(mockPrisma.configuration.upsert).mockResolvedValue({} as never)
   vi.mocked(mockBus.emit).mockResolvedValue(undefined)
 })
 

@@ -5,7 +5,7 @@
  *
  * All background jobs follow the same pattern:
  *   1. Accept a database client (rootPrisma) as a dependency — never import it directly.
- *   2. Read configuration from the caller — never read SystemConfig themselves.
+ *   2. Read configuration from the caller — never read configuration themselves.
  *   3. Return a JobResult describing what was done — never throw on expected failures.
  *   4. Be idempotent — running twice for the same period must not produce duplicate effects.
  *

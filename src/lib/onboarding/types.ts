@@ -334,7 +334,7 @@ export type OperationalProfile =
 
 /**
  * A single config key=value pair that a capability writes when it is enabled.
- * Maps to the SystemConfig table at the BUSINESS scope.
+ * Maps to the BusinessConfiguration table at the BUSINESS scope.
  */
 export type CapabilityOutput = {
   key: string
@@ -380,7 +380,7 @@ export type ResolvedCapability = {
  *   - `displayZone` replaced by `importance` in recommendation types
  */
 export type CapabilityDefinition = {
-  /** Matches CapabilityKey or ConfigKey; stable identifier. */
+  /** Matches CapabilityKey or ConfigurationKey; stable identifier. */
   id: string
 
   /** Human-readable name — developer tooling only. */
@@ -536,8 +536,8 @@ export type RegistryValidationError = {
  * This is what complete-registration.ts persists to the database.
  */
 export type BusinessConfiguration = {
-  /** System config key=value pairs to write to SystemConfig table. */
-  systemConfigs: CapabilityOutput[]
+  /** Configuration key=value pairs to write to BusinessConfiguration table. */
+  configs: CapabilityOutput[]
 
   /** Capability IDs that are immediately ENABLED for this business. */
   enabledCapabilities: string[]

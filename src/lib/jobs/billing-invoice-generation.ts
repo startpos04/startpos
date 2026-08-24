@@ -71,7 +71,7 @@ const USAGE_COUNTER_SELECT = {
  * Run the billing invoice generation background job.
  *
  * @param rootPrisma  - Platform-level Prisma client (not tenant-scoped)
- * @param policy      - Overage and tax policy read from SystemConfig by the caller
+ * @param policy      - Overage and tax policy read from configuration by the caller
  * @param adapter     - Billing provider adapter (optional; pass null to skip provider push)
  * @param now         - Current time — passed explicitly for determinism; defaults to new Date()
  */

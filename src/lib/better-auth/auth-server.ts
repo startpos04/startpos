@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import _ from 'lodash'
 import type { Prisma } from 'prisma/generated/prisma/client'
-import { type ComplianceKey, type ConfigKey, Role } from 'prisma/generated/prisma/enums'
+import { type ComplianceKey, type ConfigurationKey, Role } from 'prisma/generated/prisma/enums'
 import { AuthorizationEngine } from '../authorization/authorization-engine'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 import { BillingModel, type LifecycleThresholds } from '../billing/types'
@@ -39,9 +39,9 @@ type DBUser = Prisma.UserGetPayload<{
     privacyAcceptedAt: true
     privacyVersion: true
   }
-  include: { systemConfigs: true }
+  include: { configurations: true }
 }>
-type DBBusiness = Prisma.BusinessGetPayload<{ include: { complianceRegistry: true; systemConfigs: true } }>
+type DBBusiness = Prisma.BusinessGetPayload<{ include: { complianceRegistry: true; configurations: true } }>
 type DBBranch = Prisma.BranchGetPayload<{
   select: {
     id: true
@@ -53,7 +53,7 @@ type DBBranch = Prisma.BranchGetPayload<{
     deletedAt: true
     offlineTerminalId: true
     complianceRegistry: true
-    systemConfigs: true
+    configurations: true
   }
 }>
 type DBVendorSession = Prisma.VendorSessionGetPayload<object>
@@ -81,7 +81,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
           email: true,
           image: true,
           role: true,
-          systemConfigs: true,
+          configurations: true,
           // Phase 0 legal consent fields — surfaced in Settings → Account tab
           termsAcceptedAt: true,
           termsVersion: true,
@@ -92,7 +92,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
 
       prisma.business.findUnique({
         where: { id: businessId },
-        include: { complianceRegistry: true, systemConfigs: true },
+        include: { complianceRegistry: true, configurations: true },
       }) as Promise<DBBusiness | null>,
 
       prisma.branch.findUnique({
@@ -107,7 +107,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
           deletedAt: true,
           offlineTerminalId: true, // Phase 2: offline checkout restriction
           complianceRegistry: true,
-          systemConfigs: true,
+          configurations: true,
         },
       }) as Promise<DBBranch | null>,
 
@@ -136,19 +136,19 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       return undefined
     }
 
-    const { systemConfigs: userConfigs, ...user } = userData
-    const { systemConfigs: businessConfigs, complianceRegistry: businessCompliance, ...business } = businessData
-    const { systemConfigs: branchConfigs, complianceRegistry: branchCompliance, ...branch } = branchData
+    const { configurations: userConfigs, ...user } = userData
+    const { configurations: businessConfigs, complianceRegistry: businessCompliance, ...business } = businessData
+    const { configurations: branchConfigs, complianceRegistry: branchCompliance, ...branch } = branchData
 
     // These objects are now cleanly typed maps instead of plain key-value targets
-    const mappedUserConfigs = transformKvPairs<ConfigKey, (typeof userConfigs)[number]>(userConfigs)
-    const mappedBusinessConfigs = transformKvPairs<ConfigKey, (typeof businessConfigs)[number]>(businessConfigs)
-    const mappedBranchConfigs = transformKvPairs<ConfigKey, (typeof branchConfigs)[number]>(branchConfigs)
+    const mappedUserConfigs = transformKvPairs<ConfigurationKey, (typeof userConfigs)[number]>(userConfigs)
+    const mappedBusinessConfigs = transformKvPairs<ConfigurationKey, (typeof businessConfigs)[number]>(businessConfigs)
+    const mappedBranchConfigs = transformKvPairs<ConfigurationKey, (typeof branchConfigs)[number]>(branchConfigs)
 
     const mappedBusinessCompliance = transformKvPairs<ComplianceKey, (typeof businessCompliance)[number]>(businessCompliance)
     const mappedBranchCompliance = transformKvPairs<ComplianceKey, (typeof branchCompliance)[number]>(branchCompliance)
 
-    const mergedSystemConfigs = _.merge({}, mappedBusinessConfigs, mappedBranchConfigs, mappedUserConfigs)
+    const mergedConfigs = _.merge({}, mappedBusinessConfigs, mappedBranchConfigs, mappedUserConfigs)
     const mergedComplianceRegistry = _.merge({}, mappedBusinessCompliance, mappedBranchCompliance)
 
     // -------------------------------------------------------------------------
@@ -164,11 +164,11 @@ export const getAuthUser = createServerFn({ method: 'GET' })
     // not tenant-scoped, and BusinessSubscription lives outside branch isolation.
     // -------------------------------------------------------------------------
 
-    // Read lifecycle policy thresholds from merged SystemConfig.
-    // These keys are stored as strings in SystemConfig — coerce to numbers here.
-    const rawTrialDays = mergedSystemConfigs['TRIAL_DURATION_DAYS' as ConfigKey] as unknown
-    const rawGraceDays = mergedSystemConfigs['GRACE_PERIOD_DAYS' as ConfigKey] as unknown
-    const rawInactiveDays = mergedSystemConfigs['LONG_TERM_INACTIVE_DAYS' as ConfigKey] as unknown
+    // Read lifecycle policy thresholds from merged configuration.
+    // These keys are stored as strings in BusinessConfiguration — coerce to numbers here.
+    const rawTrialDays = mergedConfigs['TRIAL_DURATION_DAYS' as ConfigurationKey] as unknown
+    const rawGraceDays = mergedConfigs['GRACE_PERIOD_DAYS' as ConfigurationKey] as unknown
+    const rawInactiveDays = mergedConfigs['LONG_TERM_INACTIVE_DAYS' as ConfigurationKey] as unknown
 
     const thresholds: LifecycleThresholds = {
       trialDurationDays: typeof rawTrialDays === 'number' ? rawTrialDays : 30,
@@ -462,8 +462,8 @@ export const getAuthUser = createServerFn({ method: 'GET' })
         }
       : undefined
 
-    // Parse SystemConfig for operational settings (VAT, locale, pricing, etc.)
-    const parsedSystemConfigs = (ConfigKeySchema.safeParse(mergedSystemConfigs).data ??
+    // Parse configuration for operational settings (VAT, locale, pricing, etc.)
+    const parsedConfigs = (ConfigKeySchema.safeParse(mergedConfigs).data ??
       ConfigKeySchema.parse({
         ...{
           LOW_STOCK_THRESHOLD: 20,
@@ -474,7 +474,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
           IS_VAT_REGISTERED: false,
           PRICE_CONFIGURATION: 'EXCLUSIVE',
         },
-        ...mergedSystemConfigs,
+        ...mergedConfigs,
       })) as ConfigKeyTypes
 
     // -------------------------------------------------------------------------
@@ -546,7 +546,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       business,
       branch,
       vendorSession,
-      systemConfigs: parsedSystemConfigs,
+      configs: parsedConfigs,
       complianceRegistry: (ComplianceKeySchema.safeParse(mergedComplianceRegistry).data ??
         ComplianceKeySchema.parse({
           BIR_TIN: '',

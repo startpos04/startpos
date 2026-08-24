@@ -9,7 +9,7 @@
  *
  * Backfill strategy per business:
  *   1. If `onboardingSurveyAnswers` exists → interpret survey + apply as SURVEY_ANSWER sources
- *   2. Else infer from current `SystemConfig` keys (IS_VAT_REGISTERED, ENABLE_ORDER, etc.)
+ *   2. Else infer from current `Configuration` keys (IS_VAT_REGISTERED, ENABLE_ORDER, etc.)
  *   3. Read the latest `BusinessUsageSummary` (if any)
  *   4. Run `CharacteristicsEngine.compute()` to merge sources
  *   5. Classify profile and health stage
@@ -78,7 +78,7 @@ export async function runBackfill(dryRun = false): Promise<BackfillResult> {
       select: {
         id: true,
         onboardingSurveyAnswers: true,
-        systemConfigs: {
+        configurations: {
           select: { key: true, value: true, scope: true },
         },
       },
@@ -121,13 +121,13 @@ export async function runBackfill(dryRun = false): Promise<BackfillResult> {
 type BusinessRow = {
   id: string
   onboardingSurveyAnswers: unknown
-  systemConfigs: Array<{ key: string; value: string; scope: string }>
+  configurations: Array<{ key: string; value: string; scope: string }>
 }
 
 async function backfillBusiness(business: BusinessRow, dryRun: boolean): Promise<void> {
   const now = new Date()
 
-  // Step 1: Build initial living characteristics from survey or SystemConfig
+  // Step 1: Build initial living characteristics from survey or configuration
   let initial: LivingCharacteristics
 
   if (business.onboardingSurveyAnswers && typeof business.onboardingSurveyAnswers === 'object') {
@@ -135,8 +135,8 @@ async function backfillBusiness(business: BusinessRow, dryRun: boolean): Promise
     const surveyChars = interpretSurvey(business.onboardingSurveyAnswers as Parameters<typeof interpretSurvey>[0])
     initial = applysurveyAnswers(surveyChars, now)
   } else {
-    // Path B: no survey — infer from SystemConfig settings
-    const chars = inferFromSystemConfig(business.systemConfigs)
+    // Path B: no survey — infer from Configuration settings
+    const chars = inferFromConfiguration(business.configurations)
     initial = applysurveyAnswers(chars, now)
   }
 
@@ -194,17 +194,17 @@ async function backfillBusiness(business: BusinessRow, dryRun: boolean): Promise
 }
 
 // ---------------------------------------------------------------------------
-// SystemConfig inference (Path B — no survey answers)
+// Configuration inference (Path B — no survey answers)
 // ---------------------------------------------------------------------------
 
 /**
- * Infers BusinessCharacteristics from existing SystemConfig settings.
+ * Infers BusinessCharacteristics from existing Configuration settings.
  * Used for businesses that registered before the survey system existed.
  *
  * Only maps what can be reliably inferred from config keys.
  * Everything else falls back to DEFAULT_CHARACTERISTICS safe defaults.
  */
-function inferFromSystemConfig(configs: Array<{ key: string; value: string; scope: string }>): BusinessCharacteristics {
+function inferFromConfiguration(configs: Array<{ key: string; value: string; scope: string }>): BusinessCharacteristics {
   const configMap = new Map(configs.map(c => [c.key, c.value]))
 
   const isVatRegistered = configMap.get('IS_VAT_REGISTERED') === 'true'

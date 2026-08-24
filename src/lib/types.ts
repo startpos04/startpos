@@ -1,4 +1,4 @@
-import { ComplianceKey, ConfigKey, PriceConfiguration } from 'prisma/generated/prisma/enums'
+import { ComplianceKey, ConfigurationKey, PriceConfiguration } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
 
 export const isNotNullish = <T>(item: T): item is NonNullable<T> => {
@@ -69,27 +69,27 @@ export interface TransactionComplianceData {
 
 // Keep the base schemas plain and clean
 const BaseConfigSchema = z.object({
-  [ConfigKey.LOW_STOCK_THRESHOLD]: z.number(),
-  [ConfigKey.VAT_RATE]: z.number(),
-  [ConfigKey.IS_VAT_REGISTERED]: z.boolean(),
-  [ConfigKey.PRICE_CONFIGURATION]: z.enum(PriceConfiguration),
-  [ConfigKey.BUFFER_RATE]: z.number(),
-  [ConfigKey.LOCALE]: z.string(),
-  [ConfigKey.CURRENCY]: z.string(),
-  [ConfigKey.AUTO_APPROVE_LOW_STOCK_REFILL]: z.boolean().default(true),
+  [ConfigurationKey.LOW_STOCK_THRESHOLD]: z.number(),
+  [ConfigurationKey.VAT_RATE]: z.number(),
+  [ConfigurationKey.IS_VAT_REGISTERED]: z.boolean(),
+  [ConfigurationKey.PRICE_CONFIGURATION]: z.enum(PriceConfiguration),
+  [ConfigurationKey.BUFFER_RATE]: z.number(),
+  [ConfigurationKey.LOCALE]: z.string(),
+  [ConfigurationKey.CURRENCY]: z.string(),
+  [ConfigurationKey.AUTO_APPROVE_LOW_STOCK_REFILL]: z.boolean().default(true),
   // --- Phase 5: Composable Pricing ---
-  [ConfigKey.COMPOSABLE_BRANCH_MONTHLY_RATE]: z.number().default(0),
-  [ConfigKey.COMPOSABLE_MAX_FEATURES]: z.number().default(0),
-  [ConfigKey.COMPOSABLE_ANNUAL_DISCOUNT_PCT]: z.number().default(0),
-  [ConfigKey.COMPOSABLE_TAX_RATE]: z.number().default(0),
-  [ConfigKey.COMPOSABLE_QUOTE_VALIDITY_DAYS]: z.number().default(30),
-  [ConfigKey.COMPOSABLE_PARTNER_MARGIN_PCT]: z.number().default(0),
-  [ConfigKey.COMPOSABLE_PROMO_CODE_ENABLED]: z.boolean().default(false),
+  [ConfigurationKey.COMPOSABLE_BRANCH_MONTHLY_RATE]: z.number().default(0),
+  [ConfigurationKey.COMPOSABLE_MAX_FEATURES]: z.number().default(0),
+  [ConfigurationKey.COMPOSABLE_ANNUAL_DISCOUNT_PCT]: z.number().default(0),
+  [ConfigurationKey.COMPOSABLE_TAX_RATE]: z.number().default(0),
+  [ConfigurationKey.COMPOSABLE_QUOTE_VALIDITY_DAYS]: z.number().default(30),
+  [ConfigurationKey.COMPOSABLE_PARTNER_MARGIN_PCT]: z.number().default(0),
+  [ConfigurationKey.COMPOSABLE_PROMO_CODE_ENABLED]: z.boolean().default(false),
   // --- Add-on pricing (PHP cents, admin-configurable) ---
-  [ConfigKey.ADDON_ANALYTICS_PRICE]: z.number().default(29900),
-  [ConfigKey.ADDON_API_PRICE]: z.number().default(49900),
-  [ConfigKey.ADDON_BRANCH_PRICE]: z.number().default(19900),
-  [ConfigKey.ADDON_EMPLOYEE_PRICE]: z.number().default(4900),
+  [ConfigurationKey.ADDON_ANALYTICS_PRICE]: z.number().default(29900),
+  [ConfigurationKey.ADDON_API_PRICE]: z.number().default(49900),
+  [ConfigurationKey.ADDON_BRANCH_PRICE]: z.number().default(19900),
+  [ConfigurationKey.ADDON_EMPLOYEE_PRICE]: z.number().default(4900),
 })
 
 const BaseComplianceSchema = z.object({

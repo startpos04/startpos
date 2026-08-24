@@ -5,7 +5,6 @@
  *   features.csv              — Feature registry
  *   plans.csv                 — SubscriptionPlan tiers
  *   plan-entitlements.csv     — PlanEntitlement join records
- *   billing-config-defaults.csv — Platform-level SystemConfig defaults
  *   pricing-catalog.csv       — PricingCatalog v1 with FeaturePrice records
  *
  * All upserts are keyed on stable natural keys so the seed is fully
@@ -132,32 +131,7 @@ export async function Entitlements(prisma: PrismaClient) {
     console.info(`   ✔  Plan "${upsertedPlan.name}" — ${planEntitlements.length} entitlements upserted.`)
   }
 
-  // ── Step 3: Billing config defaults ───────────────────────────────────────
-  console.info('⚙️  Seeding billing policy config defaults from csv/system/billing-config-defaults.csv...')
-
-  const configRows = parseSystemCsv<any>('billing-config-defaults.csv', ['key', 'value'])
-
-  for (const row of configRows) {
-    const key = String(row.key).trim()
-    const value = String(row.value).trim()
-
-    const existing = await (prisma as any).systemConfig.findFirst({
-      where: { key, businessId: null, branchId: null, userId: null, scope: 'BUSINESS' },
-    })
-
-    if (!existing) {
-      await (prisma as any).systemConfig.create({
-        data: { key, value, scope: 'BUSINESS' },
-      })
-      console.info(`   ✔  Config "${key}" = "${value}" seeded.`)
-    } else {
-      console.info(`   –  Config "${key}" already exists (value: "${existing.value}"), skipped.`)
-    }
-  }
-
-  console.info(`   ✔  ${configRows.length} billing config defaults processed.`)
-
-  // ── Step 4: PricingCatalog ────────────────────────────────────────────────
+  // ── Step 3: PricingCatalog ────────────────────────────────────────────────
   console.info('📊 Seeding PricingCatalog from csv/system/pricing-catalog.csv...')
 
   const catalogRows = parseSystemCsv<any>('pricing-catalog.csv', ['version', 'label', 'status', 'featureKey', 'monthlyPrice', 'isIncludedInBase'])

@@ -48,7 +48,7 @@ vi.mock('@/lib/prisma-client', () => ({
     business: {
       findUnique: vi.fn(),
     },
-    systemConfig: {
+    configuration: {
       upsert: vi.fn(),
     },
   },
@@ -108,7 +108,7 @@ function wireMocks(stateRow: StateRow | null) {
     return Promise.resolve({ ...stateRow, ...args.data }) as never
   })
   p.business.findUnique.mockResolvedValue({ livingCharacteristics: null } as never)
-  p.systemConfig.upsert.mockResolvedValue({} as never)
+  p.configuration.upsert.mockResolvedValue({} as never)
 
   vi.mocked(mockQueue.schedule).mockResolvedValue(undefined)
   vi.mocked(mockBus.emit).mockResolvedValue(undefined)
@@ -148,14 +148,14 @@ describe('accept — RECOMMENDED → ENABLED', () => {
     )
   })
 
-  it('applies capability config outputs via systemConfig.upsert', async () => {
+  it('applies capability config outputs via configuration.upsert', async () => {
     wireMocks(makeStateRow({ state: 'RECOMMENDED', capabilityId: 'START_VENDOR_SESSION' }))
 
     await accept('biz-001', 'START_VENDOR_SESSION', 'user-001')
 
     // START_VENDOR_SESSION capability may have configuration outputs
-    // The test verifies systemConfig.upsert is called with proper structure
-    expect(vi.mocked(mockPrisma.systemConfig.upsert)).toHaveBeenCalled()
+    // The test verifies configuration.upsert is called with proper structure
+    expect(vi.mocked(mockPrisma.configuration.upsert)).toHaveBeenCalled()
   })
 
   it('schedules a recalculation after accept', async () => {
@@ -230,7 +230,7 @@ describe('enable — HIDDEN|RECOMMENDED → ENABLED', () => {
 
     await enable('biz-001', 'START_VENDOR_SESSION', 'user-001')
 
-    expect(vi.mocked(mockPrisma.systemConfig.upsert)).toHaveBeenCalled()
+    expect(vi.mocked(mockPrisma.configuration.upsert)).toHaveBeenCalled()
   })
 
   it('returns INVALID_TRANSITION when already ENABLED', async () => {
@@ -270,7 +270,7 @@ describe('pause — ENABLED|CONFIGURED → PAUSED', () => {
     await pause('biz-001', 'START_VENDOR_SESSION', 'user-001')
 
     // Pause applies rollback outputs to revert configuration changes
-    expect(vi.mocked(mockPrisma.systemConfig.upsert)).toHaveBeenCalled()
+    expect(vi.mocked(mockPrisma.configuration.upsert)).toHaveBeenCalled()
   })
 
   it('rejects pause on always-on capability (COMPLETE_CHECKOUT)', async () => {
@@ -329,7 +329,7 @@ describe('restore — PAUSED → ENABLED', () => {
     await restore('biz-001', 'START_VENDOR_SESSION', 'user-001')
 
     // Restore re-applies capability configuration outputs
-    expect(vi.mocked(mockPrisma.systemConfig.upsert)).toHaveBeenCalled()
+    expect(vi.mocked(mockPrisma.configuration.upsert)).toHaveBeenCalled()
   })
 
   it('returns INVALID_TRANSITION if not PAUSED', async () => {
@@ -369,12 +369,12 @@ describe('dismiss — RECOMMENDED → HIDDEN', () => {
     )
   })
 
-  it('does NOT call systemConfig.upsert on dismiss', async () => {
+  it('does NOT call configuration.upsert on dismiss', async () => {
     wireMocks(makeStateRow({ state: 'RECOMMENDED', capabilityId: 'START_VENDOR_SESSION' }))
 
     await dismiss('biz-001', 'START_VENDOR_SESSION', 'user-001')
 
-    expect(vi.mocked(mockPrisma.systemConfig.upsert)).not.toHaveBeenCalled()
+    expect(vi.mocked(mockPrisma.configuration.upsert)).not.toHaveBeenCalled()
   })
 
   it('returns INVALID_TRANSITION if not RECOMMENDED', async () => {
@@ -411,12 +411,12 @@ describe('advance — ENABLED → CONFIGURED (system trigger)', () => {
     )
   })
 
-  it('does NOT call systemConfig.upsert (no config changes on advance)', async () => {
+  it('does NOT call configuration.upsert (no config changes on advance)', async () => {
     wireMocks(makeStateRow({ state: 'ENABLED', capabilityId: 'MANAGE_INVENTORY' }))
 
     await advance('biz-001', 'MANAGE_INVENTORY')
 
-    expect(vi.mocked(mockPrisma.systemConfig.upsert)).not.toHaveBeenCalled()
+    expect(vi.mocked(mockPrisma.configuration.upsert)).not.toHaveBeenCalled()
   })
 
   it('returns INVALID_TRANSITION from CONFIGURED (already advanced)', async () => {

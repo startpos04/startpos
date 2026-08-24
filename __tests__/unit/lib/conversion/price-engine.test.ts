@@ -96,7 +96,7 @@ describe('PriceEngine.format', () => {
   it('uses locale from authStore — different locale produces different format', () => {
     // Override with USD locale
     seedMockUser({
-      systemConfigs: { LOCALE: 'en-US', CURRENCY: 'USD' } as any,
+      configs: { LOCALE: 'en-US', CURRENCY: 'USD' } as any,
     })
     const formatted = PriceEngine.format(10000)
     expect(formatted).toContain('$')

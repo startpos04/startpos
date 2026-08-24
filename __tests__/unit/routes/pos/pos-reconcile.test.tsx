@@ -131,7 +131,7 @@ vi.mock('@tanstack/react-router', async importOriginal => {
 })
 
 // ---------------------------------------------------------------------------
-// Mock: PriceEngine — avoids any authStore.systemConfigs dependency on re-render
+// Mock: PriceEngine — avoids any authStore configuration dependency on re-render
 // ---------------------------------------------------------------------------
 
 vi.mock('@/lib/conversion/price-engine', () => ({
@@ -208,7 +208,7 @@ function setupDefaultLiveQuery() {
 beforeEach(() => {
   seedMockUser({
     vendorSession: makeSession(),
-    systemConfigs: { ENABLE_CASH_RECONCILIATION: true },
+    configs: { ENABLE_CASH_RECONCILIATION: true },
   } as any)
   // Reset call history without wiping implementations
   vi.clearAllMocks()
@@ -338,7 +338,7 @@ describe('ReconcileLater — ENABLE_CASH_RECONCILIATION flag', () => {
   it('shows "End Shift & Create Task" button when ENABLE_CASH_RECONCILIATION=true', () => {
     seedMockUser({
       vendorSession: makeSession(),
-      systemConfigs: { ENABLE_CASH_RECONCILIATION: true },
+      configs: { ENABLE_CASH_RECONCILIATION: true },
     } as any)
     render(<ReconcileLater open={true} onClose={vi.fn()} />)
     expect(document.body.textContent).toContain('End Shift & Create Task')
@@ -347,7 +347,7 @@ describe('ReconcileLater — ENABLE_CASH_RECONCILIATION flag', () => {
   it('hides "End Shift & Create Task" when ENABLE_CASH_RECONCILIATION=false', () => {
     seedMockUser({
       vendorSession: makeSession(),
-      systemConfigs: { ENABLE_CASH_RECONCILIATION: false },
+      configs: { ENABLE_CASH_RECONCILIATION: false },
     } as any)
     render(<ReconcileLater open={true} onClose={vi.fn()} />)
     expect(document.body.textContent).not.toContain('End Shift & Create Task')

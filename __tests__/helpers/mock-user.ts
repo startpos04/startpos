@@ -27,7 +27,7 @@ export function createMockUser(overrides: Partial<ServerUser> = {}): ServerUser 
       ...((overrides as any).branch ?? {}),
     },
     vendorSession: null,
-    systemConfigs: {
+    configs: {
       LOW_STOCK_THRESHOLD: 10,
       VAT_RATE: 0.12,
       IS_VAT_REGISTERED: true,
@@ -40,7 +40,7 @@ export function createMockUser(overrides: Partial<ServerUser> = {}): ServerUser 
       ENABLE_CASH_RECONCILIATION: false,
       ENABLE_TASK: true,
       ENABLE_ORDER: true,
-      ...((overrides as any).systemConfigs ?? {}),
+      ...((overrides as any).configs ?? {}),
     },
     complianceRegistry: {
       BIR_TIN: '123-456-789-000',

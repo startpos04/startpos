@@ -106,7 +106,7 @@ function BillingSuccessPage() {
   const billingMethod = search.billing ?? 'monthly'
 
   const user = useStore(authStore, state => state.user)
-  const configs = user?.systemConfigs
+  const configs = user?.configs
 
   // Refresh authStore on mount so the billing dashboard reflects the new status.
   // We use a short delay to allow the Stripe webhook to complete before reading.
@@ -123,7 +123,7 @@ function BillingSuccessPage() {
     return () => clearTimeout(timer)
   }, [])
 
-  // Read add-on prices from SystemConfig (admin-configurable)
+  // Read add-on prices from configuration (admin-configurable)
   const branchPrice = configs?.ADDON_BRANCH_PRICE ?? 19900
   const employeePrice = configs?.ADDON_EMPLOYEE_PRICE ?? 4900
 

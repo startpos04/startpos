@@ -133,7 +133,7 @@ function RouteComponent({ ingredientId: propId, onClose }: RouteComponentProps &
   const usageCount = primaryVariant?.usedIn?.length || 0
   const currentCost = primaryVariant?.costPrice || 0
   const currentSku = primaryVariant?.sku || 'NO SKU'
-  const isLowStock = totalStock < (ingredient.variants[0]?.lowStockThreshold || user.systemConfigs.LOW_STOCK_THRESHOLD)
+  const isLowStock = totalStock < (ingredient.variants[0]?.lowStockThreshold || user.configs.LOW_STOCK_THRESHOLD)
 
   const handleClose = () => {
     if (onClose) onClose()

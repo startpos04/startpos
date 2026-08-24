@@ -38,7 +38,7 @@ type AnyPrisma = Pick<
   | 'businessSubscription'
   | 'subscriptionStatusHistory'
   | 'creditLedger'
-  | 'systemConfig'
+  | 'configuration'
   | 'product'
   | 'productVariant'
   | 'unit'

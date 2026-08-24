@@ -27,7 +27,7 @@
  *  - Unauthenticated call: returns success:false immediately
  *  - User role: User.role promoted to ADMIN after registration
  *  - trialEndsAt: approximately 30 days in the future
- *  - SystemConfig count: correct number of operational configs created per business type
+ *  - Configuration count: correct number of operational configs created per business type
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -226,7 +226,7 @@ dbDescribe('completeRegistration (real DB) — happy path RETAIL', () => {
     })
   })
 
-  it('creates operational SystemConfig rows for RETAIL', async () => {
+  it('creates operational Configuration rows for RETAIL', async () => {
     await withRollback(async () => {
       const prisma = (await getTestPrisma())!
       const user = await seedUser()
@@ -234,7 +234,7 @@ dbDescribe('completeRegistration (real DB) — happy path RETAIL', () => {
       const result = await run(input({ businessType: 'RETAIL' }), ctx(user.id))
       const businessId = result.businessId as string
 
-      const configs = await prisma.systemConfig.findMany({ where: { businessId } })
+      const configs = await prisma.configuration.findMany({ where: { businessId } })
       // Operational configs only (PRICE_CONFIGURATION, IS_VAT_REGISTERED, etc.)
       // No more ENABLE_* capability toggles
       expect(configs.length).toBeGreaterThan(0)
@@ -260,12 +260,12 @@ dbDescribe('completeRegistration (real DB) — business type configs', () => {
       const result = await run(input({ businessType: 'RESTAURANT' }), ctx(user.id))
       const businessId = result.businessId as string
 
-      const priceConfig = await prisma.systemConfig.findFirst({
+      const priceConfig = await prisma.configuration.findFirst({
         where: { businessId, key: 'PRICE_CONFIGURATION' },
       })
       expect(priceConfig!.value).toBe('INCLUSIVE')
 
-      const vatReg = await prisma.systemConfig.findFirst({
+      const vatReg = await prisma.configuration.findFirst({
         where: { businessId, key: 'IS_VAT_REGISTERED' },
       })
       expect(vatReg!.value).toBe('true')
@@ -280,7 +280,7 @@ dbDescribe('completeRegistration (real DB) — business type configs', () => {
       const result = await run(input({ businessType: 'GROCERY' }), ctx(user.id))
       const businessId = result.businessId as string
 
-      const priceConfig = await prisma.systemConfig.findFirst({
+      const priceConfig = await prisma.configuration.findFirst({
         where: { businessId, key: 'PRICE_CONFIGURATION' },
       })
       expect(priceConfig!.value).toBe('EXCLUSIVE')
@@ -296,7 +296,7 @@ dbDescribe('completeRegistration (real DB) — business type configs', () => {
         const result = await run(input({ businessType }), ctx(user.id))
         const businessId = result.businessId as string
 
-        const keys = await prisma.systemConfig.findMany({
+        const keys = await prisma.configuration.findMany({
           where: { businessId },
           select: { key: true },
         })

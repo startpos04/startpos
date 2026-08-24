@@ -50,7 +50,7 @@ export function CreateIngredientSidebar({ onClose }: CreateIngredientSidebarProp
         image: null,
         attributeType: VariantAttributeType.UNSPECIFIED,
         taxCategory: TaxCategory.STANDARD,
-        lowStockThreshold: user.systemConfigs.LOW_STOCK_THRESHOLD,
+        lowStockThreshold: user.configs.LOW_STOCK_THRESHOLD,
         updatedAt: new Date(),
         createdAt: new Date(),
         deletedAt: null,

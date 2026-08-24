@@ -51,7 +51,7 @@ export function buildConfiguration(
   applyProfileOverrides(outputMap, characteristics, profile)
 
   // Step 4: Build final output array
-  const systemConfigs: CapabilityOutput[] = Array.from(outputMap.entries()).map(([key, value]) => ({
+  const configs: CapabilityOutput[] = Array.from(outputMap.entries()).map(([key, value]) => ({
     key,
     value,
   }))
@@ -61,7 +61,7 @@ export function buildConfiguration(
   const deferred = getDeferredCapabilities(resolved)
 
   return {
-    systemConfigs,
+    configs,
     enabledCapabilities: enabled.map(r => r.id),
     deferredCapabilities: deferred.map(r => r.id),
     operationalProfile: profile,
@@ -71,7 +71,7 @@ export function buildConfiguration(
 // ---------------------------------------------------------------------------
 // Safe defaults — applied before capability outputs override them
 // Only operational config keys (not capability toggles) need defaults here.
-// Capability activation is managed via BusinessCapabilityState, not SystemConfig.
+// Capability activation is managed via BusinessCapabilityState, not Configuration.
 // ---------------------------------------------------------------------------
 
 const SAFE_DEFAULTS: Array<[string, string]> = [
@@ -115,14 +115,14 @@ function applyProfileOverrides(outputMap: Map<string, string>, characteristics: 
  * Useful for logging and debugging during shadow-running.
  */
 export function summarizeConfiguration(config: BusinessConfiguration): Record<string, unknown> {
-  const enabledConfigs = config.systemConfigs.filter(c => c.value === 'true').map(c => c.key)
+  const enabledConfigs = config.configs.filter(c => c.value === 'true').map(c => c.key)
 
   return {
     profile: config.operationalProfile,
     enabledCapabilities: config.enabledCapabilities,
     deferredCapabilities: config.deferredCapabilities,
     enabledConfigs,
-    priceConfiguration: config.systemConfigs.find(c => c.key === 'PRICE_CONFIGURATION')?.value,
-    isVatRegistered: config.systemConfigs.find(c => c.key === 'IS_VAT_REGISTERED')?.value,
+    priceConfiguration: config.configs.find(c => c.key === 'PRICE_CONFIGURATION')?.value,
+    isVatRegistered: config.configs.find(c => c.key === 'IS_VAT_REGISTERED')?.value,
   }
 }

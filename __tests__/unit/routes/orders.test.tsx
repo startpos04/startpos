@@ -137,7 +137,7 @@ function renderOrdersPage() {
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
-  seedMockUser({ systemConfigs: { ENABLE_ORDER: true } } as any)
+  seedMockUser({ configs: { ENABLE_ORDER: true } } as any)
   vi.clearAllMocks()
 })
 
@@ -243,7 +243,7 @@ describe('Orders page — order data', () => {
 
 describe('Orders page — feature flag', () => {
   it('shows FeatureDisabledPage when ENABLE_ORDER is false', async () => {
-    seedMockUser({ systemConfigs: { ENABLE_ORDER: false } } as any)
+    seedMockUser({ configs: { ENABLE_ORDER: false } } as any)
     vi.mocked(fetchActiveOrders).mockReturnValue({ data: [], isLoading: false } as any)
     renderOrdersPage()
     await waitFor(() => {

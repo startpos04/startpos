@@ -81,7 +81,7 @@ function RouteComponent() {
       const oldestBatchAge = oldestBatch ? Math.floor((Date.now() - oldestBatch.producedAt.getTime()) / (1000 * 60 * 60)) : null
 
       // Check low stock
-      const lowStockThreshold = variant.lowStockThreshold ?? user.systemConfigs.LOW_STOCK_THRESHOLD ?? 10
+      const lowStockThreshold = variant.lowStockThreshold ?? user.configs.LOW_STOCK_THRESHOLD ?? 10
       const isLowStock = totalRemaining <= lowStockThreshold
 
       return {
@@ -98,7 +98,7 @@ function RouteComponent() {
         isLowStock,
       }
     })
-  }, [batchPreparedProducts, inventoryMovements, startOfToday, user.branch.id, user.systemConfigs.LOW_STOCK_THRESHOLD])
+  }, [batchPreparedProducts, inventoryMovements, startOfToday, user.branch.id, user.configs.LOW_STOCK_THRESHOLD])
 
   // Overall statistics
   const overallStats = useMemo(() => {

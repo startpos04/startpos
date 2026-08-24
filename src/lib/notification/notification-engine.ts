@@ -87,7 +87,7 @@ export const NotificationEngine = {
       // 3. Compare and Notify
       for (const variant of variants) {
         const currentTotal = inventorySumsMap[variant.id] || 0
-        const threshold = variant.lowStockThreshold ?? user.systemConfigs.LOW_STOCK_THRESHOLD
+        const threshold = variant.lowStockThreshold ?? user.configs.LOW_STOCK_THRESHOLD
 
         if (threshold !== undefined && currentTotal <= threshold) {
           const admins = [...membershipCollection.values()].filter(member => ([Role.ADMIN, Role.SUPERVISOR] as Role[]).includes(member.role))
@@ -107,7 +107,7 @@ export const NotificationEngine = {
                 userId: user.id,
                 branchId: user.branch.id,
                 businessId: user.business.id,
-                autoApproveLowStockRefill: user.systemConfigs.AUTO_APPROVE_LOW_STOCK_REFILL,
+                autoApproveLowStockRefill: user.configs.AUTO_APPROVE_LOW_STOCK_REFILL,
               },
             })
 

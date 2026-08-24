@@ -188,7 +188,7 @@ export const productCols = {
         const marginPercentage = priceCents > 0 ? profitCents / priceCents : 0
 
         // 3. SAFE DB CONVERSION: Handle 1-100 whole number values dynamically
-        const rawBuffer = options?.user?.systemConfigs?.BUFFER_RATE ?? 30
+        const rawBuffer = options?.user?.configs?.BUFFER_RATE ?? 30
         const targetMargin = rawBuffer > 1 ? rawBuffer / 100 : rawBuffer
 
         const isLowMargin = marginPercentage < targetMargin

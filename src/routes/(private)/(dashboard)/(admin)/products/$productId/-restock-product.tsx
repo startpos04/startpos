@@ -125,7 +125,7 @@ export function RestockProductSidebar({ open: _open, onClose, variant, product, 
             children={field => (
               <MoneyInput
                 field={field}
-                label={`Unit Cost (${user.systemConfigs.CURRENCY})`}
+                label={`Unit Cost (${user.configs.CURRENCY})`}
                 type='number'
                 placeholder='0.00'
                 className='rounded-xl font-mono'

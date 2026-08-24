@@ -24,7 +24,7 @@
  *    - Does nothing when variantIds is empty
  *    - Does nothing when inventory is above threshold
  *    - Creates operational task when stock <= variant.lowStockThreshold
- *    - Creates operational task when stock <= systemConfigs.LOW_STOCK_THRESHOLD (fallback)
+ *    - Creates operational task when stock <= configuration LOW_STOCK_THRESHOLD (fallback)
  *    - Sends notifications to ADMIN and SUPERVISOR members only
  *    - Does NOT send notifications to CASHIER members
  *    - Does nothing when no admins/supervisors in membership
@@ -353,12 +353,12 @@ describe('NotificationEngine.checkLowStock — threshold breach', () => {
     expect(tasks.insert).toHaveBeenCalledOnce()
   })
 
-  it('falls back to systemConfigs.LOW_STOCK_THRESHOLD when variant has no threshold', async () => {
+  it('falls back to configuration LOW_STOCK_THRESHOLD when variant has no threshold', async () => {
     // seedMockUser sets LOW_STOCK_THRESHOLD — check what value it uses
-    // makePosVariant sets lowStockThreshold=null → falls back to system config
+    // makePosVariant sets lowStockThreshold=null → falls back to configuration
     const { variantId } = makeVariantWithInventory({ quantity: 1, lowStockThreshold: null })
     seedAdmin()
-    // seedMockUser systemConfigs.LOW_STOCK_THRESHOLD = 10 (default in helpers)
+    // seedMockUser configuration LOW_STOCK_THRESHOLD = 10 (default in helpers)
     // quantity=1 <= 10 → should trigger
     await NotificationEngine.checkLowStock([variantId])
     expect(tasks.insert).toHaveBeenCalledOnce()
@@ -367,7 +367,7 @@ describe('NotificationEngine.checkLowStock — threshold breach', () => {
   it('sets SHELF_REFILL task type and IN_PROGRESS status (auto-approved by default)', async () => {
     // InventoryEngine.handleLowStockDetected defaults autoApproveLowStockRefill=true,
     // so auto-generated SHELF_REFILL tasks enter IN_PROGRESS immediately.
-    // PENDING status requires AUTO_APPROVE_LOW_STOCK_REFILL=false in systemConfigs.
+    // PENDING status requires AUTO_APPROVE_LOW_STOCK_REFILL=false in configuration.
     const { variantId } = makeVariantWithInventory({ quantity: 2, lowStockThreshold: 5 })
     seedAdmin()
     await NotificationEngine.checkLowStock([variantId])

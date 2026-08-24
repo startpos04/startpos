@@ -269,7 +269,7 @@ describe('POS page — mobile layout', () => {
   it('shows ActiveOrdersButton in mobile toolbar when ENABLE_ORDER is true', async () => {
     seedMockUser({
       vendorSession: makeVendorSession({ status: SessionStatus.OPEN }),
-      systemConfigs: { ENABLE_ORDER: true },
+      configs: { ENABLE_ORDER: true },
     } as any)
     vi.mocked(useIsMobile).mockReturnValue(true)
     renderPosPage()
@@ -281,7 +281,7 @@ describe('POS page — mobile layout', () => {
   it('hides ActiveOrdersButton in mobile toolbar when ENABLE_ORDER is false', async () => {
     seedMockUser({
       vendorSession: makeVendorSession({ status: SessionStatus.OPEN }),
-      systemConfigs: { ENABLE_ORDER: false },
+      configs: { ENABLE_ORDER: false },
     } as any)
     vi.mocked(useIsMobile).mockReturnValue(true)
     renderPosPage()

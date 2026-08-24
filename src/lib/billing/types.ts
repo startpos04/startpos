@@ -76,7 +76,7 @@ export type StatusTransitionRecord = {
 
 // ---------------------------------------------------------------------------
 // LifecycleThresholds
-// Policy configuration values read from SystemConfig and passed into
+// Policy configuration values read from BusinessConfiguration and passed into
 // SubscriptionPolicy and SubscriptionEngine as a plain DTO.
 // All values are in days.
 // ---------------------------------------------------------------------------
@@ -174,7 +174,7 @@ export type InvoiceDTO = {
 
 // ---------------------------------------------------------------------------
 // OveragePolicy
-// Configuration passed into InvoiceEngine — read from SystemConfig by the
+// Configuration passed into InvoiceEngine — read from BusinessConfiguration by the
 // Application Layer and injected as a plain object.
 // ---------------------------------------------------------------------------
 export type OveragePolicy = {
@@ -231,7 +231,7 @@ export type CreditLedgerEntryDTO = {
 // ---------------------------------------------------------------------------
 // CreditPackage
 // Represents a purchasable credit bundle displayed on the credits page.
-// Configured via environment variables / SystemConfig; not stored in the DB.
+// Configured via environment variables / configuration; not stored in the DB.
 // ---------------------------------------------------------------------------
 export type CreditPackage = {
   /** Internal identifier — used as metadata on the Stripe checkout session */

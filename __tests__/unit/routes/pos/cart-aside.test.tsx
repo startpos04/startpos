@@ -617,8 +617,8 @@ describe('CartAside — tax summary', () => {
     render(<CartWrapper initialItems={[item]} />)
     // The user has VAT_RATE: 0.12 → vatConfig.vatRate = 0.12/100 = 0.0012?
     // No — mock user has VAT_RATE: 0.12, then vatConfig = VAT_RATE / 100 = 0.0012
-    // Wait — let's check: seedMockUser sets systemConfigs.VAT_RATE = 0.12
-    // cart-aside.tsx does: vatRate: user.systemConfigs.VAT_RATE / 100 → 0.12/100 = 0.0012
+    // Wait — let's check: seedMockUser sets configs.VAT_RATE = 0.12
+    // cart-aside.tsx does: vatRate: user.configs.VAT_RATE / 100 → 0.12/100 = 0.0012
     // TaxEngine stores vatRate * 100 = 0.12 in summary
     // So the label would be "VAT (0.12%)" — but this is likely a data issue in the mock
     // The test just checks the label pattern exists

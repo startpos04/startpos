@@ -747,7 +747,7 @@ const FUTURE: Omit<CapabilityDefinition, 'trackingEvents'>[] = [
  *
  * These are declarations only. Emission happens in the relevant server function
  * or job. Phase 6 uses this map to audit coverage:
- *   - Every capability that writes SystemConfig keys emits CONFIG_CHANGED
+ *   - Every capability that writes configuration keys emits CONFIG_CHANGED
  *   - Every capability state transition emits CAPABILITY_STATE_CHANGED (via CapabilityControl)
  *   - Capabilities tied to specific user actions have their own event types
  *
@@ -808,9 +808,7 @@ const TRACKING_EVENTS_MAP: Record<string, CapabilityDefinition['trackingEvents']
     { event: 'CAPABILITY_STATE_CHANGED', when: 'User accepts recommendation or admin enables' },
     { event: 'SUPPLIER_ADDED', when: 'User creates a new supplier record' },
   ],
-  CREATE_TASK: [
-    { event: 'CAPABILITY_STATE_CHANGED', when: 'User accepts recommendation or admin enables' },
-  ],
+  CREATE_TASK: [{ event: 'CAPABILITY_STATE_CHANGED', when: 'User accepts recommendation or admin enables' }],
   MANAGE_CUSTOMERS: [
     { event: 'CAPABILITY_STATE_CHANGED', when: 'User accepts recommendation or admin enables' },
     { event: 'CUSTOMER_REGISTERED', when: 'Staff creates a new customer profile' },

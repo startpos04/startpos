@@ -60,7 +60,7 @@ export function CreateProductSidebar({ onClose }: CreateProductSidebarProps) {
         costPrice: productCostPrice,
         attributeType: VariantAttributeType.UNSPECIFIED,
         taxCategory: TaxCategory.STANDARD,
-        lowStockThreshold: Number(user.systemConfigs.LOW_STOCK_THRESHOLD),
+        lowStockThreshold: Number(user.configs.LOW_STOCK_THRESHOLD),
         isBatchPrepared,
         productionUsesRecipe: ingredients.length > 0, // Auto-detect from ingredients
         shelfLifeHours,

@@ -10,7 +10,7 @@
  *   2. Branch (Main Branch)
  *   3. Membership (userId ↔ businessId ↔ branchId, role = ADMIN)
  *   3b. User.role promoted to ADMIN
- *   4. SystemConfig defaults (from ConfigurationEngine — capability-derived)
+ *   4. BusinessConfiguration defaults (from ConfigurationEngine — capability-derived)
  *   5. BusinessSubscription (TRIAL via SubscriptionEngine.buildInitialSubscription)
  *   6. SubscriptionStatusHistory (initial TRIAL record)
  *   7. CreditLedger (50 complimentary PROMOTIONAL transactions)
@@ -83,7 +83,7 @@ const CompleteRegistrationInputSchema = z.object({
 export type CompleteRegistrationInput = z.infer<typeof CompleteRegistrationInputSchema>
 
 // ---------------------------------------------------------------------------
-// Global SystemConfig defaults applied to every new business
+// Global BusinessConfiguration defaults applied to every new business
 // ---------------------------------------------------------------------------
 
 type ConfigDefault = { key: string; value: string }
@@ -253,17 +253,17 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         })
 
         // ------------------------------------------------------------------
-        // Step 4: Create SystemConfig defaults from ConfigurationEngine outputs
+        // Step 4: Create BusinessConfiguration defaults from ConfigurationEngine outputs
         // ------------------------------------------------------------------
-        const configs: ConfigDefault[] = v2Config.systemConfigs.map(c => ({
+        const configs: ConfigDefault[] = v2Config.configs.map(c => ({
           key: c.key,
           value: c.value,
         }))
 
         for (const cfg of [...configs, ...GLOBAL_BUSINESS_CONFIGS]) {
-          await tx.systemConfig.create({
+          await tx.configuration.create({
             data: {
-              key: cfg.key as import('prisma/generated/prisma/enums').ConfigKey,
+              key: cfg.key as import('prisma/generated/prisma/enums').ConfigurationKey,
               value: cfg.value,
               scope: 'BUSINESS',
               businessId: business.id,
@@ -272,9 +272,9 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         }
 
         for (const cfg of GLOBAL_BRANCH_CONFIGS) {
-          await tx.systemConfig.create({
+          await tx.configuration.create({
             data: {
-              key: cfg.key as import('prisma/generated/prisma/enums').ConfigKey,
+              key: cfg.key as import('prisma/generated/prisma/enums').ConfigurationKey,
               value: cfg.value,
               scope: 'BRANCH',
               businessId: business.id,
@@ -578,13 +578,13 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
           },
         })
 
-        // ── Step 4: SystemConfig defaults ─────────────────────────────────
-        const configs: ConfigDefault[] = v2Config.systemConfigs.map(c => ({ key: c.key, value: c.value }))
+        // ── Step 4: BusinessConfiguration defaults ─────────────────────────────────
+        const configs: ConfigDefault[] = v2Config.configs.map(c => ({ key: c.key, value: c.value }))
 
         for (const cfg of [...configs, ...GLOBAL_BUSINESS_CONFIGS]) {
-          await tx.systemConfig.create({
+          await tx.configuration.create({
             data: {
-              key: cfg.key as import('prisma/generated/prisma/enums').ConfigKey,
+              key: cfg.key as import('prisma/generated/prisma/enums').ConfigurationKey,
               value: cfg.value,
               scope: 'BUSINESS',
               businessId: business.id,
@@ -593,9 +593,9 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
         }
 
         for (const cfg of GLOBAL_BRANCH_CONFIGS) {
-          await tx.systemConfig.create({
+          await tx.configuration.create({
             data: {
-              key: cfg.key as import('prisma/generated/prisma/enums').ConfigKey,
+              key: cfg.key as import('prisma/generated/prisma/enums').ConfigurationKey,
               value: cfg.value,
               scope: 'BRANCH',
               businessId: business.id,

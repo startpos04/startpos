@@ -71,7 +71,7 @@ const mockAuthStore = {
       id: 'user-001',
       business: { id: 'biz-001' },
       branch: { id: 'branch-001' },
-      systemConfigs: {
+      configs: {
         VAT_RATE: 0.12,
         PRICE_CONFIGURATION: 'INCLUSIVE',
         IS_VAT_REGISTERED: true,

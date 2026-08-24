@@ -22,8 +22,8 @@ export function useHints(page: string) {
   const [hint, setHint] = useState<HintDTO | null>(null)
   const user = useStore(authStore, state => state.user)
 
-  // Read display seconds from systemConfigs — cast from merged config
-  const displaySeconds = (user?.systemConfigs?.['HINT_DISPLAY_SECONDS' as keyof typeof user.systemConfigs] as number | undefined) ?? DEFAULT_DISPLAY_SECONDS
+  // Read display seconds from configs — cast from merged config
+  const displaySeconds = (user?.configs?.['HINT_DISPLAY_SECONDS' as keyof typeof user.configs] as number | undefined) ?? DEFAULT_DISPLAY_SECONDS
 
   useEffect(() => {
     if (!user?.id) return

@@ -6,7 +6,7 @@
  *
  * Architecture:
  *   - Server function — runs on the server only.
- *   - Reads Hint table + HintLog for this user + SystemConfig frequency.
+ *   - Reads Hint table + HintLog for this user + configuration frequency.
  *   - Delegates selection to HintEngine (pure).
  *   - Writes a HintLog entry after the hint is selected (optimistic — the
  *     UI shows the hint, then the log is written asynchronously).
@@ -18,6 +18,7 @@ import { z } from 'zod'
 import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { requirePermission } from '../better-auth/permission-middleware'
+import { ConfigurationEngine } from '../configuration/configuration-engine'
 import { HintEngine } from '../hint/hint-engine'
 import type { HintDTO, HintLogDTO } from '../hint/hint-types'
 import { prisma as rootPrisma } from '../prisma-client'
@@ -39,12 +40,9 @@ export const fetchEligibleHint = createServerFn({ method: 'POST' })
     const userId = context.user.id
     const now = new Date()
 
-    // Read HINT_FREQUENCY_DAYS from platform-level SystemConfig (no businessId)
-    const freqConfig = await rootPrisma.systemConfig.findFirst({
-      where: { key: 'HINT_FREQUENCY_DAYS', businessId: null },
-      select: { value: true },
-    })
-    const frequencyDays = freqConfig?.value ? Number.parseFloat(freqConfig.value) : DEFAULT_HINT_FREQUENCY_DAYS
+    // Read HINT_FREQUENCY_DAYS from platform-level configuration
+    const frequencyValue = await ConfigurationEngine.get('HINT_FREQUENCY_DAYS', {})
+    const frequencyDays = frequencyValue ? Number.parseFloat(frequencyValue) : DEFAULT_HINT_FREQUENCY_DAYS
 
     // Fetch all active hints
     const rawHints = await rootPrisma.hint.findMany({

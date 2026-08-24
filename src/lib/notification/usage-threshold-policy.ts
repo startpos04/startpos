@@ -12,7 +12,7 @@ import { safeJsonParse, safeJsonStringify } from '@/lib/json-utils'
  *   - Determine which threshold (if any) was just crossed on an increment
  *   - Build stable period keys that the Application Layer uses for deduplication
  *   - Serialize / deserialize the notified-threshold set to/from a JSON string
- *     (for persistence in a SystemConfig or metadata field)
+ *     (for persistence in BusinessConfiguration or metadata field)
  *
  * Architecture contract (ADR-001):
  *   - Zero infrastructure imports.
@@ -128,7 +128,7 @@ export function buildPeriodKey(periodKind: UsagePeriodKind, resource: UsageResou
 // ---------------------------------------------------------------------------
 // serializeNotifiedThresholds / deserializeNotifiedThresholds
 // Helpers for persisting the notified-threshold set to a JSON-serialisable
-// format (e.g. a SystemConfig value or a JSON metadata field).
+// format (e.g. a BusinessConfiguration value or a JSON metadata field).
 //
 // Format: JSON array of numbers, e.g. [50, 80]
 // ---------------------------------------------------------------------------

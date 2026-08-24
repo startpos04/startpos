@@ -8,7 +8,7 @@
  *   - Soft-delete a branch (via rootPrisma, triggers sync)
  *
  * Branch-level feature management has been moved to the capability system.
- * Features are controlled via BusinessCapabilityState instead of SystemConfig.
+ * Features are controlled via BusinessCapabilityState instead of BusinessConfiguration.
  *
  * Gated by MANAGE_BRANCHES capability (handled by parent /business route).
  */

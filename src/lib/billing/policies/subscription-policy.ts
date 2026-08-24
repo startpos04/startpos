@@ -4,7 +4,7 @@
  * SubscriptionPolicy — encodes the configurable business rules that govern
  * subscription lifecycle transitions.
  *
- * Receives LifecycleThresholds as a parameter (assembled from SystemConfig by
+ * Receives LifecycleThresholds as a parameter (assembled from configuration by
  * the Application Layer) — never reads config directly. All thresholds are
  * expressed as days.
  *
@@ -46,7 +46,7 @@ export function isGracePeriodEnded(gracePeriodEndsAt: Date | null, now: Date): b
  * Returns true if the account should be transitioned to LONG_TERM_INACTIVE.
  * Condition: expiredAt exists AND (now - expiredAt) >= longTermInactiveDays.
  * @param expiredAt - When the subscription first lapsed
- * @param thresholds - Policy thresholds from SystemConfig
+ * @param thresholds - Policy thresholds from configuration
  * @param now - Current time
  */
 export function isLongTermInactiveThresholdReached(expiredAt: Date | null, thresholds: LifecycleThresholds, now: Date): boolean {
@@ -58,7 +58,7 @@ export function isLongTermInactiveThresholdReached(expiredAt: Date | null, thres
 /**
  * Compute the grace period end date from an expiry point.
  * @param expiredAt - When the subscription first lapsed (transition to EXPIRED)
- * @param thresholds - Policy thresholds from SystemConfig
+ * @param thresholds - Policy thresholds from configuration
  */
 export function computeGracePeriodEndDate(expiredAt: Date, thresholds: LifecycleThresholds): Date {
   const gracePeriodMs = thresholds.gracePeriodDays * 24 * 60 * 60 * 1000
@@ -68,7 +68,7 @@ export function computeGracePeriodEndDate(expiredAt: Date, thresholds: Lifecycle
 /**
  * Compute the trial end date from the subscription creation date.
  * @param createdAt - When the BusinessSubscription was created
- * @param thresholds - Policy thresholds from SystemConfig
+ * @param thresholds - Policy thresholds from configuration
  */
 export function computeTrialEndDate(createdAt: Date, thresholds: LifecycleThresholds): Date {
   const trialMs = thresholds.trialDurationDays * 24 * 60 * 60 * 1000

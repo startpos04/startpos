@@ -174,9 +174,9 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
     const vatSummary = TaxEngine.summarize(
       engineLineItems,
       {
-        vatRate: user.systemConfigs.VAT_RATE,
-        priceConfiguration: user.systemConfigs.PRICE_CONFIGURATION,
-        isVatRegistered: user.systemConfigs.IS_VAT_REGISTERED,
+        vatRate: user.configs.VAT_RATE,
+        priceConfiguration: user.configs.PRICE_CONFIGURATION,
+        isVatRegistered: user.configs.IS_VAT_REGISTERED,
       },
       {
         discount: totalDiscount,
@@ -303,10 +303,10 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
     // Match on businessId; closed counters are filtered out.
     const openCounterEntry = [...usageCounterCollection.values()].find(c => c.businessId === businessId && !c.isClosed)
 
-    // Read overage policy from authStore systemConfigs (already loaded, no fetch needed)
+    // Read overage policy from authStore configuration (already loaded, no fetch needed)
     const overageBillingEnabled =
-      (user.systemConfigs as Record<string, unknown>)['OVERAGE_BILLING_ENABLED'] === true ||
-      (user.systemConfigs as Record<string, unknown>)['OVERAGE_BILLING_ENABLED'] === 'true'
+      (user.configs as Record<string, unknown>)['OVERAGE_BILLING_ENABLED'] === true ||
+      (user.configs as Record<string, unknown>)['OVERAGE_BILLING_ENABLED'] === 'true'
 
     // Determine plan TX allowance from entitlement summary (null = unlimited)
     // txRemaining null means unlimited; if we have a value, back-calculate includedTxPerMonth
@@ -435,8 +435,8 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       const latestEntry: { balanceAfter: number } | null =
         ledgerEntries[0] ?? (subscription?.creditBalance != null ? { balanceAfter: subscription.creditBalance } : null)
 
-      // Read the low-balance threshold from systemConfigs (already loaded).
-      const rawThreshold = (user.systemConfigs as Record<string, unknown>)['CREDIT_LOW_BALANCE_THRESHOLD']
+      // Read the low-balance threshold from configs (already loaded).
+      const rawThreshold = (user.configs as Record<string, unknown>)['CREDIT_LOW_BALANCE_THRESHOLD']
       const lowBalanceThreshold = typeof rawThreshold === 'number' ? rawThreshold : Number(rawThreshold ?? 10)
 
       const creditResult = CreditEngine.deduct(
@@ -474,13 +474,13 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       invoiceNo, // Use pre-allocated sequence from above (server-side or offline)
       orderId,
       type: TransactionType.SALE,
-      priceConfiguration: user.systemConfigs.PRICE_CONFIGURATION,
+      priceConfiguration: user.configs.PRICE_CONFIGURATION,
       invoiceType: InvoiceType.SALES_INVOICE,
       totalAmount: vatSummary.totalAmount,
       totalCost,
       taxAmount: vatSummary.taxAmount,
       discount: totalDiscount + totalScPwdDiscount,
-      snapshotBufferRate: user.systemConfigs.BUFFER_RATE,
+      snapshotBufferRate: user.configs.BUFFER_RATE,
       complianceData: {
         ptuNumber: user.complianceRegistry.BIR_PTU_NUMBER,
         ptuIssuedAt: user.complianceRegistry.BIR_PTU_ISSUED_AT,
@@ -509,8 +509,8 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       snapshotBranchSN: user.branch.serialNumber || null,
       snapshotBusinessTIN: user.complianceRegistry.BIR_TIN || null,
       snapshotBranchCode: user.branch.branchCode || null,
-      snapshotIsVATRegistered: user.systemConfigs.IS_VAT_REGISTERED ? 'true' : 'false',
-      snapshotCurrency: user.systemConfigs.CURRENCY || 'PHP',
+      snapshotIsVATRegistered: user.configs.IS_VAT_REGISTERED ? 'true' : 'false',
+      snapshotCurrency: user.configs.CURRENCY || 'PHP',
       snapshotCashierName: user.name,
       providerId: null,
       sessionId: null,
@@ -697,7 +697,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
   // These run after the dbTransaction has committed locally. They do not
   // block the checkout response and never throw to the caller.
   if (result.value.creditIsLowBalance && result.value.creditBalanceAfter !== null) {
-    const rawThreshold = (user.systemConfigs as Record<string, unknown>)['CREDIT_LOW_BALANCE_THRESHOLD']
+    const rawThreshold = (user.configs as Record<string, unknown>)['CREDIT_LOW_BALANCE_THRESHOLD']
     const lowBalanceThreshold = typeof rawThreshold === 'number' ? rawThreshold : Number(rawThreshold ?? 10)
     // Fire-and-forget — notification failures must not break checkout
     NotificationEngine.sendCreditLowBalance(result.value.creditBalanceAfter, lowBalanceThreshold).catch(err =>
