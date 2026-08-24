@@ -42,11 +42,6 @@ enum ConfigKey {
   BUFFER_RATE
   LOCALE
   CURRENCY
-  ENABLE_PRINT_RECEIPT
-  ENABLE_ORDER_TAB
-  ENABLE_ORDER
-  ENABLE_CASH_RECONCILIATION
-  ENABLE_TASK
   AUTO_APPROVE_LOW_STOCK_REFILL // Default: "true" — auto-approve SHELF_REFILL tasks on low-stock detection (P-TASK-04 exception)
   // --- ENTITLEMENT / BILLING POLICY ---
   // All values stored as strings; parse at read time.

@@ -1,5 +1,7 @@
 import { useStore } from '@tanstack/react-store'
 import { ThemeToggle } from '@/components/custom/theme/theme-toggle'
+import { useCapability } from '@/hooks/use-capability'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { authStore } from '@/store/auth-store'
 import { ProfileDropdown } from '../../orders/-components/profile-dropdown'
 import { SearchInput } from '../../orders/-components/search-input'
@@ -9,6 +11,7 @@ import { BluetoothPrinterControl } from './bluetooth-printer-control'
 
 export const PosHeader = () => {
   const user = useStore(authStore, state => state.user)
+  const canCreateOrder = useCapability(Capabilities.CREATE_ORDER)
 
   return (
     <header className='flex justify-between items-center bg-card/80 backdrop-blur-md p-4 rounded-4xl border border-border'>
@@ -19,7 +22,7 @@ export const PosHeader = () => {
         <div className='w-10 ml-5'>
           <ThemeToggle />
         </div>
-        {user?.systemConfigs?.ENABLE_ORDER ? <ActiveOrdersButton /> : null}
+        {canCreateOrder ? <ActiveOrdersButton /> : null}
         <ProfileDropdown />
       </div>
     </header>

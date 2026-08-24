@@ -479,28 +479,54 @@ All criteria from `production-module-spec.md` have been met:
    - Automatically create waste
    - Prevent stock selection
 
+7. **Inventory Mode Integration**: Production engines honor business-level inventory modes (none, relaxed, strict):
+   - **Strict mode**: Blocks production/sales/waste when insufficient stock (prevents negative inventory)
+   - **Relaxed mode**: Allows production/sales/waste even when going negative (supports reconciliation workflows)
+   - **None mode**: Skips all validation (no inventory tracking)
+   
+   See PRODUCTION-INVENTORY-ALIGNMENT-AUDIT.md for implementation details.
+
 ---
 
 ## Migration Notes
 
-### For Existing Businesses
+### No Migration Script Required
 
-1. **No Data Migration Required**: Production is additive. Existing data is unaffected.
+**Why**: This project has no live production data yet, so we use the reset-and-reseed approach.
 
-2. **Default Behavior Unchanged**:
-   - Existing products default to `isBatchPrepared = false`
-   - Existing inventory defaults to `inventoryType = RAW_MATERIAL`
-   - Make-to-order flow continues unchanged
+**Process**:
+1. Reset database: `pnpm reset` (drops all tables)
+2. Push new schema: `npx prisma db push` (creates tables with new structure)
+3. Seed database: `pnpm seed` (populates with sample data)
 
-3. **Opt-In Process**:
-   - Enable production module in settings (if gated by feature flag)
-   - Configure products as batch-prepared:
-     - Set `isBatchPrepared = true`
-     - Set `productionUsesRecipe = true/false`
-     - Optionally set `shelfLifeHours`
-   - Start using Preparation page
+**Schema Changes Applied**:
+- New models: `ProductionOrder`, `ProductionOrderItem`
+- Updated models: `ProductVariant`, `Inventory`, `InventoryMovement`
+- New enums: `ProductionStatus`, `InventoryType`
+- Updated enum: `MovementType`
 
-4. **Rollback**: If issues arise, simply set `isBatchPrepared = false` on all products. The module becomes inactive without data loss.
+### For Future Production Deployment
+
+When live data exists, a migration script will be needed to:
+1. Add `version` column to `Inventory` (default: 1)
+2. Add `inventoryType` column to `Inventory` (default: RAW_MATERIAL)
+3. Add new columns to `ProductVariant` (default: `isBatchPrepared = false`)
+4. Create new `ProductionOrder` and `ProductionOrderItem` tables
+
+**Default Behavior Unchanged**:
+- Existing products default to `isBatchPrepared = false`
+- Existing inventory defaults to `inventoryType = RAW_MATERIAL`
+- Make-to-order flow continues unchanged
+
+**Opt-In Process**:
+- Enable production module in settings (if gated by feature flag)
+- Configure products as batch-prepared:
+  - Set `isBatchPrepared = true`
+  - Set `productionUsesRecipe = true/false`
+  - Optionally set `shelfLifeHours`
+- Start using Preparation page
+
+**Rollback**: If issues arise, simply set `isBatchPrepared = false` on all products. The module becomes inactive without data loss.
 
 ---
 
@@ -541,6 +567,101 @@ These features are **NOT** implemented but could be added in future versions:
 
 ---
 
+## Post-Implementation Update: Inventory Mode Integration (August 23, 2026)
+
+After the initial implementation (August 20, 2026), an alignment audit identified that production engines were not respecting business-level inventory modes. This was corrected on August 23, 2026.
+
+### Issue Identified
+
+The production engines (ProductionEngine, FinishedGoodsEngine, WasteEngine) had hardcoded validation logic that effectively treated all businesses as "strict mode", ignoring the business's configured inventory mode setting.
+
+**Problems**:
+- **Relaxed mode businesses**: Could not use production features effectively (blocked when shouldn't be)
+- **None mode businesses**: Still had validation applied (should skip entirely)
+- **Strict mode businesses**: Worked correctly (but only by coincidence)
+
+### Changes Made
+
+**1. Production Engine (`production-engine.ts`)**
+- Added inventory mode retrieval: `getInventoryMode(ctx.businessId)`
+- Added validation before raw material consumption:
+  ```typescript
+  InventoryPolicy.validateProductionConsumption(
+    materialId, available, required, inventoryMode, materialName
+  )
+  ```
+- **Behavior now**:
+  - Strict: Blocks production if insufficient raw materials
+  - Relaxed: Allows production (materials can go negative)
+  - None: Skips validation
+
+**2. Finished Goods Engine (`finished-goods-engine.ts`)**
+- Replaced hardcoded availability check with `InventoryPolicy.validateDeduction()`
+- **Behavior now**:
+  - Strict: Blocks sale if insufficient finished goods
+  - Relaxed: Allows sale (finished goods can go negative)
+  - None: Skips validation
+
+**3. Waste Engine (`waste-engine.ts`)**
+- Added mode-aware validation using `InventoryPolicy.validateDeduction()`
+- **Behavior now**:
+  - Strict: Cannot dispose more than exists
+  - Relaxed: Can dispose to reconcile negative inventory
+  - None: Skips validation
+
+**4. Unit Tests**
+- Created `production-engine.test.ts` (10 test scenarios)
+- Created `finished-goods-engine.test.ts` (12 test scenarios)
+- Created `waste-engine.test.ts` (11 test scenarios)
+- All tests verify proper behavior across all three inventory modes
+
+### Files Modified
+
+**Engine Files**:
+- `web/src/lib/production/production-engine.ts`
+- `web/src/lib/production/finished-goods-engine.ts`
+- `web/src/lib/production/waste-engine.ts`
+
+**Test Files** (New):
+- `web/__tests__/unit/lib/production/production-engine.test.ts`
+- `web/__tests__/unit/lib/production/finished-goods-engine.test.ts`
+- `web/__tests__/unit/lib/production/waste-engine.test.ts`
+
+**Documentation**:
+- `web/.kiro/PRODUCTION-INVENTORY-ALIGNMENT-AUDIT.md` (audit report)
+- `web/.kiro/PRODUCTION-MODULE-IMPLEMENTATION-COMPLETE.md` (this file - updated)
+
+### Impact
+
+**Before Fix**:
+- Only strict mode businesses could effectively use production module
+- Relaxed mode businesses experienced unnecessary blocking
+- None mode businesses had unwanted validation
+
+**After Fix**:
+- All three inventory modes work as designed
+- Relaxed mode supports reconciliation workflows (negative inventory)
+- None mode skips all validation
+- Strict mode maintains data integrity (no negative inventory)
+
+### Testing Status
+
+- ✅ Unit tests written and passing (33 test scenarios)
+- ⚠️ Manual testing pending (see Testing Guide below)
+- ⚠️ Integration testing pending
+- ⚠️ E2E testing pending
+
+### Backward Compatibility
+
+This fix is **fully backward compatible**:
+- Strict mode businesses: Behavior unchanged (already working correctly)
+- Relaxed mode businesses: Now work as intended (previously broken)
+- None mode businesses: Now work as intended (previously had unwanted validation)
+- No database migrations required
+- No API changes
+
+---
+
 ## Conclusion
 
 The Production/Batch Preparation Module is **complete and ready for testing**. All 7 sessions have been successfully implemented with:
@@ -553,12 +674,14 @@ The Production/Batch Preparation Module is **complete and ready for testing**. A
 - ✅ Detailed inline documentation
 
 **Next Steps**:
-1. Apply schema migration: `cd web && npx prisma db push`
-2. Regenerate Prisma client: `cd web && npx prisma generate`
-3. Run manual testing checklist (above)
-4. Implement automated tests (recommended)
-5. Deploy to staging for QA
-6. Monitor production logs for ConcurrencyError occurrences
+1. Reset database: `pnpm reset` (drops all tables)
+2. Push new schema: `cd web && npx prisma db push` (creates tables with new structure)
+3. Regenerate Prisma client: `cd web && npx prisma generate`
+4. Seed database: `pnpm seed` (populates with sample data including production-ready products)
+5. Run manual testing checklist (above)
+6. Implement automated tests (recommended)
+7. Deploy to staging for QA
+8. Monitor production logs for ConcurrencyError occurrences
 
 **Estimated Manual Testing Time**: 2-3 hours for complete checklist
 

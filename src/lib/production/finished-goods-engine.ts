@@ -24,6 +24,7 @@ import type {
   inventoryMovementCollection as MovementCollectionType,
   productVariantCollection as ProductVariantCollectionType,
 } from '@/db/collections'
+import { getInventoryMode, InventoryPolicy } from '@/lib/inventory'
 
 // ---------------------------------------------------------------------------
 // ConcurrencyError - thrown when version check fails
@@ -151,7 +152,18 @@ export const FinishedGoodsEngine = {
     // Check total availability BEFORE attempting to consume
     const totalAvailable = finishedBatches.reduce((sum, b) => sum + b.quantity, 0)
 
-    if (totalAvailable < quantity) {
+    // Get inventory mode for validation
+    const inventoryMode = getInventoryMode(ctx.businessId)
+
+    // INVENTORY MODE VALIDATION: Check if sufficient finished goods exist based on mode
+    // - strict mode: blocks sale if insufficient finished goods
+    // - relaxed mode: allows sale (finished goods can go negative for reconciliation)
+    // - none mode: skips validation (no inventory tracking)
+    try {
+      InventoryPolicy.validateDeduction(variantId, totalAvailable, quantity, inventoryMode)
+    } catch (error) {
+      // Validation failed (strict mode with insufficient stock)
+      // DO NOT RETRY - this is out-of-stock, not a concurrency conflict
       throw new Error(
         `Insufficient finished goods for variant ${variantId}. ` + `Available: ${totalAvailable}, Required: ${quantity}. ` + `Please prepare more inventory.`,
       )

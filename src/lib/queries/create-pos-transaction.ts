@@ -616,7 +616,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
         // Get inventory mode and validate before consumption
         const inventoryMode = getInventoryMode(user.business.id)
         const totalAvailable = inventoryBatches.reduce((sum, b) => sum + b.quantity, 0)
-        
+
         // Validate stock availability based on inventory mode
         InventoryPolicy.validateProductionConsumption({
           mode: inventoryMode,

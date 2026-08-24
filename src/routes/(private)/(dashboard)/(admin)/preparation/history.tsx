@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { Calendar, Clock, Package, TrendingDown, TrendingUp } from 'lucide-react'
-import numeral from 'numeral'
 import { ProductionStatus } from 'prisma/generated/prisma/enums'
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -86,9 +85,11 @@ function RouteComponent() {
         <CardContent>
           <div className='flex gap-4'>
             <div className='w-64'>
-              <label className='text-sm font-medium mb-2 block'>Status</label>
+              <label htmlFor='status-filter' className='text-sm font-medium mb-2 block'>
+                Status
+              </label>
               <Select value={statusFilter} onValueChange={value => setStatusFilter(value as FilterStatus)}>
-                <SelectTrigger>
+                <SelectTrigger id='status-filter'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -114,7 +115,7 @@ function RouteComponent() {
               {productionOrders.length} {statusFilter === 'ALL' ? 'total' : statusFilter.toLowerCase()} order{productionOrders.length !== 1 && 's'}
             </CardDescription>
           </CardHeader>
-          <CardContent className='space-y-2 max-h-[600px] overflow-y-auto'>
+          <CardContent className='space-y-2 max-h-150 overflow-y-auto'>
             {productionOrders.length === 0 ? (
               <div className='text-center py-8 text-muted-foreground'>No production orders found</div>
             ) : (
@@ -123,10 +124,11 @@ function RouteComponent() {
                 const isSelected = selectedOrderId === order.id
 
                 return (
-                  <div
+                  <button
+                    type='button'
                     key={order.id}
                     className={cn(
-                      'p-4 rounded-lg border cursor-pointer transition-colors',
+                      'w-full p-4 rounded-lg border cursor-pointer transition-colors',
                       isSelected ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-accent',
                     )}
                     onClick={() => setSelectedOrderId(order.id)}
@@ -162,7 +164,7 @@ function RouteComponent() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </button>
                 )
               })
             )}

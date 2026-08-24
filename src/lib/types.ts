@@ -1,6 +1,10 @@
 import { ComplianceKey, ConfigKey, PriceConfiguration } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
 
+export const isNotNullish = <T>(item: T): item is NonNullable<T> => {
+  return item !== null && item !== undefined
+}
+
 // biome-ignore lint/suspicious/noExplicitAny: TODO: explain
 const coerceAll = (schema: z.ZodObject<any>) =>
   // biome-ignore lint/suspicious/noExplicitAny: TODO: explain
@@ -72,11 +76,6 @@ const BaseConfigSchema = z.object({
   [ConfigKey.BUFFER_RATE]: z.number(),
   [ConfigKey.LOCALE]: z.string(),
   [ConfigKey.CURRENCY]: z.string(),
-  [ConfigKey.ENABLE_PRINT_RECEIPT]: z.boolean(),
-  [ConfigKey.ENABLE_ORDER_TAB]: z.boolean(),
-  [ConfigKey.ENABLE_CASH_RECONCILIATION]: z.boolean(),
-  [ConfigKey.ENABLE_TASK]: z.boolean(),
-  [ConfigKey.ENABLE_ORDER]: z.boolean(),
   [ConfigKey.AUTO_APPROVE_LOW_STOCK_REFILL]: z.boolean().default(true),
   // --- Phase 5: Composable Pricing ---
   [ConfigKey.COMPOSABLE_BRANCH_MONTHLY_RATE]: z.number().default(0),

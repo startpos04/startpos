@@ -1,3 +1,6 @@
+import { z } from 'zod'
+import { safeJsonParse, safeJsonStringify } from '@/lib/json-utils'
+
 /**
  * usage-threshold-policy.ts
  *
@@ -130,19 +133,32 @@ export function buildPeriodKey(periodKind: UsagePeriodKind, resource: UsageResou
 // Format: JSON array of numbers, e.g. [50, 80]
 // ---------------------------------------------------------------------------
 
+// Schema for notified thresholds array
+const NotifiedThresholdsSchema = z.array(z.number())
+
 export function serializeNotifiedThresholds(thresholds: ReadonlySet<UsageThreshold>): string {
-  return JSON.stringify([...thresholds].sort((a, b) => a - b))
+  const sortedArray = [...thresholds].sort((a, b) => a - b)
+  const result = safeJsonStringify(sortedArray, NotifiedThresholdsSchema)
+
+  if (result.success) {
+    return result.json
+  }
+
+  // Fallback to basic JSON.stringify for backwards compatibility
+  console.warn('Failed to serialize notified thresholds:', result.error)
+  return JSON.stringify(sortedArray)
 }
 
 export function deserializeNotifiedThresholds(json: string): Set<UsageThreshold> {
-  try {
-    const parsed = JSON.parse(json)
-    if (!Array.isArray(parsed)) return new Set()
+  const result = safeJsonParse(json, NotifiedThresholdsSchema)
+
+  if (result.success) {
     const valid = USAGE_THRESHOLDS_ASC as number[]
-    return new Set(parsed.filter((v): v is UsageThreshold => valid.includes(v)))
-  } catch {
-    return new Set()
+    return new Set(result.data.filter((v): v is UsageThreshold => valid.includes(v)))
   }
+
+  // Return empty set on parse failure
+  return new Set()
 }
 
 // Namespace export for dot-notation access

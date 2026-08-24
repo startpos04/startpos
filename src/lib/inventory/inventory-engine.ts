@@ -26,9 +26,9 @@ import type {
   inventoryMovementCollection as MovementCollectionType,
   operationalTaskCollection as TaskCollectionType,
 } from '@/db/collections'
-import type { feTask } from '@/lib/queries/fetch-tasks'
 import { InventoryPolicy } from '@/lib/inventory/inventory-policy'
 import type { InventoryMode } from '@/lib/onboarding/types'
+import type { feTask } from '@/lib/queries/fetch-tasks'
 
 // ---------------------------------------------------------------------------
 // Shared tenant-context type — passed explicitly by every caller
@@ -243,7 +243,16 @@ export const InventoryEngine = {
    *   - 'relaxed': allows void even if it would result in negative inventory
    *   - 'strict': throws InsufficientStockError if void would cause negative inventory
    */
-  applyPurchaseVoid({ purchaseId, purchaseIdDisplay, items, movementsToReverse, inventoryCollection, movementCollection, ctx, inventoryMode }: ApplyPurchaseVoidParams): void {
+  applyPurchaseVoid({
+    purchaseId,
+    purchaseIdDisplay,
+    items,
+    movementsToReverse,
+    inventoryCollection,
+    movementCollection,
+    ctx,
+    inventoryMode,
+  }: ApplyPurchaseVoidParams): void {
     const now = new Date()
 
     if (movementsToReverse.length > 0) {

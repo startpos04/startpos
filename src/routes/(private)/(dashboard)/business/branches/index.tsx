@@ -4,11 +4,11 @@
  * Features:
  *   - List all branches from branchCollection (eager-synced, reactive)
  *   - Create a new branch (name, address, country)
- *   - Edit a branch's details + per-branch feature toggles
+ *   - Edit a branch's details + offline terminal designation
  *   - Soft-delete a branch (via rootPrisma, triggers sync)
  *
- * Feature toggles map branch-scoped SystemConfig ENABLE_* keys to the
- * capabilities controlled in EntitlementEngine Step 2.5.
+ * Branch-level feature management has been moved to the capability system.
+ * Features are controlled via BusinessCapabilityState instead of SystemConfig.
  *
  * Gated by MANAGE_BRANCHES capability (handled by parent /business route).
  */
@@ -16,7 +16,7 @@
 import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute } from '@tanstack/react-router'
 import { Building2, Edit2, MapPin, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getColumns } from '@/components/custom/data-view'
 import { MultiView } from '@/components/custom/data-view/multi-view'
@@ -29,14 +29,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
 import { branchCollection } from '@/db/collections'
 import { Permissions } from '@/lib/authorization/permission-keys'
 import MountManager from '@/lib/mount-manager'
 import { createBranch } from '@/lib/server-fn/create-branch'
 import { fetchBranchUsers } from '@/lib/server-fn/fetch-branch-users'
 import { updateBranch } from '@/lib/server-fn/update-branch'
-import { BRANCH_TOGGLE_DEFAULTS, type BranchToggleConfig, fetchBranchConfig, updateBranchConfig } from '@/lib/server-fn/update-branch-config'
 import { updateOfflineTerminal } from '@/lib/server-fn/update-offline-terminal'
 import { authStore } from '@/store/auth-store'
 
@@ -78,47 +76,13 @@ type EditFormState = {
   name: string
   address: string
   country: string
-  toggles: BranchToggleConfig
-  loadingToggles: boolean
   offlineTerminalId: string | null
   branchUsers: Array<{ id: string; name: string | null; email: string; role: string }>
   loadingUsers: boolean
 }
 
 // ---------------------------------------------------------------------------
-// Toggle descriptors — label + description shown in the edit dialog
-// ---------------------------------------------------------------------------
-
-const TOGGLE_DESCRIPTORS: { key: keyof BranchToggleConfig; label: string; description: string }[] = [
-  {
-    key: 'ENABLE_ORDER',
-    label: 'Orders',
-    description: 'Allow staff to create and edit customer orders at this branch.',
-  },
-  {
-    key: 'ENABLE_ORDER_TAB',
-    label: 'Order Tab',
-    description: 'Enable the tab-based order view in the POS for deferred payment workflows.',
-  },
-  {
-    key: 'ENABLE_TASK',
-    label: 'Operational Tasks',
-    description: 'Allow creating and managing operational tasks (stock checks, shelf refills, etc.).',
-  },
-  {
-    key: 'ENABLE_CASH_RECONCILIATION',
-    label: 'Cash Reconciliation',
-    description: 'Enable vendor sessions and end-of-day cash reconciliation at this branch.',
-  },
-  {
-    key: 'ENABLE_PRINT_RECEIPT',
-    label: 'Print Receipt',
-    description: 'Allow printing physical receipts after checkout at this branch.',
-  },
-]
-
-// ---------------------------------------------------------------------------
-// Create dialog
+// Edit dialog (branch details - feature toggles removed, now managed via capabilities)
 // ---------------------------------------------------------------------------
 
 function CreateBranchDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
@@ -227,15 +191,13 @@ function EditBranchDialog({ branch, open, onOpenChange }: { branch: BranchRow | 
     name: '',
     address: '',
     country: 'PH',
-    toggles: { ...BRANCH_TOGGLE_DEFAULTS },
-    loadingToggles: false,
     offlineTerminalId: null,
     branchUsers: [],
     loadingUsers: false,
   })
   const [saving, setSaving] = useState(false)
 
-  // Load branch data + toggles + users when dialog opens
+  // Load branch data + users when dialog opens
   useEffect(() => {
     if (open && branch) {
       setForm(prev => ({
@@ -243,22 +205,13 @@ function EditBranchDialog({ branch, open, onOpenChange }: { branch: BranchRow | 
         name: branch.name,
         address: branch.address ?? '',
         country: branch.country ?? 'PH',
-        toggles: { ...BRANCH_TOGGLE_DEFAULTS },
-        loadingToggles: true,
         loadingUsers: true,
       }))
 
-      // Fetch branch config and users in parallel
-      Promise.all([
-        fetchBranchConfig({ data: { branchId: branch.id } }),
-        fetchBranchUsers({ data: { branchId: branch.id } }),
-        // Fetch the current branch data to get offlineTerminalId
-        fetch(`/api/branch/${branch.id}`).catch(() => null),
-      ]).then(([configResult, usersResult]) => {
+      // Fetch branch users
+      fetchBranchUsers({ data: { branchId: branch.id } }).then(usersResult => {
         setForm(prev => ({
           ...prev,
-          toggles: configResult.success ? configResult.config : { ...BRANCH_TOGGLE_DEFAULTS },
-          loadingToggles: false,
           branchUsers: usersResult.success ? usersResult.users : [],
           loadingUsers: false,
           // offlineTerminalId will be loaded from branchCollection
@@ -272,18 +225,13 @@ function EditBranchDialog({ branch, open, onOpenChange }: { branch: BranchRow | 
     if (!branch || !form.name.trim()) return
     setSaving(true)
     try {
-      const [detailsResult, configResult, offlineResult] = await Promise.all([
+      const [detailsResult, offlineResult] = await Promise.all([
         updateBranch({ data: { branchId: branch.id, name: form.name, address: form.address || undefined, country: form.country } }),
-        updateBranchConfig({ data: { branchId: branch.id, config: form.toggles } }),
         updateOfflineTerminal({ data: { branchId: branch.id, offlineTerminalId: form.offlineTerminalId } }),
       ])
 
       if (!detailsResult.success) {
         toast.error(detailsResult.error ?? 'Failed to update branch')
-        return
-      }
-      if (!configResult.success) {
-        toast.error(configResult.error ?? 'Failed to save feature toggles')
         return
       }
       if (!offlineResult.success) {
@@ -298,10 +246,6 @@ function EditBranchDialog({ branch, open, onOpenChange }: { branch: BranchRow | 
     } finally {
       setSaving(false)
     }
-  }
-
-  const setToggle = (key: keyof BranchToggleConfig, value: boolean) => {
-    setForm(f => ({ ...f, toggles: { ...f.toggles, [key]: value } }))
   }
 
   return (
@@ -392,38 +336,13 @@ function EditBranchDialog({ branch, open, onOpenChange }: { branch: BranchRow | 
               </p>
             </div>
           </div>
-
-          <Separator />
-
-          {/* Feature toggles */}
-          <div className='space-y-1'>
-            <p className='text-sm font-medium'>Feature Toggles</p>
-            <p className='text-xs text-muted-foreground'>Disable features at this branch without affecting other branches or your plan.</p>
-          </div>
-
-          <div className='space-y-3'>
-            {TOGGLE_DESCRIPTORS.map(({ key, label, description }) => (
-              <div key={key} className='flex items-start justify-between gap-4'>
-                <div className='flex-1 min-w-0'>
-                  <p className='text-sm font-medium leading-none'>{label}</p>
-                  <p className='text-xs text-muted-foreground mt-0.5'>{description}</p>
-                </div>
-                <Switch
-                  checked={form.loadingToggles ? false : form.toggles[key]}
-                  onCheckedChange={v => setToggle(key, v)}
-                  disabled={form.loadingToggles || saving}
-                  aria-label={`Toggle ${label}`}
-                />
-              </div>
-            ))}
-          </div>
         </div>
 
         <DialogFooter>
           <Button variant='outline' onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!form.name.trim() || saving || form.loadingToggles || form.loadingUsers}>
+          <Button onClick={handleSave} disabled={!form.name.trim() || saving || form.loadingUsers}>
             Save Changes
           </Button>
         </DialogFooter>
@@ -462,45 +381,48 @@ export function BranchesPage() {
     return `${currentBranchCount} of ${planBranchLimit} branches used`
   }
 
-  const openEdit = (branch: BranchRow) => {
+  const openEdit = useCallback((branch: BranchRow) => {
     setEditTarget(branch)
     setEditOpen(true)
-  }
+  }, [])
 
-  const handleDelete = (branch: BranchRow) => {
-    // Prevent deleting the only branch
-    const activeBranches = data?.filter(b => !b.deletedAt) ?? []
-    if (activeBranches.length <= 1) {
-      toast.error('You must have at least one branch. Create a new branch before deleting this one.')
-      return
-    }
+  const handleDelete = useCallback(
+    (branch: BranchRow) => {
+      // Prevent deleting the only branch
+      const activeBranches = data?.filter(b => !b.deletedAt) ?? []
+      if (activeBranches.length <= 1) {
+        toast.error('You must have at least one branch. Create a new branch before deleting this one.')
+        return
+      }
 
-    // Prevent deleting the currently active branch
-    if (branch.id === user.branch.id) {
-      toast.error("You can't delete the branch you're currently signed into.")
-      return
-    }
+      // Prevent deleting the currently active branch
+      if (branch.id === user.branch.id) {
+        toast.error("You can't delete the branch you're currently signed into.")
+        return
+      }
 
-    MountManager.show(WarningPrompt, {
-      title: 'Delete Branch',
-      description: `Delete "${branch.name}"? All data associated with this branch (transactions, inventory, etc.) will remain but the branch will be deactivated.`,
-      btnText: 'Delete',
-      onConfirm: async () => {
-        try {
-          // Soft-delete: update deletedAt via branchCollection
-          // Branch uses the same soft-delete pattern as other collections
-          branchCollection.update(branch.id, draft => {
-            draft.deletedAt = new Date()
-          })
-          toast.success(`Branch "${branch.name}" deleted`)
-          return true
-        } catch {
-          toast.error('Failed to delete branch')
-          return false
-        }
-      },
-    })
-  }
+      MountManager.show(WarningPrompt, {
+        title: 'Delete Branch',
+        description: `Delete "${branch.name}"? All data associated with this branch (transactions, inventory, etc.) will remain but the branch will be deactivated.`,
+        btnText: 'Delete',
+        onConfirm: async () => {
+          try {
+            // Soft-delete: update deletedAt via branchCollection
+            // Branch uses the same soft-delete pattern as other collections
+            branchCollection.update(branch.id, draft => {
+              draft.deletedAt = new Date()
+            })
+            toast.success(`Branch "${branch.name}" deleted`)
+            return true
+          } catch {
+            toast.error('Failed to delete branch')
+            return false
+          }
+        },
+      })
+    },
+    [data, user.branch.id],
+  )
 
   const columns = useMemo(
     () =>
@@ -594,8 +516,7 @@ export function BranchesPage() {
           ),
         }),
       ]),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, user.branch.id],
+    [user.branch.id, handleDelete, openEdit],
   )
 
   return (

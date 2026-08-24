@@ -462,14 +462,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
         }
       : undefined
 
-    // -------------------------------------------------------------------------
-    // Survey gate — prune plan features that the business opted out of during
-    // onboarding. The capability-registry writes ENABLE_TASK and
-    // ENABLE_CASH_RECONCILIATION into SystemConfig based on survey answers.
-    // Parse systemConfigs to get typed booleans, then filter planFeatures so
-    // EntitlementEngine.check() returns FEATURE_NOT_IN_PLAN and
-    // useCapability() returns false in the UI.
-    // -------------------------------------------------------------------------
+    // Parse SystemConfig for operational settings (VAT, locale, pricing, etc.)
     const parsedSystemConfigs = (ConfigKeySchema.safeParse(mergedSystemConfigs).data ??
       ConfigKeySchema.parse({
         ...{
@@ -480,28 +473,9 @@ export const getAuthUser = createServerFn({ method: 'GET' })
           CURRENCY: 'PHP',
           IS_VAT_REGISTERED: false,
           PRICE_CONFIGURATION: 'EXCLUSIVE',
-          ENABLE_PRINT_RECEIPT: true,
-          ENABLE_ORDER_TAB: false,
-          ENABLE_CASH_RECONCILIATION: false, // Survey gate: only enabled when reconcilesCash = true
-          ENABLE_TASK: false, // Survey gate: only enabled when usesOperationalTasks = true
-          ENABLE_ORDER: true,
         },
         ...mergedSystemConfigs,
       })) as ConfigKeyTypes
-
-    if (!parsedSystemConfigs.ENABLE_TASK) {
-      entitlementContext = {
-        ...entitlementContext,
-        planFeatures: entitlementContext.planFeatures.filter(f => f !== Capabilities.CREATE_TASK),
-      }
-    }
-
-    if (!parsedSystemConfigs.ENABLE_CASH_RECONCILIATION) {
-      entitlementContext = {
-        ...entitlementContext,
-        planFeatures: entitlementContext.planFeatures.filter(f => f !== Capabilities.START_VENDOR_SESSION),
-      }
-    }
 
     // -------------------------------------------------------------------------
     // Capability lifecycle gate — strip capabilities whose lifecycle state
@@ -542,57 +516,6 @@ export const getAuthUser = createServerFn({ method: 'GET' })
         }
         return activeStates.has(state)
       }),
-    }
-
-    // -------------------------------------------------------------------------
-    // Branch feature toggle gate — populate branchDisabledFeatures from
-    // branch-scoped SystemConfig rows.
-    //
-    // Reads mappedBranchConfigs directly (not the merged business+branch config)
-    // so only explicit branch-level overrides apply. A branch can suppress a
-    // feature the business plan grants, but cannot grant one the plan denies.
-    //
-    // The EntitlementEngine checks branchDisabledFeatures at Step 2.5 —
-    // after subscription status blocks but before business-level overrides,
-    // so platform-admin override grants always take precedence over branch config.
-    //
-    // Mapping: branch config key → capability keys it controls
-    //   ENABLE_ORDER = false           → CREATE_ORDER, EDIT_ACTIVE_ORDER, VIEW_ORDER_HISTORY
-    //   ENABLE_ORDER_TAB = false       → CREATE_ORDER, EDIT_ACTIVE_ORDER
-    //   ENABLE_TASK = false            → CREATE_TASK
-    //   ENABLE_CASH_RECONCILIATION = false → START_VENDOR_SESSION
-    //   ENABLE_PRINT_RECEIPT = false   → PRINT_RECEIPT
-    // -------------------------------------------------------------------------
-    const branchDisabled = new Set<CapabilityKey>()
-
-    const parsedBranchConfigs = ConfigKeySchema.safeParse(mappedBranchConfigs).data
-
-    if (parsedBranchConfigs) {
-      if (parsedBranchConfigs.ENABLE_ORDER === false) {
-        branchDisabled.add(Capabilities.CREATE_ORDER)
-        branchDisabled.add(Capabilities.EDIT_ACTIVE_ORDER)
-        branchDisabled.add(Capabilities.VIEW_ORDER_HISTORY)
-      }
-      if (parsedBranchConfigs.ENABLE_ORDER_TAB === false) {
-        branchDisabled.add(Capabilities.CREATE_ORDER)
-        branchDisabled.add(Capabilities.EDIT_ACTIVE_ORDER)
-      }
-      if (parsedBranchConfigs.ENABLE_TASK === false) {
-        branchDisabled.add(Capabilities.CREATE_TASK)
-      }
-      if (parsedBranchConfigs.ENABLE_CASH_RECONCILIATION === false) {
-        branchDisabled.add(Capabilities.START_VENDOR_SESSION)
-      }
-      if (parsedBranchConfigs.ENABLE_PRINT_RECEIPT === false) {
-        branchDisabled.add(Capabilities.PRINT_RECEIPT)
-      }
-    }
-
-    if (branchDisabled.size > 0) {
-      entitlementContext = {
-        ...entitlementContext,
-        branchDisabledFeatures: branchDisabled,
-      }
     }
 
     const entitlement = EntitlementEngine.buildSummary(allCapabilities, entitlementContext, {

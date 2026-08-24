@@ -1,6 +1,6 @@
 /**
  * inventory/index.ts — Barrel export for inventory modules
- * 
+ *
  * Centralizes exports for inventory-related functionality:
  * - Error classes for structured error handling
  * - Policy layer for mode-based validation
@@ -9,5 +9,5 @@
  */
 
 export { InsufficientStockError } from './errors'
-export { InventoryPolicy, type InventoryMode } from './inventory-policy'
 export { getInventoryMode } from './get-inventory-mode'
+export { type InventoryMode, InventoryPolicy } from './inventory-policy'

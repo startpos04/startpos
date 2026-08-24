@@ -115,7 +115,7 @@ type RequireAccessProps = RequireAccessSingleProps | RequireAccessMultipleProps
  * Checks capability first (business-level), then permission (user-level).
  * Shows appropriate error message for each failure mode.
  */
-export function RequireAccess({ capability, permission, permissions, requireAllPermissions, children, inline }: RequireAccessProps) {
+export function RequireAccess({ capability, permission, permissions, requireAllPermissions = false, children, inline = false }: RequireAccessProps) {
   return (
     <RequireCapability cap={capability} inline={inline}>
       {permission ? (

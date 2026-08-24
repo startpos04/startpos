@@ -1,7 +1,6 @@
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { BookOpen, Building2, HelpCircle } from 'lucide-react'
-import { Role } from 'prisma/generated/prisma/enums'
 import { Separator } from '@/components/ui/separator'
 import { useBranchSwitch } from '@/hooks/use-branch-switch'
 import { usePermission } from '@/hooks/use-permission'
@@ -50,7 +49,7 @@ export function ContextSwitcher() {
           <ContextSwitcherItem
             key={branch.id}
             label={branch.name}
-            icon={<span className='text-lg font-bold'>{branch.name[0].toUpperCase()}</span>}
+            icon={<span className='text-lg font-bold'>{branch.name?.[0]?.toUpperCase() ?? ''}</span>}
             active={branch.id === currentBranchId && !isBusinessActive}
             onClick={() => {
               // If we're in business context, navigate back to dashboard

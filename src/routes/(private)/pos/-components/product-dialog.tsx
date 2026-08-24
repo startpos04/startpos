@@ -11,13 +11,13 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { usePOS } from '@/hooks/use-pos'
-import { PosStockEngine, type posItem, isUnlimitedStock, stockResultToNumber } from '@/lib/conversion/pos-stock-engine'
+import { isUnlimitedStock, PosStockEngine, type posItem, stockResultToNumber } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { getInventoryMode } from '@/lib/inventory'
 import type { MountProps } from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
-import { authStore } from '@/store/auth-store'
 import { cn } from '@/lib/utils'
+import { authStore } from '@/store/auth-store'
 
 interface ProductDialogProps extends MountProps {
   product: posProduct
@@ -87,7 +87,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
     <Dialog open={open} onOpenChange={onClose}>
       {/* Note: We add hide-close-button or target styling if your Radix setup allows it, 
           or simply let our prominent native element override the design */}
-      <DialogContent className='sm:max-w-[440px] p-0 overflow-hidden gap-0 rounded-3xl [&>button]:hidden'>
+      <DialogContent className='sm:max-w-110 p-0 overflow-hidden gap-0 rounded-3xl [&>button]:hidden'>
         {/* --- HERO IMAGE HEADER --- */}
         <div className='relative w-full h-48 bg-muted flex items-center justify-center overflow-hidden border-b select-none'>
           <Avatar className='w-full h-full [&>img]:rounded-none [&>span]:rounded-none [&:after]:border-none'>
@@ -118,9 +118,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                 </Badge>
               ) : isUnlimited ? (
                 /* Unlimited stock (services/provisional) */
-                <Badge className='backdrop-blur-md border-none px-3 py-1 text-xs font-bold shadow-sm bg-emerald-500/90 text-white'>
-                  Available
-                </Badge>
+                <Badge className='backdrop-blur-md border-none px-3 py-1 text-xs font-bold shadow-sm bg-emerald-500/90 text-white'>Available</Badge>
               ) : remainingQuantity > 0 ? (
                 /* Default: show remaining quantity */
                 <Badge className='backdrop-blur-md border-none px-3 py-1 text-xs font-bold shadow-sm bg-emerald-500/90 text-white'>
@@ -128,9 +126,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                 </Badge>
               ) : (
                 /* Out of stock */
-                <Badge className='backdrop-blur-md border-none px-3 py-1 text-xs font-bold shadow-sm bg-destructive/90 text-white'>
-                  Out of Stock
-                </Badge>
+                <Badge className='backdrop-blur-md border-none px-3 py-1 text-xs font-bold shadow-sm bg-destructive/90 text-white'>Out of Stock</Badge>
               )}
             </div>
           )}
@@ -187,7 +183,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                           <RadioGroupItem value={v.id} id={v.id} className='peer sr-only' />
                           <Label
                             htmlFor={v.id}
-                            className='flex flex-col items-start justify-between rounded-2xl border-2 border-muted p-3.5 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer h-[72px]'
+                            className='flex flex-col items-start justify-between rounded-2xl border-2 border-muted p-3.5 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer h-18'
                           >
                             <span className='text-sm font-bold line-clamp-1 text-foreground'>{v.name}</span>
                             <span className='text-xs font-bold font-mono text-primary/90'>{PriceEngine.format(Number(v.price))}</span>
@@ -208,7 +204,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                     <h4 className='font-bold text-xs uppercase tracking-widest text-muted-foreground/80 flex items-center gap-1.5'>
                       <Sparkles className='w-3 h-3 text-amber-500 fill-amber-500' /> Modifiers
                     </h4>
-                    <div className='grid gap-2 max-h-[160px] overflow-y-auto pr-1 scrollbar-thin'>
+                    <div className='grid gap-2 max-h-40 overflow-y-auto pr-1 scrollbar-thin'>
                       {availableAddons.map(comp => {
                         const reserved = PosStockEngine.getReservedMap(cartItems, orderItems)
                         const stockInfo = PosStockEngine.findPhysicalStock(comp.materialId, [product])
@@ -221,7 +217,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                             className={cn(
                               'flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-200',
                               isSoldOut ? 'opacity-40 grayscale pointer-events-none' : 'bg-muted/40 cursor-pointer hover:bg-muted/70',
-                              field.state.value.includes(comp.id) ? 'border-primary bg-primary/[0.03]' : 'border-transparent',
+                              field.state.value.includes(comp.id) ? 'border-primary bg-primary/3' : 'border-transparent',
                             )}
                           >
                             <div className='flex items-center gap-3'>
@@ -283,7 +279,7 @@ export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: 
                   <Button
                     type='submit'
                     disabled={!canSubmit || (!isUnlimited && Number(qty) > remainingQuantity) || remainingQuantity === 0}
-                    className='rounded-2xl h-11 px-6 font-bold shadow-sm transition-all active:scale-[0.98] flex items-center gap-2 justify-between min-w-[160px]'
+                    className='rounded-2xl h-11 px-6 font-bold shadow-sm transition-all active:scale-[0.98] flex items-center gap-2 justify-between min-w-40'
                   >
                     <span>{isSubmitting ? 'Processing...' : remainingQuantity === 0 ? 'Sold Out' : 'Add to Order'}</span>
                     {remainingQuantity > 0 && (

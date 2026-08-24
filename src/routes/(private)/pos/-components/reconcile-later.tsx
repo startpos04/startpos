@@ -13,9 +13,11 @@ import { Button } from '@/components/ui/button'
 import { membershipCollection, operationalTaskCollection, transactionCollection, vendorSessionCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { useAppForm } from '@/hooks/form'
+import { useCapability } from '@/hooks/use-capability'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import type { MountProps } from '@/lib/mount-manager'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
 import { authStore } from '@/store/auth-store'
@@ -33,6 +35,7 @@ export function ReconcileLater({ onClose }: MountProps) {
   const [submissionType, setSubmissionType] = useState<SubmissionType>('CREATE_TASK')
   const user = useStore(authStore, state => state.user)
   const navigate = useNavigate()
+  const canCreateTask = useCapability(Capabilities.CREATE_TASK)
 
   const members = useLiveQuery(q => q.from({ member: membershipCollection }).where(({ member }) => inArray(member.role, [Role.ADMIN, Role.SUPERVISOR])), [])
   const sessions = useLiveQuery(
@@ -170,7 +173,7 @@ export function ReconcileLater({ onClose }: MountProps) {
             </Button>
 
             {/* Secondary Button: Direct Supervisor Reconciliation */}
-            {user.systemConfigs.ENABLE_CASH_RECONCILIATION ? (
+            {canCreateTask ? (
               <Button
                 type='submit'
                 variant='ghost'

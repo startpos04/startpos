@@ -156,7 +156,8 @@ const INVENTORY_MODE_INFO: Record<string, { label: string; description: string }
   },
   relaxed: {
     label: 'Loose Inventory Tracking',
-    description: 'Track inventory without blocking sales. Allow negative stock and reconcile through physical counts. Best for restaurants, cafes, and batch-produced items.',
+    description:
+      'Track inventory without blocking sales. Allow negative stock and reconcile through physical counts. Best for restaurants, cafes, and batch-produced items.',
   },
   strict: {
     label: 'Strict Inventory Tracking',
@@ -250,10 +251,8 @@ function FieldRow({ row, onCorrected }: { row: ProfileFieldRow; onCorrected: () 
                       onClick={() => correct(opt)}
                       className={cn(
                         'w-full text-left p-3 rounded-md border-2 transition-colors',
-                        row.value === opt
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50 hover:bg-accent',
-                        saving && 'opacity-50 cursor-not-allowed'
+                        row.value === opt ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-accent',
+                        saving && 'opacity-50 cursor-not-allowed',
                       )}
                     >
                       <div className='font-medium text-sm'>{info.label}</div>

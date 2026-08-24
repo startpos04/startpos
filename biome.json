@@ -48,8 +48,11 @@
       },
       "style": {
         "useImportType": "error",
-        "noNonNullAssertion": "off",
+        "noNonNullAssertion": "warn",
         "useNodejsImportProtocol": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "error"
       }
     }
   },

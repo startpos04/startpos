@@ -327,6 +327,65 @@ pnpm dev
 
 ---
 
+# Development Workflow
+
+## Type Safety Principles
+
+This project follows strict type derivation principles to maintain consistency and reduce duplication:
+
+1. **Derive from Prisma First**: Use Prisma-generated types as the single source of truth
+2. **Avoid Type Duplication**: Don't create interfaces that mirror Prisma models
+3. **Use Type Utilities**: Leverage Pick, Omit, Extend to create derived types
+4. **Type JSON Operations**: Use Zod schemas for all JSON.parse/stringify operations
+
+For detailed guidance, see [Type Derivation Guide](./docs/dx-audit/02-TYPE-GUIDE.md).
+
+## Git Hooks (Lefthook)
+
+This project uses [Lefthook](https://github.com/evilmartians/lefthook) for automated quality checks:
+
+- **pre-commit**: Runs type checking, linting, and tests on staged files
+- **commit-msg**: Validates commit message format
+- **pre-push**: Runs full validation before pushing to remote
+
+Hooks run automatically. To bypass in emergencies (not recommended):
+```bash
+LEFTHOOK=0 git commit -m "emergency fix"
+```
+
+## Pre-Commit Checklist
+
+Before committing code, ensure:
+
+- [ ] TypeScript compiles without errors (`pnpm ts`)
+- [ ] Biome lint passes (`pnpm lint`)
+- [ ] Tests pass (`pnpm test`)
+- [ ] No `any` types added (use proper Prisma types)
+- [ ] JSON operations use typed helpers from `@/lib/json-utils`
+- [ ] New types are derived from Prisma, not duplicated
+
+**Quick validation:** Run `pnpm validate` to check all of the above at once.
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines.
+
+## Continuous Integration
+
+This project uses GitHub Actions for automated quality checks:
+
+- **CI Pipeline** (`.github/workflows/ci.yml`):
+  - TypeScript type checking
+  - Biome lint checking
+  - Type coverage monitoring (95% threshold)
+  - Unit and integration tests with coverage
+  
+- **E2E Tests** (`.github/workflows/playwright.yml`):
+  - Playwright browser tests
+  - Visual regression testing
+
+All checks must pass before merging pull requests. Type coverage reports are automatically commented on PRs.
+
+---
+
 # Available Scripts
 
 | Command | Description |
@@ -344,6 +403,8 @@ pnpm dev
 | `pnpm seed` | Seed database |
 | `pnpm reset` | Reset database |
 | `pnpm ts` | TypeScript type checking |
+| `pnpm type-coverage` | Check type coverage (95% threshold) |
+| `pnpm validate` | Run all quality checks (ts + check + type-coverage + test) |
 
 ---
 

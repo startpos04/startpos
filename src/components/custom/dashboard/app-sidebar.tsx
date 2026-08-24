@@ -8,7 +8,6 @@ import {
   CreditCardIcon,
   GalleryVerticalEndIcon,
   LayoutDashboardIcon,
-  LifeBuoyIcon,
   SettingsIcon,
   ShieldIcon,
   TerminalSquareIcon,
@@ -37,6 +36,7 @@ import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-s
 import { APP_NAME } from '@/lib/constants'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
+import { isNotNullish } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { authStore } from '@/store/auth-store'
 
@@ -64,6 +64,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     Capabilities.VIEW_SALES_REPORTS,
     Capabilities.MANAGE_INVENTORY,
     Capabilities.VIEW_ORDER_HISTORY,
+    Capabilities.BATCH_PREPARATION,
   ])
 
   // Permission checks — replaces role-based checks
@@ -191,12 +192,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               }
             : null,
         ]
-          .filter(Boolean)
+          .filter(isNotNullish)
           .map(item => ({
-            ...item!,
+            ...item,
             items: [],
-            isActive: isRouteActive(item!.url),
-          })) as Items[],
+            isActive: isRouteActive(item.url),
+          })),
       }
     }
 

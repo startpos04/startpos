@@ -25,9 +25,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { Permissions } from '@/lib/authorization/permission-keys'
 import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 import { requirePermission } from '@/lib/better-auth/permission-middleware'
-import { Permissions } from '@/lib/authorization/permission-keys'
 import { prisma as rootPrisma } from '@/lib/prisma-client'
 
 // ---------------------------------------------------------------------------

@@ -70,15 +70,11 @@ export function buildConfiguration(
 
 // ---------------------------------------------------------------------------
 // Safe defaults — applied before capability outputs override them
-// Only config keys that capabilities can turn on/off need defaults here.
+// Only operational config keys (not capability toggles) need defaults here.
+// Capability activation is managed via BusinessCapabilityState, not SystemConfig.
 // ---------------------------------------------------------------------------
 
 const SAFE_DEFAULTS: Array<[string, string]> = [
-  ['ENABLE_ORDER', 'false'],
-  ['ENABLE_ORDER_TAB', 'false'],
-  ['ENABLE_CASH_RECONCILIATION', 'false'],
-  ['ENABLE_TASK', 'false'],
-  ['ENABLE_PRINT_RECEIPT', 'false'],
   ['PRICE_CONFIGURATION', 'EXCLUSIVE'],
   ['IS_VAT_REGISTERED', 'false'],
 ]
@@ -111,11 +107,6 @@ function applyProfileOverrides(outputMap: Map<string, string>, characteristics: 
   // Wholesale + raw materials: force EXCLUSIVE pricing (wholesale uses tax-exclusive prices)
   if (profile === 'WHOLESALE_DISTRIBUTION') {
     outputMap.set('PRICE_CONFIGURATION', 'EXCLUSIVE')
-  }
-
-  // Conflict resolution: ENABLE_ORDER_TAB requires ENABLE_ORDER
-  if (outputMap.get('ENABLE_ORDER_TAB') === 'true' && outputMap.get('ENABLE_ORDER') !== 'true') {
-    outputMap.set('ENABLE_ORDER_TAB', 'false')
   }
 }
 

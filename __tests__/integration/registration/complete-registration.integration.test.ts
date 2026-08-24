@@ -18,7 +18,7 @@
  *
  * Coverage:
  *  - Happy path RETAIL: all 7 records created; subscription TRIAL; 50 credits
- *  - Happy path RESTAURANT: INCLUSIVE pricing + ENABLE_ORDER_TAB=true config
+ *  - Happy path RESTAURANT: INCLUSIVE pricing config
  *  - Happy path GROCERY: EXCLUSIVE pricing config stored correctly
  *  - Slug derivation: spaces → hyphens, lowercase, special chars stripped
  *  - Slug collision: second registration with same name gets "-2" suffix
@@ -27,7 +27,7 @@
  *  - Unauthenticated call: returns success:false immediately
  *  - User role: User.role promoted to ADMIN after registration
  *  - trialEndsAt: approximately 30 days in the future
- *  - SystemConfig count: correct number of keys created per business type
+ *  - SystemConfig count: correct number of operational configs created per business type
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -226,7 +226,7 @@ dbDescribe('completeRegistration (real DB) — happy path RETAIL', () => {
     })
   })
 
-  it('creates the correct number of SystemConfig rows for RETAIL', async () => {
+  it('creates operational SystemConfig rows for RETAIL', async () => {
     await withRollback(async () => {
       const prisma = (await getTestPrisma())!
       const user = await seedUser()
@@ -235,8 +235,14 @@ dbDescribe('completeRegistration (real DB) — happy path RETAIL', () => {
       const businessId = result.businessId as string
 
       const configs = await prisma.systemConfig.findMany({ where: { businessId } })
-      // RETAIL: 7 type-specific + 3 global business + 2 global branch = 12
-      expect(configs.length).toBe(12)
+      // Operational configs only (PRICE_CONFIGURATION, IS_VAT_REGISTERED, etc.)
+      // No more ENABLE_* capability toggles
+      expect(configs.length).toBeGreaterThan(0)
+      
+      // Verify key operational configs exist
+      const keys = configs.map(c => c.key)
+      expect(keys).toContain('PRICE_CONFIGURATION')
+      expect(keys).toContain('IS_VAT_REGISTERED')
     })
   })
 })
@@ -246,7 +252,7 @@ dbDescribe('completeRegistration (real DB) — happy path RETAIL', () => {
 // ---------------------------------------------------------------------------
 
 dbDescribe('completeRegistration (real DB) — business type configs', () => {
-  it('RESTAURANT: PRICE_CONFIGURATION=INCLUSIVE and ENABLE_ORDER_TAB=true', async () => {
+  it('RESTAURANT: PRICE_CONFIGURATION=INCLUSIVE and IS_VAT_REGISTERED=true', async () => {
     await withRollback(async () => {
       const prisma = (await getTestPrisma())!
       const user = await seedUser()
@@ -259,11 +265,6 @@ dbDescribe('completeRegistration (real DB) — business type configs', () => {
       })
       expect(priceConfig!.value).toBe('INCLUSIVE')
 
-      const orderTab = await prisma.systemConfig.findFirst({
-        where: { businessId, key: 'ENABLE_ORDER_TAB' },
-      })
-      expect(orderTab!.value).toBe('true')
-
       const vatReg = await prisma.systemConfig.findFirst({
         where: { businessId, key: 'IS_VAT_REGISTERED' },
       })
@@ -271,7 +272,7 @@ dbDescribe('completeRegistration (real DB) — business type configs', () => {
     })
   })
 
-  it('GROCERY: PRICE_CONFIGURATION=EXCLUSIVE and ENABLE_ORDER_TAB=false', async () => {
+  it('GROCERY: PRICE_CONFIGURATION=EXCLUSIVE', async () => {
     await withRollback(async () => {
       const prisma = (await getTestPrisma())!
       const user = await seedUser()
@@ -283,11 +284,6 @@ dbDescribe('completeRegistration (real DB) — business type configs', () => {
         where: { businessId, key: 'PRICE_CONFIGURATION' },
       })
       expect(priceConfig!.value).toBe('EXCLUSIVE')
-
-      const orderTab = await prisma.systemConfig.findFirst({
-        where: { businessId, key: 'ENABLE_ORDER_TAB' },
-      })
-      expect(orderTab!.value).toBe('false')
     })
   })
 

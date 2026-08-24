@@ -1,7 +1,9 @@
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { useStore } from '@tanstack/react-store'
+import { useCapability } from '@/hooks/use-capability'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import type { CreatePosTransactionResponse } from '@/lib/queries/create-pos-transaction'
 import { authStore } from '@/store/auth-store'
 import type { posFormOpts } from '..'
@@ -43,6 +45,7 @@ const styles = StyleSheet.create({
 
 export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionResponse; data: NonNullable<(typeof posFormOpts)['defaultValues']> }) => {
   const user = useStore(authStore, state => state.user)
+  const canCreateOrder = useCapability(Capabilities.CREATE_ORDER)
   if (result.error || !result.data || !user) return null
   const { transaction, payments } = result.data
   const payment = payments[0]
@@ -63,7 +66,7 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
   const totalHeight = receiptHeader + receiptInfo + receiptItemsHeight + receiptFooter + vPadding + 20 // 20pt safety buffer
 
   let kitchenHeight = 0
-  if (user.systemConfigs?.ENABLE_ORDER_TAB) {
+  if (canCreateOrder) {
     const kitchenHeader = 80
     const kitchenFooter = 60
     const kitchenItemsHeight = data.items.reduce((acc, item) => {
@@ -101,7 +104,7 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
         </View>
 
         {/* If custom order tab references exist (like tables or buzzers), display them on the receipt */}
-        {user.systemConfigs?.ENABLE_ORDER_TAB && transaction.notes && (
+        {canCreateOrder && transaction.notes && (
           <View style={styles.infoRow}>
             <Text>Routing:</Text>
             <Text>{(transaction.notes as string).replace('Order Tab Ref: ', '')}</Text>
@@ -176,7 +179,7 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
       </Page>
 
       {/* KITCHEN SLIP */}
-      {user.systemConfigs?.ENABLE_ORDER_TAB && (
+      {canCreateOrder && (
         <Page size={[PAGE_WIDTH, kitchenHeight]} style={styles.page}>
           <View style={styles.header}>
             <Text style={styles.kitchenTitle}>** ORDER SLIP **</Text>

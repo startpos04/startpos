@@ -15,6 +15,7 @@
 
 import { InventoryType, MovementType } from 'prisma/generated/prisma/enums'
 import type { inventoryCollection as InventoryCollectionType, inventoryMovementCollection as MovementCollectionType } from '@/db/collections'
+import { getInventoryMode, InventoryPolicy } from '@/lib/inventory'
 
 // ---------------------------------------------------------------------------
 // Shared tenant-context type
@@ -118,8 +119,30 @@ export const WasteEngine = {
 
     // Check total available
     const totalAvailable = batches.reduce((sum, b) => sum + b.quantity, 0)
-    if (totalAvailable < quantity) {
-      throw new Error(`Insufficient finished goods to waste. Available: ${totalAvailable}, Requested: ${quantity}`)
+
+    // Get inventory mode for validation
+    const inventoryMode = getInventoryMode(ctx.businessId)
+
+    // INVENTORY MODE VALIDATION: Check if waste disposal is allowed based on mode
+    // - strict mode: cannot dispose more than exists (standard validation)
+    // - relaxed mode: can dispose even if negative (for reconciliation scenarios)
+    // - none mode: skip validation (no inventory tracking)
+    //
+    // Note: Waste validation is special. In relaxed mode, you might have:
+    // - Recorded inventory: -5 units (sold 5 without preparing)
+    // - Physical count: 0 units
+    // - Waste recording: Dispose 5 units to reconcile back to -10
+    //
+    // This is different from InventoryPolicy.validateWasteDisposal() which
+    // doesn't allow disposing more than exists. For production waste, we
+    // use validateDeduction() which respects relaxed mode.
+    if (inventoryMode !== 'none') {
+      try {
+        InventoryPolicy.validateDeduction(variantId, totalAvailable, quantity, inventoryMode)
+      } catch (error) {
+        // Validation failed (strict mode with insufficient stock)
+        throw new Error(`Insufficient finished goods to waste. Available: ${totalAvailable}, Requested: ${quantity}`)
+      }
     }
 
     // Consume from oldest batches first (FIFO)

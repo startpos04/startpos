@@ -257,7 +257,9 @@ export function getAllPermissions(): PermissionKey[] {
   const allPermissions = new Set<PermissionKey>()
 
   for (const permissions of Object.values(RolePermissions)) {
-    permissions.forEach(p => allPermissions.add(p))
+    permissions.forEach(p => {
+      allPermissions.add(p)
+    })
   }
 
   return Array.from(allPermissions)

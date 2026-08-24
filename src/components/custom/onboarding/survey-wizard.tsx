@@ -292,7 +292,9 @@ function getVisibleQuestions(answers: SurveyAnswers): QuestionConfig[] {
 
   const hasPhysical =
     (answers.q1_business_type ?? []).some(v =>
-      [Q1_OPTIONS.PHYSICAL_GOODS, Q1_OPTIONS.FOOD_BEVERAGE, Q1_OPTIONS.RAW_MATERIALS].includes(v as (typeof Q1_OPTIONS)[keyof typeof Q1_OPTIONS]),
+      ([Q1_OPTIONS.PHYSICAL_GOODS, Q1_OPTIONS.FOOD_BEVERAGE, Q1_OPTIONS.RAW_MATERIALS] as const).includes(
+        v as typeof Q1_OPTIONS.PHYSICAL_GOODS | typeof Q1_OPTIONS.FOOD_BEVERAGE | typeof Q1_OPTIONS.RAW_MATERIALS,
+      ),
     ) || (answers.q1_business_type ?? []).length === 0
 
   if (hasPhysical) {

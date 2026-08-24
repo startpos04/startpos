@@ -72,6 +72,7 @@ function POSPage() {
   const user = useStore(authStore, state => state.user)
   const canReconcile = useCapability(Capabilities.START_VENDOR_SESSION)
   const canPrintReceipt = useCapability(Capabilities.PRINT_RECEIPT)
+  const canCreateOrder = useCapability(Capabilities.CREATE_ORDER)
   const { orderId, search = '', page = 1, pageSize = 20 } = useSearch({ from: '/(private)/pos/' })
   const { data: activeOrders = [], isLoading: isFetchingActiveOrders } = fetchActiveOrders()
   const { data: posProducts = [], isLoading: isPosProductsLoading } = fetchPosProducts({ searchQuery: search, page, pageSize })
@@ -162,8 +163,8 @@ function POSPage() {
     }
 
     // Attempt to print receipt — failure must never block or revert the completed sale
-    // Only print if both the capability is granted AND the system config is enabled
-    if (canPrintReceipt && user.systemConfigs.ENABLE_PRINT_RECEIPT) {
+    // Print if the capability is granted
+    if (canPrintReceipt) {
       try {
         const doc = <ReceiptPDF result={result} data={value} />
         const asBlob = await pdf(doc).toBlob()
@@ -412,7 +413,7 @@ function POSPage() {
             <div className='w-10 ml-5'>
               <ThemeToggle />
             </div>
-            {user.systemConfigs.ENABLE_ORDER ? <ActiveOrdersButton /> : null}
+            {canCreateOrder ? <ActiveOrdersButton /> : null}
             <ProfileDropdown />
           </div>
         ) : (

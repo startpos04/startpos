@@ -109,7 +109,9 @@ export const AuthorizationEngine = {
     const finalPermissions = new Set<PermissionKey>([...roleDefaults, ...grants])
 
     // Remove explicitly revoked permissions
-    revokes.forEach(permission => finalPermissions.delete(permission))
+    revokes.forEach(permission => {
+      finalPermissions.delete(permission)
+    })
 
     // 5. Calculate custom grants and revokes for UI display
     const customGrants = grants.filter(p => !roleDefaults.includes(p))

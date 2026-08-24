@@ -24,16 +24,14 @@ export type posItem = {
 
 /**
  * StockResult — discriminated union for inventory availability
- * 
+ *
  * Replaces the magic number 999 with a type-safe representation.
- * 
+ *
  * - unlimited: Product has no inventory tracking (SERVICE, provisional products)
  * - tracked: Product has inventory; quantity can be positive, zero, or negative
  *   (negative in relaxed mode when overselling is allowed)
  */
-export type StockResult = 
-  | { type: 'unlimited' }
-  | { type: 'tracked'; quantity: number }
+export type StockResult = { type: 'unlimited' } | { type: 'tracked'; quantity: number }
 
 /**
  * Type guard: checks if stock result is unlimited
@@ -61,20 +59,16 @@ export function stockResultToNumber(result: StockResult): number {
  * Helper: checks if stock is available for a given quantity request
  * Takes inventory mode into account
  */
-export function hasAvailableStock(
-  result: StockResult, 
-  requestedQty: number,
-  inventoryMode: 'none' | 'relaxed' | 'strict'
-): boolean {
+export function hasAvailableStock(result: StockResult, requestedQty: number, inventoryMode: 'none' | 'relaxed' | 'strict'): boolean {
   // No inventory mode: always available
   if (inventoryMode === 'none') return true
-  
+
   // Unlimited stock: always available
   if (result.type === 'unlimited') return true
-  
+
   // Relaxed mode: always allow (can go negative)
   if (inventoryMode === 'relaxed') return true
-  
+
   // Strict mode: must have enough stock
   return result.quantity >= requestedQty
 }

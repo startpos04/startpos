@@ -1,15 +1,15 @@
 /**
  * Model-Level Permission Mapping
- * 
+ *
  * This file maps Prisma model operations to required permissions.
  * Used by CRUD API and Transaction API to enforce authorization.
- * 
+ *
  * Architecture: Phase 0 - Authorization Foundation
  * Security: Prevents unauthorized access to data via generic APIs
  */
 
-import { Permissions } from './permission-keys'
 import type { PermissionKey } from './permission-keys'
+import { Permissions } from './permission-keys'
 
 /**
  * Maps Prisma model names to their required permissions for each operation.
@@ -181,11 +181,11 @@ export const MODEL_PERMISSIONS: Record<string, Partial<Record<string, Permission
 
 /**
  * Get the required permission for a model operation
- * 
+ *
  * @param model - Prisma model name (lowercase)
  * @param action - Prisma operation (findMany, create, update, etc.)
  * @returns Required permission key, or undefined if no permission required
- * 
+ *
  * @example
  * getRequiredPermission('product', 'create') // 'branch:create:product'
  * getRequiredPermission('branch', 'delete') // 'business:delete:branch'
@@ -196,12 +196,12 @@ export function getRequiredPermission(model: string, action: string): Permission
 
 /**
  * Check if a user has permission to perform an operation on a model
- * 
+ *
  * @param model - Prisma model name
  * @param action - Prisma operation
  * @param userPermissions - Array of user's permissions
  * @returns true if user has permission or no permission required, false otherwise
- * 
+ *
  * @example
  * hasModelPermission('product', 'create', userPermissions) // true/false
  */

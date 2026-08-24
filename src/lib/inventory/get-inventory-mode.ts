@@ -7,8 +7,8 @@
  */
 
 import { businessCollection } from '@/db/collections'
-import { DEFAULT_CHARACTERISTICS } from '@/lib/onboarding/defaults'
 import { projectToCharacteristics } from '@/lib/evolution/characteristics-engine'
+import { DEFAULT_CHARACTERISTICS } from '@/lib/onboarding/defaults'
 import type { InventoryMode } from '@/lib/onboarding/types'
 
 /**

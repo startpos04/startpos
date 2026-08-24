@@ -1,9 +1,9 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: allowing any type for flexibility */
 import { createServerFn } from '@tanstack/react-start'
 import { err, ok, type Result, ResultAsync } from 'neverthrow'
+import { getRequiredPermission, requiresEntitlementCheck } from '@/lib/authorization/model-permissions'
 import { getTenantPrisma } from '@/lib/prisma-client'
 import { authMiddleware } from '../better-auth/auth-middleware'
-import { getRequiredPermission, requiresEntitlementCheck } from '@/lib/authorization/model-permissions'
 // Import the shared execution engine directly from your crud-api file
 import { type DBPayload, executeOperation } from './crud-api'
 
@@ -45,10 +45,7 @@ interface TransactionInput {
  * Check subscription entitlements for batch operations
  * Validates that the business/branch has not exceeded their limits
  */
-async function checkBatchEntitlements(
-  context: any,
-  operations: DBPayload[],
-): Promise<{ allowed: boolean; reason?: string; operationIndex?: number }> {
+async function checkBatchEntitlements(context: any, operations: DBPayload[]): Promise<{ allowed: boolean; reason?: string; operationIndex?: number }> {
   const { rootPrisma } = await import('@/lib/prisma-client')
   const { businessId, branchId } = context.user
 
@@ -66,7 +63,7 @@ async function checkBatchEntitlements(
 
     // Count creates by model type to check against limits
     const createCounts: Record<string, number> = {}
-    
+
     for (const op of operations) {
       if (op.action === 'create') {
         createCounts[op.table] = (createCounts[op.table] || 0) + 1
@@ -75,9 +72,7 @@ async function checkBatchEntitlements(
 
     // Check branch limit
     if (createCounts.branch) {
-      const branchEntitlement = capabilities
-        .flatMap(c => c.entitlements)
-        .find(e => e.feature === 'BRANCHES' && e.quantityLimit !== null)
+      const branchEntitlement = capabilities.flatMap(c => c.entitlements).find(e => e.feature === 'BRANCHES' && e.quantityLimit !== null)
 
       if (branchEntitlement) {
         const currentBranchCount = await rootPrisma.branch.count({
@@ -95,9 +90,7 @@ async function checkBatchEntitlements(
 
     // Check employee limit
     if (createCounts.employee && branchId) {
-      const employeeEntitlement = capabilities
-        .flatMap(c => c.entitlements)
-        .find(e => e.feature === 'EMPLOYEES' && e.quantityLimit !== null)
+      const employeeEntitlement = capabilities.flatMap(c => c.entitlements).find(e => e.feature === 'EMPLOYEES' && e.quantityLimit !== null)
 
       if (employeeEntitlement) {
         const currentEmployeeCount = await rootPrisma.employee.count({
@@ -115,9 +108,7 @@ async function checkBatchEntitlements(
 
     // Check product limit
     if (createCounts.product && branchId) {
-      const productEntitlement = capabilities
-        .flatMap(c => c.entitlements)
-        .find(e => e.feature === 'PRODUCTS' && e.quantityLimit !== null)
+      const productEntitlement = capabilities.flatMap(c => c.entitlements).find(e => e.feature === 'PRODUCTS' && e.quantityLimit !== null)
 
       if (productEntitlement) {
         const tenantPrisma = getTenantPrisma(businessId, branchId)

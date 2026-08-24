@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import type { PermissionKey } from '@/lib/authorization/permission-keys'
 import { getDefaultPermissionsForRole } from '@/lib/authorization/role-permissions'
 import {
   fetchAllPermissions,
@@ -50,7 +51,7 @@ export function PermissionAssignmentDialog({ user, open, onOpenChange }: Permiss
 
   // Get role-based default permissions for this user
   const rolePermissions = useMemo(() => {
-    return new Set(getDefaultPermissionsForRole(user.role as any))
+    return new Set(getDefaultPermissionsForRole(user.role))
   }, [user.role])
 
   // Build permission status map
@@ -59,7 +60,7 @@ export function PermissionAssignmentDialog({ user, open, onOpenChange }: Permiss
 
     // Start with role defaults
     permissionsData.permissions.forEach(perm => {
-      if (rolePermissions.has(perm.key as any)) {
+      if (rolePermissions.has(perm.key as PermissionKey)) {
         statusMap.set(perm.key, 'role-default')
       }
     })
@@ -190,7 +191,7 @@ export function PermissionAssignmentDialog({ user, open, onOpenChange }: Permiss
 
         <div className='flex-1 flex flex-col gap-4 overflow-hidden'>
           {/* Search */}
-          <div className='relative flex-shrink-0'>
+          <div className='relative shrink-0'>
             <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground' />
             <Input placeholder='Search permissions...' value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className='pl-9' />
           </div>
@@ -220,6 +221,7 @@ export function PermissionAssignmentDialog({ user, open, onOpenChange }: Permiss
 
                             return (
                               <button
+                                type='button'
                                 key={permission.id}
                                 onClick={() => setSelectedPermission(permission)}
                                 className={`w-full text-left p-3 rounded-lg border transition-colors ${
@@ -233,7 +235,7 @@ export function PermissionAssignmentDialog({ user, open, onOpenChange }: Permiss
                                   </div>
                                   {status === 'custom-granted' && <ShieldCheck className='h-4 w-4 text-green-600 shrink-0' />}
                                   {status === 'custom-revoked' && <ShieldX className='h-4 w-4 text-red-600 shrink-0' />}
-                                  {status === 'role-default' && rolePermissions.has(permission.key as any) && (
+                                  {status === 'role-default' && rolePermissions.has(permission.key as PermissionKey) && (
                                     <Shield className='h-4 w-4 text-muted-foreground shrink-0' />
                                   )}
                                 </div>

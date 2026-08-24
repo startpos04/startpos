@@ -172,46 +172,6 @@ export function requireCapability(capability: CapabilityKey) {
     }
 
     // -----------------------------------------------------------------------
-    // Branch feature toggle gate — mirrors auth-server.ts branch toggle logic.
-    // Reads branch-scoped SystemConfig rows fetched above and maps them to
-    // disabled capability keys. Only applies when a branchId is in context.
-    // -----------------------------------------------------------------------
-    if (branchConfigs.length > 0) {
-      const rawBranchMap = Object.fromEntries(branchConfigs.map(c => [c.key, c.value]))
-      const parsedBranchConfigs = ConfigKeySchema.safeParse(rawBranchMap).data
-
-      if (parsedBranchConfigs) {
-        const branchDisabled = new Set<CapabilityKey>()
-
-        if (parsedBranchConfigs.ENABLE_ORDER === false) {
-          branchDisabled.add(Capabilities.CREATE_ORDER)
-          branchDisabled.add(Capabilities.EDIT_ACTIVE_ORDER)
-          branchDisabled.add(Capabilities.VIEW_ORDER_HISTORY)
-        }
-        if (parsedBranchConfigs.ENABLE_ORDER_TAB === false) {
-          branchDisabled.add(Capabilities.CREATE_ORDER)
-          branchDisabled.add(Capabilities.EDIT_ACTIVE_ORDER)
-        }
-        if (parsedBranchConfigs.ENABLE_TASK === false) {
-          branchDisabled.add(Capabilities.CREATE_TASK)
-        }
-        if (parsedBranchConfigs.ENABLE_CASH_RECONCILIATION === false) {
-          branchDisabled.add(Capabilities.START_VENDOR_SESSION)
-        }
-        if (parsedBranchConfigs.ENABLE_PRINT_RECEIPT === false) {
-          branchDisabled.add(Capabilities.PRINT_RECEIPT)
-        }
-
-        if (branchDisabled.size > 0) {
-          entitlementContext = {
-            ...entitlementContext,
-            branchDisabledFeatures: branchDisabled,
-          }
-        }
-      }
-    }
-
-    // -----------------------------------------------------------------------
     // Run the entitlement check
     // -----------------------------------------------------------------------
     const result = EntitlementEngine.check(capability, entitlementContext)

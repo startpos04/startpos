@@ -1,0 +1,161 @@
+name: CI - Quality Checks
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  quality-checks:
+    name: Type Check, Lint & Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm generate
+
+      - name: TypeScript Type Check
+        run: pnpm ts
+
+      - name: Biome Lint Check
+        run: pnpm biome check .
+
+      - name: Type Coverage Check
+        run: pnpm type-coverage
+
+      - name: Generate Type Coverage Report
+        if: always()
+        run: pnpm type-coverage:report
+        continue-on-error: true
+
+      - name: Upload Type Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: type-coverage-report
+          path: .type-coverage/
+          retention-days: 14
+
+      - name: Comment PR with Type Coverage
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            try {
+              const coverage = JSON.parse(fs.readFileSync('.type-coverage/coverage.json', 'utf8'));
+              const percentage = coverage.percentage.toFixed(2);
+              const total = coverage.total;
+              const typed = coverage.correctCount;
+              
+              const comment = `## 📊 Type Coverage Report
+              
+              **Coverage:** ${percentage}%
+              **Typed:** ${typed} / ${total} symbols
+              
+              ${percentage >= 95 ? '✅ Meets 95% threshold' : '⚠️ Below 95% threshold'}
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            } catch (error) {
+              console.log('Could not read type coverage report:', error.message);
+            }
+
+  unit-tests:
+    name: Unit Tests with Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm generate
+
+      - name: Run unit tests with coverage
+        run: pnpm coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-coverage
+          path: coverage/
+          retention-days: 14
+
+  integration-tests:
+    name: Integration Tests with Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm generate
+
+      - name: Run integration tests with coverage
+        run: pnpm coverage:integration
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-coverage
+          path: coverage/
+          retention-days: 14

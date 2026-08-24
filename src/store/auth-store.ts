@@ -1,8 +1,17 @@
 import { Store } from '@tanstack/react-store'
+import { z } from 'zod'
 import type { PermissionKey } from '@/lib/authorization/permission-keys'
 import type { ServerUser } from '@/lib/better-auth/auth-server'
 import { getAuthUser } from '@/lib/better-auth/auth-server'
+import { setLocalStorage } from '@/lib/json-utils'
 import type { Prettify } from '@/lib/types'
+
+// Schema for auth storage data
+const AuthStorageSchema = z.object({
+  user: z.object({
+    id: z.string(),
+  }),
+})
 
 // Authorization summary type - mirrors PermissionSummary from authorization-engine
 export interface AuthorizationSummary {
@@ -28,7 +37,7 @@ export const setUser = (user: ServerUser, authorization?: AuthorizationSummary |
     // Do not overwrite an already-authenticated user — prevents accidental
     // re-seeding when multiple components call setUser on the same session.
     if (state.isAuthenticated && state.user?.id) return state
-    return user ? { ...state, isAuthenticated: true, user, authorization: authorization ?? null } : defaultValue
+    return user ? ({ ...state, isAuthenticated: true as const, user, authorization: authorization ?? null } as AuthState) : defaultValue
   })
 }
 
@@ -39,16 +48,19 @@ export const setUser = (user: ServerUser, authorization?: AuthorizationSummary |
  * Unlike setUser, this bypasses the "already authenticated" guard.
  */
 export const refreshUser = (user: ServerUser, authorization?: AuthorizationSummary | null) => {
-  authStore.setState(state => ({
-    ...state,
-    isAuthenticated: true,
-    user,
-    authorization: authorization ?? null,
-  }))
+  authStore.setState(
+    state =>
+      ({
+        ...state,
+        isAuthenticated: true as const,
+        user,
+        authorization: authorization ?? null,
+      }) as AuthState,
+  )
 }
 
 export const resetAuth = () => {
-  authStore.setState(defaultValue)
+  authStore.setState(() => defaultValue)
 }
 
 /**
@@ -73,6 +85,13 @@ export const refreshAuthUser = async (): Promise<void> => {
 if (typeof window !== 'undefined') {
   authStore.subscribe(() => {
     const state = authStore.state
-    localStorage.setItem('my-app-storage', JSON.stringify({ user: { id: state.user.id } }))
+    const storageData = { user: { id: state.user.id } }
+
+    // Use type-safe localStorage setter
+    const success = setLocalStorage('my-app-storage', storageData, AuthStorageSchema)
+
+    if (!success) {
+      console.warn('[authStore] Failed to save auth state to localStorage')
+    }
   })
 }

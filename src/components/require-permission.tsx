@@ -141,7 +141,13 @@ export function RequirePermission({ permission, permissions, requireAll = false,
 // Full-page denied view (default fallback for route-level guards)
 // ---------------------------------------------------------------------------
 
-function PermissionDeniedView({ permission, permissions }: { permission?: PermissionKey; permissions?: PermissionKey[] }) {
+function PermissionDeniedView({
+  permission,
+  permissions: _permissions,
+}: {
+  permission?: PermissionKey | undefined
+  permissions?: PermissionKey[] | undefined
+}) {
   const label = permission ? (PERMISSION_LABELS[permission] ?? permission) : 'This action'
 
   return (
@@ -174,7 +180,13 @@ function PermissionDeniedView({ permission, permissions }: { permission?: Permis
 // Inline denied message (for section-level gates)
 // ---------------------------------------------------------------------------
 
-function PermissionDeniedInline({ permission, permissions }: { permission?: PermissionKey; permissions?: PermissionKey[] }) {
+function PermissionDeniedInline({
+  permission,
+  permissions: _permissions,
+}: {
+  permission?: PermissionKey | undefined
+  permissions?: PermissionKey[] | undefined
+}) {
   const label = permission ? (PERMISSION_LABELS[permission] ?? permission) : 'This action'
 
   return (

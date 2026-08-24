@@ -11,6 +11,7 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
+import type { UserPermission } from 'prisma/generated/prisma/browser'
 import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { requirePermission } from '../better-auth/permission-middleware'
@@ -20,6 +21,19 @@ import { crudAPI } from '../prisma-client/crud-api'
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+// UserPermission with permission relation included
+type UserPermissionWithPermission = UserPermission & {
+  permission: {
+    id: string
+    key: string
+    name: string
+    description: string | null
+    scope: string
+    action: string
+    resource: string
+  }
+}
 
 export interface UserWithPermissions {
   id: string
@@ -151,7 +165,7 @@ export const fetchUsersWithPermissions = createServerFn({ method: 'GET' })
         }
         return acc
       },
-      {} as Record<string, { grants: any[]; revokes: any[] }>,
+      {} as Record<string, { grants: UserPermissionWithPermission[]; revokes: UserPermissionWithPermission[] }>,
     )
 
     // Combine users with their permissions

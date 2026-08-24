@@ -9,14 +9,16 @@ import {
 } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
+import { safeJsonStringify } from '@/lib/json-utils'
 import { authStore } from '@/store/auth-store'
+import { type NotificationMetadata, NotificationMetadataSchema } from './notification-types'
 import type { ThresholdSeverity, UsageNotificationResult } from './usage-notification-types'
 
 interface SendNotificationParams {
   type: NotificationType
   title: string
   message: string
-  metadata?: Record<string, unknown>
+  metadata?: NotificationMetadata
   link: string | null
   /** Optional priority override. Defaults to the per-type value in DEFAULT_PRIORITY. */
   priority?: NotificationPriority
@@ -181,7 +183,7 @@ export const NotificationEngine = {
           type: NotificationType.USAGE_THRESHOLD,
           title: result.title,
           message: result.message,
-          metadata: result.payload as unknown as Record<string, unknown>,
+          metadata: result.payload as NotificationMetadata,
           link: result.payload.resource === 'TRANSACTIONS' ? '/billing' : '/billing/credits',
           priority: USAGE_THRESHOLD_PRIORITY[result.severity],
         },
@@ -197,6 +199,19 @@ export const NotificationEngine = {
   async send(receiverIds: string[], { type, title, message, metadata, link, priority }: SendNotificationParams) {
     const { user } = authStore.state
 
+    // Serialize metadata with type safety
+    let metadataJson = '{}'
+    if (metadata) {
+      const result = safeJsonStringify(metadata, NotificationMetadataSchema)
+      if (result.success) {
+        metadataJson = result.json
+      } else {
+        console.error('Failed to serialize notification metadata:', result.error)
+        // Fallback to basic JSON.stringify for backwards compatibility
+        metadataJson = JSON.stringify(metadata)
+      }
+    }
+
     const notificationsToInsert = receiverIds.map(receiverId => ({
       id: crypto.randomUUID(),
       userId: receiverId,
@@ -206,7 +221,7 @@ export const NotificationEngine = {
       message,
       link,
       isRead: false,
-      metadata: metadata ? JSON.stringify(metadata) : '{}',
+      metadata: metadataJson,
       businessId: user.business.id,
       branchId: user.branch.id,
       createdAt: new Date(),

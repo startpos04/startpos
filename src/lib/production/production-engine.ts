@@ -15,7 +15,7 @@
  * Reference: production-module-spec.md Phase 2.1
  */
 
-import type { Unit } from 'prisma/generated/prisma/browser'
+import type { ProductComponent, Unit } from 'prisma/generated/prisma/browser'
 import { InventoryType, MovementType, ProductionStatus } from 'prisma/generated/prisma/enums'
 import type {
   inventoryCollection as InventoryCollectionType,
@@ -26,6 +26,7 @@ import type {
 } from '@/db/collections'
 import { UnitEngine } from '@/lib/conversion/unit-engine'
 import { FIFOEngine } from '@/lib/costing/fifo-engine'
+import { getInventoryMode, InventoryPolicy } from '@/lib/inventory'
 import type { OperationResult } from '@/lib/result'
 import { opFail, opOk } from '@/lib/result'
 
@@ -144,7 +145,7 @@ export const ProductionEngine = {
 
     // For recipe-based production, verify variant has components
     if (usesRecipe) {
-      const components = [...productVariantCollection.values()].filter(v => v.components?.some((c: any) => c.hostId === variantId && !c.isAddon))
+      const components = [...productVariantCollection.values()].filter(v => v.components?.some((c: ProductComponent) => c.hostId === variantId && !c.isAddon))
 
       if (components.length === 0) {
         return opFail('PRECONDITION_FAILED', `Variant ${variant.name} has no recipe defined. Set productionUsesRecipe to false for recipe-free production.`)
@@ -192,7 +193,7 @@ export const ProductionEngine = {
     if (!variant) return null
 
     // Get recipe components (excluding addons)
-    const components = variant.components?.filter((c: any) => !c.isAddon) || []
+    const components = variant.components?.filter((c: ProductComponent) => !c.isAddon) || []
 
     if (components.length === 0) {
       return null // No recipe (recipe-free production)
@@ -287,12 +288,15 @@ export const ProductionEngine = {
       return opFail('NOT_FOUND', `Target variant ${order.targetVariantId} not found`)
     }
 
-    const components = variant.components?.filter((c: any) => !c.isAddon) || []
+    const components = variant.components?.filter((c: ProductComponent) => !c.isAddon) || []
     if (components.length === 0) {
       return opFail('PRECONDITION_FAILED', `Variant ${variant.name} has no recipe defined`)
     }
 
     let totalCost = 0
+
+    // Get inventory mode for validation
+    const inventoryMode = getInventoryMode(ctx.businessId)
 
     // Consume each material using FIFO
     for (const component of components) {
@@ -308,15 +312,30 @@ export const ProductionEngine = {
           costPrice: i.costPrice,
         }))
 
+      // Calculate total available quantity for this material
+      const totalAvailable = inventoryBatches.reduce((sum, batch) => sum + batch.quantity, 0)
+
+      // Get material details for error messages
+      const material = productVariantCollection.get(component.materialId)
+      const materialName = material?.name || material?.product?.name || 'Unknown material'
+
+      // INVENTORY MODE VALIDATION: Check if sufficient materials exist based on mode
+      // - strict mode: blocks production if insufficient materials
+      // - relaxed mode: allows production (materials can go negative for reconciliation)
+      // - none mode: skips validation (no inventory tracking)
+      try {
+        InventoryPolicy.validateProductionConsumption(component.materialId, totalAvailable, requiredQty, inventoryMode, materialName)
+      } catch (error) {
+        // Validation failed (strict mode with insufficient stock)
+        return opFail('PRECONDITION_FAILED', error instanceof Error ? error.message : `Insufficient inventory for ${materialName}`)
+      }
+
       // Use FIFO engine to calculate consumption
       let fifoResult
       try {
         fifoResult = FIFOEngine.consume(inventoryBatches, requiredQty)
       } catch (error) {
-        return opFail(
-          'PRECONDITION_FAILED',
-          `Insufficient inventory for ${component.material?.name || 'material'}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        )
+        return opFail('PRECONDITION_FAILED', `Insufficient inventory for ${materialName}: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
 
       // Deduct from inventory and create movements

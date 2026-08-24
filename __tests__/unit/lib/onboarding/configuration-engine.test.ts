@@ -2,11 +2,10 @@
  * configuration-engine.test.ts — Pattern A unit tests for ConfigurationEngine
  *
  * Coverage:
- *  - Safe defaults produce a LITE_POS config (all features off, EXCLUSIVE pricing)
+ *  - Safe defaults produce a LITE_POS config (EXCLUSIVE pricing)
  *  - F&B profile + VAT registered → INCLUSIVE pricing override
  *  - Wholesale profile → EXCLUSIVE pricing override
  *  - VAT registered → IS_VAT_REGISTERED=true in output
- *  - ENABLE_ORDER_TAB requires ENABLE_ORDER (conflict resolution)
  *  - enabledCapabilities list matches ENABLED resolved capabilities
  *  - deferredCapabilities list matches DEFERRED resolved capabilities
  *  - operationalProfile is preserved in output
@@ -55,14 +54,6 @@ describe('buildConfiguration — safe defaults', () => {
     expect(vat?.value).toBe('false')
   })
 
-  it('all ENABLE_* defaults are false', () => {
-    const config = buildConfiguration(chars(), [], 'LITE_POS')
-    for (const key of ['ENABLE_ORDER', 'ENABLE_ORDER_TAB', 'ENABLE_CASH_RECONCILIATION', 'ENABLE_TASK', 'ENABLE_PRINT_RECEIPT']) {
-      const entry = config.systemConfigs.find((c) => c.key === key)
-      expect(entry?.value, `${key} should default to false`).toBe('false')
-    }
-  })
-
   it('returns LITE_POS as operationalProfile', () => {
     const config = buildConfiguration(chars(), [], 'LITE_POS')
     expect(config.operationalProfile).toBe('LITE_POS')
@@ -80,13 +71,13 @@ describe('buildConfiguration — safe defaults', () => {
 // ---------------------------------------------------------------------------
 
 describe('buildConfiguration — capability outputs', () => {
-  it('ENABLED capability output overrides safe default', () => {
+  it('ENABLED capability output is written to systemConfigs', () => {
     const resolved = [
-      enabled('CREATE_ORDER', [{ key: 'ENABLE_ORDER', value: 'true' }]),
+      enabled('CREATE_ORDER', [{ key: 'SOME_CONFIG_KEY', value: 'true' }]),
     ]
     const config = buildConfiguration(chars({ paymentTiming: 'deferred' }), resolved, 'FOOD_AND_BEVERAGE')
-    const orderConfig = config.systemConfigs.find((c) => c.key === 'ENABLE_ORDER')
-    expect(orderConfig?.value).toBe('true')
+    const someConfig = config.systemConfigs.find((c) => c.key === 'SOME_CONFIG_KEY')
+    expect(someConfig?.value).toBe('true')
   })
 
   it('DEFERRED capability does not write outputs', () => {
@@ -94,15 +85,15 @@ describe('buildConfiguration — capability outputs', () => {
       deferred('CREATE_ORDER'),
     ]
     const config = buildConfiguration(chars(), resolved, 'LITE_POS')
-    const orderConfig = config.systemConfigs.find((c) => c.key === 'ENABLE_ORDER')
-    expect(orderConfig?.value).toBe('false') // still the safe default
+    // No capability-specific configs should be written for DEFERRED
+    expect(config.systemConfigs.every(c => c.key === 'PRICE_CONFIGURATION' || c.key === 'IS_VAT_REGISTERED')).toBe(true)
   })
 
   it('NOT_APPLICABLE capability does not write outputs', () => {
     const resolved = [notApplicable('CREATE_ORDER')]
     const config = buildConfiguration(chars(), resolved, 'LITE_POS')
-    const orderConfig = config.systemConfigs.find((c) => c.key === 'ENABLE_ORDER')
-    expect(orderConfig?.value).toBe('false')
+    // Only operational configs should exist
+    expect(config.systemConfigs.every(c => c.key === 'PRICE_CONFIGURATION' || c.key === 'IS_VAT_REGISTERED')).toBe(true)
   })
 
   it('enabledCapabilities lists only ENABLED ids', () => {
@@ -186,36 +177,6 @@ describe('buildConfiguration — profile overrides', () => {
     const vat = config.systemConfigs.find((c) => c.key === 'IS_VAT_REGISTERED')
     expect(price?.value).toBe('EXCLUSIVE')
     expect(vat?.value).toBe('true')
-  })
-})
-
-// ---------------------------------------------------------------------------
-// Conflict resolution
-// ---------------------------------------------------------------------------
-
-describe('buildConfiguration — conflict resolution', () => {
-  it('ENABLE_ORDER_TAB=true without ENABLE_ORDER=true → ORDER_TAB forced to false', () => {
-    // A capability that sets ORDER_TAB but not ORDER
-    const resolved = [
-      enabled('SOME_CAP', [{ key: 'ENABLE_ORDER_TAB', value: 'true' }]),
-    ]
-    const config = buildConfiguration(chars(), resolved, 'GENERAL')
-    const orderTab = config.systemConfigs.find((c) => c.key === 'ENABLE_ORDER_TAB')
-    expect(orderTab?.value).toBe('false')
-  })
-
-  it('ENABLE_ORDER=true + ENABLE_ORDER_TAB=true → both remain true', () => {
-    const resolved = [
-      enabled('ORDER_CAP', [
-        { key: 'ENABLE_ORDER', value: 'true' },
-        { key: 'ENABLE_ORDER_TAB', value: 'true' },
-      ]),
-    ]
-    const config = buildConfiguration(chars({ paymentTiming: 'deferred' }), resolved, 'FOOD_AND_BEVERAGE')
-    const order = config.systemConfigs.find((c) => c.key === 'ENABLE_ORDER')
-    const orderTab = config.systemConfigs.find((c) => c.key === 'ENABLE_ORDER_TAB')
-    expect(order?.value).toBe('true')
-    expect(orderTab?.value).toBe('true')
   })
 })
 

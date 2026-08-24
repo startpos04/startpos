@@ -61,6 +61,7 @@
  */
 
 import { createMiddleware } from '@tanstack/react-start'
+import { Role } from 'prisma/generated/prisma/enums'
 import { AuthorizationEngine } from '../authorization/authorization-engine'
 import type { PermissionKey } from '../authorization/permission-keys'
 
@@ -96,7 +97,7 @@ export class PermissionDeniedError extends Error {
  */
 export function requirePermission(permission: PermissionKey) {
   return createMiddleware().server(async ({ next, context }) => {
-    const user = (context as { user?: { id?: string; businessId?: string; role?: string } }).user
+    const user = (context as { user?: { id?: string; businessId?: string; role?: Role } }).user
 
     if (!user?.id || !user?.businessId) {
       throw new PermissionDeniedError('UNAUTHENTICATED', 'You must be logged in to perform this action.')
@@ -107,7 +108,7 @@ export function requirePermission(permission: PermissionKey) {
     // -----------------------------------------------------------------------
     const authorization = await AuthorizationEngine.buildSummary({
       userId: user.id,
-      role: user.role as any,
+      role: user.role ?? Role.CASHIER,
     })
 
     // -----------------------------------------------------------------------
@@ -153,7 +154,7 @@ export function requirePermission(permission: PermissionKey) {
  */
 export function requireAllPermissions(permissions: PermissionKey[]) {
   return createMiddleware().server(async ({ next, context }) => {
-    const user = (context as { user?: { id?: string; businessId?: string; role?: string } }).user
+    const user = (context as { user?: { id?: string; businessId?: string; role?: Role } }).user
 
     if (!user?.id || !user?.businessId) {
       throw new PermissionDeniedError('UNAUTHENTICATED', 'You must be logged in to perform this action.')
@@ -164,7 +165,7 @@ export function requireAllPermissions(permissions: PermissionKey[]) {
     // -----------------------------------------------------------------------
     const authorization = await AuthorizationEngine.buildSummary({
       userId: user.id,
-      role: user.role as any,
+      role: user.role ?? Role.CASHIER,
     })
 
     // -----------------------------------------------------------------------
@@ -216,7 +217,7 @@ export function requireAllPermissions(permissions: PermissionKey[]) {
  */
 export function requireAnyPermission(permissions: PermissionKey[]) {
   return createMiddleware().server(async ({ next, context }) => {
-    const user = (context as { user?: { id?: string; businessId?: string; role?: string } }).user
+    const user = (context as { user?: { id?: string; businessId?: string; role?: Role } }).user
 
     if (!user?.id || !user?.businessId) {
       throw new PermissionDeniedError('UNAUTHENTICATED', 'You must be logged in to perform this action.')
@@ -227,7 +228,7 @@ export function requireAnyPermission(permissions: PermissionKey[]) {
     // -----------------------------------------------------------------------
     const authorization = await AuthorizationEngine.buildSummary({
       userId: user.id,
-      role: user.role as any,
+      role: user.role ?? Role.CASHIER,
     })
 
     // -----------------------------------------------------------------------
@@ -284,10 +285,10 @@ export function requireAnyPermission(permissions: PermissionKey[]) {
  *     // ... proceed with deletion
  *   })
  */
-export async function checkPermission(userId: string, role: string, permission: PermissionKey): Promise<boolean> {
+export async function checkPermission(userId: string, role: Role, permission: PermissionKey): Promise<boolean> {
   const authorization = await AuthorizationEngine.buildSummary({
     userId,
-    role: role as any,
+    role,
   })
 
   return authorization.permissions.includes(permission)
@@ -303,10 +304,10 @@ export async function checkPermission(userId: string, role: string, permission: 
  *   [PermissionKeys.BUSINESS.MANAGE_BILLING, PermissionKeys.BUSINESS.VIEW_REPORTS]
  * )
  */
-export async function checkAllPermissions(userId: string, role: string, permissions: PermissionKey[]): Promise<boolean> {
+export async function checkAllPermissions(userId: string, role: Role, permissions: PermissionKey[]): Promise<boolean> {
   const authorization = await AuthorizationEngine.buildSummary({
     userId,
-    role: role as any,
+    role,
   })
 
   return permissions.every(p => authorization.permissions.includes(p))
@@ -322,10 +323,10 @@ export async function checkAllPermissions(userId: string, role: string, permissi
  *   [PermissionKeys.BUSINESS.MANAGE_BILLING, PermissionKeys.BUSINESS.VIEW_BILLING]
  * )
  */
-export async function checkAnyPermission(userId: string, role: string, permissions: PermissionKey[]): Promise<boolean> {
+export async function checkAnyPermission(userId: string, role: Role, permissions: PermissionKey[]): Promise<boolean> {
   const authorization = await AuthorizationEngine.buildSummary({
     userId,
-    role: role as any,
+    role,
   })
 
   return permissions.some(p => authorization.permissions.includes(p))
