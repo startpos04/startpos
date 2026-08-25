@@ -77,7 +77,7 @@ const mockAuthStore = {
         IS_VAT_REGISTERED: true,
         BUFFER_RATE: 0.02,
       },
-      complianceRegistry: {
+      compliance: {
         BIR_PTU_NUMBER: 'PTU123',
         BIR_PTU_ISSUED_AT: new Date(),
       },

@@ -1,0 +1,224 @@
+// =============================================================================
+// COMPOSABLE PRICING ENGINE - Phase 5
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// PricingCatalog — Phase 5a
+// A versioned snapshot of all feature prices at a point in time.
+// Creating a new catalog version lets the platform update prices without
+// retroactively changing grandfathered subscriptions.
+// ---------------------------------------------------------------------------
+model PricingCatalog {
+  id          String        @id @default(cuid())
+  version     Int           @unique // Monotonically increasing version number (v1, v2, …)
+  label       String // Human-readable label (e.g. "2026 Standard Pricing")
+  status      CatalogStatus @default(DRAFT)
+  activatedAt DateTime? // When the catalog became ACTIVE
+  archivedAt  DateTime? // When the catalog was superseded
+
+  featurePrices  FeaturePrice[]
+  bundleVersions FeatureBundleVersion[]
+  pricingQuotes  PricingQuote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@map("pricing_catalogs")
+}
+
+// ---------------------------------------------------------------------------
+// FeaturePrice — Phase 5a
+// Per-feature monthly price within a specific PricingCatalog version.
+// One row per (catalogId, featureKey) pair.
+// Decoupled from the Feature model so prices can change between catalog versions
+// without touching the Feature registry.
+// ---------------------------------------------------------------------------
+model FeaturePrice {
+  id         String         @id @default(cuid())
+  catalogId  String
+  catalog    PricingCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  featureKey String
+  feature    Feature        @relation(fields: [featureKey], references: [key], onDelete: Cascade)
+
+  // Pricing
+  monthlyPrice     Int // In cents. 0 = included at no extra charge.
+  annualPrice      Int? // Optional annual price override (cents). Null = use monthlyPrice × 12.
+  isIncludedInBase Boolean @default(false) // true = no charge even in a composable subscription
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([catalogId, featureKey])
+  @@index([catalogId])
+  @@map("feature_prices")
+}
+
+// ---------------------------------------------------------------------------
+// FeatureDependency — Phase 5a
+// Directed dependency edge: if a business selects `featureKey`, the engine
+// automatically adds `dependsOnKey` to the selection.
+//
+// Cycle detection is performed by PricingEngine.validateDependencies() on every
+// quote calculation. The entitlements seeder validates the graph post-seed.
+// ---------------------------------------------------------------------------
+model FeatureDependency {
+  id           String  @id @default(cuid())
+  featureKey   String
+  feature      Feature @relation("FeatureDependencies", fields: [featureKey], references: [key], onDelete: Cascade)
+  dependsOnKey String
+  dependsOn    Feature @relation("FeatureDependents", fields: [dependsOnKey], references: [key], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([featureKey, dependsOnKey])
+  @@index([featureKey])
+  @@map("feature_dependencies")
+}
+
+// ---------------------------------------------------------------------------
+// FeatureBundle — Phase 5a
+// A named bundle of features that qualifies for a group discount.
+// The bundle itself is versioned via FeatureBundleVersion so the composition
+// and discount can change across catalog versions.
+// ---------------------------------------------------------------------------
+model FeatureBundle {
+  id          String  @id @default(cuid())
+  key         String  @unique // Stable identifier (e.g. "CORE_OPS_BUNDLE")
+  label       String // Human-readable name (e.g. "Core Operations Bundle")
+  description String?
+  isActive    Boolean @default(true)
+
+  versions FeatureBundleVersion[]
+  items    FeatureBundleItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("feature_bundles")
+}
+
+// ---------------------------------------------------------------------------
+// FeatureBundleItem — Phase 5a
+// The features that make up a bundle. A feature may belong to multiple bundles.
+// ---------------------------------------------------------------------------
+model FeatureBundleItem {
+  id         String        @id @default(cuid())
+  bundleId   String
+  bundle     FeatureBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  featureKey String
+  feature    Feature       @relation(fields: [featureKey], references: [key], onDelete: Cascade)
+
+  @@unique([bundleId, featureKey])
+  @@index([bundleId])
+  @@map("feature_bundle_items")
+}
+
+// ---------------------------------------------------------------------------
+// FeatureBundleVersion — Phase 5a
+// The discount terms for a bundle within a specific PricingCatalog version.
+// Allows bundle discounts to change when a new catalog is published.
+// ---------------------------------------------------------------------------
+model FeatureBundleVersion {
+  id        String         @id @default(cuid())
+  bundleId  String
+  bundle    FeatureBundle  @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  catalogId String
+  catalog   PricingCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+
+  pricingType   BundlePricingType
+  discountValue Int // Interpretation depends on pricingType:
+  //   PERCENTAGE_DISCOUNT → basis points (e.g. 1500 = 15%)
+  //   FIXED_PRICE         → total price in cents
+  //   FLAT_DISCOUNT       → amount deducted in cents
+
+  // Minimum number of bundle items the selection must include for the bundle
+  // to qualify. Defaults to the full bundle item count (all-or-nothing).
+  minimumItems Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([bundleId, catalogId])
+  @@index([catalogId])
+  @@map("feature_bundle_versions")
+}
+
+// ---------------------------------------------------------------------------
+// PricingQuote — Phase 5a
+// A versioned pricing proposal generated by PricingEngine for a business.
+// Lifecycle: DRAFT → CALCULATED → SENT → ACCEPTED → CONVERTED
+//                                              ↓ EXPIRED / CANCELLED
+// ---------------------------------------------------------------------------
+model PricingQuote {
+  id         String @id @default(cuid())
+  businessId String
+
+  // The catalog version used when this quote was calculated.
+  catalogId String
+  catalog   PricingCatalog @relation(fields: [catalogId], references: [id])
+
+  status QuoteStatus @default(DRAFT)
+
+  // Totals (cents) — populated by PricingEngine.generateQuote()
+  subtotalMonthly Int @default(0) // Sum of feature prices (pre-discount, per month)
+  discountAmount  Int @default(0) // Total discount (bundle + promo, per month)
+  taxAmount       Int @default(0) // Tax (per month)
+  grandTotal      Int @default(0) // Monthly recurring total (excl. one-time fees)
+
+  annualTotal   Int? // Annual equivalent (grandTotal × 12 - annual savings), if applicable
+  annualSavings Int? // How much cheaper the annual option is vs 12× monthly
+
+  oneTimeFees Int @default(0) // Sum of ONE_TIME_FEE lines (shown separately)
+
+  // Validity window
+  validUntil DateTime? // Quote expires after this date if not accepted
+
+  // Who generated this quote
+  generatedBy String? // userId or "system"
+
+  // Optional negotiated note (for enterprise/partner quotes)
+  notes String? @db.Text
+
+  items PricingQuoteItem[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  acceptedAt  DateTime?
+  convertedAt DateTime?
+  expiredAt   DateTime?
+  cancelledAt DateTime?
+
+  @@index([businessId, status])
+  @@index([status, validUntil])
+  @@map("pricing_quotes")
+}
+
+// ---------------------------------------------------------------------------
+// PricingQuoteItem — Phase 5a
+// A single line item on a PricingQuote.
+// ---------------------------------------------------------------------------
+model PricingQuoteItem {
+  id      String       @id @default(cuid())
+  quoteId String
+  quote   PricingQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  lineType    QuoteLineType
+  featureKey  String? // Null for BUNDLE_DISCOUNT, PROMO_DISCOUNT, TAX, SURCHARGE lines
+  description String
+
+  // For FEATURE lines: unitAmount = FeaturePrice.monthlyPrice; quantity = 1 (monthly) or 12 (annual)
+  // For discount lines: unitAmount is negative; quantity = 1
+  quantity   Int
+  unitAmount Int // Cents. Negative for discount lines.
+  lineAmount Int // quantity × unitAmount (pre-computed for audit stability)
+
+  // Optional negotiated price override (enterprise/partner quotes).
+  // When set, this overrides unitAmount for the final total calculation.
+  negotiatedPrice Int?
+
+  sortOrder Int @default(0) // Display ordering within the quote
+
+  @@index([quoteId])
+  @@map("pricing_quote_items")
+}

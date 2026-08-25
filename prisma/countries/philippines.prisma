@@ -1,0 +1,79 @@
+// ============================================================================
+// PHILIPPINES COMPLIANCE
+// Bureau of Internal Revenue (BIR) Requirements
+// ============================================================================
+
+// === INJECT_INTO: Transaction ===
+snapshotBusinessTIN     String?  // BIR TIN "000-000-000-000"
+snapshotBranchSN        String?  // BIR Branch Serial Number
+snapshotBranchCode      String?  // Branch code suffix "00001"
+snapshotIsVATRegistered Boolean? // VAT registration status
+snapshotPTUNumber       String?  // Permit to Use
+snapshotRDOCode         String?  // Revenue District Office
+
+// Customer B2B
+snapshotCustomerTIN     String?  // Customer TIN for B2B
+
+// Senior Citizen / PWD (RA 9994, RA 10754)
+snapshotScPwdId         String?  // SC/PWD ID
+snapshotScPwdName       String?  // SC/PWD name
+snapshotScPwdDiscount   Int?     // Discount amount (cents)
+
+// Official Receipt buyer info
+snapshotBuyerName          String?
+snapshotBuyerTIN           String?
+snapshotBuyerAddress       String?
+snapshotBuyerBusinessStyle String?
+
+// === INJECT_INTO: Business ===
+// Relation to compliance table (added below as standalone model)
+philippinesCompliance   PhilippinesCompliance?
+
+// === INJECT_INTO: Branch ===
+// Relation to branch compliance table
+philippinesBranchCompliance PhilippinesBranchCompliance?
+
+// === STANDALONE MODELS ===
+
+model PhilippinesCompliance {
+  id             String    @id @default(cuid())
+  
+  // BIR requirements
+  birTin         String    // Tax Identification Number
+  birPtuNumber   String?   // Permit to Use
+  birPtuIssuedAt DateTime? // PTU issue date
+  birRdoCode     String?   // Revenue District Office
+  
+  // Business registration
+  secRegistration String?  // SEC registration
+  mayorPermit     String?  // Mayor's permit
+  dtiRegistration String?  // DTI registration
+  vatRegistrationDate DateTime?
+  
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String   @unique
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("philippines_compliance")
+}
+
+model PhilippinesBranchCompliance {
+  id String @id @default(cuid())
+  
+  // BIR branch requirements
+  branchSerialNumber String  // BIR-issued serial number
+  branchCode         String  // Branch suffix "00001"
+  ptuNumber          String? // Branch-specific PTU
+  rdoCode            String? // RDO for this branch
+  mayorPermit        String? // Branch permit
+  
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branchId String @unique
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("philippines_branch_compliance")
+}

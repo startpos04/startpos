@@ -1,0 +1,63 @@
+// =============================================================================
+// AUTHORIZATION SYSTEM (Phase 0)
+// =============================================================================
+
+// Permission definitions (mirrors Feature table pattern)
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique // e.g., "business:manage:billing"
+  name        String // e.g., "Manage Business Billing"
+  description String? // Human-readable description
+  scope       PermissionScope // business | branch | user
+  resource    String // e.g., "billing", "employees", "products"
+  action      PermissionAction // view | manage | create | edit | delete | export
+  category    String? // Grouping for UI (e.g., "Business Management", "Branch Operations")
+  isSystem    Boolean          @default(true) // System permissions can't be deleted
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  userPermissions UserPermission[]
+  roleDefaults    RoleDefaultPermission[]
+
+  @@index([scope, resource, action])
+  @@index([category])
+  @@map("permissions")
+}
+
+// User permissions (actual grants to users)
+model UserPermission {
+  id           String    @id @default(cuid())
+  userId       String
+  permissionId String
+  granted      Boolean   @default(true) // true = granted, false = explicitly revoked
+  grantedBy    String? // User ID who granted this permission
+  grantedAt    DateTime  @default(now())
+  expiresAt    DateTime? // Optional expiration for temporary grants
+  note         String? // Reason for grant/revoke
+
+  // Relations
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  grantor    User?      @relation("PermissionGrantor", fields: [grantedBy], references: [id])
+
+  @@unique([userId, permissionId])
+  @@index([userId, granted])
+  @@index([permissionId])
+  @@map("user_permissions")
+}
+
+// Role default permissions (what permissions each role gets by default)
+model RoleDefaultPermission {
+  id           String   @id @default(cuid())
+  role         Role
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  // Relations
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+  @@index([role])
+  @@map("role_default_permissions")
+}

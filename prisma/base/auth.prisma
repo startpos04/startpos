@@ -1,0 +1,51 @@
+// =============================================================================
+// AUTH MODELS - Session, Account, Verification
+// =============================================================================
+
+// --- AUTH SYSTEM ---
+
+// Need for better auth management, but can be extended for other purposes like tracking user sessions, devices, etc.
+model Session {
+  id         String   @id @default(cuid())
+  expiresAt  DateTime
+  token      String   @unique
+  ipAddress  String?
+  userAgent  String?
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId String?
+  branchId   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+// Need for better auth management, but can be extended for other purposes like tracking user accounts, providers, etc.
+model Account {
+  id         String  @id @default(cuid())
+  accountId  String
+  providerId String
+  userId     String
+  password   String?
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("accounts")
+}
+
+// Need for better auth management — used for email verification tokens and OAuth state.
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+
+  @@map("verifications")
+}

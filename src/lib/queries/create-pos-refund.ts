@@ -9,6 +9,7 @@ import {
 } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
+import { getComplianceAdapter } from '@/lib/compliance'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
 import { writeAudit } from '@/lib/server-fn/write-audit'
@@ -45,6 +46,26 @@ export type TransactionSnapshot = {
   orderId: string | null
   snapshotCustomerName: string | null
   complianceData: TransactionComplianceData
+  // Universal snapshots
+  snapshotBusinessName?: string
+  snapshotBranchName?: string
+  snapshotBranchAddress?: string
+  snapshotBranchSN?: string | null
+  snapshotCurrency?: string
+  // PH-specific snapshots
+  snapshotBusinessTIN?: string | null
+  snapshotBranchCode?: string | null
+  snapshotIsVATRegistered?: boolean | null
+  snapshotPTUNumber?: string | null
+  snapshotRDOCode?: string | null
+  snapshotCustomerTIN?: string | null
+  snapshotScPwdId?: string | null
+  snapshotScPwdName?: string | null
+  snapshotScPwdDiscount?: number | null
+  snapshotBuyerName?: string | null
+  snapshotBuyerTIN?: string | null
+  snapshotBuyerAddress?: string | null
+  snapshotBuyerBusinessStyle?: string | null
   payments: Array<{
     id: string
     method: string
@@ -107,6 +128,41 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
     // 1. Generate Refund IDs
     const transactionId = crypto.randomUUID()
 
+    // --- Phase 11: Use compliance adapter to copy transaction snapshots (country-agnostic) ---
+    const adapter = getComplianceAdapter()
+    
+    // Phase 11 Task 4: Validate compliance data before allowing refund
+    // SOFT VALIDATION: Warn but allow refunds for unregistered businesses
+    // Build ComplianceData from user.compliance for validation
+    const complianceData = {
+      businessTaxId: user.compliance.BIR_TIN || '',
+      businessPermitNumber: user.compliance.BIR_PTU_NUMBER,
+      businessPermitIssuedAt: user.compliance.BIR_PTU_ISSUED_AT,
+      businessTaxOfficeCode: user.compliance.BIR_RDO_CODE,
+      branchSerialNumber: user.compliance.BRANCH_SERIAL_NUMBER,
+      branchCode: user.compliance.BRANCH_CODE || user.branch.branchCode,
+      branchPermitNumber: user.compliance.BRANCH_PTU_NUMBER,
+      branchTaxOfficeCode: user.compliance.BRANCH_RDO_CODE,
+      isTaxRegistered: user.configs.IS_VAT_REGISTERED,
+    }
+    
+    const missingFields = adapter.validateCompliance(complianceData)
+    const hasIncompleteCompliance = missingFields.length > 0
+    
+    // Log warning for audit purposes if compliance is incomplete
+    if (hasIncompleteCompliance) {
+      console.warn('[POS Refund] Incomplete compliance data:', {
+        businessId: user.business.id,
+        missingFields,
+        message: 'Refund allowed but receipts may not be tax-compliant',
+      })
+    }
+    
+    const refundSnapshotFields = adapter.copyRefundSnapshot({
+      originalTransaction: snapshot,
+      currentUser: { name: user.name },
+    })
+
     // 2. Create Refund Transaction — built from the snapshot, not the collection
     transactionCollection.insert({
       id: transactionId,
@@ -128,18 +184,10 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
       orderId: snapshot.orderId ?? snapshot.id, // fall back to transaction id if orderId missing
       snapshotCustomerName: snapshot.snapshotCustomerName,
 
-      // 📸 PHASE 3 SNAPSHOTS: Inherit from original transaction (Patch B7)
-      // Refund receipt should match original sale receipt (business context preserved)
-      // EXCEPTION: Cashier field reflects who processed the refund
-      snapshotBusinessName: snapshot.snapshotBusinessName,
-      snapshotBranchName: snapshot.snapshotBranchName,
-      snapshotBranchAddress: snapshot.snapshotBranchAddress,
-      snapshotBranchSN: snapshot.snapshotBranchSN,
-      snapshotBusinessTIN: snapshot.snapshotBusinessTIN,
-      snapshotBranchCode: snapshot.snapshotBranchCode,
-      snapshotIsVATRegistered: snapshot.snapshotIsVATRegistered,
-      snapshotCurrency: snapshot.snapshotCurrency,
-      snapshotCashierName: user.name, // Fresh value - refund processor, NOT original cashier
+      // --- Phase 11: Country-specific snapshot fields from adapter ---
+      // The adapter automatically copies the correct fields based on deployment country
+      // and handles proper inversion (e.g., SC/PWD discount becomes negative)
+      ...refundSnapshotFields,
 
       complianceData: {
         ...snapshot.complianceData,

@@ -1,0 +1,187 @@
+// =============================================================================
+// PRODUCT MODELS - Category, Product, ProductVariant, ProductComponent, Unit, ProductUnit
+// =============================================================================
+
+// --- PRODUCT & RESOURCE ENGINE ---
+model Category {
+  id         String @id @default(cuid())
+  name       String
+  businessId String
+
+  products Product[]
+  business Business  @relation(fields: [businessId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([name, businessId])
+  @@index([deletedAt])
+  @@map("categories")
+}
+
+model Product {
+  id              String       @id @default(cuid())
+  name            String
+  image           String?
+  type            ResourceType @default(PHYSICAL_GOOD)
+  // Business Specific Flags
+  isAvailable     Boolean      @default(true)
+  hasExpiry       Boolean      @default(false) // Pharmacy/Food
+  requiresDeposit Boolean      @default(false) // LPG/Water/Bottles
+  depositAmount   Int?         @db.Integer // Deposit amount if requiresDeposit is true (in cents)
+  durationMinutes Int? // Service duration (Clinic/Spa)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  baseUnitId String
+  baseUnit   Unit   @relation("ProductBaseUnit", fields: [baseUnitId], references: [id])
+
+  variants ProductVariant[]
+
+  business   Business @relation(fields: [businessId], references: [id])
+  businessId String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt])
+  @@map("products")
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name          String?
+  image         String?
+  sku           String?              @unique
+  price         Int                  @db.Integer // Price charged to customers (in cents to avoid float issues)
+  costPrice     Int                  @default(0) @db.Integer // Cost to acquire/make the product (in cents)
+  attributeType VariantAttributeType @default(UNSPECIFIED)
+  taxCategory   TaxCategory          @default(STANDARD) // Broadened categorization for multi-country support
+
+  lowStockThreshold Int?
+
+  // Production Module — Phase 1: Batch preparation configuration
+  // Is this product batch-prepared in advance?
+  isBatchPrepared Boolean @default(false)
+
+  // For batch-prepared products, does production use a recipe?
+  productionUsesRecipe Boolean @default(true)
+
+  // Optional shelf life configuration (hours after production)
+  // Used for warnings only, not automatic waste
+  shelfLifeHours Int?
+
+  components ProductComponent[] @relation("ParentVariant")
+  usedIn     ProductComponent[] @relation("ComponentVariant")
+
+  inventory          Inventory[]
+  orderItems         OrderItem[]
+  inventoryMovements InventoryMovement[]
+  orderItemAddons    OrderItemAddon[]    @relation("AddonToOrderItem")
+  productUnits       ProductUnit[]
+  purchaseItems      PurchaseItem[]
+  goodsReceiptItems  GoodsReceiptItem[]
+
+  // Production Module relations
+  productionTargets   ProductionOrder[]     @relation("ProductionTarget")
+  productionMaterials ProductionOrderItem[] @relation("ProductionMaterial")
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([businessId, sku])
+  @@index([isBatchPrepared])
+  @@map("product_variants")
+}
+
+model ProductComponent {
+  id           String @id @default(cuid())
+  hostId       String
+  materialId   String
+  unitId       String
+  quantityUsed Float // How much of the material is used
+
+  // Behavior Flags
+  isAddon       Boolean @default(false) // True if it's a paid extra, False if it's a recipe ingredient
+  priceOverride Int?    @db.Integer // Price charged if isAddon is true (in cents)
+
+  unit     Unit           @relation(fields: [unitId], references: [id])
+  host     ProductVariant @relation("ParentVariant", fields: [hostId], references: [id])
+  material ProductVariant @relation("ComponentVariant", fields: [materialId], references: [id])
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([hostId, materialId, isAddon])
+  @@index([businessId])
+  @@map("product_components")
+}
+
+model Unit {
+  id           String   @id @default(cuid())
+  name         String
+  abbreviation String
+  type         UnitType
+
+  conversionFactor Float   @default(1)
+  isBaseUnit       Boolean @default(false)
+
+  products          Product[]           @relation("ProductBaseUnit")
+  components        ProductComponent[]
+  inventory         Inventory[]
+  movements         InventoryMovement[]
+  orderItems        OrderItem[]
+  productUnits      ProductUnit[]
+  purchaseItems     PurchaseItem[]
+  goodsReceiptItems GoodsReceiptItem[]
+
+  // Production Module relations
+  productionTargetUnits   ProductionOrder[]     @relation("ProductionTargetUnit")
+  productionMaterialUnits ProductionOrderItem[] @relation("ProductionMaterialUnit")
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([name, businessId])
+  @@unique([abbreviation, businessId])
+  @@index([deletedAt])
+  @@map("units")
+}
+
+model ProductUnit {
+  id             String  @id @default(cuid())
+  variantId      String
+  unitId         String
+  isPurchaseUnit Boolean @default(false)
+  isSalesUnit    Boolean @default(true)
+
+  conversionFactor Float @default(1)
+
+  variant ProductVariant @relation(fields: [variantId], references: [id])
+  unit    Unit           @relation(fields: [unitId], references: [id])
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@unique([variantId, unitId])
+  @@index([businessId])
+  @@map("product_units")
+}

@@ -42,11 +42,11 @@ export function createMockUser(overrides: Partial<ServerUser> = {}): ServerUser 
       ENABLE_ORDER: true,
       ...((overrides as any).configs ?? {}),
     },
-    complianceRegistry: {
+    compliance: {
       BIR_TIN: '123-456-789-000',
       BIR_PTU_NUMBER: 'PTU-2024-001',
       BIR_PTU_ISSUED_AT: '2024-01-01',
-      ...((overrides as any).complianceRegistry ?? {}),
+      ...((overrides as any).compliance ?? {}),
     },
     // F3: Default entitlement grants all capabilities (open-context / dev mode).
     // Tests that need to revoke a specific capability can spread over this default.

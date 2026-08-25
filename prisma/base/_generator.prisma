@@ -1,0 +1,13 @@
+// ============================================================================
+// GENERATOR AND DATASOURCE CONFIGURATION
+// This file is automatically included in all generated schemas
+// ============================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}

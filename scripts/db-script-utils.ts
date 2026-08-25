@@ -29,7 +29,7 @@ export function isProductionDatabaseTarget(dbUrl: string): boolean {
   }
 }
 
-export function isAutoConfirmEnabled(envKey?: 'SEED_AUTO_CONFIRM' | 'RESET_AUTO_CONFIRM'): boolean {
+export function isAutoConfirmEnabled(envKey?: 'SEED_AUTO_CONFIRM' | 'RESET_AUTO_CONFIRM' | 'SCHEMA_AUTO_CONFIRM'): boolean {
   const keys = [envKey, 'AUTO_CONFIRM'].filter((key): key is string => Boolean(key))
 
   return keys.some(key => {
@@ -69,7 +69,7 @@ export async function resolveSeedFolder(): Promise<string> {
   return folderInput.trim() || 'examples'
 }
 
-export async function confirmYesNo(prompt: string, envKey?: 'SEED_AUTO_CONFIRM' | 'RESET_AUTO_CONFIRM'): Promise<boolean> {
+export async function confirmYesNo(prompt: string, envKey?: 'SEED_AUTO_CONFIRM' | 'RESET_AUTO_CONFIRM' | 'SCHEMA_AUTO_CONFIRM'): Promise<boolean> {
   if (isAutoConfirmEnabled(envKey)) return true
 
   const answer = await askQuestion(prompt)

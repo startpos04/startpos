@@ -263,7 +263,7 @@ describe('createPosTransaction — happy path', () => {
 // ---------------------------------------------------------------------------
 
 describe('createPosTransaction — compliance data', () => {
-  it('stamps PTU number and issued date from complianceRegistry', async () => {
+  it('stamps PTU number and issued date from compliance data', async () => {
     const product = makeSaleProduct(11200)
     const input = makeSaleInput(product)
 

@@ -1,0 +1,96 @@
+// =============================================================================
+// TRANSACTION MODELS - Transaction, TransactionTaxLine
+// =============================================================================
+
+// --- TRANSACTIONS & SALES ---
+model Transaction {
+  id                 String             @id @default(cuid())
+  invoiceNo          String             @unique
+  type               TransactionType    @default(SALE)
+  priceConfiguration PriceConfiguration @default(INCLUSIVE)
+  invoiceType        InvoiceType        @default(SALES_INVOICE)
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  // --- REVENUE VS COST (Line Graph Source) ---
+  totalAmount        Int // Total charged to the customer (in cents)
+  totalCost          Int // Total cost of goods/services sold (in cents)
+  snapshotBufferRate Int // Snapshot of Branch buffer rate at time of transaction
+
+  taxAmount Int // Tax amount (in cents)
+  discount  Int @default(0) // Discount amount (in cents)
+
+  // Timing (Hotels/Resorts/Appointments)
+  startTime DateTime?
+  endTime   DateTime?
+
+  // Contextual Data
+  notes String? @db.Text // Clinical notes, room requests, etc.
+
+  // Dynamic Compliance & Regional Data Bucket
+  // Holds context metrics safely (e.g., PH Senior/PWD entries, custom buyer fields)
+  // PH Format: { "scPwdId": "123", "scPwdName": "Name", "scPwdDiscount": 500, "buyerTin": "000-00" }
+  complianceData Json? @default("{}")
+
+  customerId              String?
+  customer                Customer? @relation(fields: [customerId], references: [id])
+  snapshotCustomerName    String?
+  snapshotCustomerTaxId   String?
+  snapshotCustomerAddress String?
+
+  // --- SNAPSHOT FIELDS: Phase 3 (Business/Branch/Cashier) ---
+  // Captured at time of sale for accurate receipt reprints and BIR audit trail.
+  // NULL for transactions created before Phase 3 deployment.
+  snapshotBusinessName  String? // Business name at time of sale
+  snapshotBranchName    String? // Branch name at time of sale
+  snapshotBranchAddress String? // Branch address for receipt printing
+  snapshotCurrency      String? // Currency code (e.g., "PHP")
+  snapshotCashierName   String? // Cashier name at time of sale
+
+  // COUNTRY_FIELDS_HERE
+
+  cashierId             String
+  cashier               User                 @relation("CashierRelation", fields: [cashierId], references: [id])
+  providerId            String?
+  provider              User?                @relation("ServiceProvider", fields: [providerId], references: [id])
+  sessionId             String?
+  session               VendorSession?       @relation(fields: [sessionId], references: [id])
+  originalTransactionId String?
+  originalTransaction   Transaction?         @relation("RefundReference", fields: [originalTransactionId], references: [id])
+  refunds               Transaction[]        @relation("RefundReference")
+  payments              Payment[]
+  taxLines              TransactionTaxLine[] // Replaces hardcoded PH VAT breakdowns natively
+
+  // Phase 2 — Usage tracking FK (nullable; null for transactions before Phase 2 went live)
+  usageCounterId String?
+  usageCounter   UsageCounter? @relation(fields: [usageCounterId], references: [id], onDelete: SetNull)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  inventoryMovements InventoryMovement[]
+
+  @@index([businessId, branchId, createdAt])
+  @@index([cashierId])
+  @@index([usageCounterId])
+  @@map("transactions")
+}
+
+model TransactionTaxLine {
+  id            String      @id @default(cuid())
+  type          TaxLineType
+  category      TaxCategory
+  rate          Float // e.g., 12.0, 9.0
+  taxableAmount Int // Net amount subjected to this specific rate tier
+  taxAmount     Int // Computed tax component collected
+
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("transaction_tax_lines")
+}

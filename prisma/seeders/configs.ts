@@ -102,26 +102,55 @@ export async function configs(prisma: PrismaClient, options: { folder: string })
   }
 
   // =======================================================
-  // EXECUTION LAYER: COMPLIANCE REGISTRIES
+  // EXECUTION LAYER: COMPLIANCE TABLES (PH-specific)
   // =======================================================
-  console.info('⚖️ Syncing legal compliance registry details...')
+  console.info('⚖️ Syncing Philippines compliance details...')
+  
+  // Transform ComplianceRegistry CSV data to new table structure
+  const phComplianceData: Record<string, string> = {}
   for (const record of runtimeCompliance) {
-    await prisma.complianceRegistry.upsert({
-      where: {
-        key_businessId: {
-          key: record.key,
-          businessId: accounts.business.id,
-        },
-      },
-      update: { value: record.value },
-      create: {
-        key: record.key,
-        value: record.value,
-        businessId: accounts.business.id,
-        branchId: accounts.branch.id,
-      },
-    })
+    phComplianceData[record.key] = record.value
   }
+  
+  // Upsert PhilippinesCompliance (business-level)
+  await prisma.philippinesCompliance.upsert({
+    where: { businessId: accounts.business.id },
+    update: {
+      birTin: phComplianceData.BIR_TIN || '',
+      birPtuNumber: phComplianceData.BIR_PTU_NUMBER || null,
+      birPtuIssuedAt: phComplianceData.BIR_PTU_ISSUED_AT 
+        ? new Date(phComplianceData.BIR_PTU_ISSUED_AT) 
+        : null,
+      birRdoCode: phComplianceData.BIR_RDO_CODE || null,
+    },
+    create: {
+      businessId: accounts.business.id,
+      birTin: phComplianceData.BIR_TIN || '000-000-000-000',
+      birPtuNumber: phComplianceData.BIR_PTU_NUMBER || null,
+      birPtuIssuedAt: phComplianceData.BIR_PTU_ISSUED_AT 
+        ? new Date(phComplianceData.BIR_PTU_ISSUED_AT) 
+        : null,
+      birRdoCode: phComplianceData.BIR_RDO_CODE || null,
+    },
+  })
+  
+  // Upsert PhilippinesBranchCompliance (branch-level)
+  await prisma.philippinesBranchCompliance.upsert({
+    where: { branchId: accounts.branch.id },
+    update: {
+      branchSerialNumber: accounts.branch.serialNumber || 'SN000000000',
+      branchCode: accounts.branch.branchCode || '00001',
+      ptuNumber: phComplianceData.BRANCH_PTU_NUMBER || null,
+      rdoCode: phComplianceData.BRANCH_RDO_CODE || null,
+    },
+    create: {
+      branchId: accounts.branch.id,
+      branchSerialNumber: accounts.branch.serialNumber || 'SN000000000',
+      branchCode: accounts.branch.branchCode || '00001',
+      ptuNumber: phComplianceData.BRANCH_PTU_NUMBER || null,
+      rdoCode: phComplianceData.BRANCH_RDO_CODE || null,
+    },
+  })
 
-  console.info('✅ System configurations and country compliance targets successfully synced.')
+  console.info('✅ System configurations and Philippines compliance data successfully synced.')
 }

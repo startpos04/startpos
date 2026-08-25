@@ -1,0 +1,158 @@
+// =============================================================================
+// OPERATIONAL SYSTEMS - VendorSession, Payment, Notification, SequenceCounter, OperationalTask
+// =============================================================================
+
+// --- VENDOR SESSION SYSTEM ---
+// Added for tracking when a street food seller goes out and returns for reconciliation.
+model VendorSession {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  startTime    DateTime      @default(now())
+  endTime      DateTime?
+  openingCash  Int           @default(0)
+  closingCash  Int?
+  expectedCash Int?
+  verifiedCash Int?
+  status       SessionStatus @default(OPEN)
+  notes        String?
+
+  transactions Transaction[]
+
+  operationalTask   OperationalTask @relation(fields: [operationalTaskId], references: [id])
+  operationalTaskId String          @unique
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  @@index([businessId, branchId])
+  @@map("vendor_sessions")
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  amount      Int // The actual amount applied to the bill
+  tendered    Int // The raw amount handed over (for cash)
+  change      Int // Tendered - amount
+  method      PaymentMethod @default(CASH)
+  platform    String?
+  referenceNo String? // Reference # for GCash/Maya/Cards
+
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([businessId, branchId])
+  @@map("payments")
+}
+
+// --- Notifications ---
+model Notification {
+  id       String               @id @default(cuid())
+  title    String
+  message  String
+  type     NotificationType
+  priority NotificationPriority @default(MEDIUM)
+  isRead   Boolean              @default(false)
+  link     String? // URL or App Route to redirect the user (e.g., /orders/123)
+  metadata Json
+
+  // Targeting
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Scoping (Important for Multi-tenancy)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String?
+  branch     Branch?  @relation(fields: [branchId], references: [id])
+
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime? // Soft-archive after retention period (see P-NOTIF archival policy)
+
+  @@index([userId, isRead, archivedAt])
+  @@index([businessId])
+  @@map("notifications")
+}
+
+model SequenceCounter {
+  id         String       @id @default(cuid())
+  businessId String
+  branchId   String
+  type       SequenceType // Changed from String to SequenceType
+
+  // Tracking time-based resets
+  year  Int
+  month Int? // Optional: for monthly reporting
+  day   Int? // Optional: Only used if type == ORDER
+
+  lastNumber Int @default(0)
+
+  business Business @relation(fields: [businessId], references: [id])
+  branch   Branch   @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([businessId, branchId, type, year, month, day])
+  @@map("sequence_counters")
+}
+
+// --- TASKS MANAGEMENT ---
+model OperationalTask {
+  id      String     @id @default(cuid())
+  type    TaskType
+  status  TaskStatus @default(DRAFT)
+  notes   String?
+  dueDate DateTime?
+
+  // Accountability
+  creatorId  String?
+  creator    User?   @relation("TaskCreator", fields: [creatorId], references: [id])
+  approverId String?
+  approver   User?   @relation("TaskApprover", fields: [approverId], references: [id])
+  clerkId    String?
+  clerk      User?   @relation("TaskClerk", fields: [clerkId], references: [id])
+  reviewerId String?
+  reviewer   User?   @relation("TaskReviewer", fields: [reviewerId], references: [id])
+  cancelerId String?
+  canceler   User?   @relation("TaskCanceler", fields: [cancelerId], references: [id])
+
+  // The "Context"
+  // Store variantId, purchaseId, vendorSessionId, etc., inside this JSON
+  // Example: { "variantId": "123", "source": "Backroom" }
+  metadata Json? @default("{}")
+
+  approvedAt   DateTime?
+  inProgressAt DateTime?
+  fulfilledAt  DateTime?
+  reviewedAt   DateTime?
+  canceledAt   DateTime?
+
+  purchases          Purchase[]
+  vendorSessions     VendorSession[]
+  inventoryMovements InventoryMovement[]
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, branchId, status])
+  @@index([type])
+  @@index([clerkId])
+  @@index([reviewerId])
+  @@map("operational_tasks")
+}

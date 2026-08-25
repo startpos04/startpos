@@ -1,0 +1,65 @@
+// =============================================================================
+// GOODS RECEIPT SYSTEM - GoodsReceipt, GoodsReceiptItem
+// =============================================================================
+
+// E1: Goods Receipt Note — the formal record of a specific physical delivery event.
+// One Purchase can have multiple GRNs (partial deliveries).
+// Inventory is only credited when a GRN transitions PENDING → CONFIRMED.
+model GoodsReceipt {
+  id         String             @id @default(cuid())
+  purchaseId String
+  purchase   Purchase           @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  status     GoodsReceiptStatus @default(PENDING)
+  notes      String?
+
+  receivedById String
+  receivedBy   User   @relation("GoodsReceiptReceiver", fields: [receivedById], references: [id])
+
+  items GoodsReceiptItem[]
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+
+  @@index([businessId, branchId, purchaseId])
+  @@index([status])
+  @@map("goods_receipts")
+}
+
+// E2: Per-line quantities for a GRN. Supports partial receipts and discrepancy recording.
+// orderedQty  — quantity on the original PO line item
+// receivedQty — quantity physically counted at the time of receipt
+// Discrepancy = orderedQty - receivedQty (positive = short delivery)
+model GoodsReceiptItem {
+  id        String       @id @default(cuid())
+  receiptId String
+  receipt   GoodsReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  purchaseItemId String
+  purchaseItem   PurchaseItem   @relation(fields: [purchaseItemId], references: [id])
+  variantId      String
+  variant        ProductVariant @relation(fields: [variantId], references: [id])
+  unitId         String
+  unit           Unit           @relation(fields: [unitId], references: [id])
+
+  orderedQty  Float // Quantity on the original PO line
+  receivedQty Float // Quantity physically counted at receipt time
+  unitCost    Int // Cost per unit at time of receipt (carries over from PO, may be adjusted)
+
+  discrepancyNotes String? // Explanation if receivedQty != orderedQty
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  @@index([receiptId])
+  @@index([businessId, branchId])
+  @@map("goods_receipt_items")
+}

@@ -1,0 +1,54 @@
+// ============================================================================
+// SINGAPORE COMPLIANCE
+// Inland Revenue Authority of Singapore (IRAS) Requirements
+// ============================================================================
+
+// === INJECT_INTO: Transaction ===
+snapshotGSTNumber String?  // GST Registration Number
+snapshotUEN       String?  // Unique Entity Number
+snapshotGSTRate   Float?   // GST rate at time of sale
+
+// Customer B2B
+snapshotCustomerGSTNumber String?
+snapshotCustomerUEN       String?
+
+// === INJECT_INTO: Business ===
+singaporeCompliance SingaporeCompliance?
+
+// === INJECT_INTO: Branch ===
+singaporeBranchCompliance SingaporeBranchCompliance?
+
+// === STANDALONE MODELS ===
+
+model SingaporeCompliance {
+  id String @id @default(cuid())
+  
+  // IRAS requirements
+  gstRegistrationNumber String  // GST number
+  uen                   String  // UEN
+  acraNumber            String? // ACRA registration
+  gstRegistrationDate   DateTime?
+  
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String   @unique
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("singapore_compliance")
+}
+
+model SingaporeBranchCompliance {
+  id String @id @default(cuid())
+  
+  branchGSTNumber String?
+  branchUEN       String?
+  
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branchId String @unique
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("singapore_branch_compliance")
+}

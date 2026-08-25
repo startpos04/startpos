@@ -1,6 +1,7 @@
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { useStore } from '@tanstack/react-store'
 import { useCapability } from '@/hooks/use-capability'
+import { getComplianceLines, getReceiptFooterText, getTaxRateLabel } from '@/lib/compliance/receipt-helper'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
@@ -50,6 +51,11 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
   const { transaction, payments } = result.data
   const payment = payments[0]
 
+  // --- Phase 11: Get country-agnostic compliance lines for receipt header ---
+  const complianceLines = getComplianceLines(user.compliance, user.branch.serialNumber)
+  const footerText = getReceiptFooterText()
+  const taxLabel = getTaxRateLabel()
+
   // --- ACCURATE HEIGHT CALCULATION ---
   const vPadding = PADDING * 2
 
@@ -84,8 +90,11 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
         <View style={styles.header}>
           <Text style={styles.storeName}>{user?.branch.name}</Text>
           <Text style={styles.address}>{user?.branch.address}</Text>
-          <Text style={styles.address}>VAT REG TIN: {user?.complianceRegistry?.BIR_TIN}</Text>
-          <Text style={styles.address}>SN: {user?.branch.serialNumber}</Text>
+          {complianceLines.map((line, index) => (
+            <Text key={index} style={styles.address}>
+              {line.label}: {line.value}
+            </Text>
+          ))}
         </View>
 
         <View style={styles.divider} />
@@ -142,11 +151,11 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
 
         <View style={styles.totalsContainer}>
           <View style={styles.infoRow}>
-            <Text>Vatable Sales</Text>
+            <Text>Taxable Sales</Text>
             <Text>{PriceEngine.toDollars(transaction.totalAmount / (1 + (user.configs?.VAT_RATE ?? 0.12))).toFixed(2)}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text>VAT Amount ({(user.configs?.VAT_RATE ?? 0.12) * 100}%)</Text>
+            <Text>{taxLabel} Amount ({(user.configs?.VAT_RATE ?? 0.12) * 100}%)</Text>
             <Text>{PriceEngine.toDollars(transaction.taxAmount).toFixed(2)}</Text>
           </View>
           <View style={[styles.infoRow, styles.totalText]}>
@@ -172,9 +181,9 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
         </View>
 
         <View style={styles.footer}>
-          <Text>THIS SERVES AS YOUR SALES INVOICE</Text>
-          <Text>Thank you for shopping!</Text>
-          <Text>Please come again.</Text>
+          {footerText.map((line, index) => (
+            <Text key={index}>{line}</Text>
+          ))}
         </View>
       </Page>
 

@@ -1,0 +1,216 @@
+// =============================================================================
+// INVENTORY MODELS - Location, Inventory, InventoryMovement, Customer, Supplier, Purchase, PurchaseItem, GoodsReceipt, GoodsReceiptItem, ProductionOrder, ProductionOrderItem
+// =============================================================================
+
+// --- INVENTORY & BATCH TRACKING ---
+model Location {
+  id          String  @id @default(cuid())
+  name        String // e.g., "Warehouse A", "Main Counter Freezer", "Display Rack 1"
+  description String?
+  contact     String?
+  address     String?
+
+  inventories        Inventory[]
+  inventoryMovements InventoryMovement[]
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([name, branchId])
+  @@index([deletedAt])
+  @@map("locations")
+}
+
+model Inventory {
+  id          String         @id @default(cuid())
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id])
+  unitId      String
+  unit        Unit           @relation(fields: [unitId], references: [id])
+  batchNumber String?
+  expiryDate  DateTime?
+  quantity    Float
+  costPrice   Int            @default(0) // Cost per unit (in cents) for this specific batch
+
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  // Production Module — Phase 1: Batch preparation tracking
+  inventoryType InventoryType @default(RAW_MATERIAL) // Distinguish raw materials from finished goods
+
+  // Link to production batch if this is finished goods
+  productionOrderId String?
+  productionOrder   ProductionOrder? @relation(fields: [productionOrderId], references: [id])
+
+  // When was this batch produced (for FIFO and shelf life tracking)
+  producedAt DateTime?
+
+  // Optimistic locking for concurrency control (CRITICAL for POS sales)
+  // Prevents race condition when two terminals sell last units simultaneously
+  // See CONCURRENCY-CONTROL-REQUIREMENT.md for details
+  version Int @default(1)
+
+  inventoryMovements InventoryMovement[] @relation("SourceInventory")
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branch     Branch   @relation(fields: [branchId], references: [id])
+  branchId   String
+
+  lastRestocked DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([businessId, branchId, variantId])
+  @@index([inventoryType, branchId])
+  @@map("inventory")
+}
+
+model InventoryMovement {
+  id        String         @id @default(cuid())
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  type      MovementType
+  quantity  Float
+  reason    String?
+  unitId    String
+  unit      Unit           @relation(fields: [unitId], references: [id])
+
+  inventoryId String
+  inventory   Inventory @relation("SourceInventory", fields: [inventoryId], references: [id])
+
+  targetBranchId String?
+  targetBranch   Branch? @relation("DestinationBranch", fields: [targetBranchId], references: [id])
+
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  transactionId String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+
+  purchaseId String?
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id])
+
+  // Production Module — Phase 1: Link to production order
+  productionOrderId String?
+  productionOrder   ProductionOrder? @relation(fields: [productionOrderId], references: [id])
+
+  operationalTask   OperationalTask? @relation(fields: [operationalTaskId], references: [id])
+  operationalTaskId String?
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation("SourceBranch", fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, branchId, variantId, createdAt])
+  @@map("inventory_movements")
+}
+
+// --- CUSTOMER RECORDS ---
+model Customer {
+  id          String    @id @default(cuid())
+  name        String
+  email       String?   @unique
+  phone       String?
+  dateOfBirth DateTime?
+
+  taxId   String? // Abstracted from tin (Required for Corporate Sales globally)
+  address String? // Required for large-value billing tracking across borders
+
+  transactions Transaction[]
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt])
+  @@map("customers")
+}
+
+// --- PURCHASING (EXPENDITURE TRACKING) ---
+model Supplier {
+  id        String  @id @default(cuid())
+  name      String // e.g., "San Miguel Corp", "Mega Q-Mart Wholesale"
+  taxId     String? // Supplier's TIN for cost-side tax audit compliance
+  contactNo String?
+  email     String?
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  purchases Purchase[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([name, businessId]) // Clean tenant scope
+  @@map("suppliers")
+}
+
+model Purchase {
+  id         String         @id @default(cuid())
+  purchaseId String
+  status     PurchaseStatus @default(RECEIVED) // RECEIVED preserves backward compat for existing records
+  totalCost  Int // Total cost of the purchase (in cents)
+  notes      String?
+
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  items              PurchaseItem[]
+  goodsReceipts      GoodsReceipt[]
+  inventoryMovements InventoryMovement[]
+  operationalTask    OperationalTask?    @relation(fields: [operationalTaskId], references: [id])
+  operationalTaskId  String?
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id         String         @id @default(cuid())
+  purchaseId String
+  purchase   Purchase       @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  variantId  String
+  variant    ProductVariant @relation(fields: [variantId], references: [id])
+  quantity   Float
+  unitId     String
+  unit       Unit           @relation(fields: [unitId], references: [id])
+  unitCost   Int
+
+  goodsReceiptItems GoodsReceiptItem[]
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  @@index([businessId, branchId])
+  @@map("purchase_items")
+}
+
+// NOTE: GoodsReceipt, GoodsReceiptItem, ProductionOrder, and ProductionOrderItem
+// models are now in dedicated base files: base/goods-receipt.prisma and base/production.prisma

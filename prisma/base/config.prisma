@@ -1,0 +1,60 @@
+// =============================================================================
+// CONFIGURATION MODELS - ConfigurationDefinition, Configuration
+// =============================================================================
+
+// --- CONFIGURATION SYSTEM (Three-Pillar Architecture) ---
+
+// Configuration Definition (Base Layer) - Defines available configurations
+model ConfigurationDefinition {
+  id              String              @id // Same as key for simplicity (e.g., "PRIMARY_TAX_RATE")
+  key             ConfigurationKey    @unique
+  label           String              // Display name
+  description     String?             // Help text
+  category        ConfigCategory      // TAX, OPERATIONAL, LOCALE, etc.
+  dataType        ConfigDataType      // STRING, NUMBER, BOOLEAN, JSON
+  defaultValue    String              // Platform default
+  scope           ConfigurationScope  // Where this config can be set
+  required        Boolean             @default(false)
+  validation      Json?               // Validation rules (min, max, regex, enum values)
+  
+  // Country-specific overrides
+  countryCode     String?             // If null, applies to all countries
+  
+  configurations  Configuration[] // References from actual config instances
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  @@map("configuration_definitions")
+}
+
+// Configuration (State Layer) - Actual configuration values at any scope (Platform/Business/Branch/User)
+model Configuration {
+  id             String                   @id @default(cuid())
+  key            ConfigurationKey
+  value          String                   // Stored as a string representation (e.g., "20", "true", "INCLUSIVE", "en-PH")
+  scope          ConfigurationScope
+  
+  // Reference to definition (for metadata, validation)
+  definition     ConfigurationDefinition  @relation(fields: [key], references: [key])
+
+  userId         String?
+  user           User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  businessId     String?
+  business       Business?                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId       String?
+  branch         Branch?                  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@unique([key, businessId, scope])
+  @@unique([key, branchId, scope])
+  @@unique([key, userId, scope])
+  @@index([key])
+  @@map("configurations")
+}
+
+// NOTE: Country-specific compliance tables (PhilippinesCompliance, SingaporeCompliance, UsaCompliance)
+// are now generated from countries/*.prisma files and injected as standalone models

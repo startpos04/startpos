@@ -5,6 +5,7 @@ import { type ComplianceKey, type ConfigurationKey, Role } from 'prisma/generate
 import { AuthorizationEngine } from '../authorization/authorization-engine'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 import { BillingModel, type LifecycleThresholds } from '../billing/types'
+import { getComplianceAdapter, getComplianceIncludes } from '../compliance'
 import { Capabilities, type CapabilityKey } from '../entitlement/capability-keys'
 import { EntitlementEngine } from '../entitlement/entitlement-engine'
 import type { EntitlementOverrideDTO } from '../entitlement/entitlement-types'
@@ -41,21 +42,31 @@ type DBUser = Prisma.UserGetPayload<{
   }
   include: { configurations: true }
 }>
-type DBBusiness = Prisma.BusinessGetPayload<{ include: { complianceRegistry: true; configurations: true } }>
+
+// Use adapter to get country-specific includes dynamically
+const complianceIncludes = getComplianceIncludes()
+
+type DBBusiness = Prisma.BusinessGetPayload<{ 
+  include: typeof complianceIncludes.business & { configurations: true } 
+}>
+
 type DBBranch = Prisma.BranchGetPayload<{
   select: {
     id: true
     name: true
     address: true
     businessId: true
+    serialNumber: true
+    branchCode: true
     createdAt: true
     updatedAt: true
     deletedAt: true
     offlineTerminalId: true
-    complianceRegistry: true
     configurations: true
   }
+  include: typeof complianceIncludes.branch
 }>
+
 type DBVendorSession = Prisma.VendorSessionGetPayload<object>
 type DBLocalOverrides = Prisma.UserGetPayload<{
   select: { id: true; name: true; email: true; role: true }
@@ -92,7 +103,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
 
       prisma.business.findUnique({
         where: { id: businessId },
-        include: { complianceRegistry: true, configurations: true },
+        include: { ...complianceIncludes.business, configurations: true },
       }) as Promise<DBBusiness | null>,
 
       prisma.branch.findUnique({
@@ -102,13 +113,15 @@ export const getAuthUser = createServerFn({ method: 'GET' })
           name: true,
           address: true,
           businessId: true,
+          serialNumber: true,
+          branchCode: true,
           createdAt: true,
           updatedAt: true,
           deletedAt: true,
           offlineTerminalId: true, // Phase 2: offline checkout restriction
-          complianceRegistry: true,
           configurations: true,
         },
+        include: complianceIncludes.branch,
       }) as Promise<DBBranch | null>,
 
       prisma.vendorSession.findFirst({
@@ -137,19 +150,37 @@ export const getAuthUser = createServerFn({ method: 'GET' })
     }
 
     const { configurations: userConfigs, ...user } = userData
-    const { configurations: businessConfigs, complianceRegistry: businessCompliance, ...business } = businessData
-    const { configurations: branchConfigs, complianceRegistry: branchCompliance, ...branch } = branchData
+    const { configurations: businessConfigs, ...business } = businessData
+    const { configurations: branchConfigs, ...branch } = branchData
 
     // These objects are now cleanly typed maps instead of plain key-value targets
     const mappedUserConfigs = transformKvPairs<ConfigurationKey, (typeof userConfigs)[number]>(userConfigs)
     const mappedBusinessConfigs = transformKvPairs<ConfigurationKey, (typeof businessConfigs)[number]>(businessConfigs)
     const mappedBranchConfigs = transformKvPairs<ConfigurationKey, (typeof branchConfigs)[number]>(branchConfigs)
 
-    const mappedBusinessCompliance = transformKvPairs<ComplianceKey, (typeof businessCompliance)[number]>(businessCompliance)
-    const mappedBranchCompliance = transformKvPairs<ComplianceKey, (typeof branchCompliance)[number]>(branchCompliance)
+    // Phase 11: Use compliance adapter to extract compliance data (country-agnostic)
+    // The adapter automatically handles Philippines, Singapore, or USA based on DEPLOYMENT_COUNTRY
+    const adapter = getComplianceAdapter()
+    const complianceData = adapter.extractComplianceData({
+      business: business as any,
+      branch: branch as any,
+      user: user as any,
+    })
+    
+    // Transform to legacy compliance format for backwards compatibility
+    // This allows existing code to continue working while we migrate to adapters
+    const compliance = {
+      BIR_TIN: complianceData.businessTaxId,
+      BIR_PTU_NUMBER: complianceData.businessPermitNumber ?? '',
+      BIR_PTU_ISSUED_AT: complianceData.businessPermitIssuedAt ?? '',
+      BIR_RDO_CODE: complianceData.businessTaxOfficeCode ?? '',
+      BRANCH_SERIAL_NUMBER: complianceData.branchSerialNumber ?? '',
+      BRANCH_CODE: complianceData.branchCode ?? '',
+      BRANCH_PTU_NUMBER: complianceData.branchPermitNumber ?? '',
+      BRANCH_RDO_CODE: complianceData.branchTaxOfficeCode ?? '',
+    }
 
     const mergedConfigs = _.merge({}, mappedBusinessConfigs, mappedBranchConfigs, mappedUserConfigs)
-    const mergedComplianceRegistry = _.merge({}, mappedBusinessCompliance, mappedBranchCompliance)
 
     // -------------------------------------------------------------------------
     // Entitlement Summary — Phase 0 (expanded from Phase F)
@@ -547,12 +578,12 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       branch,
       vendorSession,
       configs: parsedConfigs,
-      complianceRegistry: (ComplianceKeySchema.safeParse(mergedComplianceRegistry).data ??
+      compliance: (ComplianceKeySchema.safeParse(compliance).data ??
         ComplianceKeySchema.parse({
           BIR_TIN: '',
           BIR_PTU_NUMBER: '',
           BIR_PTU_ISSUED_AT: '',
-          ...mergedComplianceRegistry,
+          ...compliance,
         })) as ComplianceKeyTypes,
       landingPage: RoleLandingPages[userData.role] ?? '/',
       localOverrides: localOverrides || [],

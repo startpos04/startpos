@@ -5,6 +5,7 @@ dist-ssr
 *.local
 count.txt
 .env
+.env.config
 .nitro
 .tanstack
 .wrangler
@@ -13,6 +14,7 @@ count.txt
 todos.json
 
 /prisma/generated
+/prisma/schema.prisma
 
 # Playwright
 /test-results/

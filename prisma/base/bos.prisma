@@ -1,0 +1,162 @@
+// =============================================================================
+// BUSINESS OPERATING SYSTEM (BOS) - Phase 1
+// Capability lifecycle, event log, and recalculation queue
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// BusinessCapabilityState
+// Tracks the lifecycle state of each capability per business.
+// Populated at registration (ENABLED vs DEFERRED based on CapabilityResolver).
+// Updated by CapabilityControl (Phase 3a) and RecommendationEngine (Phase 2+).
+// ---------------------------------------------------------------------------
+model BusinessCapabilityState {
+  id           String   @id @default(cuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  capabilityId String
+
+  // CapabilityLifecycleState: HIDDEN | RECOMMENDED | ENABLED | CONFIGURED | PAUSED | DEPRECATED
+  state      String
+  confidence Float    @default(0)
+  enteredAt  DateTime @default(now())
+  // userId of the actor, or 'system' for automated transitions
+  enteredBy  String?
+
+  // Recommendation metadata (populated by RecommendationEngine in Phase 2+)
+  recommendationReason String?
+  recommendationScore  Float?
+
+  // Analytics timestamps (Phase 6)
+  // recommendedAt: when this capability first entered RECOMMENDED state
+  // enabledAt: when this capability first entered ENABLED state
+  // Used to compute time-to-enable and acceptance rate in recommendation analytics.
+  recommendedAt DateTime?
+  enabledAt     DateTime?
+
+  // Dismiss / ignore tracking (used by CapabilityControl in Phase 3a)
+  dismissedAt        DateTime?
+  dismissalCount     Int       @default(0)
+  permanentlyIgnored Boolean   @default(false)
+
+  // Audit trail — immutable append-only JSON array of state transitions
+  // Each entry: { state, changedAt, changedBy, reason }
+  previousState String?
+  stateHistory  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([businessId, capabilityId])
+  @@index([businessId, state])
+  @@map("business_capability_states")
+}
+
+// ---------------------------------------------------------------------------
+// BusinessEventLog
+// Persists all significant business events for observation and replay.
+// Consumed by CharacteristicsEngine (Phase 2+) to update living characteristics.
+//
+// Emit via BusinessEventBus.emit() — never write directly to this table
+// from a server function. Phase 2 adds Prisma middleware for automatic emission.
+//
+// Index strategy:
+//   [businessId, occurredAt] — time-range queries per business
+//   [type, businessId]       — event-type queries (observation rules)
+// ---------------------------------------------------------------------------
+model BusinessEventLog {
+  id         String   @id @default(cuid())
+  // BusinessEventType enum value
+  type       String
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String?
+  actorId    String?
+  occurredAt DateTime @default(now())
+  // Arbitrary event-specific data (e.g. { supplierId, supplierName })
+  payload    Json     @default("{}")
+
+  @@index([businessId, occurredAt])
+  @@index([type, businessId])
+  @@map("business_event_log")
+}
+
+// ---------------------------------------------------------------------------
+// CharacteristicsRecalculationQueue — R1 (DB-backed, replaces in-memory map)
+//
+// One row per businessId (UNIQUE constraint). The scheduler upserts; the job
+// runner queries WHERE processedAt IS NULL.
+//
+// On server restart: pending rows survive — nothing is silently lost.
+// Multi-instance: use SELECT FOR UPDATE SKIP LOCKED in the job runner.
+//
+// Priority: higher number = processed first.
+//   0   = background decay sweep
+//   10  = deferred event batch (supplier added, product created)
+//   100 = immediate (branch created, config changed, subscription upgraded)
+// ---------------------------------------------------------------------------
+model CharacteristicsRecalculationQueue {
+  id         String   @id @default(cuid())
+  businessId String   @unique @map("business_id") // One pending entry per business (deduplication)
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Higher number = higher priority
+  priority    Int       @default(0)
+  scheduledAt DateTime  @default(now()) @map("scheduled_at")
+  // null = pending; set by job runner when processing begins
+  processedAt DateTime? @map("processed_at")
+
+  // Retry tracking
+  attempts  Int     @default(0)
+  lastError String? @map("last_error")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([processedAt, priority])
+  @@map("characteristics_recalculation_queue")
+}
+
+// ---------------------------------------------------------------------------
+// BusinessUsageSummary — Phase 2 (precomputed usage aggregates)
+// Replaces expensive on-the-fly COUNT() queries across Transaction/Branch/User.
+// One row per business per billing period (not per calendar month — follows
+// subscription anniversary date).
+//
+// Updated by:
+//   - Transaction creation (txCount++)
+//   - Branch creation (activeBranchCount++)
+//   - Membership creation/deletion (activeUserCount ++)
+//   - Feature usage tracking (e.g., API call counter)
+//
+// Used by:
+//   - EntitlementEngine (real-time limit checks)
+//   - Usage analytics dashboard
+//   - Invoice generation
+//   - Overage billing calculations
+//
+// Index strategy:
+//   [businessId, periodEnd] — fast lookups for current/past periods
+// ---------------------------------------------------------------------------
+model BusinessUsageSummary {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  periodStart DateTime
+  periodEnd   DateTime
+
+  txCount           Int @default(0)
+  activeBranchCount Int @default(0)
+  activeUserCount   Int @default(0)
+
+  // Extensible for future metered resources
+  // Example: { "apiCalls": 150, "emailsSent": 200, "reportsGenerated": 10 }
+  additionalMetrics Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([businessId, periodEnd])
+  @@index([businessId, periodEnd])
+  @@map("business_usage_summaries")
+}

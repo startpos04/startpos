@@ -1,0 +1,37 @@
+// =============================================================================
+// GUIDANCE SYSTEM - Hints & HintLog
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// Hint — contextual guidance tooltips shown to users across the app.
+// Managed via admin UI in Phase C; seeded in Phase A.
+// ---------------------------------------------------------------------------
+model Hint {
+  id        String    @id @default(cuid())
+  title     String
+  body      String
+  page      String? // null = global; "/pos" = POS only; "/products" = products only
+  isActive  Boolean   @default(true)
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  logs      HintLog[]
+
+  @@map("hints")
+}
+
+// ---------------------------------------------------------------------------
+// HintLog — records when each hint was last shown to each user.
+// Used by HintEngine to enforce HINT_FREQUENCY_DAYS per user.
+// ---------------------------------------------------------------------------
+model HintLog {
+  id      String   @id @default(cuid())
+  hintId  String
+  hint    Hint     @relation(fields: [hintId], references: [id], onDelete: Cascade)
+  userId  String
+  shownAt DateTime @default(now())
+
+  @@index([userId, hintId])
+  @@index([userId, shownAt])
+  @@map("hint_logs")
+}

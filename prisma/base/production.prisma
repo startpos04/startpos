@@ -1,0 +1,80 @@
+// =============================================================================
+// PRODUCTION MODULE - ProductionOrder, ProductionOrderItem
+// =============================================================================
+
+// Production Order — formal record of batch preparation
+// Used for both recipe-based and recipe-free production
+model ProductionOrder {
+  id          String           @id @default(cuid())
+  orderNumber String // e.g., "PREP-2024-001" or "PROD-2024-001"
+  status      ProductionStatus @default(DRAFT)
+
+  // What are we producing?
+  targetVariantId String
+  targetVariant   ProductVariant @relation("ProductionTarget", fields: [targetVariantId], references: [id])
+  targetQuantity  Float // How many units to produce
+  targetUnitId    String
+  targetUnit      Unit           @relation("ProductionTargetUnit", fields: [targetUnitId], references: [id])
+
+  // Actual output (may differ from target due to waste/efficiency)
+  actualQuantity Float?
+
+  // Does this production use a recipe?
+  usesRecipe Boolean @default(true)
+
+  // Production metadata
+  startedAt    DateTime?
+  completedAt  DateTime?
+  producedById String?
+  producedBy   User?     @relation("ProductionProducer", fields: [producedById], references: [id])
+  notes        String?
+
+  // Cost tracking (only for recipe-based production)
+  totalCost Int @default(0) @db.Integer // Total cost of materials used (in cents)
+
+  // Relations
+  items              ProductionOrderItem[] // Empty if usesRecipe = false
+  inventoryMovements InventoryMovement[]
+  finishedInventory  Inventory[] // The finished goods created by this production
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orderNumber, businessId])
+  @@index([businessId, branchId, status])
+  @@index([targetVariantId])
+  @@index([completedAt]) // For filtering by production date
+  @@map("production_orders")
+}
+
+// Line items showing which raw materials were consumed (only for recipe-based production)
+model ProductionOrderItem {
+  id String @id @default(cuid())
+
+  productionOrderId String
+  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+
+  // Which raw material was consumed
+  materialVariantId String
+  materialVariant   ProductVariant @relation("ProductionMaterial", fields: [materialVariantId], references: [id])
+
+  // Quantity consumed
+  quantityUsed Float
+  unitId       String
+  unit         Unit   @relation("ProductionMaterialUnit", fields: [unitId], references: [id])
+
+  // Cost per unit at time of consumption
+  unitCost Int @db.Integer
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@index([productionOrderId])
+  @@index([materialVariantId])
+  @@map("production_order_items")
+}

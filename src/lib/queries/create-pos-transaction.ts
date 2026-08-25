@@ -21,6 +21,7 @@ import { AuditAction, AuditTargetType } from '../audit/types'
 import { CreditEngine } from '../billing/credit-engine'
 import { BillingModel } from '../billing/types'
 import { UsageEngine } from '../billing/usage-engine'
+import { getComplianceAdapter } from '../compliance'
 import { PosStockEngine, type posItem } from '../conversion/pos-stock-engine'
 import { TaxEngine } from '../conversion/tax-engine'
 import { CostingEngine } from '../costing'
@@ -47,6 +48,7 @@ export interface CreateSaleInput {
     buyerName?: string
     buyerTaxId?: string
     buyerAddress?: string
+    buyerBusinessStyle?: string
   }
 }
 
@@ -469,6 +471,56 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       })
     }
 
+    // --- Phase 11: Use compliance adapter to populate transaction snapshots (country-agnostic) ---
+    const adapter = getComplianceAdapter()
+    
+    // Build ComplianceData from user.compliance (which was extracted by adapter in auth-server)
+    const complianceData = {
+      businessTaxId: user.compliance.BIR_TIN || '',
+      businessPermitNumber: user.compliance.BIR_PTU_NUMBER,
+      businessPermitIssuedAt: user.compliance.BIR_PTU_ISSUED_AT,
+      businessTaxOfficeCode: user.compliance.BIR_RDO_CODE,
+      branchSerialNumber: user.compliance.BRANCH_SERIAL_NUMBER,
+      branchCode: user.compliance.BRANCH_CODE || user.branch.branchCode,
+      branchPermitNumber: user.compliance.BRANCH_PTU_NUMBER,
+      branchTaxOfficeCode: user.compliance.BRANCH_RDO_CODE,
+      isTaxRegistered: user.configs.IS_VAT_REGISTERED,
+    }
+    
+    // Phase 11 Task 4: Validate compliance data before allowing transaction
+    // SOFT VALIDATION: Warn but allow transactions for unregistered businesses
+    const missingFields = adapter.validateCompliance(complianceData)
+    const hasIncompleteCompliance = missingFields.length > 0
+    
+    // Log warning for audit purposes if compliance is incomplete
+    if (hasIncompleteCompliance) {
+      console.warn('[POS Transaction] Incomplete compliance data:', {
+        businessId: user.business.id,
+        missingFields,
+        message: 'Transaction allowed but receipts may not be tax-compliant',
+      })
+    }
+    
+    // Get country-specific snapshot fields from adapter
+    const snapshotFields = adapter.populateTransactionSnapshot({
+      compliance: complianceData,
+      business: user.business,
+      branch: user.branch,
+      user,
+      currency: user.configs.CURRENCY || 'PHP',
+      customerData: {
+        buyerTaxId: data.customer.buyerTaxId,
+        buyerName: data.customer.buyerName,
+        buyerAddress: data.customer.buyerAddress,
+        buyerBusinessStyle: data.customer.buyerBusinessStyle,
+      },
+      discountData: {
+        scPwdIdNumber: data.compliance.scPwdIdNumber,
+        scPwdName: data.compliance.scPwdName,
+        scPwdDiscount: totalScPwdDiscount,
+      },
+    })
+
     const transaction = {
       id: transactionId,
       invoiceNo, // Use pre-allocated sequence from above (server-side or offline)
@@ -482,8 +534,8 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       discount: totalDiscount + totalScPwdDiscount,
       snapshotBufferRate: user.configs.BUFFER_RATE,
       complianceData: {
-        ptuNumber: user.complianceRegistry.BIR_PTU_NUMBER,
-        ptuIssuedAt: user.complianceRegistry.BIR_PTU_ISSUED_AT,
+        ptuNumber: user.compliance.BIR_PTU_NUMBER,
+        ptuIssuedAt: user.compliance.BIR_PTU_ISSUED_AT,
         vatableSales: vatSummary.vatableSales,
         vatAmount: vatSummary.vatAmount,
         vatExemptSales: vatSummary.vatExemptSales,
@@ -502,16 +554,11 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       snapshotCustomerName: data.customer.buyerName || null,
       snapshotCustomerTaxId: data.customer.buyerTaxId || null,
       snapshotCustomerAddress: data.customer.buyerAddress || null,
-      // 📸 PHASE 3 SNAPSHOTS: Capture business/branch/cashier data at time of sale
-      snapshotBusinessName: user.business.name,
-      snapshotBranchName: user.branch.name,
-      snapshotBranchAddress: user.branch.address,
-      snapshotBranchSN: user.branch.serialNumber || null,
-      snapshotBusinessTIN: user.complianceRegistry.BIR_TIN || null,
-      snapshotBranchCode: user.branch.branchCode || null,
-      snapshotIsVATRegistered: user.configs.IS_VAT_REGISTERED ? 'true' : 'false',
-      snapshotCurrency: user.configs.CURRENCY || 'PHP',
-      snapshotCashierName: user.name,
+      
+      // --- Phase 11: Country-specific snapshot fields from adapter ---
+      // The adapter automatically populates the correct fields based on deployment country
+      ...snapshotFields,
+      
       providerId: null,
       sessionId: null,
       originalTransactionId: null,
