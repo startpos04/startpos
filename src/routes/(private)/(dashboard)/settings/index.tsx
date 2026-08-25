@@ -5,6 +5,7 @@ import { RequireCapability } from '@/components/require-capability'
 import { useCapability } from '@/hooks/use-capability'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { CategoriesPage } from './-categories'
+import { CompliancePage } from './-compliance'
 import { EntitlementsPage } from './-entitlements'
 import { LocationsPage } from './-locations'
 import { UnitsPage } from './-units'
@@ -25,6 +26,7 @@ function RouteComponent() {
   const TABS = [
     // Branch-level settings
     { label: 'Entitlements', Component: EntitlementsPage },
+    { label: 'Compliance', Component: CompliancePage },
     { label: 'Units', Component: UnitsPage },
     { label: 'Categories', Component: CategoriesPage },
     ...(hasInventory

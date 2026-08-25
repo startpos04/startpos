@@ -47,6 +47,15 @@ type DBUser = Prisma.UserGetPayload<{
 const complianceIncludes = getComplianceIncludes()
 
 type DBBusiness = Prisma.BusinessGetPayload<{ 
+  select: {
+    id: true
+    name: true
+    slug: true
+    businessType: true
+    countryCode: true
+    registrationStatus: true
+    registrationCompletedAt: true
+  }
   include: typeof complianceIncludes.business & { configurations: true } 
 }>
 
@@ -103,6 +112,15 @@ export const getAuthUser = createServerFn({ method: 'GET' })
 
       prisma.business.findUnique({
         where: { id: businessId },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          businessType: true,
+          countryCode: true,
+          registrationStatus: true,
+          registrationCompletedAt: true,
+        },
         include: { ...complianceIncludes.business, configurations: true },
       }) as Promise<DBBusiness | null>,
 

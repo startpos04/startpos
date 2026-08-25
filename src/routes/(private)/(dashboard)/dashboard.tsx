@@ -20,6 +20,7 @@ import { useStore } from '@tanstack/react-store'
 import { BoxIcon, ChevronLeftIcon, ChevronRightIcon, CreditCardIcon, LifeBuoyIcon, LightbulbIcon, SparklesIcon, UsersIcon, ZapIcon } from 'lucide-react'
 import { useState } from 'react'
 import { RecommendationCard } from '@/components/custom/bos/recommendation-card'
+import { RegistrationStatusCard } from '@/components/custom/dashboard/registration-status-card'
 import { FeatureLibrary } from '@/components/feature-library'
 import { FirstRunGuide, useFirstRun } from '@/components/first-run-guide'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -120,6 +121,9 @@ function DashboardPage() {
           value={creditBalance !== null ? creditBalance : (user?.entitlement?.status ?? '—')}
         />
       </div>
+
+      {/* Business Registration Status Card — shown after metrics, before recommendations */}
+      <RegistrationStatusCard />
 
       {/* BOS recommendations — critical/high importance only */}
       {topRecommendations.length > 0 && (

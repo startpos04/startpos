@@ -53,7 +53,7 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
 
   // --- Phase 11: Get country-agnostic compliance lines for receipt header ---
   const complianceLines = getComplianceLines(user.compliance, user.branch.serialNumber)
-  const footerText = getReceiptFooterText()
+  const footerText = getReceiptFooterText(user.business?.registrationStatus)
   const taxLabel = getTaxRateLabel()
 
   // --- ACCURATE HEIGHT CALCULATION ---

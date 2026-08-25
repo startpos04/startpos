@@ -122,7 +122,10 @@ export async function Accounts(prisma: PrismaClient, options: { folder: string }
   const org = await prisma.business.upsert({
     where: { slug: runtimeData.business.slug },
     update: { name: runtimeData.business.name, businessType: runtimeData.business.businessType, deletedAt: null },
-    create: runtimeData.business,
+    create: {
+      ...runtimeData.business,
+      registrationStatus: 'UNREGISTERED',
+    },
   })
 
   const branch = await prisma.branch.upsert({

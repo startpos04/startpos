@@ -1,4 +1,4 @@
-import { ComplianceKey, ConfigurationKey, PriceConfiguration } from 'prisma/generated/prisma/enums'
+import { ConfigurationKey, PriceConfiguration } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
 
 export const isNotNullish = <T>(item: T): item is NonNullable<T> => {
@@ -92,10 +92,18 @@ const BaseConfigSchema = z.object({
   [ConfigurationKey.ADDON_EMPLOYEE_PRICE]: z.number().default(4900),
 })
 
+// Legacy compliance schema - kept for backward compatibility
+// New implementation uses compliance adapters and country-specific tables
+// See: src/lib/compliance/ and COMPLIANCE_SCHEMA_ARCHITECTURE.md
 const BaseComplianceSchema = z.object({
-  [ComplianceKey.BIR_TIN]: z.string(),
-  [ComplianceKey.BIR_PTU_NUMBER]: z.string(),
-  [ComplianceKey.BIR_PTU_ISSUED_AT]: z.string(),
+  BIR_TIN: z.string(),
+  BIR_PTU_NUMBER: z.string(),
+  BIR_PTU_ISSUED_AT: z.string(),
+  BIR_RDO_CODE: z.string().optional(),
+  BRANCH_SERIAL_NUMBER: z.string().optional(),
+  BRANCH_CODE: z.string().optional(),
+  BRANCH_PTU_NUMBER: z.string().optional(),
+  BRANCH_RDO_CODE: z.string().optional(),
 })
 
 // Explicitly define the ZodType shape on the exported schemas!

@@ -100,3 +100,11 @@ export {
   getComplianceLines,
   getReceiptFooterText,
 } from './receipt-helper'
+
+// Validation utilities
+export {
+  validateComplianceData,
+  isComplianceDataComplete,
+  getComplianceErrorMessage,
+  extractComplianceFromForm,
+} from './validation'

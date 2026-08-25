@@ -43,7 +43,7 @@ import { resolveCapabilities } from '../onboarding/capability-resolver'
 import { buildConfiguration } from '../onboarding/configuration-engine'
 import { suggestPlan } from '../onboarding/plan-advisor'
 import { classifyProfile } from '../onboarding/profile-classifier'
-import { interpretSurvey } from '../onboarding/survey-interpreter'
+import { interpretSurvey, extractRegistrationStatus } from '../onboarding/survey-interpreter'
 import type { SurveyAnswers } from '../onboarding/types'
 import { prisma as rootPrisma } from '../prisma-client'
 
@@ -170,6 +170,9 @@ export const completeRegistration = createServerFn({ method: 'POST' })
     const profile = classifyProfile(characteristics, resolved)
     const v2Config = buildConfiguration(characteristics, resolved, profile)
 
+    // Extract registration status from Q12 survey answer
+    const registrationStatus = extractRegistrationStatus(rawAnswers)
+
     // Log the suggested plan (informational — not enforced at registration)
     const _suggestedPlan = suggestPlan(characteristics, profile)
 
@@ -183,6 +186,7 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         // businessType is written for backward-compat with existing queries
         // that still read it — defaulting to 'RETAIL' if not supplied.
         // The column is deprecated; do not use it for any new logic.
+        // registrationStatus is set from Q12 survey answer (defaults to UNREGISTERED).
         // ------------------------------------------------------------------
         const legacyBusinessType = data.businessType ?? 'RETAIL'
         const business = await tx.business.create({
@@ -196,6 +200,8 @@ export const completeRegistration = createServerFn({ method: 'POST' })
             currentProfile: v2Config.operationalProfile,
             onboardingCompletedAt: now,
             deferredCapabilities: v2Config.deferredCapabilities,
+            registrationStatus: registrationStatus as import('prisma/generated/prisma/enums').BusinessRegistrationStatus,
+            registrationCompletedAt: registrationStatus === 'REGISTERED' ? now : null,
           },
           select: { id: true },
         })
@@ -496,6 +502,9 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
     const profile = classifyProfile(characteristics, resolved)
     const v2Config = buildConfiguration(characteristics, resolved, profile)
 
+    // Extract registration status from Q12 survey answer
+    const registrationStatus = extractRegistrationStatus(rawAnswers)
+
     const _suggestedPlan = suggestPlan(characteristics, profile)
 
     try {
@@ -550,6 +559,8 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
             currentProfile: v2Config.operationalProfile,
             onboardingCompletedAt: now,
             deferredCapabilities: v2Config.deferredCapabilities,
+            registrationStatus: registrationStatus as import('prisma/generated/prisma/enums').BusinessRegistrationStatus,
+            registrationCompletedAt: registrationStatus === 'REGISTERED' ? now : null,
           },
           select: { id: true },
         })

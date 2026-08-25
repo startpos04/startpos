@@ -171,6 +171,9 @@ export type SurveyAnswers = {
 
   // Q11: Do you prepare products in batches ahead of sale?
   q11_batch_preparation?: string
+
+  // Q12: Is your business officially registered with the government?
+  q12_business_registration?: string
 }
 
 // Q1 answer values (multi-select)
@@ -301,6 +304,13 @@ export const Q11_OPTIONS = {
   YES_RECIPES: 'yes_recipes',
   YES_NO_RECIPES: 'yes_no_recipes',
   NO: 'no',
+} as const
+
+// Q12 answer values
+export const Q12_OPTIONS = {
+  REGISTERED: 'registered',
+  PENDING: 'pending',
+  UNREGISTERED: 'unregistered',
 } as const
 
 // ---------------------------------------------------------------------------

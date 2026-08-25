@@ -4,6 +4,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import { AppBreadcrumb } from './app-breadcrumb'
 import { NotificationButton } from './notification-btn'
 import { ProfileDropdown } from './profile-dropdown'
+import { RegistrationStatusIndicator } from './registration-status-indicator'
 
 function AppNav() {
   return (
@@ -16,6 +17,7 @@ function AppNav() {
           <div className='w-10'>
             <ThemeToggle />
           </div>
+          <RegistrationStatusIndicator />
           <NotificationButton />
           <ProfileDropdown />
         </div>

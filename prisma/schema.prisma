@@ -1,7 +1,7 @@
 // ============================================================================
 // GENERATED PRISMA SCHEMA - DO NOT EDIT
 // Country: PH
-// Generated: 2026-08-24T16:15:59.807Z
+// Generated: 2026-08-25T04:57:46.006Z
 // Source: base/* + philippines.prisma
 // ============================================================================
 
@@ -504,6 +504,22 @@ enum AddonType {
 }
 
 // =============================================================================
+// COMPLIANCE UX SYSTEM — Registration Status Tracking
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// BusinessRegistrationStatus
+// Tracks the official government registration status of a business.
+// Used to guide onboarding UX and determine receipt footer formatting.
+// ---------------------------------------------------------------------------
+enum BusinessRegistrationStatus {
+  UNREGISTERED // No official registration yet — can still operate but receipts show "Sales Receipt"
+  PENDING // Have documents, filling in compliance data — completion in progress
+  REGISTERED // Fully registered with government — receipts show "Official Receipt"
+  EXPIRED // Registration expired (for renewal tracking) — prompts admin to renew
+}
+
+// =============================================================================
 // CORE MODELS - Business, Branch, Membership, User, AuditLog
 // =============================================================================
 
@@ -523,6 +539,10 @@ model Business {
   // Country & Compliance (Phase 2)
   countryCode  String  @default("PH") // Derived from LOCALE configuration
   complianceId String? @unique        // Polymorphic ID (PH_xxx, SG_xxx, US_xxx)
+
+  // Registration Status Tracking (Compliance UX Improvement)
+  registrationStatus      BusinessRegistrationStatus @default(UNREGISTERED)
+  registrationCompletedAt DateTime? // Timestamp when status changed to REGISTERED
 
   // COUNTRY_FIELDS: PH
   philippinesCompliance   PhilippinesCompliance?

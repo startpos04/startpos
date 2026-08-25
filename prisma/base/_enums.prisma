@@ -481,3 +481,19 @@ enum AddonType {
   BRANCH // Extra Branch — monthly recurring, quantity = number of extra branches
   EMPLOYEE // Extra Employee seat — monthly recurring, quantity = number of extra seats
 }
+
+// =============================================================================
+// COMPLIANCE UX SYSTEM — Registration Status Tracking
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// BusinessRegistrationStatus
+// Tracks the official government registration status of a business.
+// Used to guide onboarding UX and determine receipt footer formatting.
+// ---------------------------------------------------------------------------
+enum BusinessRegistrationStatus {
+  UNREGISTERED // No official registration yet — can still operate but receipts show "Sales Receipt"
+  PENDING // Have documents, filling in compliance data — completion in progress
+  REGISTERED // Fully registered with government — receipts show "Official Receipt"
+  EXPIRED // Registration expired (for renewal tracking) — prompts admin to renew
+}

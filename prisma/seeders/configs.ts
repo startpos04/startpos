@@ -5,9 +5,10 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import Papa from 'papaparse'
 import type { PrismaClient } from 'prisma/generated/prisma/client'
-import { type ComplianceKey, type ConfigurationKey, ConfigurationScope } from 'prisma/generated/prisma/enums'
+import { type ConfigurationKey, ConfigurationScope } from 'prisma/generated/prisma/enums'
 import type { ConfigurationWhereUniqueInput } from 'prisma/generated/prisma/models'
 import { getAccounts } from './accounts'
+import { seedConfigurationDefinitions } from './seed-configuration-definitions'
 export const order = 1
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -19,8 +20,10 @@ interface BusinessConfigRow {
   scope: ConfigurationScope
 }
 
+// Compliance row structure - keys are string literals, not enum
+// New architecture: compliance data goes to country-specific tables
 interface ComplianceRow {
-  key: ComplianceKey
+  key: string
   value: string
 }
 
@@ -46,6 +49,9 @@ function parseConfigsCsvRequired<T>(folder: string, fileName: string, requiredHe
 }
 
 export async function configs(prisma: PrismaClient, options: { folder: string }) {
+  // Seed ConfigurationDefinition table first (required for foreign key constraints)
+  await seedConfigurationDefinitions(prisma)
+  
   const accounts = getAccounts(options.folder)
 
   // --- RESOLVE BUSINESS CONFIGURATIONS ---
@@ -61,7 +67,7 @@ export async function configs(prisma: PrismaClient, options: { folder: string })
   const complianceCsv = parseConfigsCsvRequired<any>(options.folder, 'compliance_registry.csv', ['key', 'value'])
   console.info(`📈 Hydrating compliance registry from csv/${options.folder}/compliance_registry.csv...`)
   const runtimeCompliance: ComplianceRow[] = complianceCsv.map(row => ({
-    key: String(row.key).trim() as ComplianceKey,
+    key: String(row.key).trim(),
     value: String(row.value).trim(),
   }))
 

@@ -121,34 +121,78 @@ export function getComplianceLines(
 }
 
 /**
- * Get country-specific footer text for receipts.
+ * Get country-specific footer text for receipts based on registration status.
+ * 
+ * @param registrationStatus - Business registration status (REGISTERED, UNREGISTERED, PENDING, EXPIRED)
+ * @returns Array of footer lines to display on receipt
+ * 
+ * For REGISTERED businesses: Shows official receipt text
+ * For UNREGISTERED/PENDING/EXPIRED: Shows sales receipt text (not valid for tax purposes)
  */
-export function getReceiptFooterText(): string[] {
+export function getReceiptFooterText(registrationStatus?: string): string[] {
   const country = process.env.DEPLOYMENT_COUNTRY?.toUpperCase() ?? 'PH'
+  const isRegistered = registrationStatus === 'REGISTERED'
   
-  switch (country) {
-    case 'PH':
-      return [
-        'THIS SERVES AS YOUR SALES INVOICE',
-        'Thank you for shopping!',
-        'Please come again.',
-      ]
-    case 'SG':
-      return [
-        'THIS SERVES AS YOUR TAX INVOICE',
-        'Thank you for your purchase!',
-        'Please visit us again.',
-      ]
-    case 'US':
-      return [
-        'THIS SERVES AS YOUR RECEIPT',
-        'Thank you for your business!',
-        'We appreciate your patronage.',
-      ]
-    default:
-      return [
-        'THIS SERVES AS YOUR RECEIPT',
-        'Thank you!',
-      ]
+  if (isRegistered) {
+    // Official receipt text for registered businesses
+    switch (country) {
+      case 'PH':
+        return [
+          'THIS IS AN OFFICIAL RECEIPT',
+          'Valid for income tax and VAT purposes',
+          'Thank you for shopping!',
+        ]
+      case 'SG':
+        return [
+          'THIS IS AN OFFICIAL TAX INVOICE',
+          'Valid for GST purposes',
+          'Thank you for your purchase!',
+        ]
+      case 'US':
+        return [
+          'THIS IS AN OFFICIAL RECEIPT',
+          'Valid for sales tax purposes',
+          'Thank you for your business!',
+        ]
+      default:
+        return [
+          'THIS IS AN OFFICIAL RECEIPT',
+          'Thank you!',
+        ]
+    }
+  } else {
+    // Sales receipt text for unregistered/pending/expired businesses
+    const statusText = registrationStatus === 'PENDING' 
+      ? 'Business registration in progress'
+      : registrationStatus === 'EXPIRED'
+        ? 'Business registration expired'
+        : 'Business not yet officially registered'
+    
+    switch (country) {
+      case 'PH':
+        return [
+          'THIS IS A SALES RECEIPT',
+          statusText,
+          'Not valid for income tax purposes',
+        ]
+      case 'SG':
+        return [
+          'THIS IS A SALES RECEIPT',
+          statusText,
+          'Not valid for GST purposes',
+        ]
+      case 'US':
+        return [
+          'THIS IS A SALES RECEIPT',
+          statusText,
+          'Not valid for sales tax purposes',
+        ]
+      default:
+        return [
+          'THIS IS A SALES RECEIPT',
+          statusText,
+          'Not valid for tax purposes',
+        ]
+    }
   }
 }

@@ -47,6 +47,7 @@ import {
   Q9_OPTIONS,
   Q10_OPTIONS,
   Q11_OPTIONS,
+  Q12_OPTIONS,
   type SurveyAnswers,
 } from '@/lib/onboarding/types'
 import { cn } from '@/lib/utils'
@@ -277,6 +278,18 @@ const Q11: QuestionConfig = {
   ],
 }
 
+const Q12: QuestionConfig = {
+  id: 'q12_business_registration',
+  type: 'single',
+  title: 'Is your business officially registered with the government?',
+  subtitle: 'This helps us set up compliance features like tax receipts and BIR requirements.',
+  options: [
+    { value: Q12_OPTIONS.REGISTERED, label: 'Yes — fully registered', description: 'Have TIN, permits, and official documents' },
+    { value: Q12_OPTIONS.PENDING, label: 'Registration in progress', description: 'Applied but not yet complete' },
+    { value: Q12_OPTIONS.UNREGISTERED, label: 'Not yet registered', description: 'Operating informally for now' },
+  ],
+}
+
 // ---------------------------------------------------------------------------
 // Derive the ordered question list from current answers (branching logic)
 // ---------------------------------------------------------------------------
@@ -321,6 +334,9 @@ function getVisibleQuestions(answers: SurveyAnswers): QuestionConfig[] {
   if (answers.q6_vat_registered === Q6_OPTIONS.YES) {
     questions.push(Q6A, Q6B)
   }
+
+  // Q12: Business registration status — shown for all businesses
+  questions.push(Q12)
 
   // Q7 (location) — only if team > solo (solo operators assumed single location)
   // Q8 (expansion plans) — always shown, even solo users may plan to expand
