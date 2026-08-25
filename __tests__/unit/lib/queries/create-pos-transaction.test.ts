@@ -70,6 +70,14 @@ vi.mock('@/lib/queries/fetch-structured-id', () => ({
 }))
 
 // ---------------------------------------------------------------------------
+// Mock: getInventoryMode → default to 'strict' for backward compatibility
+// ---------------------------------------------------------------------------
+
+vi.mock('@/lib/inventory/get-inventory-mode', () => ({
+  getInventoryMode: vi.fn(() => 'strict'), // Default to strict mode in tests
+}))
+
+// ---------------------------------------------------------------------------
 // Test data builders
 // ---------------------------------------------------------------------------
 

@@ -97,6 +97,11 @@ model SequenceCounter {
 
   lastNumber Int @default(0)
 
+  // Offline mode tracking - prevents multi-cashier conflicts in offline mode
+  offlineCashierId String?  // Set when device goes offline; tracks which cashier owns this sequence
+  offlineDeviceId  String?  // Device identifier to prevent multi-device conflicts
+  isOfflineMode    Boolean @default(false) // True when sequence is in offline-only mode
+
   business Business @relation(fields: [businessId], references: [id])
   branch   Branch   @relation(fields: [branchId], references: [id])
 
@@ -105,6 +110,31 @@ model SequenceCounter {
 
   @@unique([businessId, branchId, type, year, month, day])
   @@map("sequence_counters")
+}
+
+// Audit trail for sequence number generation
+// Tracks which cashier generated which sequence number, when, and on which device
+model SequenceAudit {
+  id               String       @id @default(cuid())
+  businessId       String
+  branchId         String
+  type             SequenceType
+  sequenceNumber   Int          // The actual number generated
+  generatedBy      String       // User ID who triggered the generation
+  deviceId         String?      // Device identifier (for offline tracking)
+  wasOffline       Boolean      @default(false) // Was this generated in offline mode?
+  transactionId    String?      // Link to the transaction that used this sequence
+  
+  business Business @relation(fields: [businessId], references: [id])
+  branch   Branch   @relation(fields: [branchId], references: [id])
+  user     User     @relation(fields: [generatedBy], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([businessId, branchId, type])
+  @@index([generatedBy])
+  @@index([transactionId])
+  @@map("sequence_audits")
 }
 
 // --- TASKS MANAGEMENT ---

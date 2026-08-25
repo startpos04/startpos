@@ -133,8 +133,8 @@ export const ConfigurationEngine = {
     })
 
     if (definition) {
-      // TODO: Add validation logic based on definition.dataType and definition.validation
-      // For now, just store the value
+      // Validate based on data type and validation rules
+      ConfigurationEngine._validateValue(key, value, definition)
     }
 
     // Build unique constraint fields based on scope
@@ -159,6 +159,98 @@ export const ConfigurationEngine = {
         value,
       },
     })
+  },
+
+  /**
+   * Validate configuration value against definition rules
+   * @throws Error if validation fails
+   */
+  _validateValue(
+    _key: ConfigurationKey,
+    value: string,
+    definition: {
+      dataType: string
+      validation: unknown
+      label: string
+    },
+  ) {
+    // Number validation
+    if (definition.dataType === 'NUMBER') {
+      const numValue = Number(value)
+      if (Number.isNaN(numValue)) {
+        throw new Error(`${definition.label} must be a valid number`)
+      }
+
+      if (definition.validation) {
+        const rules = definition.validation as { min?: number; max?: number }
+        
+        if (rules.min !== undefined && numValue < rules.min) {
+          throw new Error(`${definition.label} must be at least ${rules.min}`)
+        }
+        
+        if (rules.max !== undefined && numValue > rules.max) {
+          throw new Error(`${definition.label} must be at most ${rules.max}`)
+        }
+      }
+    }
+
+    // Boolean validation
+    if (definition.dataType === 'BOOLEAN') {
+      if (value !== 'true' && value !== 'false') {
+        throw new Error(`${definition.label} must be either 'true' or 'false'`)
+      }
+    }
+
+    // Enum validation
+    if (definition.dataType === 'ENUM') {
+      if (definition.validation) {
+        const rules = definition.validation as { values: string[] }
+        if (!rules.values?.includes(value)) {
+          throw new Error(
+            `${definition.label} must be one of: ${rules.values.join(', ')}`
+          )
+        }
+      }
+    }
+
+    // String validation (regex, minLength, maxLength)
+    if (definition.dataType === 'STRING') {
+      if (definition.validation) {
+        const rules = definition.validation as { 
+          regex?: string
+          minLength?: number
+          maxLength?: number
+        }
+        
+        if (rules.regex) {
+          const regex = new RegExp(rules.regex)
+          if (!regex.test(value)) {
+            throw new Error(`${definition.label} format is invalid`)
+          }
+        }
+        
+        if (rules.minLength !== undefined && value.length < rules.minLength) {
+          throw new Error(
+            `${definition.label} must be at least ${rules.minLength} characters`
+          )
+        }
+        
+        if (rules.maxLength !== undefined && value.length > rules.maxLength) {
+          throw new Error(
+            `${definition.label} must be at most ${rules.maxLength} characters`
+          )
+        }
+      }
+    }
+
+    // JSON validation (check if parseable)
+    if (definition.dataType === 'JSON') {
+      try {
+        JSON.parse(value)
+      } catch {
+        throw new Error(`${definition.label} must be valid JSON`)
+      }
+    }
   },
 
   /**
@@ -214,7 +306,7 @@ export const ConfigurationEngine = {
    */
   async getDefinitionsByCategory(category: string) {
     return prisma.configurationDefinition.findMany({
-      where: { category: category as any },
+      where: { category: category as unknown },
     })
   },
 

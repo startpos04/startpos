@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { extractComplianceFromForm, getComplianceErrorMessage, validateComplianceData } from '@/lib/compliance'
 import { fetchComplianceData } from '@/lib/server-fn/fetch-compliance-data'
 import { saveComplianceData } from '@/lib/server-fn/save-compliance-data'
-import { authStore } from '@/store/auth-store'
+import { authStore, refreshAuthUser } from '@/store/auth-store'
 
 /**
  * CompliancePage
@@ -188,7 +188,7 @@ export function CompliancePage() {
         setRegistrationStatus('REGISTERED')
         
         // Refresh auth store to update user context
-        // TODO: Add authStore.refresh() method when available
+        await refreshAuthUser()
       } else {
         toast.error('Failed to save', {
           description: result.error,

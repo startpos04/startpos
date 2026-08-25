@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { inventoryCollection, inventoryMovementCollection } from '@/db/collections'
+import { inventoryCollection, inventoryMovementCollection, productVariantCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import type { MountProps } from '@/lib/mount-manager'
 import { FinishedGoodsEngine } from '@/lib/production'
@@ -52,6 +52,12 @@ export function RecordWasteSidebar({ variantId, productName, availableQuantity, 
 
     try {
       const result = await dbTransaction(() => {
+        // Get the variant to retrieve its unitId
+        const variant = productVariantCollection.get(variantId)
+        if (!variant) {
+          throw new Error('Variant not found')
+        }
+
         // Get finished goods batches (FIFO)
         const batches = FinishedGoodsEngine.getFinishedGoodsBatches(
           variantId,
@@ -94,7 +100,7 @@ export function RecordWasteSidebar({ variantId, productName, availableQuantity, 
             type: MovementType.WASTE,
             quantity: toWaste,
             reason: `Waste: ${reason}${notes ? ` - ${notes}` : ''}`,
-            unitId: user.business.baseUnitId, // FIXME: should get from variant
+            unitId: variant.unitId, // Use variant's actual unit
             purchaseId: null,
             locationId: null,
             targetBranchId: null,

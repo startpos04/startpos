@@ -31,23 +31,25 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
     
     return {
       // Business-level IRAS data
-      businessTaxId: sgCompliance?.gstRegistrationNumber ?? '',  // GST number is the primary tax ID
-      businessPermitNumber: sgCompliance?.uen,  // UEN as permit number
+      businessTaxId: sgCompliance?.gstNumber ?? '',  // GST number is the primary tax ID
+      businessPermitNumber: sgCompliance?.uenNumber,  // UEN as permit number
       businessTaxOfficeCode: sgCompliance?.acraNumber,  // ACRA as tax office
       
       // Branch-level IRAS data
-      branchSerialNumber: sgBranchCompliance?.branchGSTNumber,
+      branchSerialNumber: sgBranchCompliance?.branchUEN,
       branchCode: branch.branchCode,
-      branchPermitNumber: sgBranchCompliance?.branchUEN,
+      branchPermitNumber: sgBranchCompliance?.tradeLicense,
       
       // GST status
-      isTaxRegistered: !!sgCompliance?.gstRegistrationDate,
-      taxRegistrationDate: sgCompliance?.gstRegistrationDate?.toISOString(),
+      isTaxRegistered: sgCompliance?.isGSTRegistered ?? false,
+      taxRegistrationDate: sgCompliance?.gstEffectiveDate?.toISOString(),
       
       // Additional Singapore metadata
       metadata: {
-        uen: sgCompliance?.uen,
+        uenNumber: sgCompliance?.uenNumber,
         acraNumber: sgCompliance?.acraNumber,
+        entityType: sgCompliance?.entityType,
+        gstRate: sgCompliance?.gstRate,
       },
     }
   }
@@ -86,8 +88,8 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
   }): Record<string, unknown> {
     const { compliance, business, branch, user, currency, customerData } = data
     
-    // Get current GST rate (default 9% as of 2024)
-    const gstRate = 9.0
+    // Get current GST rate from compliance or default to 9% (as of 2024)
+    const gstRate = ((compliance.metadata as Record<string, unknown>)?.['gstRate'] as number) ?? 9
     
     return {
       // Universal fields
@@ -100,12 +102,14 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
       
       // Singapore-specific IRAS fields
       snapshotGSTNumber: compliance.businessTaxId,  // GST Registration Number
-      snapshotUEN: compliance.businessPermitNumber ?? '',  // Unique Entity Number
+      snapshotUENNumber: compliance.businessPermitNumber ?? '',  // Unique Entity Number
       snapshotGSTRate: gstRate,  // GST rate at time of sale
+      snapshotIsGSTRegistered: compliance.isTaxRegistered ?? false,
       
-      // Customer B2B fields
-      snapshotCustomerGSTNumber: customerData?.buyerTaxId,  // Customer's GST number
-      snapshotCustomerUEN: customerData?.buyerBusinessStyle,  // Use business style field for UEN
+      // Customer B2B fields (if provided)
+      ...(customerData?.buyerTaxId && {
+        snapshotCustomerTIN: customerData.buyerTaxId,  // Customer's GST/UEN
+      }),
     }
   }
 
@@ -124,12 +128,14 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
       
       // Copy Singapore-specific IRAS fields
       snapshotGSTNumber: original.snapshotGSTNumber,
-      snapshotUEN: original.snapshotUEN,
+      snapshotUENNumber: original.snapshotUENNumber,
       snapshotGSTRate: original.snapshotGSTRate,
+      snapshotIsGSTRegistered: original.snapshotIsGSTRegistered,
       
-      // Copy customer fields
-      snapshotCustomerGSTNumber: original.snapshotCustomerGSTNumber,
-      snapshotCustomerUEN: original.snapshotCustomerUEN,
+      // Copy customer fields if present
+      ...(original.snapshotCustomerTIN && {
+        snapshotCustomerTIN: original.snapshotCustomerTIN,
+      }),
     }
   }
 

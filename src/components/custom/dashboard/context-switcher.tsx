@@ -85,8 +85,9 @@ export function ContextSwitcher() {
           icon={<BookOpen className='size-5' />}
           active={false}
           onClick={() => {
-            // TODO: Replace with actual FAQ link when available
-            window.open('https://help.yourapp.com', '_blank')
+            // Link to BIR official site for Philippines-specific help
+            // For multi-country support, this can be made dynamic based on business.countryCode
+            window.open('https://www.bir.gov.ph/', '_blank')
           }}
         />
       </div>

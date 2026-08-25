@@ -1,7 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useLiveQuery } from '@tanstack/react-db'
 import { useStore } from '@tanstack/react-store'
 import { Building2, CreditCard, Shield, Sparkles, Users } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { branchCollection, userCollection } from '@/db/collections'
 import { usePermission } from '@/hooks/use-permission'
 import { Permissions } from '@/lib/authorization/permission-keys'
 import { authStore } from '@/store/auth-store'
@@ -14,6 +16,14 @@ function BusinessOverview() {
   const user = useStore(authStore, state => state.user)
   const business = user?.business
   const canManagePermissions = usePermission(Permissions.USER_MANAGE_PERMISSIONS)
+
+  // Query branch count
+  const { data: branches } = useLiveQuery(q => q.from({ branch: branchCollection }))
+  const branchCount = branches?.length ?? 0
+
+  // Query user count
+  const { data: users } = useLiveQuery(q => q.from({ user: userCollection }))
+  const userCount = users?.length ?? 0
 
   if (!business) {
     return (
@@ -52,7 +62,7 @@ function BusinessOverview() {
             <Building2 className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>{/* TODO: Add actual branch count when multi-branch support is added */}1</div>
+            <div className='text-2xl font-bold'>{branchCount}</div>
             <p className='text-xs text-muted-foreground mt-1'>Active branches</p>
           </CardContent>
         </Card>
@@ -64,7 +74,7 @@ function BusinessOverview() {
             <Users className='h-4 w-4 text-muted-foreground' />
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>{/* TODO: Add actual user count */}-</div>
+            <div className='text-2xl font-bold'>{userCount}</div>
             <p className='text-xs text-muted-foreground mt-1'>Total users</p>
           </CardContent>
         </Card>

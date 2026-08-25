@@ -34,25 +34,23 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
       // Business-level IRS data
       businessTaxId: usCompliance?.ein ?? '',  // EIN is the primary federal tax ID
       businessPermitNumber: usCompliance?.salesTaxPermit,
-      businessTaxOfficeCode: usCompliance?.stateCode,  // State code as tax office identifier
+      businessTaxOfficeCode: usCompliance?.stateOfIncorporation,  // State as tax office identifier
       
       // Branch-level state/local data
-      branchSerialNumber: usBranchCompliance?.branchStateTaxId,
+      branchSerialNumber: usBranchCompliance?.stateTaxID,
       branchCode: branch.branchCode,
-      branchPermitNumber: usBranchCompliance?.branchSalesTaxPermit,
-      branchTaxOfficeCode: usBranchCompliance?.branchStateCode,
+      branchPermitNumber: usBranchCompliance?.salesTaxPermit,
       
       // Sales tax status (most US states require sales tax)
-      isTaxRegistered: !!usCompliance?.salesTaxPermit,
+      isTaxRegistered: usCompliance?.isSalesTaxRegistered ?? false,
       
       // Additional USA metadata
       metadata: {
-        stateCode: usCompliance?.stateCode,
-        stateTaxId: usCompliance?.stateTaxId,
-        businessLicense: usCompliance?.businessLicense,
-        incorporationState: usCompliance?.incorporationState,
-        countyCode: usBranchCompliance?.countyCode,
-        cityCode: usBranchCompliance?.cityCode,
+        stateTaxID: usCompliance?.stateTaxID,
+        stateOfIncorporation: usCompliance?.stateOfIncorporation,
+        federalTaxType: usCompliance?.federalTaxType,
+        salesTaxRate: usCompliance?.salesTaxRate,
+        cityTaxID: usCompliance?.cityTaxID,
       },
     }
   }
@@ -91,10 +89,9 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
   }): Record<string, unknown> {
     const { compliance, business, branch, user, currency, customerData } = data
     
-    // Get state code and calculate combined sales tax rate
-    // In real implementation, this would look up the rate based on state/county/city
-    const stateCode = compliance.businessTaxOfficeCode ?? 'CA'  // Default to California
-    const salesTaxRate = this.getSalesTaxRate(stateCode)
+    // Get state and sales tax rate from compliance metadata
+    const stateOfIncorporation = compliance.businessTaxOfficeCode ?? 'CA'
+    const salesTaxRate = ((compliance.metadata as Record<string, unknown>)?.['salesTaxRate'] as number) ?? this.getDefaultSalesTaxRate(stateOfIncorporation)
     
     return {
       // Universal fields
@@ -107,18 +104,14 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
       
       // USA-specific IRS fields
       snapshotEIN: compliance.businessTaxId,  // Employer Identification Number
-      snapshotStateCode: stateCode,
-      snapshotStateTaxId: compliance.metadata?.stateTaxId,
-      snapshotSalesTaxPermit: compliance.businessPermitNumber,
-      snapshotSalesTaxRate: salesTaxRate,  // Combined state + local rate
+      snapshotStateTaxID: compliance.metadata?.stateTaxID,
+      snapshotSalesTaxRate: salesTaxRate,  // Rate in cents (e.g., 825 = 8.25%)
+      snapshotIsTaxExempt: false,  // Default to not exempt (overridden in transaction if needed)
       
-      // Customer B2B fields
-      snapshotCustomerEIN: customerData?.buyerTaxId,
-      snapshotCustomerStateTaxId: customerData?.buyerBusinessStyle,  // Reuse field for state tax ID
-      
-      // Tax exemption fields
-      snapshotIsTaxExempt: false,  // Default to not exempt
-      snapshotTaxExemptCertNo: null,
+      // Customer B2B fields (if provided)
+      ...(customerData?.buyerTaxId && {
+        snapshotCustomerTIN: customerData.buyerTaxId,  // Customer's EIN or Tax ID
+      }),
     }
   }
 
@@ -137,18 +130,19 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
       
       // Copy USA-specific IRS fields
       snapshotEIN: original.snapshotEIN,
-      snapshotStateCode: original.snapshotStateCode,
-      snapshotStateTaxId: original.snapshotStateTaxId,
-      snapshotSalesTaxPermit: original.snapshotSalesTaxPermit,
+      snapshotStateTaxID: original.snapshotStateTaxID,
       snapshotSalesTaxRate: original.snapshotSalesTaxRate,
-      
-      // Copy customer fields
-      snapshotCustomerEIN: original.snapshotCustomerEIN,
-      snapshotCustomerStateTaxId: original.snapshotCustomerStateTaxId,
-      
-      // Copy tax exemption fields
       snapshotIsTaxExempt: original.snapshotIsTaxExempt,
-      snapshotTaxExemptCertNo: original.snapshotTaxExemptCertNo,
+      
+      // Copy customer fields if present
+      ...(original.snapshotCustomerTIN && {
+        snapshotCustomerTIN: original.snapshotCustomerTIN,
+      }),
+      
+      // Copy tax exemption ID if present
+      ...(original.snapshotTaxExemptID && {
+        snapshotTaxExemptID: original.snapshotTaxExemptID,
+      }),
     }
   }
 
@@ -177,24 +171,24 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
   }
 
   /**
-   * Get combined sales tax rate for a state.
+   * Get default sales tax rate for a state.
    * In production, this would query a tax rate database with state/county/city lookup.
-   * For now, returns approximate state base rates.
+   * Returns rate in cents (e.g., 825 = 8.25%)
    */
-  private getSalesTaxRate(stateCode: string): number {
-    // Approximate state base rates (actual rates vary by county/city)
+  private getDefaultSalesTaxRate(state: string): number {
+    // Approximate state base rates in cents (actual rates vary by county/city)
     const stateRates: Record<string, number> = {
-      CA: 7.25,  // California
-      NY: 4.00,  // New York
-      TX: 6.25,  // Texas
-      FL: 6.00,  // Florida
-      WA: 6.50,  // Washington
-      IL: 6.25,  // Illinois
-      PA: 6.00,  // Pennsylvania
-      OH: 5.75,  // Ohio
+      CA: 725,  // California 7.25%
+      NY: 400,  // New York 4.00%
+      TX: 625,  // Texas 6.25%
+      FL: 600,  // Florida 6.00%
+      WA: 650,  // Washington 6.50%
+      IL: 625,  // Illinois 6.25%
+      PA: 600,  // Pennsylvania 6.00%
+      OH: 575,  // Ohio 5.75%
       // Add more states as needed
     }
     
-    return stateRates[stateCode] ?? 7.00  // Default 7% if state not found
+    return stateRates[state] ?? 700  // Default 7.00% if state not found
   }
 }

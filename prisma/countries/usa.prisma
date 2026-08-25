@@ -1,65 +1,74 @@
 // ============================================================================
 // USA COMPLIANCE
-// Internal Revenue Service (IRS) Requirements
+// IRS & State Tax Requirements
 // ============================================================================
 
 // === INJECT_INTO: Transaction ===
 snapshotEIN            String?  // Employer Identification Number
-snapshotStateCode      String?  // State code "CA", "NY", etc.
-snapshotStateTaxId     String?  // State tax ID
-snapshotSalesTaxPermit String?  // Sales tax permit
-snapshotSalesTaxRate   Float?   // Combined state + local tax rate
-
-// Customer B2B
-snapshotCustomerEIN       String?
-snapshotCustomerStateTaxId String?
-
-// Tax exemption
-snapshotIsTaxExempt       Boolean? @default(false)
-snapshotTaxExemptCertNo   String?
+snapshotStateTaxID     String?  // State Tax ID
+snapshotSalesTaxRate   Int?     // Sales tax rate in cents (e.g., 825 = 8.25%)
+snapshotIsTaxExempt    Boolean? // Tax exempt transaction flag
+snapshotTaxExemptID    String?  // Tax exemption certificate ID
 
 // === INJECT_INTO: Business ===
-usaCompliance UsaCompliance?
+// Relation to compliance table
+usaCompliance USACompliance?
 
 // === INJECT_INTO: Branch ===
-usaBranchCompliance UsaBranchCompliance?
+// Relation to branch compliance table
+usaBranchCompliance USABranchCompliance?
 
 // === STANDALONE MODELS ===
 
-model UsaCompliance {
+model USACompliance {
   id String @id @default(cuid())
+
+  // Federal Tax (IRS)
+  ein                 String    // Employer Identification Number (required)
+  federalTaxType      String?   // Business structure (LLC, Corp, S-Corp, Partnership)
   
-  // IRS requirements
-  ein            String  // EIN
-  stateCode      String  // State code
-  stateTaxId     String? // State tax ID
-  salesTaxPermit String? // Sales tax permit
-  businessLicense String?
-  incorporationState String?
+  // State Registration
+  stateTaxID          String?   // State Tax ID
+  stateOfIncorporation String?  // State where business is registered
   
+  // Sales Tax
+  salesTaxPermit      String?   // Sales tax permit number
+  salesTaxRate        Int?      // Default sales tax rate in cents (e.g., 825 = 8.25%)
+  isSalesTaxRegistered Boolean  @default(false)
+  
+  // Local/City Tax
+  cityTaxID           String?   // City/local tax ID (if applicable)
+  
+  // Business licenses
+  businessLicense     String?   // Business license number
+  licenseExpiry       DateTime?
+
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId String   @unique
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("usa_compliance")
 }
 
-model UsaBranchCompliance {
+model USABranchCompliance {
   id String @id @default(cuid())
+
+  // State & Local (for multi-state operations)
+  stateTaxID          String? // State-specific tax ID
+  salesTaxPermit      String? // Branch sales tax permit
+  salesTaxRate        Int?    // Branch-specific sales tax rate
   
-  branchStateCode      String
-  branchStateTaxId     String?
-  branchSalesTaxPermit String?
-  countyCode           String?
-  cityCode             String?
-  
+  // Local requirements
+  cityBusinessLicense String? // City/county business license
+  licenseExpiry       DateTime?
+
   branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
   branchId String @unique
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("usa_branch_compliance")
 }

@@ -149,9 +149,18 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       return { cartId: item.cartId, product, variant, quantity: item.quantity, addons: item.addons }
     })
 
-    for (const [variantId, amountNeeded] of Object.entries(PosStockEngine.getReservedMap(cartForValidation, []))) {
-      const { stock, name } = PosStockEngine.findPhysicalStock(variantId, dbProducts)
-      if (stock < amountNeeded) throw new Error(`Insufficient stock for ${name}. Needed: ${amountNeeded}, Available: ${stock}`)
+    // Get inventory mode to determine validation behavior
+    const inventoryMode = getInventoryMode(user.business.id)
+
+    // Validate stock only in strict mode
+    // - 'none': No stock tracking, skip validation
+    // - 'relaxed': Track stock but allow negative, skip validation
+    // - 'strict': Enforce stock limits, validate and block if insufficient
+    if (inventoryMode === 'strict') {
+      for (const [variantId, amountNeeded] of Object.entries(PosStockEngine.getReservedMap(cartForValidation, []))) {
+        const { stock, name } = PosStockEngine.findPhysicalStock(variantId, dbProducts)
+        InventoryPolicy.validateDeduction(variantId, stock, amountNeeded, inventoryMode, name)
+      }
     }
 
     // --- 2. INTEGRATE TAX-ENGINE FOR TOTALS & TAX BREAKDOWNS ---

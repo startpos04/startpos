@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
+import { updateActiveBranch } from '@/lib/server-fn/update-active-branch'
 import { refreshAuthUser } from '@/store/auth-store'
 
 export function useBranchSwitch() {
@@ -7,12 +8,20 @@ export function useBranchSwitch() {
 
   const switchBranch = async (branchId: string) => {
     try {
-      // TODO: Create server function to update user's active branch in database
-      // This will be implemented in a later phase when we add the backend logic
-      // await updateUserActiveBranch({ branchId })
+      // Update user's active branch in database
+      const result = await updateActiveBranch({ data: { branchId } })
 
-      // For now, we'll just show a placeholder message
-      toast.info('Branch switching will be implemented when backend support is added')
+      if (!result.success) {
+        toast.error('Failed to switch branch', {
+          description: result.error || 'Unknown error occurred',
+        })
+        return
+      }
+
+      // Show success message
+      toast.success('Branch switched', {
+        description: `Switched to ${result.branchName}`,
+      })
 
       // Refresh auth store to load new branch context
       await refreshAuthUser()
@@ -25,7 +34,9 @@ export function useBranchSwitch() {
       setTimeout(() => window.location.reload(), 100)
     } catch (error) {
       console.error('Failed to switch branch:', error)
-      toast.error('Failed to switch branch. Please try again.')
+      toast.error('Failed to switch branch', {
+        description: error instanceof Error ? error.message : 'Please try again',
+      })
     }
   }
 

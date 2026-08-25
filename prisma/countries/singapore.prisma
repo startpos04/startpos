@@ -1,54 +1,64 @@
 // ============================================================================
 // SINGAPORE COMPLIANCE
-// Inland Revenue Authority of Singapore (IRAS) Requirements
+// Inland Revenue Authority of Singapore (IRAS) & ACRA Requirements
 // ============================================================================
 
 // === INJECT_INTO: Transaction ===
-snapshotGSTNumber String?  // GST Registration Number
-snapshotUEN       String?  // Unique Entity Number
-snapshotGSTRate   Float?   // GST rate at time of sale
-
-// Customer B2B
-snapshotCustomerGSTNumber String?
-snapshotCustomerUEN       String?
+snapshotGSTNumber      String?  // GST Registration Number
+snapshotUENNumber      String?  // Unique Entity Number
+snapshotGSTRate        Int?     // GST rate (e.g., 8%, 9%)
+snapshotIsGSTRegistered Boolean? // GST registration status
 
 // === INJECT_INTO: Business ===
+// Relation to compliance table
 singaporeCompliance SingaporeCompliance?
 
 // === INJECT_INTO: Branch ===
+// Relation to branch compliance table
 singaporeBranchCompliance SingaporeBranchCompliance?
 
 // === STANDALONE MODELS ===
 
 model SingaporeCompliance {
   id String @id @default(cuid())
+
+  // ACRA (Accounting and Corporate Regulatory Authority)
+  uenNumber       String    // Unique Entity Number (required for all businesses)
+  acraNumber      String?   // ACRA Registration Number
+  entityType      String?   // Business structure (Pte Ltd, LLP, Sole Proprietor)
   
-  // IRAS requirements
-  gstRegistrationNumber String  // GST number
-  uen                   String  // UEN
-  acraNumber            String? // ACRA registration
-  gstRegistrationDate   DateTime?
+  // IRAS (Inland Revenue Authority of Singapore)
+  gstNumber           String?   // GST Registration Number (required if > S$1M revenue)
+  gstEffectiveDate    DateTime? // GST registration effective date
+  gstRate             Int?      // Current GST rate (8% or 9%)
+  isGSTRegistered     Boolean   @default(false)
   
+  // Business licenses
+  businessLicense     String?   // Trade License Number
+  businessLicenseExpiry DateTime?
+
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId String   @unique
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("singapore_compliance")
 }
 
 model SingaporeBranchCompliance {
   id String @id @default(cuid())
-  
-  branchGSTNumber String?
-  branchUEN       String?
+
+  // Branch-specific registrations
+  branchUEN       String? // Branch UEN if separate registration
+  tradeLicense    String? // Branch trade license
+  licenseExpiry   DateTime?
   
   branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
   branchId String @unique
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("singapore_branch_compliance")
 }
