@@ -10,8 +10,8 @@ import { crudAPI } from '@/lib/prisma-client/crud-api'
 const PAGE_SIZE = 50
 
 const fetchOrderHistorySchema = z.object({
-  from: z.string().optional().catch(dayjs().startOf('month').format('YYYY-MM-DD')),
-  to: z.string().optional().catch(dayjs().endOf('month').format('YYYY-MM-DD')),
+  from: z.string().default(dayjs().startOf('month').format('YYYY-MM-DD')),
+  to: z.string().default(dayjs().endOf('month').format('YYYY-MM-DD')),
   status: z.nativeEnum(OrderStatus).optional(),
   orderType: z.nativeEnum(OrderType).optional(),
   search: z.string().optional(),
@@ -23,7 +23,7 @@ export type FetchOrderHistoryInput = z.infer<typeof fetchOrderHistorySchema>
 
 export const fetchOrderHistory = createServerFn({ method: 'POST' })
   .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_ORDERS)])
-  .inputValidator((input: FetchOrderHistoryInput) => fetchOrderHistorySchema.parse(input))
+  .inputValidator((input: FetchOrderHistoryInput | undefined) => fetchOrderHistorySchema.parse(input || {}))
   .handler(async ({ data }) => {
     const where = {
       createdAt: {

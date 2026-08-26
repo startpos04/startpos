@@ -19,7 +19,6 @@
  */
 
 import { permissionCollection, userPermissionCollection } from '@/db/collections'
-import { coreAPI } from '@/lib/prisma-client/core-api'
 import type { PermissionKey } from './permission-keys'
 import { getDefaultPermissionsForRole } from './role-permissions'
 
@@ -70,39 +69,73 @@ export const AuthorizationEngine = {
     // 1. Get role default permissions
     const roleDefaults = getDefaultPermissionsForRole(ctx.role)
 
-    // 2. Get user-specific permission grants/revokes from collections (offline-capable)
+    // 2. Get user-specific permission grants/revokes
     const now = new Date()
-
-    // Get all user permissions from collection
-    const allUserPermissions = [...userPermissionCollection.values()]
-    const userPermissions = allUserPermissions.filter(up => {
-      // Filter for this user and non-expired permissions
-      if (up.userId !== ctx.userId) return false
-      if (up.expiresAt && new Date(up.expiresAt) <= now) {
-        return false
-      }
-      return true
-    })
-
-    // Get all permissions from collection to match with user permissions
-    const allPermissions = [...permissionCollection.values()]
-    const permissionMap = new Map(allPermissions.map(p => [p.id, p]))
+    
+    // Check if we're on the server or client
+    const isServer = typeof window === 'undefined'
+    
+    let userPermissions: Array<{ userId: string; permissionId: string; granted: boolean; expiresAt: Date | null }>
+    let allPermissions: Array<{ id: string; key: string }>
+    
+    if (isServer) {
+      // Server-side: use Prisma directly (rootPrisma for platform-wide permissions table)
+      const { prisma: rootPrisma } = await import('@/lib/prisma-client')
+      
+      // Fetch user permissions from database
+      const dbUserPermissions = await rootPrisma.userPermission.findMany({
+        where: {
+          userId: ctx.userId,
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: now } }
+          ]
+        },
+        select: {
+          userId: true,
+          permissionId: true,
+          granted: true,
+          expiresAt: true,
+        }
+      })
+      
+      // Fetch all permissions to build the map
+      const dbPermissions = await rootPrisma.permission.findMany({
+        select: {
+          id: true,
+          key: true,
+        }
+      })
+      
+      userPermissions = dbUserPermissions
+      allPermissions = dbPermissions
+    } else {
+      // Client-side: use collections (offline-capable)
+      const allUserPermissions = [...userPermissionCollection.values()]
+      userPermissions = allUserPermissions.filter(up => {
+        // Filter for this user and non-expired permissions
+        if (up.userId !== ctx.userId) return false
+        if (up.expiresAt && new Date(up.expiresAt) <= now) {
+          return false
+        }
+        return true
+      })
+      
+      // Get all permissions from collection
+      allPermissions = [...permissionCollection.values()]
+    }
+    
+    const permissionMap = new Map(allPermissions.map(p => [p.id, p.key]))
 
     // 3. Separate grants and revokes
     const grants = userPermissions
       .filter(up => up.granted)
-      .map(up => {
-        const permission = permissionMap.get(up.permissionId)
-        return permission?.key as PermissionKey
-      })
+      .map(up => permissionMap.get(up.permissionId) as PermissionKey)
       .filter(Boolean) // Remove undefined values
 
     const revokes = userPermissions
       .filter(up => !up.granted)
-      .map(up => {
-        const permission = permissionMap.get(up.permissionId)
-        return permission?.key as PermissionKey
-      })
+      .map(up => permissionMap.get(up.permissionId) as PermissionKey)
       .filter(Boolean) // Remove undefined values
 
     // 4. Calculate final permission set

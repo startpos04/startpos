@@ -45,7 +45,7 @@ import type {
 import type { TaskMetadata, TransactionComplianceData } from '@/lib/types'
 import { createSyncableCollection } from '.'
 
-const SCHEMA_VERSION = 2
+const SCHEMA_VERSION = 3
 
 export const businessCollection = createSyncableCollection<Business>({
   apiKey: 'business',

@@ -154,6 +154,15 @@ function RouteComponent() {
   const totalItems = result?.totalItems ?? 0
   const isLoading = isOnline ? onlineLoading : false
 
+  // Debug logging
+  console.log('[TransactionsPage] Render state:', {
+    isOnline,
+    isLoading,
+    transactionCount: transactions.length,
+    totalItems,
+    searchParams,
+  })
+
   const handleSelectRow = useCallback((tx: TransactionHistoryItem) => {
     setSelectedId(tx.id)
     showTransactionSidebar(

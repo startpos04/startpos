@@ -101,7 +101,7 @@ const BaseComplianceSchema = z.object({
   BIR_PTU_ISSUED_AT: z.string(),
   BIR_RDO_CODE: z.string().optional(),
   BRANCH_SERIAL_NUMBER: z.string().optional(),
-  BRANCH_CODE: z.string().optional(),
+  BRANCH_CODE: z.coerce.string().optional(), // Coerce to string to prevent numeric conversion
   BRANCH_PTU_NUMBER: z.string().optional(),
   BRANCH_RDO_CODE: z.string().optional(),
 })

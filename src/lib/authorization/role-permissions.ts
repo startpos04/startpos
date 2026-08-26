@@ -96,7 +96,8 @@ export const RolePermissions: Record<string, PermissionKey[]> = {
   // ADMIN - Branch administrator with some business access
   // ===================================================================
   ADMIN: [
-    // Limited business permissions (view and manage suppliers/customers)
+    // Limited business permissions (view and manage suppliers/customers, view profile for compliance)
+    Permissions.BUSINESS_VIEW_PROFILE,
     Permissions.BUSINESS_VIEW_SUPPLIERS,
     Permissions.BUSINESS_MANAGE_SUPPLIERS,
     Permissions.BUSINESS_VIEW_CUSTOMERS,

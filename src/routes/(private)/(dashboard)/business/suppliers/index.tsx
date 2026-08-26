@@ -3,10 +3,17 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { getColumns } from '@/components/custom/data-view'
 import { MultiView } from '@/components/custom/data-view/multi-view'
+import { RequireAccess } from '@/components/require-access'
 import { supplierCollection } from '@/db/collections'
+import { Permissions } from '@/lib/authorization/permission-keys'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/suppliers/')({
-  component: SuppliersPage,
+  component: () => (
+    <RequireAccess capability={Capabilities.MANAGE_SUPPLIERS} permission={Permissions.BUSINESS_VIEW_SUPPLIERS}>
+      <SuppliersPage />
+    </RequireAccess>
+  ),
 })
 
 export function SuppliersPage() {

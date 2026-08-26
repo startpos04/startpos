@@ -20,9 +20,9 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update -y \
   && apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
   && rm -rf /var/lib/apt/lists/*
 COPY . .
-# Ensure .env.local exists so --env-file=.env.local never fails inside the container.
-# On a dev machine it is gitignored and holds local overrides; inside Docker it stays empty.
-RUN touch .env.local
+# Ensure .env.local and .env.config exist so --env-file never fails inside the container.
+# On a dev machine they are gitignored and hold local overrides; inside Docker they stay empty.
+RUN touch .env.local .env.config
 ENV NODE_ENV=development
 EXPOSE 3000 51212
 CMD ["pnpm", "run", "dev:docker"]

@@ -46,21 +46,7 @@ function DashboardPage() {
   const todaysOrders = useLiveQuery(q => q.from({ o: orderCollection }).select(({ o }) => o))
   const creditLedgerEntries = useLiveQuery(q => q.from({ cl: creditLedgerCollection }).select(({ cl }) => cl))
 
-  const productCount = products.data?.length ?? 0
-  const teamCount = users.data?.length ?? 0
-  const txToday = todaysOrders.data?.length ?? 0
-
-  // Derive credit balance from the local creditLedgerCollection so it updates
-  // immediately after every POS checkout (which inserts a new CONSUMED entry).
-  // Fall back to the authStore entitlement value when the collection is empty
-  // (e.g. the user hasn't done any checkout this session yet).
-  const latestLedgerEntry = (creditLedgerEntries.data ?? [])
-    .filter(e => e.businessId === user?.business?.id)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
-  const creditBalance = latestLedgerEntry?.balanceAfter ?? user?.entitlement?.creditBalance
-
   // Tips & hints for the dashboard section
-  // Hybrid approach: online uses server function (shuffled), offline uses collection
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
 
   // Online: Fetch from server (shuffled on every call)
@@ -72,16 +58,43 @@ function DashboardPage() {
   })
 
   // Offline: Use cached hints from collection
-  const offlineHints = useLiveQuery(() => [...hintCollection.values()].filter(h => h.isActive).sort((a, b) => a.sortOrder - b.sortOrder))
-
-  // Use server hints when online, fall back to collection when offline
-  const dashboardHints = isOnline ? serverHints : (offlineHints.data ?? [])
+  const offlineHints = useLiveQuery(q => 
+    q.from({ h: hintCollection })
+      .select(({ h }) => h)
+  )
 
   const { data: capabilities } = useQuery({
     queryKey: ['capability-states'],
     queryFn: () => fetchCapabilityStates(),
     staleTime: 60_000,
   })
+
+  // Safety check: don't render if user is null (during logout)
+  // This check MUST come AFTER all hooks are called
+  if (!user) {
+    return null
+  }
+
+  const productCount = products.data?.length ?? 0
+  const teamCount = users.data?.length ?? 0
+  const txToday = todaysOrders.data?.length ?? 0
+
+  // Derive credit balance from the local creditLedgerCollection so it updates
+  // immediately after every POS checkout (which inserts a new CONSUMED entry).
+  // Fall back to the authStore entitlement value when the collection is empty
+  // (e.g. the user hasn't done any checkout this session yet).
+  const latestLedgerEntry = (creditLedgerEntries.data ?? [])
+    .filter(e => e.businessId === user.business?.id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+  const creditBalance = latestLedgerEntry?.balanceAfter ?? user.entitlement?.creditBalance
+
+  // Use server hints when online, fall back to collection when offline
+  // Filter and sort offline hints in JavaScript
+  const filteredOfflineHints = (offlineHints.data ?? [])
+    .filter(h => h.isActive)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+  
+  const dashboardHints = isOnline ? serverHints : filteredOfflineHints
 
   // Surface critical and high-importance RECOMMENDED capabilities on the dashboard.
   // importance is derived from score: critical ≥ 0.75, high ≥ 0.55.
@@ -92,7 +105,7 @@ function DashboardPage() {
     .slice(0, 2)
 
   // Health stage hint — sourced from Business.healthStage written by RecalculationJob
-  const healthStage = user?.currentProfile ? null : (user as { healthStage?: string }).healthStage
+  const healthStage = user.currentProfile ? null : (user as { healthStage?: string }).healthStage
   const healthHint = healthStage && healthStage in HEALTH_STAGE_HINTS ? HEALTH_STAGE_HINTS[healthStage as keyof typeof HEALTH_STAGE_HINTS] : null
 
   const refreshRecommendations = () => void qc.invalidateQueries({ queryKey: ['capability-states'] })
@@ -100,7 +113,7 @@ function DashboardPage() {
   return (
     <div className='flex flex-col gap-6 px-4'>
       {/* Welcome banner */}
-      <WelcomeBanner name={user?.name} businessName={user?.business?.name} />
+      <WelcomeBanner name={user.name} businessName={user.business?.name} />
 
       {/* Health stage hint — contextual next-step based on operational maturity */}
       {healthHint && (
@@ -118,7 +131,7 @@ function DashboardPage() {
         <StatCard
           icon={<CreditCardIcon className='h-4 w-4' />}
           label={creditBalance !== null ? 'Credits remaining' : 'Subscription'}
-          value={creditBalance !== null ? creditBalance : (user?.entitlement?.status ?? '—')}
+          value={creditBalance !== null ? creditBalance : (user.entitlement?.status ?? '—')}
         />
       </div>
 
@@ -152,7 +165,9 @@ function DashboardPage() {
         <div className='lg:col-span-2'>{firstRunVisible ? <FirstRunGuide /> : <FeatureLibrary />}</div>
 
         {/* Right column — tips carousel */}
-        <div className='flex flex-col gap-4'>{dashboardHints.length > 0 && <TipsSection hints={dashboardHints} />}</div>
+        <div className='flex flex-col gap-4'>
+          <TipsSection hints={dashboardHints} />
+        </div>
       </div>
     </div>
   )
@@ -174,7 +189,25 @@ interface TipsSectionProps {
 
 function TipsSection({ hints }: TipsSectionProps) {
   const [index, setIndex] = useState(0)
-  if (hints.length === 0) return null
+  
+  // Show placeholder when no hints available
+  if (hints.length === 0) {
+    return (
+      <Card>
+        <CardHeader className='pb-3'>
+          <div className='flex items-center gap-2'>
+            <LightbulbIcon className='h-4 w-4 text-primary' />
+            <CardTitle className='text-base'>Tips for you</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className='relative rounded-lg bg-muted/30 px-4 py-6 text-center'>
+            <p className='text-sm text-muted-foreground'>No tips available at the moment</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   const current = hints[index]!
   const total = hints.length

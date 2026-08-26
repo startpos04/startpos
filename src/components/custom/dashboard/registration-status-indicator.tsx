@@ -24,10 +24,6 @@ import { authStore } from '@/store/auth-store'
 export function RegistrationStatusIndicator() {
   const user = useStore(authStore, state => state.user)
   
-  // Only show for ADMIN and MANAGER roles
-  const canSee = user?.role === Role.ADMIN || user?.role === Role.OWNER
-  if (!canSee) return null
-  
   // Get registration status from business
   const registrationStatus = user?.business?.registrationStatus ?? 'UNREGISTERED'
   
@@ -71,6 +67,10 @@ export function RegistrationStatusIndicator() {
         }
     }
   }, [registrationStatus])
+  
+  // Only show for ADMIN and MANAGER roles - check AFTER all hooks are called
+  const canSee = user?.role === Role.ADMIN || user?.role === Role.OWNER
+  if (!canSee) return null
   
   const Icon = statusConfig.icon
   

@@ -331,7 +331,13 @@ export function buildFeatureLibrary(capabilityStates: CapabilityStateRow[]): Fea
 // Future capability IDs — these map to CAPABILITY_REGISTRY entries where
 // required: () => false. Maintained here so buildFeatureLibrary stays pure
 // without calling registry functions.
-const FUTURE_CAPABILITY_IDS = new Set(['LOYALTY_POINTS', 'KITCHEN_DISPLAY', 'DELIVERY_MANAGEMENT'])
+const FUTURE_CAPABILITY_IDS = new Set([
+  'LOYALTY_POINTS',
+  'KITCHEN_DISPLAY',
+  'DELIVERY_MANAGEMENT',
+  'VIEW_ANALYTICS',
+  'ACCESS_API',
+])
 
 // ---------------------------------------------------------------------------
 // Category display labels

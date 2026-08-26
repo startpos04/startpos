@@ -1,7 +1,6 @@
 key,label,description,isSelectableByCustomer,pricingCategory,sortOrder
 COMPLETE_CHECKOUT,Complete Checkout,Process a POS transaction and collect payment.,true,CORE,10
 CREATE_ORDER,Create Order,Create a new kitchen or service order.,true,OPERATIONAL,20
-EDIT_ACTIVE_ORDER,Edit Active Order,Modify an order that is currently in progress.,true,OPERATIONAL,30
 RECORD_PAYMENT,Record Payment,Record a payment against an existing order or invoice.,true,CORE,20
 ISSUE_REFUND,Issue Refund,Process a refund transaction against a completed sale.,true,OPERATIONAL,40
 PRINT_RECEIPT,Print Receipt,Generate and print or download a transaction receipt.,true,OPERATIONAL,50

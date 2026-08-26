@@ -37,7 +37,7 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
       
       // Branch-level IRAS data
       branchSerialNumber: sgBranchCompliance?.branchUEN,
-      branchCode: branch.branchCode,
+      branchCode: String(branch.branchCode ?? ''),
       branchPermitNumber: sgBranchCompliance?.tradeLicense,
       
       // GST status

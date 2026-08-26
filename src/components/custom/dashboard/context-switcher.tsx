@@ -3,14 +3,20 @@ import { useStore } from '@tanstack/react-store'
 import { BookOpen, Building2, HelpCircle } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { useBranchSwitch } from '@/hooks/use-branch-switch'
+import { useCapability } from '@/hooks/use-capability'
 import { usePermission } from '@/hooks/use-permission'
 import { Permissions } from '@/lib/authorization/permission-keys'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { authStore } from '@/store/auth-store'
 import { ContextSwitcherItem } from './context-switcher-item'
 
 /**
  * ContextSwitcher - A fixed-width vertical navigation bar for switching between
  * business/branch contexts. Sits outside the SidebarProvider to avoid conflicts.
+ * 
+ * NOTE: Hidden for single-branch businesses (when MANAGE_BRANCHES capability is disabled
+ * or when only one branch exists). In single-branch mode, business links are integrated
+ * into the main sidebar.
  */
 export function ContextSwitcher() {
   const user = useStore(authStore, state => state.user)
@@ -20,15 +26,23 @@ export function ContextSwitcher() {
 
   // Permission check (replaces role check)
   const canViewBusiness = usePermission(Permissions.BUSINESS_VIEW_PROFILE)
+  
+  // Capability check for multi-branch
+  const hasMultiBranchCapability = useCapability(Capabilities.MANAGE_BRANCHES)
 
   // Don't render if no user (shouldn't happen in dashboard, but safe check)
   if (!user) return null
 
-  const isBusinessActive = location.pathname.startsWith('/business')
-  const currentBranchId = user.branch?.id
-
   // Get all branches (for now, just current branch - will expand later when multi-branch support is added)
   const branches = user.branch ? [user.branch] : []
+  
+  // Hide context switcher for single-branch businesses
+  // Show only if: multi-branch capability is enabled AND (has multiple branches OR business admin access)
+  const isSingleBranch = !hasMultiBranchCapability || branches.length === 1
+  if (isSingleBranch) return null
+
+  const isBusinessActive = location.pathname.startsWith('/business')
+  const currentBranchId = user.branch?.id
 
   return (
     <div className='hidden md:flex bg-card w-12 border-r flex-col items-center shrink-0 h-screen sticky top-0 z-20'>

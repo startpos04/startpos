@@ -47,33 +47,11 @@ type DBUser = Prisma.UserGetPayload<{
 const complianceIncludes = getComplianceIncludes()
 
 type DBBusiness = Prisma.BusinessGetPayload<{ 
-  select: {
-    id: true
-    name: true
-    slug: true
-    businessType: true
-    countryCode: true
-    registrationStatus: true
-    registrationCompletedAt: true
-  }
   include: typeof complianceIncludes.business & { configurations: true } 
 }>
 
 type DBBranch = Prisma.BranchGetPayload<{
-  select: {
-    id: true
-    name: true
-    address: true
-    businessId: true
-    serialNumber: true
-    branchCode: true
-    createdAt: true
-    updatedAt: true
-    deletedAt: true
-    offlineTerminalId: true
-    configurations: true
-  }
-  include: typeof complianceIncludes.branch
+  include: typeof complianceIncludes.branch & { configurations: true }
 }>
 
 type DBVendorSession = Prisma.VendorSessionGetPayload<object>
@@ -112,34 +90,12 @@ export const getAuthUser = createServerFn({ method: 'GET' })
 
       prisma.business.findUnique({
         where: { id: businessId },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          businessType: true,
-          countryCode: true,
-          registrationStatus: true,
-          registrationCompletedAt: true,
-        },
         include: { ...complianceIncludes.business, configurations: true },
       }) as Promise<DBBusiness | null>,
 
       prisma.branch.findUnique({
         where: { id: branchId },
-        select: {
-          id: true,
-          name: true,
-          address: true,
-          businessId: true,
-          serialNumber: true,
-          branchCode: true,
-          createdAt: true,
-          updatedAt: true,
-          deletedAt: true,
-          offlineTerminalId: true, // Phase 2: offline checkout restriction
-          configurations: true,
-        },
-        include: complianceIncludes.branch,
+        include: { ...complianceIncludes.branch, configurations: true },
       }) as Promise<DBBranch | null>,
 
       prisma.vendorSession.findFirst({

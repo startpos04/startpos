@@ -296,34 +296,10 @@ const CONDITIONAL: Omit<CapabilityDefinition, 'trackingEvents'>[] = [
     isComplex: false,
     businessValue: 'Take orders and collect payment when ready — perfect for restaurants and service businesses.',
     hardDependencies: ['COMPLETE_CHECKOUT'],
-    relatedCapabilities: ['EDIT_ACTIVE_ORDER'],
+    relatedCapabilities: [],
     conflicts: [],
     minimumPlan: 'Basic',
     recommendationScore: c => (c.sellsPreparedFood ? 0.9 : c.paymentTiming === 'deferred' ? 0.8 : 0.6),
-  },
-  {
-    id: 'EDIT_ACTIVE_ORDER',
-    label: 'Edit Active Order',
-    description: 'Modify an in-progress order — add items, change quantities, apply add-ons.',
-    category: 'SALES',
-    required: c => c.paymentTiming !== 'immediate' && (c.hasOrderCustomization || c.requiresTableManagement),
-    boosters: [
-      { label: 'table management', signal: c => (c.requiresTableManagement ? 1.0 : 0) },
-      { label: 'order customization', signal: c => (c.hasOrderCustomization ? 0.8 : 0) },
-    ],
-    threshold: 0.5,
-    outputs: () => [],
-    rollbackOutputs: () => [],
-    deferrable: true,
-    configuredSignal: () => false,
-    estimatedSetupMinutes: 2,
-    isComplex: false,
-    businessValue: 'Let staff add items and modify orders at the table before payment.',
-    hardDependencies: ['CREATE_ORDER'],
-    relatedCapabilities: ['CREATE_ORDER'],
-    conflicts: [],
-    minimumPlan: 'Basic',
-    recommendationScore: c => (c.requiresTableManagement ? 0.9 : 0.6),
   },
   // ── Receipt Printing ───────────────────────────────────────────────────────
   {
@@ -781,10 +757,6 @@ const TRACKING_EVENTS_MAP: Record<string, CapabilityDefinition['trackingEvents']
   CREATE_ORDER: [
     { event: 'CAPABILITY_STATE_CHANGED', when: 'User accepts recommendation or admin enables' },
     { event: 'CONFIG_CHANGED', when: 'ENABLE_ORDER config key written on enable/rollback' },
-  ],
-  EDIT_ACTIVE_ORDER: [
-    { event: 'CAPABILITY_STATE_CHANGED', when: 'User accepts recommendation or admin enables' },
-    { event: 'CONFIG_CHANGED', when: 'ENABLE_ORDER_TAB config key written on enable/rollback' },
   ],
   PRINT_RECEIPT: [
     { event: 'CAPABILITY_STATE_CHANGED', when: 'User accepts recommendation or admin enables' },

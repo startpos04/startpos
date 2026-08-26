@@ -24,7 +24,6 @@ export const Capabilities = {
   // POS & checkout
   COMPLETE_CHECKOUT: 'COMPLETE_CHECKOUT',
   CREATE_ORDER: 'CREATE_ORDER',
-  EDIT_ACTIVE_ORDER: 'EDIT_ACTIVE_ORDER',
   RECORD_PAYMENT: 'RECORD_PAYMENT',
   ISSUE_REFUND: 'ISSUE_REFUND',
   PRINT_RECEIPT: 'PRINT_RECEIPT',
@@ -95,7 +94,6 @@ export type CapabilityKey = (typeof Capabilities)[keyof typeof Capabilities]
 export const OPERATIONAL_CAPABILITIES = new Set<CapabilityKey>([
   Capabilities.COMPLETE_CHECKOUT,
   Capabilities.CREATE_ORDER,
-  Capabilities.EDIT_ACTIVE_ORDER,
   Capabilities.RECORD_PAYMENT,
   Capabilities.ISSUE_REFUND,
   Capabilities.PRINT_RECEIPT,

@@ -40,7 +40,7 @@ export class PhilippinesComplianceAdapter implements ComplianceAdapter {
       
       // Branch-level BIR data
       branchSerialNumber: phBranchCompliance?.branchSerialNumber,
-      branchCode: phBranchCompliance?.branchCode ?? branch.branchCode,
+      branchCode: String(phBranchCompliance?.branchCode ?? branch.branchCode ?? ''),
       branchPermitNumber: phBranchCompliance?.ptuNumber,
       branchTaxOfficeCode: phBranchCompliance?.rdoCode,
       

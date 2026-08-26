@@ -38,7 +38,7 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
       
       // Branch-level state/local data
       branchSerialNumber: usBranchCompliance?.stateTaxID,
-      branchCode: branch.branchCode,
+      branchCode: String(branch.branchCode ?? ''),
       branchPermitNumber: usBranchCompliance?.salesTaxPermit,
       
       // Sales tax status (most US states require sales tax)

@@ -5,7 +5,15 @@ import { authStore } from '@/store/auth-store'
 export const Route = createFileRoute('/(private)/(dashboard)/business')({
   component: () => <Outlet />,
   beforeLoad: async () => {
-    const { authorization } = authStore.state
+    const { authorization, user } = authStore.state
+
+    // For single-branch businesses, redirect to dashboard
+    // Business context is only for multi-branch businesses
+    const hasMultiBranch = user?.entitlement?.capabilities?.includes('MANAGE_BRANCHES')
+    
+    if (!hasMultiBranch) {
+      throw redirect({ to: '/dashboard' })
+    }
 
     // Check if user has ANY business-level permission (grants access to business section)
     const businessPermissions = [

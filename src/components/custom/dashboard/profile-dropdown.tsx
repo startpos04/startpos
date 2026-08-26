@@ -21,6 +21,9 @@ export const ProfileDropdown = ({ children }: { children?: ReactNode }) => {
     })
   }
 
+  // Don't render if user is null (during logout)
+  if (!user) return null
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

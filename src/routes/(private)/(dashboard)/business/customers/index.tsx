@@ -3,10 +3,17 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { getColumns } from '@/components/custom/data-view'
 import { MultiView } from '@/components/custom/data-view/multi-view'
+import { RequireAccess } from '@/components/require-access'
 import { customerCollection } from '@/db/collections'
+import { Permissions } from '@/lib/authorization/permission-keys'
+import { Capabilities } from '@/lib/entitlement/capability-keys'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/customers/')({
-  component: CustomersPage,
+  component: () => (
+    <RequireAccess capability={Capabilities.CUSTOMER_PROFILES} permission={Permissions.BUSINESS_VIEW_CUSTOMERS}>
+      <CustomersPage />
+    </RequireAccess>
+  ),
 })
 
 export function CustomersPage() {

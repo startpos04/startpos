@@ -3,11 +3,14 @@ import { useStore } from '@tanstack/react-store'
 import {
   BookOpenIcon,
   BotIcon,
+  BuildingIcon,
   ChevronRightIcon,
   ClipboardPenLine,
   CreditCardIcon,
   GalleryVerticalEndIcon,
+  HelpCircleIcon,
   LayoutDashboardIcon,
+  LifeBuoyIcon,
   SettingsIcon,
   ShieldIcon,
   TerminalSquareIcon,
@@ -65,6 +68,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     Capabilities.MANAGE_INVENTORY,
     Capabilities.VIEW_ORDER_HISTORY,
     Capabilities.BATCH_PREPARATION,
+    Capabilities.CUSTOMER_PROFILES,
+    Capabilities.MANAGE_SUPPLIERS,
+    Capabilities.MANAGE_BRANCHES,
   ])
 
   // Permission checks — replaces role-based checks
@@ -143,7 +149,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 allowedRoles: [] as Role[],
               }
             : null,
-          perms[Permissions.BUSINESS_VIEW_BRANCHES]
+          perms[Permissions.BUSINESS_VIEW_BRANCHES] && caps.MANAGE_BRANCHES
             ? {
                 title: 'Branches',
                 url: '/business/branches',
@@ -159,7 +165,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 allowedRoles: [] as Role[],
               }
             : null,
-          perms[Permissions.BUSINESS_VIEW_SUPPLIERS]
+          perms[Permissions.BUSINESS_VIEW_SUPPLIERS] && caps.MANAGE_SUPPLIERS
             ? {
                 title: 'Suppliers',
                 url: '/business/suppliers',
@@ -167,7 +173,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 allowedRoles: [] as Role[],
               }
             : null,
-          perms[Permissions.BUSINESS_VIEW_CUSTOMERS]
+          perms[Permissions.BUSINESS_VIEW_CUSTOMERS] && caps.CUSTOMER_PROFILES
             ? {
                 title: 'Customers',
                 url: '/business/customers',
@@ -202,6 +208,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
 
     // Branch context navigation (default)
+    // Check if this is a single-branch business
+    const isSingleBranch = !caps.MANAGE_BRANCHES || user.business?.branches?.length === 1
+
+    // Build business menu items (for single-branch sidebar)
+    const businessItems = hasBusinessAccess && isSingleBranch ? [
+      perms[Permissions.BUSINESS_VIEW_PROFILE] ? { title: 'Overview', url: '/business' } : null,
+      perms[Permissions.BUSINESS_VIEW_CAPABILITIES] ? { title: 'Capabilities', url: '/business/capabilities' } : null,
+      perms[Permissions.BUSINESS_VIEW_BILLING] ? { title: 'Billing', url: '/business/billing' } : null,
+      perms[Permissions.BUSINESS_VIEW_SUPPLIERS] && caps.MANAGE_SUPPLIERS ? { title: 'Suppliers', url: '/business/suppliers' } : null,
+      perms[Permissions.BUSINESS_VIEW_CUSTOMERS] && caps.CUSTOMER_PROFILES ? { title: 'Customers', url: '/business/customers' } : null,
+      perms[Permissions.USER_MANAGE_PERMISSIONS] ? { title: 'Permissions', url: '/business/permissions' } : null,
+      perms[Permissions.BUSINESS_VIEW_PROFILE] ? { title: 'Profile', url: '/business/profile' } : null,
+    ].filter(Boolean) : []
+
+    // Build support menu items (for single-branch sidebar)
+    const supportItems = isSingleBranch ? [
+      { title: 'Contact Us', url: '/contact-us' },
+      { title: 'FAQ', url: '/faq' },
+    ] : []
+
     const data = {
       team: {
         name: APP_NAME,
@@ -272,7 +298,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
             }
           : null,
-        // Note: Contact Us and Billing have been moved to the Context Switcher and Business section
+        // Add Business section for single-branch businesses
+        businessItems.length > 0
+          ? {
+              title: 'Business',
+              url: '#',
+              icon: <BuildingIcon />,
+              allowedRoles: [] as Role[],
+              items: businessItems,
+            }
+          : null,
+        // Add Support section for single-branch businesses  
+        supportItems.length > 0
+          ? {
+              title: 'Support',
+              url: '#',
+              icon: <LifeBuoyIcon />,
+              allowedRoles: [] as Role[],
+              items: supportItems,
+            }
+          : null,
       ].filter(Boolean) as Items[],
     }
 

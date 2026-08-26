@@ -10,8 +10,8 @@ import { crudAPI } from '@/lib/prisma-client/crud-api'
 const PAGE_SIZE = 50
 
 const fetchTransactionHistorySchema = z.object({
-  from: z.string().optional().catch(dayjs().startOf('month').format('YYYY-MM-DD')),
-  to: z.string().optional().catch(dayjs().endOf('month').format('YYYY-MM-DD')),
+  from: z.string().default(dayjs().startOf('month').format('YYYY-MM-DD')),
+  to: z.string().default(dayjs().endOf('month').format('YYYY-MM-DD')),
   cashierId: z.string().optional(),
   method: z.nativeEnum(PaymentMethod).optional(),
   type: z.nativeEnum(TransactionType).optional(),
@@ -24,8 +24,17 @@ export type FetchTransactionHistoryInput = z.infer<typeof fetchTransactionHistor
 
 export const fetchTransactionHistory = createServerFn({ method: 'POST' })
   .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_TRANSACTIONS)])
-  .inputValidator((input: FetchTransactionHistoryInput) => fetchTransactionHistorySchema.parse(input))
-  .handler(async ({ data }) => {
+  .inputValidator((input: FetchTransactionHistoryInput | undefined) => fetchTransactionHistorySchema.parse(input || {}))
+  .handler(async ({ context, data }) => {
+    console.log('[fetchTransactionHistory] Handler called with:', {
+      from: data.from,
+      to: data.to,
+      page: data.page,
+      pageSize: data.pageSize,
+      userBusinessId: context.user?.businessId,
+      userBranchId: context.user?.branchId,
+    })
+
     const where = {
       createdAt: {
         gte: dayjs(data.from).startOf('day').toDate(),
@@ -45,6 +54,14 @@ export const fetchTransactionHistory = createServerFn({ method: 'POST' })
           }
         : {}),
     }
+
+    // Debug logging
+    console.log('[fetchTransactionHistory] Query params:', {
+      from: data.from,
+      to: data.to,
+      fromDate: dayjs(data.from).startOf('day').toDate(),
+      toDate: dayjs(data.to).endOf('day').toDate(),
+    })
 
     const [txResult, countResult] = await Promise.all([
       crudAPI.transaction('findMany', {
@@ -87,6 +104,13 @@ export const fetchTransactionHistory = createServerFn({ method: 'POST' })
 
     if (txResult.isErr()) throw new Error(txResult.error)
     if (countResult.isErr()) throw new Error(countResult.error)
+
+    console.log('[fetchTransactionHistory] Results:', {
+      count: countResult.value,
+      returned: txResult.value.length,
+      page: data.page,
+      pageSize: data.pageSize,
+    })
 
     return {
       data: txResult.value,
