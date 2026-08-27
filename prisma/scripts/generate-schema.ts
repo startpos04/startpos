@@ -31,6 +31,8 @@ const BASE_FILES = [
   'base/product.prisma',
   'base/inventory.prisma',
   'base/config.prisma',
+  'base/branch-capability-config.prisma',
+  'base/capability-configuration.prisma',
   'base/billing.prisma',
   'base/permissions.prisma',
   'base/operations.prisma',

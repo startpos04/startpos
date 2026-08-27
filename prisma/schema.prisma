@@ -1,7 +1,7 @@
 // ============================================================================
 // GENERATED PRISMA SCHEMA - DO NOT EDIT
 // Country: PH
-// Generated: 2026-08-25T04:57:46.006Z
+// Generated: 2026-08-27T15:21:31.274Z
 // Source: base/* + philippines.prisma
 // ============================================================================
 
@@ -62,10 +62,10 @@ enum ConfigDataType {
 }
 
 enum ConfigurationScope {
-  PLATFORM // Global defaults (billing policies, add-on pricing)
-  BUSINESS // Business-level config (tax rate, locale)
-  BRANCH // Branch-level overrides
-  USER // User preferences (future)
+  PLATFORM  // Global defaults (billing policies, add-on pricing)
+  BUSINESS  // Business-level config (tax rate, locale)
+  BRANCH    // Branch-level overrides
+  USER      // User preferences (future)
 }
 
 enum ConfigurationKey {
@@ -535,17 +535,17 @@ model Business {
   // dropped in a future migration after all consumers are confirmed to use
   // onboardingProfile / currentProfile instead. Do not use for new logic.
   businessType BusinessType
-
+  
   // Country & Compliance (Phase 2)
   countryCode  String  @default("PH") // Derived from LOCALE configuration
-  complianceId String? @unique // Polymorphic ID (PH_xxx, SG_xxx, US_xxx)
+  complianceId String? @unique        // Polymorphic ID (PH_xxx, SG_xxx, US_xxx)
 
   // Registration Status Tracking (Compliance UX Improvement)
   registrationStatus      BusinessRegistrationStatus @default(UNREGISTERED)
   registrationCompletedAt DateTime? // Timestamp when status changed to REGISTERED
 
   // COUNTRY_FIELDS: PH
-  philippinesCompliance PhilippinesCompliance?
+  philippinesCompliance   PhilippinesCompliance?
 
   members              Membership[]
   branches             Branch[]
@@ -567,6 +567,7 @@ model Business {
   variants             ProductVariant[]
   notifications        Notification[]
   sequenceCounters     SequenceCounter[]
+  sequenceAudits       SequenceAudit[]
   purchases            Purchase[]
   operationalTasks     OperationalTask[]
   configurations       Configuration[] // Multi-scope configuration system
@@ -660,28 +661,32 @@ model Branch {
   // ---------------------------------------------------------------------------
   offlineTerminalId String? // User ID of designated offline terminal (nullable)
 
-  members           Membership[]
-  inventory         Inventory[]
-  transactions      Transaction[]
-  orders            Order[] // Added for Branch-level orders
-  movements         InventoryMovement[] @relation("SourceBranch")
-  receivedTransfers InventoryMovement[] @relation("DestinationBranch")
-  purchases         Purchase[]
-  vendorSessions    VendorSession[]
-  purchaseItems     PurchaseItem[]
-  orderItems        OrderItem[]
-  orderItemAddons   OrderItemAddon[]
-  payments          Payment[]
-  notifications     Notification[]
-  sequenceCounters  SequenceCounter[]
-  operationalTasks  OperationalTask[]
-  configurations    Configuration[] // Multi-scope configuration system
-  locations         Location[]
-  goodsReceipts     GoodsReceipt[]
-  goodsReceiptItems GoodsReceiptItem[]
+  members            Membership[]
+  inventory          Inventory[]
+  transactions       Transaction[]
+  orders             Order[] // Added for Branch-level orders
+  movements          InventoryMovement[]  @relation("SourceBranch")
+  receivedTransfers  InventoryMovement[]  @relation("DestinationBranch")
+  purchases          Purchase[]
+  vendorSessions     VendorSession[]
+  purchaseItems      PurchaseItem[]
+  orderItems         OrderItem[]
+  orderItemAddons    OrderItemAddon[]
+  payments           Payment[]
+  notifications      Notification[]
+  sequenceCounters   SequenceCounter[]
+  sequenceAudits     SequenceAudit[]
+  operationalTasks   OperationalTask[]
+  configurations     Configuration[] // Multi-scope configuration system
+  locations          Location[]
+  goodsReceipts      GoodsReceipt[]
+  goodsReceiptItems  GoodsReceiptItem[]
 
   // Production Module relations
   productionOrders ProductionOrder[]
+
+  // Branch-level capability toggles (Phase 2 - Entitlements)
+  capabilityConfigs BranchCapabilityConfig[]
 
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -756,6 +761,9 @@ model User {
   // User-specific permission grants and revokes
   userPermissions    UserPermission[]
   permissionsGranted UserPermission[] @relation("PermissionGrantor")
+
+  // Sequence generation audit trail
+  sequenceAudits SequenceAudit[]
 
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -901,16 +909,16 @@ model Transaction {
   snapshotCashierName   String? // Cashier name at time of sale
 
   // COUNTRY_FIELDS: PH
-  snapshotBusinessTIN        String? // BIR TIN "000-000-000-000"
-  snapshotBranchSN           String? // BIR Branch Serial Number
-  snapshotBranchCode         String? // Branch code suffix "00001"
-  snapshotIsVATRegistered    Boolean? // VAT registration status
-  snapshotPTUNumber          String? // Permit to Use
-  snapshotRDOCode            String? // Revenue District Office
-  snapshotCustomerTIN        String? // Customer TIN for B2B
-  snapshotScPwdId            String? // SC/PWD ID
-  snapshotScPwdName          String? // SC/PWD name
-  snapshotScPwdDiscount      Int? // Discount amount (cents)
+  snapshotBusinessTIN     String?  // BIR TIN "000-000-000-000"
+  snapshotBranchSN        String?  // BIR Branch Serial Number
+  snapshotBranchCode      String?  // Branch code suffix "00001"
+  snapshotIsVATRegistered Boolean? // VAT registration status
+  snapshotPTUNumber       String?  // Permit to Use
+  snapshotRDOCode         String?  // Revenue District Office
+  snapshotCustomerTIN     String?  // Customer TIN for B2B
+  snapshotScPwdId         String?  // SC/PWD ID
+  snapshotScPwdName       String?  // SC/PWD name
+  snapshotScPwdDiscount   Int?     // Discount amount (cents)
   snapshotBuyerName          String?
   snapshotBuyerTIN           String?
   snapshotBuyerAddress       String?
@@ -1487,48 +1495,48 @@ model PurchaseItem {
 
 // Configuration Definition (Base Layer) - Defines available configurations
 model ConfigurationDefinition {
-  id           String             @id // Same as key for simplicity (e.g., "PRIMARY_TAX_RATE")
-  key          ConfigurationKey   @unique
-  label        String // Display name
-  description  String? // Help text
-  category     ConfigCategory // TAX, OPERATIONAL, LOCALE, etc.
-  dataType     ConfigDataType // STRING, NUMBER, BOOLEAN, JSON
-  defaultValue String // Platform default
-  scope        ConfigurationScope // Where this config can be set
-  required     Boolean            @default(false)
-  validation   Json? // Validation rules (min, max, regex, enum values)
-
+  id              String              @id // Same as key for simplicity (e.g., "PRIMARY_TAX_RATE")
+  key             ConfigurationKey    @unique
+  label           String              // Display name
+  description     String?             // Help text
+  category        ConfigCategory      // TAX, OPERATIONAL, LOCALE, etc.
+  dataType        ConfigDataType      // STRING, NUMBER, BOOLEAN, JSON
+  defaultValue    String              // Platform default
+  scope           ConfigurationScope  // Where this config can be set
+  required        Boolean             @default(false)
+  validation      Json?               // Validation rules (min, max, regex, enum values)
+  
   // Country-specific overrides
-  countryCode String? // If null, applies to all countries
-
-  configurations Configuration[] // References from actual config instances
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  countryCode     String?             // If null, applies to all countries
+  
+  configurations  Configuration[] // References from actual config instances
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
   @@map("configuration_definitions")
 }
 
 // Configuration (State Layer) - Actual configuration values at any scope (Platform/Business/Branch/User)
 model Configuration {
-  id    String             @id @default(cuid())
-  key   ConfigurationKey
-  value String // Stored as a string representation (e.g., "20", "true", "INCLUSIVE", "en-PH")
-  scope ConfigurationScope
-
+  id             String                   @id @default(cuid())
+  key            ConfigurationKey
+  value          String                   // Stored as a string representation (e.g., "20", "true", "INCLUSIVE", "en-PH")
+  scope          ConfigurationScope
+  
   // Reference to definition (for metadata, validation)
-  definition ConfigurationDefinition @relation(fields: [key], references: [key])
+  definition     ConfigurationDefinition  @relation(fields: [key], references: [key])
 
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  businessId String?
-  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  branchId   String?
-  branch     Branch?   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  businessId     String?
+  business       Business?                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId       String?
+  branch         Branch?                  @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
 
   @@unique([key, businessId, scope])
   @@unique([key, branchId, scope])
@@ -1539,6 +1547,29 @@ model Configuration {
 
 // NOTE: Country-specific compliance tables (PhilippinesCompliance, SingaporeCompliance, UsaCompliance)
 // are now generated from countries/*.prisma files and injected as standalone models
+
+// =============================================================================
+// BRANCH CAPABILITY CONFIGURATION
+// =============================================================================
+// Branch-level capability toggles - allows branch managers to enable/disable
+// specific capabilities for their branch, independent of the business-wide
+// capability states.
+
+model BranchCapabilityConfig {
+  id           String      @id @default(cuid())
+  branchId     String
+  branch       Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  
+  capabilityId String      // e.g., "CREATE_ORDER", "RECORD_PAYMENT"
+  enabled      Boolean     @default(true) // true = enabled at branch, false = disabled
+  
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  @@unique([branchId, capabilityId])
+  @@index([branchId])
+  @@map("branch_capability_configs")
+}
 
 // =============================================================================
 // BILLING MODELS - BusinessSubscription, SubscriptionStatusHistory, Feature, SubscriptionPlan, PlanEntitlement, EntitlementOverride, UsageCounter, BillingInvoice, BillingInvoiceItem, CreditLedger
@@ -1904,6 +1935,7 @@ model CreditLedger {
   @@map("credit_ledger")
 }
 
+
 // ---------------------------------------------------------------------------
 // BusinessSubscriptionAddon — Phase TX-Addon
 // Records a purchased add-on that augments the base plan for a business.
@@ -2140,6 +2172,11 @@ model SequenceCounter {
 
   lastNumber Int @default(0)
 
+  // Offline mode tracking - prevents multi-cashier conflicts in offline mode
+  offlineCashierId String?  // Set when device goes offline; tracks which cashier owns this sequence
+  offlineDeviceId  String?  // Device identifier to prevent multi-device conflicts
+  isOfflineMode    Boolean @default(false) // True when sequence is in offline-only mode
+
   business Business @relation(fields: [businessId], references: [id])
   branch   Branch   @relation(fields: [branchId], references: [id])
 
@@ -2148,6 +2185,31 @@ model SequenceCounter {
 
   @@unique([businessId, branchId, type, year, month, day])
   @@map("sequence_counters")
+}
+
+// Audit trail for sequence number generation
+// Tracks which cashier generated which sequence number, when, and on which device
+model SequenceAudit {
+  id               String       @id @default(cuid())
+  businessId       String
+  branchId         String
+  type             SequenceType
+  sequenceNumber   Int          // The actual number generated
+  generatedBy      String       // User ID who triggered the generation
+  deviceId         String?      // Device identifier (for offline tracking)
+  wasOffline       Boolean      @default(false) // Was this generated in offline mode?
+  transactionId    String?      // Link to the transaction that used this sequence
+  
+  business Business @relation(fields: [businessId], references: [id])
+  branch   Branch   @relation(fields: [branchId], references: [id])
+  user     User     @relation(fields: [generatedBy], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([businessId, branchId, type])
+  @@index([generatedBy])
+  @@index([transactionId])
+  @@map("sequence_audits")
 }
 
 // --- TASKS MANAGEMENT ---
@@ -2773,49 +2835,51 @@ model PricingQuoteItem {
   @@map("pricing_quote_items")
 }
 
+
 // ============================================================================
 // COUNTRY-SPECIFIC STANDALONE MODELS: PH
 // ============================================================================
 
+
 model PhilippinesCompliance {
-  id String @id @default(cuid())
-
+  id             String    @id @default(cuid())
+  
   // BIR requirements
-  birTin         String // Tax Identification Number
-  birPtuNumber   String? // Permit to Use
+  birTin         String    // Tax Identification Number
+  birPtuNumber   String?   // Permit to Use
   birPtuIssuedAt DateTime? // PTU issue date
-  birRdoCode     String? // Revenue District Office
-
+  birRdoCode     String?   // Revenue District Office
+  
   // Business registration
-  secRegistration     String? // SEC registration
-  mayorPermit         String? // Mayor's permit
-  dtiRegistration     String? // DTI registration
+  secRegistration String?  // SEC registration
+  mayorPermit     String?  // Mayor's permit
+  dtiRegistration String?  // DTI registration
   vatRegistrationDate DateTime?
-
+  
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId String   @unique
-
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
+  
   @@map("philippines_compliance")
 }
 
 model PhilippinesBranchCompliance {
   id String @id @default(cuid())
-
+  
   // BIR branch requirements
-  branchSerialNumber String // BIR-issued serial number
-  branchCode         String // Branch suffix "00001"
+  branchSerialNumber String  // BIR-issued serial number
+  branchCode         String  // Branch suffix "00001"
   ptuNumber          String? // Branch-specific PTU
   rdoCode            String? // RDO for this branch
   mayorPermit        String? // Branch permit
-
+  
   branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
   branchId String @unique
-
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
+  
   @@map("philippines_branch_compliance")
 }

@@ -15,29 +15,22 @@
 
 import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute } from '@tanstack/react-router'
-import { Building2, Edit2, MapPin, Plus, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Building2, MapPin } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getColumns } from '@/components/custom/data-view'
 import { MultiView } from '@/components/custom/data-view/multi-view'
 import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
 import { RequireAccess } from '@/components/require-access'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
 import { branchCollection } from '@/db/collections'
 import { Permissions } from '@/lib/authorization/permission-keys'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager from '@/lib/mount-manager'
-import { createBranch } from '@/lib/server-fn/create-branch'
-import { fetchBranchUsers } from '@/lib/server-fn/fetch-branch-users'
-import { updateBranch } from '@/lib/server-fn/update-branch'
-import { updateOfflineTerminal } from '@/lib/server-fn/update-offline-terminal'
 import { authStore } from '@/store/auth-store'
+import { BRANCH_ASIDE_ID, showBranchSidebar } from './-components/branch-sidebar'
+import { CreateBranchSidebar } from './-components/create-branch-sidebar'
+import { EditBranchSidebar } from './-components/edit-branch-sidebar'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/branches/')({
   component: () => (
@@ -68,289 +61,8 @@ type BranchRow = {
 }
 
 // ---------------------------------------------------------------------------
-// Default form states
+// Default form states - removed, moved to sidebar components
 // ---------------------------------------------------------------------------
-
-const defaultCreateForm = { name: '', address: '', country: 'PH' }
-
-type EditFormState = {
-  name: string
-  address: string
-  country: string
-  offlineTerminalId: string | null
-  branchUsers: Array<{ id: string; name: string | null; email: string; role: string }>
-  loadingUsers: boolean
-}
-
-// ---------------------------------------------------------------------------
-// Edit dialog (branch details - feature toggles removed, now managed via capabilities)
-// ---------------------------------------------------------------------------
-
-function CreateBranchDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const [form, setForm] = useState(defaultCreateForm)
-  const [saving, setSaving] = useState(false)
-
-  const reset = () => setForm(defaultCreateForm)
-
-  const handleCreate = async () => {
-    if (!form.name.trim()) return
-    setSaving(true)
-    try {
-      const result = await createBranch({ data: { name: form.name, address: form.address || undefined, country: form.country } })
-      if (!result.success) {
-        toast.error(result.error ?? 'Failed to create branch')
-        return
-      }
-      toast.success(`Branch "${result.branch.name}" created`)
-      reset()
-      onOpenChange(false)
-    } catch {
-      toast.error('Failed to create branch')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={v => {
-        onOpenChange(v)
-        if (!v) reset()
-      }}
-    >
-      <DialogContent className='sm:max-w-sm'>
-        <DialogHeader>
-          <DialogTitle>New Branch</DialogTitle>
-        </DialogHeader>
-
-        <div className='space-y-3 py-2'>
-          <div className='space-y-1.5'>
-            <Label htmlFor='branch-name'>
-              Branch Name <span className='text-destructive'>*</span>
-            </Label>
-            <Input
-              id='branch-name'
-              value={form.name}
-              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              placeholder='e.g. Downtown Branch'
-              autoFocus
-              onKeyDown={e => {
-                if (e.key === 'Enter') handleCreate()
-              }}
-            />
-          </div>
-
-          <div className='space-y-1.5'>
-            <Label htmlFor='branch-address'>Address</Label>
-            <Input
-              id='branch-address'
-              value={form.address}
-              onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-              placeholder='e.g. 123 Main St, Manila'
-            />
-          </div>
-
-          <div className='space-y-1.5'>
-            <Label htmlFor='branch-country'>Country Code</Label>
-            <Input
-              id='branch-country'
-              value={form.country}
-              onChange={e => setForm(f => ({ ...f, country: e.target.value.toUpperCase().slice(0, 2) }))}
-              placeholder='PH'
-              maxLength={2}
-              className='uppercase w-20'
-            />
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button
-            variant='outline'
-            onClick={() => {
-              onOpenChange(false)
-              reset()
-            }}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleCreate} disabled={!form.name.trim() || saving}>
-            <Plus className='size-4' /> Create
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Edit dialog (branch details + feature toggles)
-// ---------------------------------------------------------------------------
-
-function EditBranchDialog({ branch, open, onOpenChange }: { branch: BranchRow | null; open: boolean; onOpenChange: (v: boolean) => void }) {
-  const [form, setForm] = useState<EditFormState>({
-    name: '',
-    address: '',
-    country: 'PH',
-    offlineTerminalId: null,
-    branchUsers: [],
-    loadingUsers: false,
-  })
-  const [saving, setSaving] = useState(false)
-
-  // Load branch data + users when dialog opens
-  useEffect(() => {
-    if (open && branch) {
-      setForm(prev => ({
-        ...prev,
-        name: branch.name,
-        address: branch.address ?? '',
-        country: branch.country ?? 'PH',
-        loadingUsers: true,
-      }))
-
-      // Fetch branch users
-      fetchBranchUsers({ data: { branchId: branch.id } }).then(usersResult => {
-        setForm(prev => ({
-          ...prev,
-          branchUsers: usersResult.success ? usersResult.users : [],
-          loadingUsers: false,
-          // offlineTerminalId will be loaded from branchCollection
-          offlineTerminalId: branchCollection.get(branch.id)?.offlineTerminalId ?? null,
-        }))
-      })
-    }
-  }, [open, branch])
-
-  const handleSave = async () => {
-    if (!branch || !form.name.trim()) return
-    setSaving(true)
-    try {
-      const [detailsResult, offlineResult] = await Promise.all([
-        updateBranch({ data: { branchId: branch.id, name: form.name, address: form.address || undefined, country: form.country } }),
-        updateOfflineTerminal({ data: { branchId: branch.id, offlineTerminalId: form.offlineTerminalId } }),
-      ])
-
-      if (!detailsResult.success) {
-        toast.error(detailsResult.error ?? 'Failed to update branch')
-        return
-      }
-      if (!offlineResult.success) {
-        toast.error(offlineResult.error ?? 'Failed to update offline terminal designation')
-        return
-      }
-
-      toast.success('Branch updated')
-      onOpenChange(false)
-    } catch {
-      toast.error('Failed to update branch')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-md max-h-[90vh] overflow-y-auto'>
-        <DialogHeader>
-          <DialogTitle>Edit Branch</DialogTitle>
-        </DialogHeader>
-
-        <div className='space-y-4 py-2'>
-          {/* Branch details */}
-          <div className='space-y-3'>
-            <div className='space-y-1.5'>
-              <Label htmlFor='edit-branch-name'>
-                Branch Name <span className='text-destructive'>*</span>
-              </Label>
-              <Input
-                id='edit-branch-name'
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder='e.g. Downtown Branch'
-                autoFocus
-              />
-            </div>
-
-            <div className='space-y-1.5'>
-              <Label htmlFor='edit-branch-address'>Address</Label>
-              <Input
-                id='edit-branch-address'
-                value={form.address}
-                onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-                placeholder='e.g. 123 Main St, Manila'
-              />
-            </div>
-
-            <div className='space-y-1.5'>
-              <Label htmlFor='edit-branch-country'>Country Code</Label>
-              <Input
-                id='edit-branch-country'
-                value={form.country}
-                onChange={e => setForm(f => ({ ...f, country: e.target.value.toUpperCase().slice(0, 2) }))}
-                placeholder='PH'
-                maxLength={2}
-                className='uppercase w-20'
-              />
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Offline Terminal Designation */}
-          <div className='space-y-3'>
-            <div className='space-y-1'>
-              <p className='text-sm font-medium'>Offline Checkout</p>
-              <p className='text-xs text-muted-foreground'>
-                Designate which user can process checkouts when offline. This prevents sequence number collisions when multiple devices lose connection.
-              </p>
-            </div>
-
-            <div className='space-y-1.5'>
-              <Label htmlFor='offline-terminal'>Offline Terminal User</Label>
-              <Select
-                value={form.offlineTerminalId ?? 'none'}
-                onValueChange={v => setForm(f => ({ ...f, offlineTerminalId: v === 'none' ? null : v }))}
-                disabled={form.loadingUsers || saving}
-              >
-                <SelectTrigger id='offline-terminal'>
-                  <SelectValue placeholder='Select a user...' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='none'>
-                    <span className='text-muted-foreground italic'>None (offline checkout disabled)</span>
-                  </SelectItem>
-                  {form.branchUsers.map(user => (
-                    <SelectItem key={user.id} value={user.id}>
-                      <div className='flex items-center gap-2'>
-                        <span>{user.name ?? user.email}</span>
-                        <Badge variant='outline' className='text-[9px] uppercase'>
-                          {user.role}
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className='text-xs text-muted-foreground'>
-                Only this user will be able to create transactions while offline. Set to "None" to block all offline checkouts.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant='outline' onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={!form.name.trim() || saving || form.loadingUsers}>
-            Save Changes
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 // ---------------------------------------------------------------------------
 // Main page
@@ -359,10 +71,7 @@ function EditBranchDialog({ branch, open, onOpenChange }: { branch: BranchRow | 
 export function BranchesPage() {
   const { data, isLoading } = useLiveQuery(q => q.from({ branch: branchCollection }))
   const { user } = authStore.state
-
-  const [createOpen, setCreateOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<BranchRow | null>(null)
-  const [editOpen, setEditOpen] = useState(false)
+  const [selectedId, setSelectedId] = useState<string>('')
 
   // Calculate branch usage and limits
   const activeBranches = data?.filter(b => !b.deletedAt) ?? []
@@ -382,9 +91,15 @@ export function BranchesPage() {
     return `${currentBranchCount} of ${planBranchLimit} branches used`
   }
 
+  const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    setSelectedId('')
+    showBranchSidebar(<CreateBranchSidebar />)
+  }
+
   const openEdit = useCallback((branch: BranchRow) => {
-    setEditTarget(branch)
-    setEditOpen(true)
+    setSelectedId(branch.id)
+    showBranchSidebar(<EditBranchSidebar branch={branch} />)
   }, [])
 
   const handleDelete = useCallback(
@@ -482,47 +197,13 @@ export function BranchesPage() {
             </Badge>
           ),
         }),
-
-        h.display({
-          id: 'actions',
-          maxSize: 80,
-          header: () => <div className='text-right pr-4'>Actions</div>,
-          cell: ({ row }) => (
-            <div className='flex justify-end gap-1 pr-2'>
-              <Button
-                variant='ghost'
-                size='icon'
-                className='rounded-full size-8'
-                onClick={e => {
-                  e.stopPropagation()
-                  openEdit(row.original)
-                }}
-                aria-label='Edit branch'
-              >
-                <Edit2 className='size-3.5' />
-              </Button>
-              <Button
-                variant='ghost'
-                size='icon'
-                className='rounded-full size-8 text-destructive hover:text-destructive hover:bg-destructive/10'
-                onClick={e => {
-                  e.stopPropagation()
-                  handleDelete(row.original)
-                }}
-                aria-label='Delete branch'
-              >
-                <Trash2 className='size-4' />
-              </Button>
-            </div>
-          ),
-        }),
       ]),
-    [user.branch.id, handleDelete, openEdit],
+    [user.branch.id, handleDelete],
   )
 
   return (
-    <>
-      <div className='px-4 grow flex flex-col gap-2'>
+    <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
+      <div className='flex-1 min-w-0 h-full px-4 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
         <MultiView<NonNullable<typeof data>[number]>
           label='Branches'
           description={
@@ -539,13 +220,10 @@ export function BranchesPage() {
               : {
                   label: 'Add Branch',
                   href: '#',
-                  onAdd: e => {
-                    e.preventDefault()
-                    setCreateOpen(true)
-                  },
+                  onAdd: handleAdd,
                 }
           }
-          views={{ list: [{ type: 'table', columns }] }}
+          views={{ list: [{ type: 'table', columns, selectableRow: { onClick: openEdit, isSelected: (b: BranchRow) => b.id === selectedId } }] }}
         />
 
         {atBranchLimit && (
@@ -561,9 +239,7 @@ export function BranchesPage() {
         )}
       </div>
 
-      <CreateBranchDialog open={createOpen} onOpenChange={setCreateOpen} />
-
-      <EditBranchDialog branch={editTarget} open={editOpen} onOpenChange={setEditOpen} />
-    </>
+      <MountManager id={BRANCH_ASIDE_ID} />
+    </div>
   )
 }

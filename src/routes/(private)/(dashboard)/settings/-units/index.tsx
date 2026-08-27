@@ -8,54 +8,19 @@ import { MultiView } from '@/components/custom/data-view/multi-view'
 import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { unitCollection } from '@/db/collections'
 import MountManager from '@/lib/mount-manager'
-import { authStore } from '@/store/auth-store'
-
-const defaultForm: { name: string; abbreviation: string; type: UnitType; conversionFactor: number; isBaseUnit: boolean } = {
-  name: '',
-  abbreviation: '',
-  type: UnitType.COUNT,
-  conversionFactor: 1,
-  isBaseUnit: false,
-}
+import { UNIT_ASIDE_ID, showUnitSidebar } from './-components/unit-sidebar'
+import { CreateUnitSidebar } from './-components/create-unit-sidebar'
 
 export function UnitsPage() {
   const { data, isLoading } = useLiveQuery(q => q.from({ unit: unitCollection }))
-  const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(defaultForm)
-  const [saving, setSaving] = useState(false)
+  const [selectedId, setSelectedId] = useState<string>('')
 
-  const handleCreate = async () => {
-    if (!form.name.trim() || !form.abbreviation.trim()) return
-    setSaving(true)
-    try {
-      const { user } = authStore.state
-      unitCollection.insert({
-        id: crypto.randomUUID(),
-        name: form.name.trim(),
-        abbreviation: form.abbreviation.trim(),
-        type: form.type,
-        conversionFactor: Number(form.conversionFactor) || 1,
-        isBaseUnit: form.isBaseUnit,
-        businessId: user.business.id,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-        deletedAt: null,
-      })
-      toast.success(`Unit "${form.name.trim()}" created`)
-      setForm(defaultForm)
-      setOpen(false)
-    } catch {
-      toast.error('Failed to create unit')
-    } finally {
-      setSaving(false)
-    }
+  const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    setSelectedId('')
+    showUnitSidebar(<CreateUnitSidebar />)
   }
 
   const columns = useMemo(
@@ -155,8 +120,8 @@ export function UnitsPage() {
   )
 
   return (
-    <>
-      <div className='px-4 grow flex flex-col gap-2'>
+    <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
+      <div className='flex-1 min-w-0 h-full px-4 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
         <MultiView<NonNullable<typeof data>[number]>
           label='Units of Measure'
           description='Configure base scales and conversion matrices for accurate kitchen/retail yield calculations.'
@@ -165,81 +130,13 @@ export function UnitsPage() {
           creatable={{
             label: 'Add Unit',
             href: '#',
-            onAdd: e => {
-              e.preventDefault()
-              setOpen(true)
-            },
+            onAdd: handleAdd,
           }}
           views={{ list: [{ type: 'table', columns }] }}
         />
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className='sm:max-w-sm'>
-          <DialogHeader>
-            <DialogTitle>New Unit</DialogTitle>
-          </DialogHeader>
-          <div className='space-y-3 py-2'>
-            <div className='grid grid-cols-2 gap-3'>
-              <div className='space-y-1.5'>
-                <Label htmlFor='unit-name'>Name</Label>
-                <Input id='unit-name' value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder='e.g. Kilogram' autoFocus />
-              </div>
-              <div className='space-y-1.5'>
-                <Label htmlFor='unit-abbr'>Abbreviation</Label>
-                <Input id='unit-abbr' value={form.abbreviation} onChange={e => setForm(f => ({ ...f, abbreviation: e.target.value }))} placeholder='e.g. kg' />
-              </div>
-            </div>
-
-            <div className='space-y-1.5'>
-              <Label>Measurement Type</Label>
-              <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v as UnitType }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(UnitType).map(t => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className='space-y-1.5'>
-              <Label htmlFor='unit-factor'>Conversion Factor</Label>
-              <Input
-                id='unit-factor'
-                type='number'
-                step='any'
-                value={form.conversionFactor}
-                onChange={e => setForm(f => ({ ...f, conversionFactor: Number(e.target.value) }))}
-                placeholder='1'
-              />
-            </div>
-
-            <div className='flex items-center justify-between'>
-              <Label htmlFor='unit-base'>Is Base Unit</Label>
-              <Switch id='unit-base' checked={form.isBaseUnit} onCheckedChange={v => setForm(f => ({ ...f, isBaseUnit: v }))} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant='outline'
-              onClick={() => {
-                setOpen(false)
-                setForm(defaultForm)
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleCreate} disabled={!form.name.trim() || !form.abbreviation.trim() || saving}>
-              <Plus className='size-4' /> Add
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+      <MountManager id={UNIT_ASIDE_ID} />
+    </div>
   )
 }

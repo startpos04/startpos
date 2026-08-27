@@ -1,25 +1,29 @@
 /**
  * settings/entitlements — Branch-level feature configuration
  *
- * Shows which capabilities are enabled at the business level and allows
- * branch managers to configure branch-specific settings for each capability.
+ * Shows which capabilities are enabled at the business level with their
+ * corresponding entitlement details (usage limits, current usage, etc.)
  *
  * Features:
- *   - List all enabled business capabilities
- *   - For each capability, show branch-specific configuration options
- *   - Show locked/unavailable features (when business capability is disabled)
- *   - Allow enable/disable of features at branch level (within business constraints)
+ *   - List all plan entitlements with usage limits and current usage
+ *   - Show capability state (enabled/disabled)
+ *   - Show entitlement overrides if any
+ *   - Future: Allow branch-level configuration
  */
 
 import { createFileRoute } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
-import { CheckCircle, Lock, Settings, XCircle } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertCircle, CheckCircle, Info, Lock, Settings, Shield, TrendingUp, XCircle } from 'lucide-react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import { authStore } from '@/store/auth-store'
+import { fetchEntitlementDetails } from '@/lib/server-fn/fetch-entitlement-details'
+import { toggleBranchCapability } from '@/lib/server-fn/toggle-branch-capability'
 
 export const Route = createFileRoute('/(private)/(dashboard)/settings/-entitlements/')({
   component: EntitlementsPage,
@@ -28,96 +32,143 @@ export const Route = createFileRoute('/(private)/(dashboard)/settings/-entitleme
 /**
  * Branch Entitlements Page
  *
- * This page shows business capabilities and allows branch-level configuration.
- * It's a placeholder implementation that will be expanded as the entitlement
- * system is built out.
+ * Shows all plan entitlements with their corresponding limits, usage, and state.
+ * Future: Will allow branch-level configuration of features.
  */
 export function EntitlementsPage() {
-  const user = useStore(authStore, state => state.user)
-  const entitlement = user?.entitlement
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['entitlement-details'],
+    queryFn: () => fetchEntitlementDetails(),
+  })
 
-  if (!entitlement) {
+  if (isLoading) {
+    return (
+      <div className='flex flex-col gap-6 p-6'>
+        <Skeleton className='h-8 w-64' />
+        <Skeleton className='h-32 w-full' />
+        <Skeleton className='h-96 w-full' />
+      </div>
+    )
+  }
+
+  if (error || !data) {
     return (
       <div className='flex items-center justify-center h-full p-6'>
         <Card>
           <CardContent className='pt-6'>
-            <p className='text-muted-foreground'>No entitlement information available</p>
+            <p className='text-muted-foreground'>Failed to load entitlement information</p>
           </CardContent>
         </Card>
       </div>
     )
   }
 
-  // Get enabled features from plan
-  const enabledFeatures = entitlement.planFeatures || []
-  const currentPlan = entitlement.planName || 'Unknown'
-  const status = entitlement.status || 'UNKNOWN'
+  const { planName, status, billingModel, includedTxPerMonth, txUsedThisPeriod, txRemaining, categoryGroups } = data
 
   return (
     <div className='flex flex-col gap-6 p-6'>
       {/* Header */}
       <div className='flex flex-col gap-2'>
-        <h1 className='text-3xl font-bold'>Branch Entitlements</h1>
-        <p className='text-muted-foreground'>Configure which features are enabled for this branch. Features must be enabled at the business level first.</p>
+        <h1 className='text-3xl font-bold'>Entitlements</h1>
+        <p className='text-muted-foreground'>
+          View your enabled capabilities grouped by category. Each capability may have usage limits based on your plan.
+        </p>
       </div>
 
-      {/* Current Plan Info */}
+      {/* Subscription Overview */}
       <Card>
         <CardHeader>
-          <CardTitle className='text-lg'>Current Plan</CardTitle>
-          <CardDescription>Your subscription determines which features are available</CardDescription>
+          <CardTitle className='text-lg'>Subscription Overview</CardTitle>
+          <CardDescription>Current plan and transaction usage</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className='flex items-center gap-4'>
+        <CardContent className='space-y-4'>
+          <div className='flex flex-wrap items-center gap-4'>
             <div className='flex items-center gap-2'>
               <span className='text-sm font-medium'>Plan:</span>
-              <Badge variant='default'>{currentPlan}</Badge>
+              <Badge variant='default'>{planName || 'No Plan'}</Badge>
             </div>
             <div className='flex items-center gap-2'>
               <span className='text-sm font-medium'>Status:</span>
-              <Badge variant={status === 'ACTIVE' ? 'default' : 'destructive'}>{status}</Badge>
+              <Badge variant={status === 'ACTIVE' || status === 'TRIAL' ? 'default' : 'destructive'}>{status}</Badge>
+            </div>
+            <div className='flex items-center gap-2'>
+              <span className='text-sm font-medium'>Billing:</span>
+              <Badge variant='outline'>{billingModel}</Badge>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Enabled Features */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='text-lg'>Available Features</CardTitle>
-          <CardDescription>Features enabled by your business subscription. Contact your admin to enable more features.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {enabledFeatures.length === 0 ? (
-            <p className='text-sm text-muted-foreground'>No features enabled</p>
-          ) : (
-            <div className='space-y-3'>
-              {enabledFeatures.map(feature => (
-                <FeatureRow key={feature} featureName={feature} enabled={true} />
-              ))}
+          {/* Transaction Usage */}
+          {includedTxPerMonth !== null && includedTxPerMonth !== -1 && (
+            <div className='space-y-2'>
+              <div className='flex items-center justify-between text-sm'>
+                <span className='font-medium'>Transaction Usage</span>
+                <span className='text-muted-foreground'>
+                  {txUsedThisPeriod.toLocaleString()} / {includedTxPerMonth.toLocaleString()}
+                </span>
+              </div>
+              <Progress value={(txUsedThisPeriod / includedTxPerMonth) * 100} className='h-2' />
+              <p className='text-xs text-muted-foreground'>
+                {txRemaining !== null ? `${txRemaining.toLocaleString()} transactions remaining this period` : 'Unlimited transactions'}
+              </p>
+            </div>
+          )}
+          {includedTxPerMonth === -1 && (
+            <div className='flex items-center gap-2 text-sm text-muted-foreground'>
+              <Info className='h-4 w-4' />
+              <span>Unlimited transactions included in your plan</span>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Locked Features (Example) */}
+      {/* Category Groups */}
+      {categoryGroups.map(group => (
+        <Card key={group.category}>
+          <CardHeader>
+            <CardTitle className='text-lg flex items-center gap-2'>
+              {group.isOperational ? <TrendingUp className='h-5 w-5' /> : <Shield className='h-5 w-5' />}
+              {group.categoryLabel}
+            </CardTitle>
+            <CardDescription>
+              {group.isOperational 
+                ? 'Core business operations - blocked when subscription lapses' 
+                : 'Always accessible features'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className='space-y-3'>
+              {group.entitlements.map(ent => (
+                <EntitlementRow key={ent.capabilityKey} entitlement={ent} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+
+      {categoryGroups.length === 0 && (
+        <Card>
+          <CardContent className='pt-6'>
+            <div className='text-center text-muted-foreground'>
+              <p>No enabled capabilities found.</p>
+              <p className='text-sm mt-2'>Contact your administrator to enable features.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Upgrade CTA */}
       <Card className='border-muted'>
-        <CardHeader>
-          <CardTitle className='text-lg flex items-center gap-2'>
-            <Lock className='h-4 w-4 text-muted-foreground' />
-            Locked Features
-          </CardTitle>
-          <CardDescription>Upgrade your business plan to unlock these features</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className='space-y-3'>
-            <LockedFeatureRow featureName='Advanced Reporting' />
-            <LockedFeatureRow featureName='Multi-currency Support' />
-            <LockedFeatureRow featureName='API Access' />
-          </div>
-          <Separator className='my-4' />
+        <CardContent className='pt-6'>
           <div className='flex items-center justify-between'>
-            <p className='text-sm text-muted-foreground'>Want to unlock more features?</p>
+            <div className='flex items-center gap-3'>
+              <div className='rounded-full bg-primary/10 p-2'>
+                <Lock className='h-5 w-5 text-primary' />
+              </div>
+              <div>
+                <p className='text-sm font-medium'>Need more features or higher limits?</p>
+                <p className='text-xs text-muted-foreground'>Upgrade your plan to unlock additional capabilities</p>
+              </div>
+            </div>
             <Button variant='outline' size='sm' asChild>
               <a href='/business/billing'>View Plans</a>
             </Button>
@@ -131,10 +182,10 @@ export function EntitlementsPage() {
           <div className='flex gap-3'>
             <Settings className='h-5 w-5 text-muted-foreground shrink-0 mt-0.5' />
             <div className='space-y-1'>
-              <p className='text-sm font-medium'>Branch-Specific Configuration</p>
+              <p className='text-sm font-medium'>Branch-Level Control</p>
               <p className='text-sm text-muted-foreground'>
-                As the entitlement system is expanded, you'll be able to configure branch-specific settings for each enabled feature here. This might include
-                things like payment methods, order fulfillment options, inventory tracking preferences, and more.
+                Use the toggles above to enable or disable specific capabilities for this branch. Disabled capabilities won't be accessible to users at this
+                branch, even if they're enabled business-wide. This is useful for controlling feature rollout or temporarily disabling features per location.
               </p>
             </div>
           </div>
@@ -145,39 +196,148 @@ export function EntitlementsPage() {
 }
 
 /**
- * Feature Row Component - Shows an enabled feature
+ * Entitlement Row Component - Shows a single entitlement with all its details
  */
-function FeatureRow({ featureName, enabled }: { featureName: string; enabled: boolean }) {
-  return (
-    <div className='flex items-center justify-between p-3 rounded-lg border'>
-      <div className='flex items-center gap-3'>
-        {enabled ? <CheckCircle className='h-5 w-5 text-green-600' /> : <XCircle className='h-5 w-5 text-muted-foreground' />}
-        <div>
-          <p className='text-sm font-medium'>{formatFeatureName(featureName)}</p>
-          <p className='text-xs text-muted-foreground'>Enabled at business level</p>
-        </div>
-      </div>
-      <Switch checked={enabled} disabled className='pointer-events-none' />
-    </div>
-  )
-}
+function EntitlementRow({ entitlement }: { entitlement: import('@/lib/server-fn/fetch-entitlement-details').EntitlementDetail }) {
+  const queryClient = useQueryClient()
+  
+  const {
+    capabilityKey,
+    featureLabel,
+    featureDescription,
+    isEnabled,
+    isEnabledAtBranch,
+    usageLimit,
+    currentUsage,
+    hasOverride,
+    overrideGranted,
+    overrideExpiresAt,
+    overrideReason,
+  } = entitlement
 
-/**
- * Locked Feature Row Component - Shows a feature that's not available
- */
-function LockedFeatureRow({ featureName }: { featureName: string }) {
+  const usagePercentage = usageLimit && currentUsage !== null ? (currentUsage / usageLimit) * 100 : 0
+  const isNearLimit = usagePercentage >= 80
+  const isAtLimit = usageLimit !== null && currentUsage !== null && currentUsage >= usageLimit
+
+  // Mutation to toggle capability
+  const toggleMutation = useMutation({
+    mutationFn: (enabled: boolean) => toggleBranchCapability({ data: { capabilityKey, enabled } }),
+    onSuccess: async (result) => {
+      if (result.success) {
+        toast.success(result.message || 'Capability updated')
+        // Invalidate the entitlement details query to refresh the UI
+        await queryClient.invalidateQueries({ queryKey: ['entitlement-details'] })
+      } else {
+        toast.error(result.message || 'Failed to update capability')
+      }
+    },
+    onError: (error) => {
+      console.error('[EntitlementRow] Toggle error:', error)
+      toast.error('Failed to update capability')
+    },
+  })
+
+  const handleToggle = (checked: boolean) => {
+    toggleMutation.mutate(checked)
+  }
+
   return (
-    <div className='flex items-center justify-between p-3 rounded-lg border border-dashed bg-muted/30'>
-      <div className='flex items-center gap-3'>
-        <Lock className='h-5 w-5 text-muted-foreground' />
-        <div>
-          <p className='text-sm font-medium text-muted-foreground'>{featureName}</p>
-          <p className='text-xs text-muted-foreground'>Not included in your plan</p>
+    <div className='flex flex-col gap-3 p-4 rounded-lg border bg-card'>
+      {/* Header Row */}
+      <div className='flex items-start justify-between gap-4'>
+        <div className='flex items-start gap-3 flex-1'>
+          {isEnabled && isEnabledAtBranch ? (
+            <CheckCircle className='h-5 w-5 text-green-600 shrink-0 mt-0.5' />
+          ) : (
+            <XCircle className='h-5 w-5 text-muted-foreground shrink-0 mt-0.5' />
+          )}
+          <div className='flex-1 min-w-0'>
+            <div className='flex items-center gap-2 flex-wrap'>
+              <p className='text-sm font-medium'>{featureLabel}</p>
+              {!isEnabledAtBranch && (
+                <Badge variant='outline' className='text-xs text-muted-foreground'>
+                  Disabled at branch
+                </Badge>
+              )}
+              {hasOverride && (
+                <Badge variant='outline' className='text-xs'>
+                  Override
+                </Badge>
+              )}
+            </div>
+            {featureDescription && <p className='text-xs text-muted-foreground mt-1'>{featureDescription}</p>}
+          </div>
+        </div>
+        {/* Toggle - Controls branch-level enable/disable */}
+        <div className='flex items-center gap-2 shrink-0'>
+          <Switch 
+            checked={isEnabledAtBranch} 
+            onCheckedChange={handleToggle}
+            disabled={toggleMutation.isPending}
+            title='Enable or disable this capability for this branch'
+          />
         </div>
       </div>
-      <Badge variant='outline' className='text-muted-foreground'>
-        Locked
-      </Badge>
+
+      {/* Usage Limits Section - Only show if enabled at branch */}
+      {isEnabledAtBranch && usageLimit !== null && (
+        <div className='space-y-2 pl-8'>
+          <div className='flex items-center justify-between text-sm'>
+            <span className='text-muted-foreground'>Usage Limit</span>
+            <span className={`font-medium tabular-nums ${isAtLimit ? 'text-destructive' : isNearLimit ? 'text-amber-600' : ''}`}>
+              {currentUsage ?? 0} / {usageLimit}
+            </span>
+          </div>
+          <Progress value={usagePercentage} className={`h-1.5 ${isAtLimit ? '[&>div]:bg-destructive' : isNearLimit ? '[&>div]:bg-amber-500' : ''}`} />
+          {isAtLimit && (
+            <div className='flex items-center gap-2 text-xs text-destructive'>
+              <AlertCircle className='h-3.5 w-3.5' />
+              <span>Limit reached. Upgrade your plan to add more.</span>
+            </div>
+          )}
+          {isNearLimit && !isAtLimit && (
+            <div className='flex items-center gap-2 text-xs text-amber-600'>
+              <AlertCircle className='h-3.5 w-3.5' />
+              <span>Approaching limit. Consider upgrading your plan.</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Unlimited indicator - Only show if enabled at branch */}
+      {isEnabledAtBranch && usageLimit === null && (
+        <div className='pl-8'>
+          <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+            <Info className='h-3.5 w-3.5' />
+            <span>Unlimited usage</span>
+          </div>
+        </div>
+      )}
+
+      {/* Disabled message */}
+      {!isEnabledAtBranch && (
+        <div className='pl-8'>
+          <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+            <Info className='h-3.5 w-3.5' />
+            <span>This capability is disabled for this branch. Toggle it on to use it.</span>
+          </div>
+        </div>
+      )}
+
+      {/* Override Info */}
+      {hasOverride && (
+        <div className='pl-8 pt-2 border-t'>
+          <div className='space-y-1'>
+            <div className='flex items-center gap-2 text-xs'>
+              <Badge variant={overrideGranted ? 'default' : 'destructive'} className='text-xs'>
+                {overrideGranted ? 'Granted' : 'Revoked'}
+              </Badge>
+              {overrideExpiresAt && <span className='text-muted-foreground'>Expires: {new Date(overrideExpiresAt).toLocaleDateString()}</span>}
+            </div>
+            {overrideReason && <p className='text-xs text-muted-foreground italic'>{overrideReason}</p>}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

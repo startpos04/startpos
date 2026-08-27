@@ -1,8 +1,10 @@
 import type {
   AuditLog,
   Branch,
+  BranchCapabilityConfig,
   Business,
   BusinessSubscription,
+  CapabilityConfiguration,
   Category,
   CreditLedger,
   Customer,
@@ -301,4 +303,20 @@ export const hintLogCollection = createSyncableCollection<HintLog>({
   apiKey: 'hintLog',
   schemaVersion: SCHEMA_VERSION,
   syncMode: 'on-demand', // Track hint viewing history, sync when needed
+})
+
+// --- ENTITLEMENT SYSTEM COLLECTIONS (Phase 2: Branch Capability Management) ---
+
+// Branch-level capability toggles (enable/disable capabilities per branch)
+export const branchCapabilityConfigCollection = createSyncableCollection<BranchCapabilityConfig>({
+  apiKey: 'branchCapabilityConfig',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'eager', // Always sync on login for offline entitlement checks
+})
+
+// Flexible capability-specific configurations (settings per capability)
+export const capabilityConfigurationCollection = createSyncableCollection<CapabilityConfiguration>({
+  apiKey: 'capabilityConfiguration',
+  schemaVersion: SCHEMA_VERSION,
+  syncMode: 'eager', // Always sync on login for offline configuration access
 })

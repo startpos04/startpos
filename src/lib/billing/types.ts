@@ -102,6 +102,7 @@ export type LifecycleThresholds = {
 export type UsageCounterSnapshot = {
   id: string
   businessId: string
+  branchId: string
   billingPeriodStart: Date
   billingPeriodEnd: Date
   txCount: number
@@ -213,10 +214,11 @@ export type CreditEventType = (typeof CreditEventType)[keyof typeof CreditEventT
 export type CreditLedgerEntryDTO = {
   id?: string
   businessId: string
+  branchId: string
   eventType: CreditEventType
   /** Signed: positive = credit in, negative = credit out. */
   amount: number
-  /** Running balance snapshot after this event. */
+  /** Running balance snapshot for this branch after this event. */
   balanceAfter: number
   transactionId: string | null
   note: string | null

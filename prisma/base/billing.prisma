@@ -228,14 +228,16 @@ model UsageCounter {
   id         String   @id @default(cuid())
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   // The billing period this counter tracks (mirrors BusinessSubscription.currentPeriodStart)
   billingPeriodStart DateTime
   billingPeriodEnd   DateTime
 
-  // Transaction counts
-  txCount        Int @default(0) // Total transactions processed in this period
-  overageTxCount Int @default(0) // Transactions beyond includedTxPerMonth allowance
+  // Transaction counts (per branch)
+  txCount        Int @default(0) // Total transactions processed at this branch in this period
+  overageTxCount Int @default(0) // Transactions beyond branch's allocated allowance
 
   // isClosed = true once the period has ended and the reset job has run.
   // A closed counter is never mutated. A new counter is opened for the next period.
@@ -246,8 +248,9 @@ model UsageCounter {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([businessId, billingPeriodStart])
+  @@unique([businessId, branchId, billingPeriodStart])
   @@index([businessId, isClosed])
+  @@index([branchId, isClosed])
   @@map("usage_counters")
 }
 
@@ -318,14 +321,17 @@ model BillingInvoiceItem {
 
 // ---------------------------------------------------------------------------
 // CreditLedger — Phase 3
-// Append-only ledger of every credit event for a business.
-// The current balance is the `balanceAfter` of the most recent row.
+// Append-only ledger of every credit event per branch.
+// Each branch has independent credit balance for P&L accounting.
+// The current balance for a branch is the `balanceAfter` of its most recent row.
 //
 // Design decisions:
 //   - Append-only: rows are never updated or deleted; every event adds a row.
-//   - `balanceAfter` is a snapshot — O(1) balance read (no SUM query needed).
+//   - Per-branch tracking: Each branch purchases and tracks credits independently
+//   - `balanceAfter` is a snapshot — O(1) balance read per branch (no SUM query needed).
 //   - `amount` is signed: positive = credit in, negative = credit out.
 //   - The `transactionId` FK is nullable — not all events come from a POS TX.
+//   - Business-level aggregation: Sum balanceAfter of latest row per branch for consolidated view
 //   - Race condition note (Phase 3 known limitation): two concurrent deductions
 //     may both read the same `balanceAfter` before either commits, allowing the
 //     balance to go temporarily negative. This is auditable via the ledger and
@@ -335,14 +341,16 @@ model CreditLedger {
   id         String   @id @default(cuid())
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   eventType CreditEventType
 
   // Signed amount in credit units (positive = add, negative = deduct)
   amount Int
 
-  // Running balance snapshot after this event is applied.
-  // The most recent row's balanceAfter is the current balance.
+  // Running balance snapshot for this branch after this event is applied.
+  // The most recent row's balanceAfter for a branch is that branch's current balance.
   balanceAfter Int
 
   // Optional reference to the POS transaction that triggered this event.
@@ -357,7 +365,8 @@ model CreditLedger {
 
   createdAt DateTime @default(now())
 
-  @@index([businessId, createdAt])
+  @@index([businessId, branchId, createdAt])
+  @@index([branchId, createdAt])
   @@index([transactionId])
   @@map("credit_ledger")
 }

@@ -61,6 +61,7 @@ import { getAuthUser } from '@/lib/better-auth/auth-server'
 import { SubscriptionPolicy } from '@/lib/billing/policies/subscription-policy'
 import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
 import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
+import MountManager, { type MountProps } from '@/lib/mount-manager'
 import { cancelSubscription } from '@/lib/server-fn/cancel-subscription'
 import { createBillingPortalSession } from '@/lib/server-fn/create-billing-portal-session'
 import { type AddonCatalogItem, fetchAddonCatalog, purchaseAddonSubscription } from '@/lib/server-fn/purchase-addon-subscription'
@@ -495,7 +496,7 @@ function PlanFeatureRow({ label, value }: { label: string; value: string }) {
 // For capability addons shows a single confirm-and-redirect.
 // ---------------------------------------------------------------------------
 
-function AddonDialog({ addon, open, onClose }: { addon: AddonCatalogItem | null; open: boolean; onClose: () => void }) {
+function AddonDialog({ addon, open, onClose }: MountProps & { addon: AddonCatalogItem | null }) {
   const [quantity, setQuantity] = useState(1)
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
 
@@ -651,7 +652,6 @@ function AddonDialog({ addon, open, onClose }: { addon: AddonCatalogItem | null;
 function ActiveAddons() {
   const user = useStore(authStore, state => state.user)
   const entitlement = user?.entitlement
-  const [activeAddon, setActiveAddon] = useState<AddonCatalogItem | null>(null)
 
   const { data: catalog = [] } = useQuery({
     queryKey: ['addon-catalog'],
@@ -697,62 +697,58 @@ function ActiveAddons() {
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader className='pb-3'>
-          <CardTitle className='text-lg'>Add-ons</CardTitle>
-          <CardDescription className='text-xs mt-0.5'>All add-ons are billed monthly and can be cancelled any time.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className='space-y-2'>
-            {visibleCatalog.map(item => {
-              const active = isAddonActive(item)
-              // For TX recurring row, open with the representative tx_1000 item
-              const openWith = item.addonType === 'TX_RECURRING' ? txRepresentative : item
-              return (
-                <div key={item.id} className='flex items-center justify-between py-2 px-3 rounded-lg bg-muted/40 gap-4'>
-                  <div className='flex items-center gap-3 min-w-0'>
-                    <span className='text-muted-foreground shrink-0'>{getAddonIcon(item)}</span>
-                    <div className='min-w-0'>
-                      <p className='text-sm font-medium flex items-center gap-2'>
-                        {item.label}
-                        {active && (
-                          <span className='text-[10px] font-semibold text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded-full'>
-                            Active
-                          </span>
-                        )}
-                        {!item.configured && (
-                          <span className='text-[10px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full'>Not configured</span>
-                        )}
-                      </p>
-                      <p className='text-xs text-muted-foreground truncate'>{getDescription(item)}</p>
-                    </div>
-                  </div>
-                  <div className='flex items-center gap-2 shrink-0'>
-                    <span className='text-sm font-medium text-muted-foreground'>
-                      {item.displayPrice}
-                      {item.priceNote}
-                    </span>
-                    <Button
-                      size='sm'
-                      variant='ghost'
-                      className='h-7 px-2 text-xs'
-                      onClick={() => openWith && setActiveAddon(openWith)}
-                      disabled={!item.configured}
-                    >
-                      <PlusIcon className='h-3 w-3 mr-1' />
-                      {active ? 'Add more' : 'Add'}
-                    </Button>
+    <Card>
+      <CardHeader className='pb-3'>
+        <CardTitle className='text-lg'>Add-ons</CardTitle>
+        <CardDescription className='text-xs mt-0.5'>All add-ons are billed monthly and can be cancelled any time.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className='space-y-2'>
+          {visibleCatalog.map(item => {
+            const active = isAddonActive(item)
+            // For TX recurring row, open with the representative tx_1000 item
+            const openWith = item.addonType === 'TX_RECURRING' ? txRepresentative : item
+            return (
+              <div key={item.id} className='flex items-center justify-between py-2 px-3 rounded-lg bg-muted/40 gap-4'>
+                <div className='flex items-center gap-3 min-w-0'>
+                  <span className='text-muted-foreground shrink-0'>{getAddonIcon(item)}</span>
+                  <div className='min-w-0'>
+                    <p className='text-sm font-medium flex items-center gap-2'>
+                      {item.label}
+                      {active && (
+                        <span className='text-[10px] font-semibold text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded-full'>
+                          Active
+                        </span>
+                      )}
+                      {!item.configured && (
+                        <span className='text-[10px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full'>Not configured</span>
+                      )}
+                    </p>
+                    <p className='text-xs text-muted-foreground truncate'>{getDescription(item)}</p>
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      <AddonDialog addon={activeAddon} open={!!activeAddon} onClose={() => setActiveAddon(null)} />
-    </>
+                <div className='flex items-center gap-2 shrink-0'>
+                  <span className='text-sm font-medium text-muted-foreground'>
+                    {item.displayPrice}
+                    {item.priceNote}
+                  </span>
+                  <Button
+                    size='sm'
+                    variant='ghost'
+                    className='h-7 px-2 text-xs'
+                    onClick={() => openWith && MountManager.show(AddonDialog, { addon: openWith })}
+                    disabled={!item.configured}
+                  >
+                    <PlusIcon className='h-3 w-3 mr-1' />
+                    {active ? 'Add more' : 'Add'}
+                  </Button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

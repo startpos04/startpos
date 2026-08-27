@@ -105,6 +105,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       const currentPath = location.pathname
       // Exact match
       if (currentPath === itemUrl) return true
+      
+      // Special case: /business should only match exactly, not /business/billing etc.
+      if (itemUrl === '/business') return false
+      
       // Nested match: check if current path starts with itemUrl
       // Example: /employees/admin-1 starts with /employees
       return currentPath.startsWith(`${itemUrl}/`)
@@ -115,7 +119,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { team, items } = React.useMemo(() => {
     if (!user?.business) return { team: { name: APP_NAME, logo: <GalleryVerticalEndIcon />, plan: 'Guest' }, items: [] }
 
-    const isBusinessContext = location.pathname.startsWith('/business')
+    // Check if this is a single-branch business (most important check - comes first!)
+    const isSingleBranch = !caps.MANAGE_BRANCHES || user.business?.branches?.length === 1
 
     // Check if user has any business-level permissions (replaces isAdmin check)
     const hasBusinessAccess =
@@ -124,7 +129,149 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     // Check if user has supervisor-level permissions (view reports, transactions)
     const hasSupervisorAccess = perms[Permissions.BRANCH_VIEW_SALES_REPORTS] || perms[Permissions.BRANCH_VIEW_TRANSACTIONS]
 
-    // Business context navigation (for users with business-level permissions)
+    // PRIORITY 1: Single-branch businesses ALWAYS show unified branch sidebar
+    // This happens regardless of the current route (/business/* or not)
+    if (isSingleBranch) {
+      // Build business menu items (for single-branch sidebar)
+      const businessItems = hasBusinessAccess ? [
+        perms[Permissions.BUSINESS_VIEW_PROFILE] ? { title: 'Overview', url: '/business', isActive: false } : null,
+        perms[Permissions.BUSINESS_VIEW_CAPABILITIES] ? { title: 'Capabilities', url: '/business/capabilities', isActive: false } : null,
+        perms[Permissions.BUSINESS_VIEW_BILLING] ? { title: 'Billing', url: '/business/billing', isActive: false } : null,
+        perms[Permissions.BUSINESS_VIEW_SUPPLIERS] && caps.MANAGE_SUPPLIERS ? { title: 'Suppliers', url: '/business/suppliers', isActive: false } : null,
+        perms[Permissions.BUSINESS_VIEW_CUSTOMERS] && caps.CUSTOMER_PROFILES ? { title: 'Customers', url: '/business/customers', isActive: false } : null,
+        perms[Permissions.USER_MANAGE_PERMISSIONS] ? { title: 'Permissions', url: '/business/permissions', isActive: false } : null,
+        perms[Permissions.BUSINESS_VIEW_PROFILE] ? { title: 'Profile', url: '/business/profile', isActive: false } : null,
+      ].filter(Boolean) : []
+
+      const data = {
+        team: {
+          name: APP_NAME,
+          logo: <GalleryVerticalEndIcon />,
+          plan: user.role || 'Guest',
+        },
+        items: [
+          // Business section first for single-branch businesses
+          businessItems.length > 0
+            ? {
+                title: 'Business',
+                url: '#',
+                icon: <BuildingIcon />,
+                allowedRoles: [] as Role[],
+                items: businessItems,
+              }
+            : null,
+          perms[Permissions.BRANCH_VIEW_SALES_REPORTS] || hasSupervisorAccess
+            ? {
+                title: 'Dashboard',
+                url: '/dashboard',
+                icon: <LayoutDashboardIcon />,
+                allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+              }
+            : null,
+          perms[Permissions.BRANCH_VIEW_EMPLOYEES] || perms[Permissions.BRANCH_VIEW_PRODUCTS]
+            ? {
+                title: 'Admin',
+                url: '#',
+                icon: <TerminalSquareIcon />,
+                allowedRoles: [Role.ADMIN],
+                items: [
+                  perms[Permissions.BRANCH_VIEW_EMPLOYEES] ? { title: 'Employees', url: '/employees' } : null,
+                  perms[Permissions.BRANCH_VIEW_PRODUCTS] ? { title: 'Products', url: '/products' } : null,
+                  caps.BATCH_PREPARATION && perms[Permissions.BRANCH_VIEW_PRODUCTION] ? { title: 'Preparation', url: '/preparation' } : null,
+                  caps.CREATE_PURCHASE && perms[Permissions.BRANCH_VIEW_PURCHASES] ? { title: 'Purchases', url: '/purchases' } : null,
+                  user.business?.businessType === BusinessType.RESTAURANT && perms[Permissions.BRANCH_VIEW_PRODUCTS]
+                    ? { title: 'Ingredients', url: '/ingredients' }
+                    : null,
+                ].filter(Boolean),
+              }
+            : null,
+          perms[Permissions.BRANCH_VIEW_SALES_REPORTS] || perms[Permissions.BRANCH_VIEW_TRANSACTIONS]
+            ? {
+                title: 'Supervisor',
+                url: '#',
+                icon: <BotIcon />,
+                allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+                items: [
+                  caps.VIEW_SALES_REPORTS && perms[Permissions.BRANCH_VIEW_SALES_REPORTS] ? { title: 'Sales Report', url: '/sales-reports' } : null,
+                  caps.MANAGE_INVENTORY && perms[Permissions.BRANCH_VIEW_INVENTORY_REPORTS] ? { title: 'Inventory Reports', url: '/inventory-reports' } : null,
+                  perms[Permissions.BRANCH_VIEW_TRANSACTIONS] ? { title: 'Transactions', url: '/transactions' } : null,
+                  caps.VIEW_ORDER_HISTORY && perms[Permissions.BRANCH_VIEW_ORDERS] ? { title: 'Order History', url: '/order-history' } : null,
+                ].filter(Boolean),
+              }
+            : null,
+          caps.CREATE_TASK
+            ? {
+                title: 'Tasks',
+                url: '/tasks',
+                icon: <ClipboardPenLine />,
+                allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER],
+              }
+            : null,
+          perms[Permissions.BRANCH_CREATE_ORDER] || perms[Permissions.BRANCH_VIEW_ORDERS]
+            ? {
+                title: 'POS',
+                url: '/pos',
+                icon: <BookOpenIcon />,
+                allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER],
+              }
+            : null,
+          perms[Permissions.BRANCH_VIEW_SETTINGS]
+            ? {
+                title: 'Settings',
+                url: '/settings',
+                icon: <SettingsIcon />,
+                allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+              }
+            : null,
+        ].filter(Boolean) as Items[],
+      }
+
+      // Support items (Contact Us, FAQ) for single-branch - added separately at the bottom
+      const supportLinks = [
+        {
+          title: 'Contact Us',
+          url: '/contact-us',
+          icon: <HelpCircleIcon />,
+          items: [],
+          isActive: isRouteActive('/contact-us'),
+          allowedRoles: [] as Role[],
+        },
+        {
+          title: 'FAQ',
+          url: '/faq',
+          icon: <LifeBuoyIcon />,
+          items: [],
+          isActive: isRouteActive('/faq'),
+          allowedRoles: [] as Role[],
+        },
+      ]
+
+      data.items = data.items.map(item => {
+        // Map sub-items and check if any are active
+        const subItems = item.items?.map(subItem => ({
+          ...subItem,
+          isActive: isRouteActive(subItem.url),
+        }))
+
+        const isChildActive = !!subItems?.some(child => child.isActive)
+        const isParentActive = isRouteActive(item.url)
+
+        return {
+          ...item,
+          items: subItems,
+          isActive: isParentActive || isChildActive,
+        }
+      })
+
+      // Add support links at the end
+      data.items = [...data.items, ...supportLinks]
+
+      return data
+    }
+
+    // PRIORITY 2: Multi-branch business in business context
+    // Show dedicated business sidebar when navigating /business/* routes
+    const isBusinessContext = location.pathname.startsWith('/business')
     if (isBusinessContext && hasBusinessAccess) {
       return {
         team: {
@@ -207,27 +354,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       }
     }
 
-    // Branch context navigation (default)
-    // Check if this is a single-branch business
-    const isSingleBranch = !caps.MANAGE_BRANCHES || user.business?.branches?.length === 1
-
-    // Build business menu items (for single-branch sidebar)
-    const businessItems = hasBusinessAccess && isSingleBranch ? [
-      perms[Permissions.BUSINESS_VIEW_PROFILE] ? { title: 'Overview', url: '/business' } : null,
-      perms[Permissions.BUSINESS_VIEW_CAPABILITIES] ? { title: 'Capabilities', url: '/business/capabilities' } : null,
-      perms[Permissions.BUSINESS_VIEW_BILLING] ? { title: 'Billing', url: '/business/billing' } : null,
-      perms[Permissions.BUSINESS_VIEW_SUPPLIERS] && caps.MANAGE_SUPPLIERS ? { title: 'Suppliers', url: '/business/suppliers' } : null,
-      perms[Permissions.BUSINESS_VIEW_CUSTOMERS] && caps.CUSTOMER_PROFILES ? { title: 'Customers', url: '/business/customers' } : null,
-      perms[Permissions.USER_MANAGE_PERMISSIONS] ? { title: 'Permissions', url: '/business/permissions' } : null,
-      perms[Permissions.BUSINESS_VIEW_PROFILE] ? { title: 'Profile', url: '/business/profile' } : null,
-    ].filter(Boolean) : []
-
-    // Build support menu items (for single-branch sidebar)
-    const supportItems = isSingleBranch ? [
-      { title: 'Contact Us', url: '/contact-us' },
-      { title: 'FAQ', url: '/faq' },
-    ] : []
-
+    // PRIORITY 3: Multi-branch business in branch context (default)
+    // Show standard branch sidebar without business section
     const data = {
       team: {
         name: APP_NAME,
@@ -298,29 +426,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
             }
           : null,
-        // Add Business section for single-branch businesses
-        businessItems.length > 0
-          ? {
-              title: 'Business',
-              url: '#',
-              icon: <BuildingIcon />,
-              allowedRoles: [] as Role[],
-              items: businessItems,
-            }
-          : null,
-        // Add Support section for single-branch businesses  
-        supportItems.length > 0
-          ? {
-              title: 'Support',
-              url: '#',
-              icon: <LifeBuoyIcon />,
-              allowedRoles: [] as Role[],
-              items: supportItems,
-            }
-          : null,
       ].filter(Boolean) as Items[],
     }
 
+    // Map all items to add isActive states
     data.items = data.items.map(item => {
       // Map sub-items and check if any are active
       const subItems = item.items?.map(subItem => ({

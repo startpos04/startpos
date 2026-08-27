@@ -11,19 +11,6 @@ import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { authStore } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/')({
-  beforeLoad: async ({ context }) => {
-    // For single-branch businesses, redirect to dashboard
-    // Business context is only for multi-branch businesses
-    const user = authStore.state.user
-    
-    // Check if multi-branch capability is disabled
-    // Note: We can't use useCapability hook in beforeLoad, so we check the user's entitlement
-    const hasMultiBranch = user?.entitlement?.capabilities?.includes('MANAGE_BRANCHES')
-    
-    if (!hasMultiBranch) {
-      throw redirect({ to: '/dashboard' })
-    }
-  },
   component: BusinessOverview,
 })
 

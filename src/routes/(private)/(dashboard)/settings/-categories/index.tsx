@@ -1,47 +1,24 @@
 import { useLiveQuery } from '@tanstack/react-db'
 import { Plus, Trash2 } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getColumns } from '@/components/custom/data-view'
 import { MultiView } from '@/components/custom/data-view/multi-view'
 import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { categoryCollection } from '@/db/collections'
 import MountManager from '@/lib/mount-manager'
-import { authStore } from '@/store/auth-store'
+import { CATEGORY_ASIDE_ID, showCategorySidebar } from './-components/category-sidebar'
+import { CreateCategorySidebar } from './-components/create-category-sidebar'
 
 export function CategoriesPage() {
   const { data, isLoading } = useLiveQuery(q => q.from({ category: categoryCollection }))
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [saving, setSaving] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [selectedId, setSelectedId] = useState<string>('')
 
-  const handleCreate = async () => {
-    const trimmed = name.trim()
-    if (!trimmed) return
-    setSaving(true)
-    try {
-      const { user } = authStore.state
-      categoryCollection.insert({
-        id: crypto.randomUUID(),
-        name: trimmed,
-        businessId: user.business.id,
-        updatedAt: new Date(),
-        createdAt: new Date(),
-        deletedAt: null,
-      })
-      toast.success(`Category "${trimmed}" created`)
-      setName('')
-      setOpen(false)
-    } catch {
-      toast.error('Failed to create category')
-    } finally {
-      setSaving(false)
-    }
+  const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    setSelectedId('')
+    showCategorySidebar(<CreateCategorySidebar />)
   }
 
   const columns = useMemo(
@@ -104,8 +81,8 @@ export function CategoriesPage() {
   )
 
   return (
-    <>
-      <div className='px-4 grow flex flex-col gap-2'>
+    <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
+      <div className='flex-1 min-w-0 h-full px-4 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
         <MultiView<NonNullable<typeof data>[number]>
           label='Product Categories'
           description='Organize your menu offerings, inventory items, and modifiers for streamlined POS navigation.'
@@ -114,44 +91,13 @@ export function CategoriesPage() {
           creatable={{
             label: 'Add Category',
             href: '#',
-            onAdd: e => {
-              e.preventDefault()
-              setOpen(true)
-            },
+            onAdd: handleAdd,
           }}
           views={{ list: [{ type: 'table', columns }] }}
         />
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className='sm:max-w-sm'>
-          <DialogHeader>
-            <DialogTitle>New Category</DialogTitle>
-          </DialogHeader>
-          <div className='space-y-2 py-2'>
-            <Label htmlFor='cat-name'>Name</Label>
-            <Input
-              id='cat-name'
-              ref={inputRef}
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder='e.g. Beverages'
-              autoFocus
-              onKeyDown={e => {
-                if (e.key === 'Enter') handleCreate()
-              }}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreate} disabled={!name.trim() || saving}>
-              <Plus className='size-4' /> Add
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+      <MountManager id={CATEGORY_ASIDE_ID} />
+    </div>
   )
 }

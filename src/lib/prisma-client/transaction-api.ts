@@ -233,10 +233,11 @@ const transactionServerFn = createServerFn({ method: 'POST' })
           const transactionId = result.id
           const transactionCreatedAt = result.createdAt ? new Date(result.createdAt) : new Date()
 
-          // Find the open counter for this business's current billing period
+          // Find the open counter for this business + branch's current billing period
           const openCounter = await rootPrisma.usageCounter.findFirst({
             where: {
               businessId,
+              branchId,
               isClosed: false,
               billingPeriodStart: { lte: transactionCreatedAt },
               billingPeriodEnd: { gte: transactionCreatedAt },
@@ -266,6 +267,7 @@ const transactionServerFn = createServerFn({ method: 'POST' })
             const newCounter = await rootPrisma.usageCounter.create({
               data: {
                 businessId,
+                branchId,
                 billingPeriodStart: periodStart,
                 billingPeriodEnd: periodEnd,
                 txCount: 1,

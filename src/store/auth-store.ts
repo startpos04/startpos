@@ -78,7 +78,11 @@ export const resetAuth = () => {
 export const refreshAuthUser = async (): Promise<void> => {
   try {
     const freshUser = await getAuthUser()
-    if (freshUser) refreshUser(freshUser)
+    if (freshUser) {
+      // Extract authorization from the user object and pass it separately
+      // to refreshUser so it gets properly stored in authStore
+      refreshUser(freshUser, freshUser.authorization)
+    }
   } catch (err) {
     // Non-fatal — the user session is still valid, just stale
     console.warn('[authStore] refreshAuthUser failed:', err)

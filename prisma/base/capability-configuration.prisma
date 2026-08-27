@@ -1,0 +1,42 @@
+// =============================================================================
+// CAPABILITY CONFIGURATION
+// =============================================================================
+// Flexible per-capability settings storage. Each capability can define its own
+// configuration keys without requiring schema changes. Supports branch-level
+// and business-level scoping.
+//
+// Examples:
+//   - COMPLETE_CHECKOUT → allowed_payment_methods: "CASH,E_WALLET,CARD"
+//   - MANAGE_INVENTORY → low_stock_threshold: "10"
+//   - PRINT_RECEIPT → receipt_layout: "STANDARD"
+//
+// Design:
+//   - capabilityId namespaces settings per capability
+//   - key is freeform string (no enum constraint)
+//   - value stored as string (parse based on dataType)
+//   - dataType hints at how to parse value (BOOLEAN, STRING, JSON, NUMBER)
+//   - scope determines if setting applies at BRANCH or BUSINESS level
+
+model CapabilityConfiguration {
+  id           String             @id @default(cuid())
+  capabilityId String             // e.g., "COMPLETE_CHECKOUT", "MANAGE_INVENTORY"
+  key          String             // e.g., "allowed_payment_methods", "low_stock_threshold"
+  value        String             // Stored as string, parse based on dataType
+  dataType     ConfigDataType     // BOOLEAN, STRING, JSON, NUMBER (reuse existing enum)
+  scope        ConfigurationScope // BRANCH or BUSINESS
+  
+  // Scope references
+  branchId   String?
+  branch     Branch?   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([capabilityId, key, branchId, scope])
+  @@unique([capabilityId, key, businessId, scope])
+  @@index([capabilityId, branchId])
+  @@index([capabilityId, businessId])
+  @@map("capability_configurations")
+}

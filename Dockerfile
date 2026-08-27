@@ -20,9 +20,14 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update -y \
   && apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
   && rm -rf /var/lib/apt/lists/*
 COPY . .
-# Ensure .env.local and .env.config exist so --env-file never fails inside the container.
+# Ensure .env, .env.local and .env.config exist so --env-file never fails inside the container.
 # On a dev machine they are gitignored and hold local overrides; inside Docker they stay empty.
-RUN touch .env.local .env.config
+RUN touch .env .env.local .env.config
+# Set schema generation environment variables for non-interactive mode
+ENV SCHEMA_AUTO_CONFIRM=yes
+ENV DEPLOYMENT_COUNTRY=PH
+# Generate Prisma schema and client from base files
+RUN pnpm run prisma:generate
 ENV NODE_ENV=development
 EXPOSE 3000 51212
 CMD ["pnpm", "run", "dev:docker"]
@@ -30,6 +35,11 @@ CMD ["pnpm", "run", "dev:docker"]
 # ---------- Production build ----------
 FROM install AS builder
 COPY . .
+# Set schema generation environment variables for non-interactive mode
+ENV SCHEMA_AUTO_CONFIRM=yes
+ENV DEPLOYMENT_COUNTRY=PH
+# Generate Prisma schema and client before building
+RUN pnpm run prisma:generate
 RUN pnpm run build
 
 # ---------- Production runtime ----------

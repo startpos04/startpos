@@ -94,6 +94,7 @@ export async function runUsageCounterResetJob(rootPrisma: PrismaClient, now: Dat
           select: {
             id: true,
             businessId: true,
+            branchId: true,
             billingPeriodStart: true,
             billingPeriodEnd: true,
             txCount: true,
@@ -111,6 +112,7 @@ export async function runUsageCounterResetJob(rootPrisma: PrismaClient, now: Dat
         const snapshot: UsageCounterSnapshot = {
           id: openCounter.id,
           businessId: openCounter.businessId,
+          branchId: openCounter.branchId,
           billingPeriodStart: openCounter.billingPeriodStart,
           billingPeriodEnd: openCounter.billingPeriodEnd,
           txCount: openCounter.txCount,
@@ -147,6 +149,7 @@ export async function runUsageCounterResetJob(rootPrisma: PrismaClient, now: Dat
           rootPrisma.usageCounter.create({
             data: {
               businessId: newCounter.businessId,
+              branchId: newCounter.branchId,
               billingPeriodStart: newCounter.billingPeriodStart,
               billingPeriodEnd: newCounter.billingPeriodEnd,
               txCount: 0,

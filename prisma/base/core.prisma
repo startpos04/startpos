@@ -100,8 +100,9 @@ model Business {
   recalculationQueue CharacteristicsRecalculationQueue[]
 
   // Relations added in Phase 2
-  usageSummaries BusinessUsageSummary[]
-  auditLogs      AuditLog[]
+  usageSummaries           BusinessUsageSummary[]
+  auditLogs                AuditLog[]
+  capabilityConfigurations CapabilityConfiguration[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -161,6 +162,14 @@ model Branch {
 
   // Production Module relations
   productionOrders ProductionOrder[]
+
+  // Branch-level capability toggles (Phase 2 - Entitlements)
+  capabilityConfigs        BranchCapabilityConfig[]
+  capabilityConfigurations CapabilityConfiguration[]
+  
+  // Branch-level accounting (Phase 3 - Per-branch P&L)
+  usageCounters UsageCounter[]
+  creditLedger  CreditLedger[]
 
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)

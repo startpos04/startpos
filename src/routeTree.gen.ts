@@ -41,6 +41,7 @@ import { Route as privateTasksTaskIdIndexRouteImport } from './routes/(private)/
 import { Route as privatedashboardSettingsIndexRouteImport } from './routes/(private)/(dashboard)/settings/index'
 import { Route as privatedashboardBusinessIndexRouteImport } from './routes/(private)/(dashboard)/business/index'
 import { Route as privatedashboardAccountIndexRouteImport } from './routes/(private)/(dashboard)/account/index'
+import { Route as privatedashboardSettingsComplianceRouteImport } from './routes/(private)/(dashboard)/settings/compliance'
 import { Route as privatedashboardBusinessSuppliersRouteRouteImport } from './routes/(private)/(dashboard)/business/suppliers/route'
 import { Route as privatedashboardBusinessCustomersRouteRouteImport } from './routes/(private)/(dashboard)/business/customers/route'
 import { Route as privatedashboardBusinessBillingRouteRouteImport } from './routes/(private)/(dashboard)/business/billing/route'
@@ -248,6 +249,12 @@ const privatedashboardAccountIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => privatedashboardAccountRouteRoute,
+  } as any)
+const privatedashboardSettingsComplianceRoute =
+  privatedashboardSettingsComplianceRouteImport.update({
+    id: '/compliance',
+    path: '/compliance',
+    getParentRoute: () => privatedashboardSettingsRouteRoute,
   } as any)
 const privatedashboardBusinessSuppliersRouteRoute =
   privatedashboardBusinessSuppliersRouteRouteImport.update({
@@ -509,6 +516,7 @@ export interface FileRoutesByFullPath {
   '/business/billing': typeof privatedashboardBusinessBillingRouteRouteWithChildren
   '/business/customers': typeof privatedashboardBusinessCustomersRouteRouteWithChildren
   '/business/suppliers': typeof privatedashboardBusinessSuppliersRouteRouteWithChildren
+  '/settings/compliance': typeof privatedashboardSettingsComplianceRoute
   '/account/': typeof privatedashboardAccountIndexRoute
   '/business/': typeof privatedashboardBusinessIndexRoute
   '/settings/': typeof privatedashboardSettingsIndexRoute
@@ -570,6 +578,7 @@ export interface FileRoutesByTo {
   '/pos': typeof privatePosIndexRoute
   '/tasks': typeof privateTasksIndexRoute
   '/subscription/reactivate': typeof SubscriptionReactivateIndexRoute
+  '/settings/compliance': typeof privatedashboardSettingsComplianceRoute
   '/account': typeof privatedashboardAccountIndexRoute
   '/business': typeof privatedashboardBusinessIndexRoute
   '/settings': typeof privatedashboardSettingsIndexRoute
@@ -644,6 +653,7 @@ export interface FileRoutesById {
   '/(private)/(dashboard)/business/billing': typeof privatedashboardBusinessBillingRouteRouteWithChildren
   '/(private)/(dashboard)/business/customers': typeof privatedashboardBusinessCustomersRouteRouteWithChildren
   '/(private)/(dashboard)/business/suppliers': typeof privatedashboardBusinessSuppliersRouteRouteWithChildren
+  '/(private)/(dashboard)/settings/compliance': typeof privatedashboardSettingsComplianceRoute
   '/(private)/(dashboard)/account/': typeof privatedashboardAccountIndexRoute
   '/(private)/(dashboard)/business/': typeof privatedashboardBusinessIndexRoute
   '/(private)/(dashboard)/settings/': typeof privatedashboardSettingsIndexRoute
@@ -714,6 +724,7 @@ export interface FileRouteTypes {
     | '/business/billing'
     | '/business/customers'
     | '/business/suppliers'
+    | '/settings/compliance'
     | '/account/'
     | '/business/'
     | '/settings/'
@@ -775,6 +786,7 @@ export interface FileRouteTypes {
     | '/pos'
     | '/tasks'
     | '/subscription/reactivate'
+    | '/settings/compliance'
     | '/account'
     | '/business'
     | '/settings'
@@ -848,6 +860,7 @@ export interface FileRouteTypes {
     | '/(private)/(dashboard)/business/billing'
     | '/(private)/(dashboard)/business/customers'
     | '/(private)/(dashboard)/business/suppliers'
+    | '/(private)/(dashboard)/settings/compliance'
     | '/(private)/(dashboard)/account/'
     | '/(private)/(dashboard)/business/'
     | '/(private)/(dashboard)/settings/'
@@ -1129,6 +1142,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/account/'
       preLoaderRoute: typeof privatedashboardAccountIndexRouteImport
       parentRoute: typeof privatedashboardAccountRouteRoute
+    }
+    '/(private)/(dashboard)/settings/compliance': {
+      id: '/(private)/(dashboard)/settings/compliance'
+      path: '/compliance'
+      fullPath: '/settings/compliance'
+      preLoaderRoute: typeof privatedashboardSettingsComplianceRouteImport
+      parentRoute: typeof privatedashboardSettingsRouteRoute
     }
     '/(private)/(dashboard)/business/suppliers': {
       id: '/(private)/(dashboard)/business/suppliers'
@@ -1624,11 +1644,14 @@ const privatedashboardBusinessRouteRouteWithChildren =
   )
 
 interface privatedashboardSettingsRouteRouteChildren {
+  privatedashboardSettingsComplianceRoute: typeof privatedashboardSettingsComplianceRoute
   privatedashboardSettingsIndexRoute: typeof privatedashboardSettingsIndexRoute
 }
 
 const privatedashboardSettingsRouteRouteChildren: privatedashboardSettingsRouteRouteChildren =
   {
+    privatedashboardSettingsComplianceRoute:
+      privatedashboardSettingsComplianceRoute,
     privatedashboardSettingsIndexRoute: privatedashboardSettingsIndexRoute,
   }
 

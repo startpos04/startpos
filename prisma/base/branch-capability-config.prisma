@@ -1,0 +1,22 @@
+// =============================================================================
+// BRANCH CAPABILITY CONFIGURATION
+// =============================================================================
+// Branch-level capability toggles - allows branch managers to enable/disable
+// specific capabilities for their branch, independent of the business-wide
+// capability states.
+
+model BranchCapabilityConfig {
+  id           String      @id @default(cuid())
+  branchId     String
+  branch       Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  
+  capabilityId String      // e.g., "CREATE_ORDER", "RECORD_PAYMENT"
+  enabled      Boolean     @default(true) // true = enabled at branch, false = disabled
+  
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  @@unique([branchId, capabilityId])
+  @@index([branchId])
+  @@map("branch_capability_configs")
+}
