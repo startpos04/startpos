@@ -111,10 +111,12 @@ export function PermissionAssignmentDialog({ user, open, onOpenChange }: Permiss
 
   // Mutations
   const grantMutation = useMutation({
-    mutationFn: (data: { userId: string; permissionKey: string; reason?: string }) => grantPermissionToUser(data),
+    mutationFn: (data: { userId: string; permissionKey: string; reason?: string }) => grantPermissionToUser({ data }),
     onSuccess: data => {
       toast.success(data.message)
       queryClient.invalidateQueries({ queryKey: ['users-with-permissions'] })
+      queryClient.invalidateQueries({ queryKey: ['permissions-with-employees'] })
+      queryClient.invalidateQueries({ queryKey: ['permission-audit-log'] })
       setSelectedPermission(null)
       setReason('')
     },
@@ -124,10 +126,12 @@ export function PermissionAssignmentDialog({ user, open, onOpenChange }: Permiss
   })
 
   const revokeMutation = useMutation({
-    mutationFn: (data: { userId: string; permissionKey: string; reason?: string }) => revokePermissionFromUser(data),
+    mutationFn: (data: { userId: string; permissionKey: string; reason?: string }) => revokePermissionFromUser({ data }),
     onSuccess: data => {
       toast.success(data.message)
       queryClient.invalidateQueries({ queryKey: ['users-with-permissions'] })
+      queryClient.invalidateQueries({ queryKey: ['permissions-with-employees'] })
+      queryClient.invalidateQueries({ queryKey: ['permission-audit-log'] })
       setSelectedPermission(null)
       setReason('')
     },
@@ -137,10 +141,12 @@ export function PermissionAssignmentDialog({ user, open, onOpenChange }: Permiss
   })
 
   const removeMutation = useMutation({
-    mutationFn: (data: { userId: string; permissionKey: string }) => removePermissionOverride(data),
+    mutationFn: (data: { userId: string; permissionKey: string }) => removePermissionOverride({ data }),
     onSuccess: data => {
       toast.success(data.message)
       queryClient.invalidateQueries({ queryKey: ['users-with-permissions'] })
+      queryClient.invalidateQueries({ queryKey: ['permissions-with-employees'] })
+      queryClient.invalidateQueries({ queryKey: ['permission-audit-log'] })
       setSelectedPermission(null)
       setReason('')
     },

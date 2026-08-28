@@ -216,7 +216,7 @@ export function CompliancePage() {
   }
 
   return (
-    <div className='px-4 pb-6 space-y-6 max-w-4xl'>
+    <div className='px-4 pb-6 space-y-6 max-w-5xl'>
       {/* Loading State */}
       {isLoading ? (
         <div className='flex items-center justify-center py-12'>

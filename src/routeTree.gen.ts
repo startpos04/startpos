@@ -48,7 +48,7 @@ import { Route as privatedashboardBusinessBillingRouteRouteImport } from './rout
 import { Route as privatedashboardadminPreparationRouteRouteImport } from './routes/(private)/(dashboard)/(admin)/preparation/route'
 import { Route as privatedashboardBusinessSuppliersIndexRouteImport } from './routes/(private)/(dashboard)/business/suppliers/index'
 import { Route as privatedashboardBusinessProfileIndexRouteImport } from './routes/(private)/(dashboard)/business/profile/index'
-import { Route as privatedashboardBusinessPermissionsIndexRouteImport } from './routes/(private)/(dashboard)/business/permissions/index'
+import { Route as privatedashboardBusinessPermissionsIndexRouteImport } from './routes/(private)/(dashboard)/business/permissions/-permissions-tab'
 import { Route as privatedashboardBusinessCustomersIndexRouteImport } from './routes/(private)/(dashboard)/business/customers/index'
 import { Route as privatedashboardBusinessCapabilitiesIndexRouteImport } from './routes/(private)/(dashboard)/business/capabilities/index'
 import { Route as privatedashboardBusinessBranchesIndexRouteImport } from './routes/(private)/(dashboard)/business/branches/index'

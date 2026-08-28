@@ -19,6 +19,7 @@
  */
 
 import { permissionCollection, userPermissionCollection } from '@/db/collections'
+import { coreAPI } from '@/lib/prisma-client/core-api'
 import type { PermissionKey } from './permission-keys'
 import { getDefaultPermissionsForRole } from './role-permissions'
 

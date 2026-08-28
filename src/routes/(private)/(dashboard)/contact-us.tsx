@@ -86,10 +86,10 @@ function ContactUsPage() {
   const defaultMailto = buildMailto(SUPPORT_EMAIL, 'Support request')
 
   return (
-    <div className='flex flex-col gap-8 px-4 max-w-2xl'>
+    <div className='flex flex-col gap-8 px-4 max-w-5xl'>
       {/* Page header */}
       <div>
-        <h1 className='text-2xl font-semibold'>Contact us</h1>
+        <h1 className='text-2xl font-semibold tracking-tight'>Contact us</h1>
         <p className='text-sm text-muted-foreground mt-1'>
           Whether you need support, want to explore a license, or have an idea to share — we're here. Pick a topic below and we'll get back to you quickly.
         </p>

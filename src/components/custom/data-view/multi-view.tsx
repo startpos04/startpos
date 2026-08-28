@@ -58,7 +58,7 @@ export function MultiView<T>({ views, creatable, searchable, label, description,
     <>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
         <div>
-          <h1 className='text-3xl font-bold tracking-tight text-foreground'>{label}</h1>
+          <h1 className='text-2xl font-semibold tracking-tight'>{label}</h1>
           <p className='text-muted-foreground text-sm'>{description}</p>
         </div>
 

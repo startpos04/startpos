@@ -66,10 +66,10 @@ export function EntitlementsPage() {
   const { planName, status, billingModel, includedTxPerMonth, txUsedThisPeriod, txRemaining, categoryGroups } = data
 
   return (
-    <div className='flex flex-col gap-6 p-6'>
+    <div className='flex flex-col gap-6 pb-6 px-4 max-w-5xl'>
       {/* Header */}
       <div className='flex flex-col gap-2'>
-        <h1 className='text-3xl font-bold'>Entitlements</h1>
+        <h1 className='text-2xl font-semibold tracking-tight'>Entitlements</h1>
         <p className='text-muted-foreground'>View your enabled capabilities grouped by category. Each capability may have usage limits based on your plan.</p>
       </div>
 
