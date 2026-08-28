@@ -13,7 +13,7 @@ import { ContextSwitcherItem } from './context-switcher-item'
 /**
  * ContextSwitcher - A fixed-width vertical navigation bar for switching between
  * business/branch contexts. Sits outside the SidebarProvider to avoid conflicts.
- * 
+ *
  * NOTE: Hidden for single-branch businesses (when MANAGE_BRANCHES capability is disabled
  * or when only one branch exists). In single-branch mode, business links are integrated
  * into the main sidebar.
@@ -26,7 +26,7 @@ export function ContextSwitcher() {
 
   // Permission check (replaces role check)
   const canViewBusiness = usePermission(Permissions.BUSINESS_VIEW_PROFILE)
-  
+
   // Capability check for multi-branch
   const hasMultiBranchCapability = useCapability(Capabilities.MANAGE_BRANCHES)
 
@@ -35,7 +35,7 @@ export function ContextSwitcher() {
 
   // Get all branches (for now, just current branch - will expand later when multi-branch support is added)
   const branches = user.branch ? [user.branch] : []
-  
+
   // Hide context switcher for single-branch businesses
   // Show only if: multi-branch capability is enabled AND (has multiple branches OR business admin access)
   const isSingleBranch = !hasMultiBranchCapability || branches.length === 1

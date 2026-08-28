@@ -1,8 +1,8 @@
 /**
  * Singapore Compliance Adapter
- * 
+ *
  * Handles Inland Revenue Authority of Singapore (IRAS) compliance requirements.
- * 
+ *
  * IRAS Requirements:
  * - GST Registration Number
  * - UEN (Unique Entity Number)
@@ -12,38 +12,33 @@
  */
 
 import type { Prisma } from 'prisma/generated/prisma/client'
-import type {
-  ComplianceAdapter,
-  ComplianceData,
-  RefundContext,
-  UserContext,
-} from '../compliance-adapter'
+import type { ComplianceAdapter, ComplianceData, RefundContext, UserContext } from '../compliance-adapter'
 
 export class SingaporeComplianceAdapter implements ComplianceAdapter {
   readonly countryCode = 'SG'
 
   extractComplianceData(context: UserContext): ComplianceData {
     const { business, branch } = context
-    
+
     // Extract Singapore-specific compliance data
     const sgCompliance = (business as any).singaporeCompliance
     const sgBranchCompliance = (branch as any).singaporeBranchCompliance
-    
+
     return {
       // Business-level IRAS data
-      businessTaxId: sgCompliance?.gstNumber ?? '',  // GST number is the primary tax ID
-      businessPermitNumber: sgCompliance?.uenNumber,  // UEN as permit number
-      businessTaxOfficeCode: sgCompliance?.acraNumber,  // ACRA as tax office
-      
+      businessTaxId: sgCompliance?.gstNumber ?? '', // GST number is the primary tax ID
+      businessPermitNumber: sgCompliance?.uenNumber, // UEN as permit number
+      businessTaxOfficeCode: sgCompliance?.acraNumber, // ACRA as tax office
+
       // Branch-level IRAS data
       branchSerialNumber: sgBranchCompliance?.branchUEN,
       branchCode: String(branch.branchCode ?? ''),
       branchPermitNumber: sgBranchCompliance?.tradeLicense,
-      
+
       // GST status
       isTaxRegistered: sgCompliance?.isGSTRegistered ?? false,
       taxRegistrationDate: sgCompliance?.gstEffectiveDate?.toISOString(),
-      
+
       // Additional Singapore metadata
       metadata: {
         uenNumber: sgCompliance?.uenNumber,
@@ -87,10 +82,10 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
     }
   }): Record<string, unknown> {
     const { compliance, business, branch, user, currency, customerData } = data
-    
+
     // Get current GST rate from compliance or default to 9% (as of 2024)
     const gstRate = ((compliance.metadata as Record<string, unknown>)?.['gstRate'] as number) ?? 9
-    
+
     return {
       // Universal fields
       snapshotBusinessName: business.name,
@@ -99,16 +94,16 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
       snapshotBranchSN: compliance.branchSerialNumber ?? branch.serialNumber,
       snapshotCashierName: user.name,
       snapshotCurrency: currency,
-      
+
       // Singapore-specific IRAS fields
-      snapshotGSTNumber: compliance.businessTaxId,  // GST Registration Number
-      snapshotUENNumber: compliance.businessPermitNumber ?? '',  // Unique Entity Number
-      snapshotGSTRate: gstRate,  // GST rate at time of sale
+      snapshotGSTNumber: compliance.businessTaxId, // GST Registration Number
+      snapshotUENNumber: compliance.businessPermitNumber ?? '', // Unique Entity Number
+      snapshotGSTRate: gstRate, // GST rate at time of sale
       snapshotIsGSTRegistered: compliance.isTaxRegistered ?? false,
-      
+
       // Customer B2B fields (if provided)
       ...(customerData?.buyerTaxId && {
-        snapshotCustomerTIN: customerData.buyerTaxId,  // Customer's GST/UEN
+        snapshotCustomerTIN: customerData.buyerTaxId, // Customer's GST/UEN
       }),
     }
   }
@@ -116,7 +111,7 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
   copyRefundSnapshot(context: RefundContext): Record<string, unknown> {
     const { originalTransaction, currentUser } = context
     const original = originalTransaction as any
-    
+
     return {
       // Copy universal fields
       snapshotBusinessName: original.snapshotBusinessName,
@@ -125,13 +120,13 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
       snapshotBranchSN: original.snapshotBranchSN,
       snapshotCashierName: currentUser.name, // Current refund processor
       snapshotCurrency: original.snapshotCurrency,
-      
+
       // Copy Singapore-specific IRAS fields
       snapshotGSTNumber: original.snapshotGSTNumber,
       snapshotUENNumber: original.snapshotUENNumber,
       snapshotGSTRate: original.snapshotGSTRate,
       snapshotIsGSTRegistered: original.snapshotIsGSTRegistered,
-      
+
       // Copy customer fields if present
       ...(original.snapshotCustomerTIN && {
         snapshotCustomerTIN: original.snapshotCustomerTIN,
@@ -141,20 +136,20 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
 
   validateCompliance(compliance: ComplianceData): string[] {
     const missing: string[] = []
-    
+
     // Required IRAS fields
     if (!compliance.businessTaxId) {
       missing.push('GST Registration Number')
     }
-    
+
     if (!compliance.businessPermitNumber) {
       missing.push('UEN (Unique Entity Number)')
     }
-    
+
     if (!compliance.branchCode) {
       missing.push('Branch Code')
     }
-    
+
     return missing
   }
 }

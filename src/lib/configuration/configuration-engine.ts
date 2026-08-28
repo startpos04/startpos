@@ -183,11 +183,11 @@ export const ConfigurationEngine = {
 
       if (definition.validation) {
         const rules = definition.validation as { min?: number; max?: number }
-        
+
         if (rules.min !== undefined && numValue < rules.min) {
           throw new Error(`${definition.label} must be at least ${rules.min}`)
         }
-        
+
         if (rules.max !== undefined && numValue > rules.max) {
           throw new Error(`${definition.label} must be at most ${rules.max}`)
         }
@@ -206,9 +206,7 @@ export const ConfigurationEngine = {
       if (definition.validation) {
         const rules = definition.validation as { values: string[] }
         if (!rules.values?.includes(value)) {
-          throw new Error(
-            `${definition.label} must be one of: ${rules.values.join(', ')}`
-          )
+          throw new Error(`${definition.label} must be one of: ${rules.values.join(', ')}`)
         }
       }
     }
@@ -216,29 +214,25 @@ export const ConfigurationEngine = {
     // String validation (regex, minLength, maxLength)
     if (definition.dataType === 'STRING') {
       if (definition.validation) {
-        const rules = definition.validation as { 
+        const rules = definition.validation as {
           regex?: string
           minLength?: number
           maxLength?: number
         }
-        
+
         if (rules.regex) {
           const regex = new RegExp(rules.regex)
           if (!regex.test(value)) {
             throw new Error(`${definition.label} format is invalid`)
           }
         }
-        
+
         if (rules.minLength !== undefined && value.length < rules.minLength) {
-          throw new Error(
-            `${definition.label} must be at least ${rules.minLength} characters`
-          )
+          throw new Error(`${definition.label} must be at least ${rules.minLength} characters`)
         }
-        
+
         if (rules.maxLength !== undefined && value.length > rules.maxLength) {
-          throw new Error(
-            `${definition.label} must be at most ${rules.maxLength} characters`
-          )
+          throw new Error(`${definition.label} must be at most ${rules.maxLength} characters`)
         }
       }
     }

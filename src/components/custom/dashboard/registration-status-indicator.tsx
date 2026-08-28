@@ -9,24 +9,24 @@ import { authStore } from '@/store/auth-store'
 
 /**
  * RegistrationStatusIndicator
- * 
+ *
  * A subtle icon indicator in the app bar showing the business registration status.
  * Only visible to ADMIN and MANAGER roles.
- * 
+ *
  * Icon States:
  * - ⚠️ (Yellow/Orange) = UNREGISTERED
  * - ⏳ (Blue) = PENDING
  * - ✅ (Green) = REGISTERED
  * - 🔴 (Red) = EXPIRED
- * 
+ *
  * Clicking the icon navigates to Settings → Compliance page.
  */
 export function RegistrationStatusIndicator() {
   const user = useStore(authStore, state => state.user)
-  
+
   // Get registration status from business
   const registrationStatus = user?.business?.registrationStatus ?? 'UNREGISTERED'
-  
+
   // Determine icon, color, and tooltip based on status
   const statusConfig = React.useMemo(() => {
     switch (registrationStatus) {
@@ -67,23 +67,19 @@ export function RegistrationStatusIndicator() {
         }
     }
   }, [registrationStatus])
-  
+
   // Only show for ADMIN and MANAGER roles - check AFTER all hooks are called
   const canSee = user?.role === Role.ADMIN || user?.role === Role.OWNER
   if (!canSee) return null
-  
+
   const Icon = statusConfig.icon
-  
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Link
           to='/settings/compliance'
-          className={cn(
-            'flex items-center justify-center w-10 h-10 rounded-md transition-colors',
-            statusConfig.colorClass,
-            statusConfig.bgClass,
-          )}
+          className={cn('flex items-center justify-center w-10 h-10 rounded-md transition-colors', statusConfig.colorClass, statusConfig.bgClass)}
         >
           <Icon className='h-5 w-5' />
           <span className='sr-only'>{statusConfig.tooltip}</span>

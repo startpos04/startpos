@@ -1,5 +1,11 @@
 # Offline Mode: Single Cashier Restriction & Sequence Auditing
 
+**Status**: ❌ **NOT IMPLEMENTED** - Planning Phase  
+**Last Updated**: August 28, 2026  
+**Note**: Basic offline mode works (OPFS collections, sync). This plan adds advanced features: single-cashier lock and sequence auditing.
+
+---
+
 ## Problem Statement
 
 When the POS system goes offline, we need to ensure:

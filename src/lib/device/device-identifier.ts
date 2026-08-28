@@ -1,6 +1,6 @@
 /**
  * Device Identifier - Generates and persists unique device IDs for offline mode tracking
- * 
+ *
  * Used for:
  * - Offline mode single-cashier restriction
  * - Sequence number audit trail

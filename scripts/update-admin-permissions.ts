@@ -3,18 +3,18 @@ import { prisma } from '../src/lib/prisma-client'
 async function updateAdminPermissions() {
   try {
     console.log('Adding BUSINESS_VIEW_PROFILE permission to ADMIN role...')
-    
+
     // Find the permission
     const permission = await prisma.permission.findUnique({
       where: { key: 'business:view:profile' },
     })
-    
+
     if (!permission) {
       console.error('Permission business:view:profile not found!')
       await prisma.$disconnect()
       process.exit(1)
     }
-    
+
     // Check if role permission already exists
     const existing = await prisma.roleDefaultPermission.findUnique({
       where: {
@@ -24,7 +24,7 @@ async function updateAdminPermissions() {
         },
       },
     })
-    
+
     if (existing) {
       console.log('✓ Permission already exists for ADMIN role')
     } else {
@@ -37,7 +37,7 @@ async function updateAdminPermissions() {
       })
       console.log('✓ Successfully added BUSINESS_VIEW_PROFILE permission to ADMIN role')
     }
-    
+
     await prisma.$disconnect()
   } catch (error) {
     console.error('Error:', error)

@@ -51,7 +51,7 @@ const COUNTRY_FILES: Record<Country, string> = {
 
 async function resolveCountry(): Promise<Country> {
   const configured = process.env.DEPLOYMENT_COUNTRY?.trim().toUpperCase()
-  
+
   if (configured) {
     if (VALID_COUNTRIES.includes(configured as Country)) {
       console.info(`🌍 Using configured country: \x1b[36m${COUNTRY_NAMES[configured as Country]} (${configured})\x1b[0m`)
@@ -96,10 +96,7 @@ async function main() {
   console.info(`   Country File  : \x1b[90mprisma/countries/${country.toLowerCase()}.prisma\x1b[0m`)
   console.info('======================================================\n')
 
-  const confirmed = await confirmYesNo(
-    `Generate Prisma schema for \x1b[36m${countryName} (${country})\x1b[0m? (y/N): `,
-    'SCHEMA_AUTO_CONFIRM',
-  )
+  const confirmed = await confirmYesNo(`Generate Prisma schema for \x1b[36m${countryName} (${country})\x1b[0m? (y/N): `, 'SCHEMA_AUTO_CONFIRM')
 
   if (!confirmed) {
     console.info('🛑 Schema generation canceled by operator.')
@@ -112,20 +109,20 @@ async function main() {
     // Read country file and parse injection sections
     const countryFile = COUNTRY_FILES[country]
     const countryPath = path.join(PRISMA_DIR, countryFile)
-    
+
     if (!fs.existsSync(countryPath)) {
       throw new Error(`Country file not found: ${countryFile}`)
     }
-    
+
     const countryContent = fs.readFileSync(countryPath, 'utf8')
-    
+
     // Parse injection sections
     const injections: Record<string, string[]> = {}
     const standaloneModels: string[] = []
-    
+
     let currentModel: string | null = null
     let inStandaloneSection = false
-    
+
     for (const line of countryContent.split('\n')) {
       // Check for section markers
       if (line.includes('=== INJECT_INTO:')) {
@@ -146,41 +143,41 @@ async function main() {
         standaloneModels.push(line)
       }
     }
-    
+
     console.log(`✓ Parsed ${Object.keys(injections).length} injection targets from ${countryFile}`)
     Object.entries(injections).forEach(([model, fields]) => {
       console.log(`  - ${model}: ${fields.length} fields`)
     })
-    
+
     // Process base files with injection
     const processedSchemas: string[] = []
-    
+
     for (const file of BASE_FILES) {
       const filePath = path.join(PRISMA_DIR, file)
-      
+
       if (!fs.existsSync(filePath)) {
         console.warn(`⚠️  Base file not found: ${file} (skipping)`)
         continue
       }
-      
+
       let content = fs.readFileSync(filePath, 'utf8')
-      
+
       // Detect which models this file contains and inject fields
       for (const [modelName, fields] of Object.entries(injections)) {
         // Look for the COUNTRY_FIELDS_HERE marker
         const markerPattern = '// COUNTRY_FIELDS_HERE'
-        
+
         if (content.includes(markerPattern)) {
           // Simple line-by-line replacement to avoid regex complexity with nested braces
           const lines = content.split('\n')
           let modelFound = false
-          
+
           for (let i = 0; i < lines.length; i++) {
             // Check if we're in the correct model
             if (lines[i].includes(`model ${modelName}`) && lines[i].includes('{')) {
               modelFound = true
             }
-            
+
             // If we're in the right model and found the marker, inject fields
             if (modelFound && lines[i].includes(markerPattern)) {
               const injectedFields = fields.map(f => `  ${f}`)
@@ -189,20 +186,20 @@ async function main() {
               modelFound = false // Reset for next model
               break
             }
-            
+
             // Reset if we've left the model (closing brace at root level)
             if (modelFound && lines[i].match(/^}/)) {
               modelFound = false
             }
           }
-          
+
           content = lines.join('\n')
         }
       }
-      
+
       processedSchemas.push(content)
     }
-    
+
     // Combine everything
     const combinedSchema = [
       '// ============================================================================',
@@ -220,15 +217,14 @@ async function main() {
       '',
       ...standaloneModels,
     ].join('\n')
-    
+
     // Write generated schema
     const outputPath = path.join(PRISMA_DIR, 'schema.prisma')
     fs.writeFileSync(outputPath, combinedSchema)
-    
+
     console.log(`\n✅ Successfully generated schema.prisma for ${countryName} (${country})`)
     console.log(`📄 Output: ${outputPath}`)
     console.log(`📊 Total size: ${(combinedSchema.length / 1024).toFixed(2)} KB\n`)
-    
   } catch (error) {
     console.error('\n❌ Schema generation failed:')
     console.error(error)

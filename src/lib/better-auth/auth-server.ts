@@ -46,8 +46,8 @@ type DBUser = Prisma.UserGetPayload<{
 // Use adapter to get country-specific includes dynamically
 const complianceIncludes = getComplianceIncludes()
 
-type DBBusiness = Prisma.BusinessGetPayload<{ 
-  include: typeof complianceIncludes.business & { configurations: true } 
+type DBBusiness = Prisma.BusinessGetPayload<{
+  include: typeof complianceIncludes.business & { configurations: true }
 }>
 
 type DBBranch = Prisma.BranchGetPayload<{
@@ -140,7 +140,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       branch: branch as any,
       user: user as any,
     })
-    
+
     // Transform to legacy compliance format for backwards compatibility
     // This allows existing code to continue working while we migrate to adapters
     const compliance = {

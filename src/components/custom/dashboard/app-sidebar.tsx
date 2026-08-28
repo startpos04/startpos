@@ -105,10 +105,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       const currentPath = location.pathname
       // Exact match
       if (currentPath === itemUrl) return true
-      
+
       // Special case: /business should only match exactly, not /business/billing etc.
       if (itemUrl === '/business') return false
-      
+
       // Nested match: check if current path starts with itemUrl
       // Example: /employees/admin-1 starts with /employees
       return currentPath.startsWith(`${itemUrl}/`)
@@ -133,15 +133,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     // This happens regardless of the current route (/business/* or not)
     if (isSingleBranch) {
       // Build business menu items (for single-branch sidebar)
-      const businessItems = hasBusinessAccess ? [
-        perms[Permissions.BUSINESS_VIEW_PROFILE] ? { title: 'Overview', url: '/business', isActive: false } : null,
-        perms[Permissions.BUSINESS_VIEW_CAPABILITIES] ? { title: 'Capabilities', url: '/business/capabilities', isActive: false } : null,
-        perms[Permissions.BUSINESS_VIEW_BILLING] ? { title: 'Billing', url: '/business/billing', isActive: false } : null,
-        perms[Permissions.BUSINESS_VIEW_SUPPLIERS] && caps.MANAGE_SUPPLIERS ? { title: 'Suppliers', url: '/business/suppliers', isActive: false } : null,
-        perms[Permissions.BUSINESS_VIEW_CUSTOMERS] && caps.CUSTOMER_PROFILES ? { title: 'Customers', url: '/business/customers', isActive: false } : null,
-        perms[Permissions.USER_MANAGE_PERMISSIONS] ? { title: 'Permissions', url: '/business/permissions', isActive: false } : null,
-        perms[Permissions.BUSINESS_VIEW_PROFILE] ? { title: 'Profile', url: '/business/profile', isActive: false } : null,
-      ].filter(Boolean) : []
+      const businessItems = hasBusinessAccess
+        ? [
+            perms[Permissions.BUSINESS_VIEW_PROFILE] ? { title: 'Overview', url: '/business', isActive: false } : null,
+            perms[Permissions.BUSINESS_VIEW_CAPABILITIES] ? { title: 'Capabilities', url: '/business/capabilities', isActive: false } : null,
+            perms[Permissions.BUSINESS_VIEW_BILLING] ? { title: 'Billing', url: '/business/billing', isActive: false } : null,
+            perms[Permissions.BUSINESS_VIEW_SUPPLIERS] && caps.MANAGE_SUPPLIERS ? { title: 'Suppliers', url: '/business/suppliers', isActive: false } : null,
+            perms[Permissions.BUSINESS_VIEW_CUSTOMERS] && caps.CUSTOMER_PROFILES ? { title: 'Customers', url: '/business/customers', isActive: false } : null,
+            perms[Permissions.USER_MANAGE_PERMISSIONS] ? { title: 'Permissions', url: '/business/permissions', isActive: false } : null,
+            perms[Permissions.BUSINESS_VIEW_PROFILE] ? { title: 'Profile', url: '/business/profile', isActive: false } : null,
+          ].filter(Boolean)
+        : []
 
       const data = {
         team: {

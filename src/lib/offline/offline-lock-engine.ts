@@ -1,8 +1,8 @@
 /**
  * Offline Lock Engine - Manages single-cashier restriction for offline mode
- * 
+ *
  * Purpose: Prevents sequence number conflicts when multiple devices go offline
- * 
+ *
  * Rules:
  * - Only one cashier/device can hold the offline lock at a time
  * - Lock is automatically acquired on first offline transaction
@@ -10,10 +10,10 @@
  * - Admin can forcefully clear locks via branch settings
  */
 
+import type { SequenceType } from 'prisma/generated/prisma/enums'
 import { sequenceCounterCollection } from '@/db/collections'
 import { authStore } from '@/store/auth-store'
 import { DeviceIdentifier } from '../device/device-identifier'
-import type { SequenceType } from 'prisma/generated/prisma/enums'
 
 export interface OfflineLockStatus {
   isLocked: boolean

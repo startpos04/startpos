@@ -51,7 +51,7 @@ function parseConfigsCsvRequired<T>(folder: string, fileName: string, requiredHe
 export async function configs(prisma: PrismaClient, options: { folder: string }) {
   // Seed ConfigurationDefinition table first (required for foreign key constraints)
   await seedConfigurationDefinitions(prisma)
-  
+
   const accounts = getAccounts(options.folder)
 
   // --- RESOLVE BUSINESS CONFIGURATIONS ---
@@ -111,35 +111,31 @@ export async function configs(prisma: PrismaClient, options: { folder: string })
   // EXECUTION LAYER: COMPLIANCE TABLES (PH-specific)
   // =======================================================
   console.info('⚖️ Syncing Philippines compliance details...')
-  
+
   // Transform ComplianceRegistry CSV data to new table structure
   const phComplianceData: Record<string, string> = {}
   for (const record of runtimeCompliance) {
     phComplianceData[record.key] = record.value
   }
-  
+
   // Upsert PhilippinesCompliance (business-level)
   await prisma.philippinesCompliance.upsert({
     where: { businessId: accounts.business.id },
     update: {
       birTin: phComplianceData.BIR_TIN || '',
       birPtuNumber: phComplianceData.BIR_PTU_NUMBER || null,
-      birPtuIssuedAt: phComplianceData.BIR_PTU_ISSUED_AT 
-        ? new Date(phComplianceData.BIR_PTU_ISSUED_AT) 
-        : null,
+      birPtuIssuedAt: phComplianceData.BIR_PTU_ISSUED_AT ? new Date(phComplianceData.BIR_PTU_ISSUED_AT) : null,
       birRdoCode: phComplianceData.BIR_RDO_CODE || null,
     },
     create: {
       businessId: accounts.business.id,
       birTin: phComplianceData.BIR_TIN || '000-000-000-000',
       birPtuNumber: phComplianceData.BIR_PTU_NUMBER || null,
-      birPtuIssuedAt: phComplianceData.BIR_PTU_ISSUED_AT 
-        ? new Date(phComplianceData.BIR_PTU_ISSUED_AT) 
-        : null,
+      birPtuIssuedAt: phComplianceData.BIR_PTU_ISSUED_AT ? new Date(phComplianceData.BIR_PTU_ISSUED_AT) : null,
       birRdoCode: phComplianceData.BIR_RDO_CODE || null,
     },
   })
-  
+
   // Upsert PhilippinesBranchCompliance (branch-level)
   await prisma.philippinesBranchCompliance.upsert({
     where: { branchId: accounts.branch.id },

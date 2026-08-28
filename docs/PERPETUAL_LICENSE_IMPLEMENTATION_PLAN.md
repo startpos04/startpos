@@ -1,5 +1,11 @@
 # Perpetual License Implementation Plan
 
+**Status**: ❌ **NOT IMPLEMENTED** - Planning Phase  
+**Last Updated**: August 28, 2026  
+**Target**: Self-hosted enterprise deployments (future product offering)
+
+---
+
 ## Executive Summary
 
 This document outlines the strategy for implementing perpetual licenses for self-hosted client deployments of START-POS. The approach focuses on:

@@ -79,9 +79,7 @@ export const toggleBranchCapability = createServerFn({ method: 'POST' })
 
       return {
         success: true,
-        message: enabled 
-          ? `${capabilityKey} enabled for this branch` 
-          : `${capabilityKey} disabled for this branch`,
+        message: enabled ? `${capabilityKey} enabled for this branch` : `${capabilityKey} disabled for this branch`,
       }
     } catch (error) {
       console.error('[toggleBranchCapability] Error:', error)

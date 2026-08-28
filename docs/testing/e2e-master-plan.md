@@ -1,5 +1,11 @@
 # StartPOS — E2E Test Master Plan (Playwright)
 
+**Status**: ⏳ **PLANNED** - Infrastructure configured, test suites not yet written  
+**Last Updated**: August 28, 2026  
+**Current**: Playwright configured, global-setup exists, 14 test suites planned
+
+---
+
 ## Overview
 
 End-to-end tests using **Playwright + Chromium** against a live dev server. These tests cover

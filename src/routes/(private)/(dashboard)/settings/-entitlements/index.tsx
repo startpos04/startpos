@@ -11,8 +11,8 @@
  *   - Future: Allow branch-level configuration
  */
 
-import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { createFileRoute } from '@tanstack/react-router'
 import { AlertCircle, CheckCircle, Info, Lock, Settings, Shield, TrendingUp, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -70,9 +70,7 @@ export function EntitlementsPage() {
       {/* Header */}
       <div className='flex flex-col gap-2'>
         <h1 className='text-3xl font-bold'>Entitlements</h1>
-        <p className='text-muted-foreground'>
-          View your enabled capabilities grouped by category. Each capability may have usage limits based on your plan.
-        </p>
+        <p className='text-muted-foreground'>View your enabled capabilities grouped by category. Each capability may have usage limits based on your plan.</p>
       </div>
 
       {/* Subscription Overview */}
@@ -130,9 +128,7 @@ export function EntitlementsPage() {
               {group.categoryLabel}
             </CardTitle>
             <CardDescription>
-              {group.isOperational 
-                ? 'Core business operations - blocked when subscription lapses' 
-                : 'Always accessible features'}
+              {group.isOperational ? 'Core business operations - blocked when subscription lapses' : 'Always accessible features'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -200,7 +196,7 @@ export function EntitlementsPage() {
  */
 function EntitlementRow({ entitlement }: { entitlement: import('@/lib/server-fn/fetch-entitlement-details').EntitlementDetail }) {
   const queryClient = useQueryClient()
-  
+
   const {
     capabilityKey,
     featureLabel,
@@ -222,7 +218,7 @@ function EntitlementRow({ entitlement }: { entitlement: import('@/lib/server-fn/
   // Mutation to toggle capability
   const toggleMutation = useMutation({
     mutationFn: (enabled: boolean) => toggleBranchCapability({ data: { capabilityKey, enabled } }),
-    onSuccess: async (result) => {
+    onSuccess: async result => {
       if (result.success) {
         toast.success(result.message || 'Capability updated')
         // Invalidate the entitlement details query to refresh the UI
@@ -231,7 +227,7 @@ function EntitlementRow({ entitlement }: { entitlement: import('@/lib/server-fn/
         toast.error(result.message || 'Failed to update capability')
       }
     },
-    onError: (error) => {
+    onError: error => {
       console.error('[EntitlementRow] Toggle error:', error)
       toast.error('Failed to update capability')
     },
@@ -270,8 +266,8 @@ function EntitlementRow({ entitlement }: { entitlement: import('@/lib/server-fn/
         </div>
         {/* Toggle - Controls branch-level enable/disable */}
         <div className='flex items-center gap-2 shrink-0'>
-          <Switch 
-            checked={isEnabledAtBranch} 
+          <Switch
+            checked={isEnabledAtBranch}
             onCheckedChange={handleToggle}
             disabled={toggleMutation.isPending}
             title='Enable or disable this capability for this branch'

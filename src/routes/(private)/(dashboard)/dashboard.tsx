@@ -58,10 +58,7 @@ function DashboardPage() {
   })
 
   // Offline: Use cached hints from collection
-  const offlineHints = useLiveQuery(q => 
-    q.from({ h: hintCollection })
-      .select(({ h }) => h)
-  )
+  const offlineHints = useLiveQuery(q => q.from({ h: hintCollection }).select(({ h }) => h))
 
   const { data: capabilities } = useQuery({
     queryKey: ['capability-states'],
@@ -90,10 +87,8 @@ function DashboardPage() {
 
   // Use server hints when online, fall back to collection when offline
   // Filter and sort offline hints in JavaScript
-  const filteredOfflineHints = (offlineHints.data ?? [])
-    .filter(h => h.isActive)
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-  
+  const filteredOfflineHints = (offlineHints.data ?? []).filter(h => h.isActive).sort((a, b) => a.sortOrder - b.sortOrder)
+
   const dashboardHints = isOnline ? serverHints : filteredOfflineHints
 
   // Surface critical and high-importance RECOMMENDED capabilities on the dashboard.
@@ -189,7 +184,7 @@ interface TipsSectionProps {
 
 function TipsSection({ hints }: TipsSectionProps) {
   const [index, setIndex] = useState(0)
-  
+
   // Show placeholder when no hints available
   if (hints.length === 0) {
     return (

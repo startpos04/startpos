@@ -248,21 +248,20 @@ export function interpretSurvey(answers: SurveyAnswers): BusinessCharacteristics
 
 /**
  * Extracts the business registration status from Q12 survey answer.
- * 
+ *
  * This value is stored directly on the Business model (not in BusinessCharacteristics)
  * because it's a compliance/legal status, not an operational characteristic.
- * 
+ *
  * @param answers - Raw survey answers keyed by question ID
  * @returns BusinessRegistrationStatus enum value ('REGISTERED', 'PENDING', 'UNREGISTERED', or default 'UNREGISTERED')
  */
 export function extractRegistrationStatus(answers: SurveyAnswers): 'REGISTERED' | 'PENDING' | 'UNREGISTERED' | 'EXPIRED' {
   const q12 = answers.q12_business_registration
-  
+
   if (q12 === Q12_OPTIONS.REGISTERED) return 'REGISTERED'
   if (q12 === Q12_OPTIONS.PENDING) return 'PENDING'
   if (q12 === Q12_OPTIONS.UNREGISTERED) return 'UNREGISTERED'
-  
+
   // Default to UNREGISTERED if Q12 was skipped
   return 'UNREGISTERED'
 }
-

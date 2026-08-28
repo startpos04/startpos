@@ -482,7 +482,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
 
     // --- Phase 11: Use compliance adapter to populate transaction snapshots (country-agnostic) ---
     const adapter = getComplianceAdapter()
-    
+
     // Build ComplianceData from user.compliance (which was extracted by adapter in auth-server)
     const complianceData = {
       businessTaxId: user.compliance.BIR_TIN || '',
@@ -495,12 +495,12 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       branchTaxOfficeCode: user.compliance.BRANCH_RDO_CODE,
       isTaxRegistered: user.configs.IS_VAT_REGISTERED,
     }
-    
+
     // Phase 11 Task 4: Validate compliance data before allowing transaction
     // SOFT VALIDATION: Warn but allow transactions for unregistered businesses
     const missingFields = adapter.validateCompliance(complianceData)
     const hasIncompleteCompliance = missingFields.length > 0
-    
+
     // Log warning for audit purposes if compliance is incomplete
     if (hasIncompleteCompliance) {
       console.warn('[POS Transaction] Incomplete compliance data:', {
@@ -509,7 +509,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
         message: 'Transaction allowed but receipts may not be tax-compliant',
       })
     }
-    
+
     // Get country-specific snapshot fields from adapter
     const snapshotFields = adapter.populateTransactionSnapshot({
       compliance: complianceData,
@@ -563,11 +563,11 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       snapshotCustomerName: data.customer.buyerName || null,
       snapshotCustomerTaxId: data.customer.buyerTaxId || null,
       snapshotCustomerAddress: data.customer.buyerAddress || null,
-      
+
       // --- Phase 11: Country-specific snapshot fields from adapter ---
       // The adapter automatically populates the correct fields based on deployment country
       ...snapshotFields,
-      
+
       providerId: null,
       sessionId: null,
       originalTransactionId: null,

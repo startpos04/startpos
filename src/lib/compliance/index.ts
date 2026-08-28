@@ -1,40 +1,40 @@
 /**
  * Compliance Module
- * 
+ *
  * Provides country-agnostic compliance adapters for Philippines, Singapore, and USA.
- * 
+ *
  * ## Usage
- * 
+ *
  * ### Getting the Current Adapter
  * ```typescript
  * import { getComplianceAdapter } from '@/lib/compliance'
- * 
+ *
  * const adapter = getComplianceAdapter()
  * const compliance = adapter.extractComplianceData(userContext)
  * ```
- * 
+ *
  * ### Using in Prisma Queries
  * ```typescript
  * import { getComplianceIncludes } from '@/lib/compliance'
- * 
+ *
  * const includes = getComplianceIncludes()
  * const business = await prisma.business.findUnique({
  *   where: { id },
  *   include: includes.business,
  * })
  * ```
- * 
+ *
  * ### Checking Deployment Country
  * ```typescript
  * import { getDeploymentCountry, isCountryDeployment } from '@/lib/compliance'
- * 
+ *
  * const country = getDeploymentCountry()  // 'PH', 'SG', or 'US'
- * 
+ *
  * if (isCountryDeployment('PH')) {
  *   // Philippines-specific logic
  * }
  * ```
- * 
+ *
  * ### Populating Transaction Snapshots
  * ```typescript
  * const adapter = getComplianceAdapter()
@@ -47,7 +47,7 @@
  *   customerData: { ... },
  *   discountData: { ... },
  * })
- * 
+ *
  * await prisma.transaction.create({
  *   data: {
  *     ...baseTransactionData,
@@ -55,56 +55,55 @@
  *   },
  * })
  * ```
- * 
+ *
  * ### Using in Receipts (Client-Side)
  * ```typescript
  * import { getComplianceLines, getTaxRateLabel, getReceiptFooterText } from '@/lib/compliance'
- * 
+ *
  * const complianceLines = getComplianceLines(user.compliance, user.branch.serialNumber)
  * const taxLabel = getTaxRateLabel()  // 'VAT', 'GST', or 'Sales Tax'
  * const footerText = getReceiptFooterText()
  * ```
  */
 
-// Core types and interfaces
-export type {
-  ComplianceAdapter,
-  ComplianceAdapterFactory,
-  ComplianceData,
-  TransactionSnapshotData,
-  UserContext,
-  RefundContext,
-} from './compliance-adapter'
-
-// Adapter implementations
-export { PhilippinesComplianceAdapter } from './adapters/philippines-adapter'
-export { SingaporeComplianceAdapter } from './adapters/singapore-adapter'
-export { UsaComplianceAdapter } from './adapters/usa-adapter'
-
 // Factory and convenience functions
 export {
   complianceAdapterFactory,
   getComplianceAdapter,
   getComplianceIncludes,
-  isCountryDeployment,
   getDeploymentCountry,
+  isCountryDeployment,
 } from './adapter-factory'
+
+// Adapter implementations
+export { PhilippinesComplianceAdapter } from './adapters/philippines-adapter'
+export { SingaporeComplianceAdapter } from './adapters/singapore-adapter'
+export { UsaComplianceAdapter } from './adapters/usa-adapter'
+// Core types and interfaces
+export type {
+  ComplianceAdapter,
+  ComplianceAdapterFactory,
+  ComplianceData,
+  RefundContext,
+  TransactionSnapshotData,
+  UserContext,
+} from './compliance-adapter'
 
 // Receipt helpers (client-side)
 export {
-  getTaxIdLabel,
-  getTaxIdValue,
+  getComplianceLines,
   getPermitLabel,
   getPermitValue,
-  getTaxRateLabel,
-  getComplianceLines,
   getReceiptFooterText,
+  getTaxIdLabel,
+  getTaxIdValue,
+  getTaxRateLabel,
 } from './receipt-helper'
 
 // Validation utilities
 export {
-  validateComplianceData,
-  isComplianceDataComplete,
-  getComplianceErrorMessage,
   extractComplianceFromForm,
+  getComplianceErrorMessage,
+  isComplianceDataComplete,
+  validateComplianceData,
 } from './validation'

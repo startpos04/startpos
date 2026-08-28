@@ -1,5 +1,11 @@
 # PaymentEngine Implementation Plan
 
+**Status**: ❌ **NOT IMPLEMENTED** - Planning Phase  
+**Last Updated**: August 28, 2026  
+**Note**: Currently only Stripe and GCash manual payments exist. This plan adds PaymentEngine abstraction for multiple providers.
+
+---
+
 ## Overview
 Implement a PaymentEngine following the existing engine architecture (PriceEngine, UnitEngine, TaxEngine) to handle multiple payment methods (Stripe, GCash, future providers) with a config-driven, extensible design.
 

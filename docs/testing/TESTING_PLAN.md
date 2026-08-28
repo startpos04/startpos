@@ -1,5 +1,12 @@
 # Testing Plan for Start POS
 
+**Status**: ⏳ **IN PROGRESS** - Unit tests exist, Integration/E2E partially planned  
+**Last Updated**: August 28, 2026  
+**Current Coverage**: 51.6% unit test coverage (1573 tests across 75 files)  
+**Target**: 90% coverage across all critical paths
+
+---
+
 ## Goal
 
 90–100% confidence across all critical paths. Three test layers work together — each owns

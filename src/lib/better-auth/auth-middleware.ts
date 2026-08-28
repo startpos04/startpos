@@ -12,7 +12,7 @@ export const authMiddleware = createMiddleware().server(async ({ next }) => {
 
   if (!session?.user) {
     return await next({
-      context: { 
+      context: {
         user: undefined as unknown as Session['user'],
         authorization: undefined,
       },
@@ -36,7 +36,7 @@ export const authMiddleware = createMiddleware().server(async ({ next }) => {
   const permissionSummary = await AuthorizationEngine.buildSummary(authContext)
 
   return await next({
-    context: { 
+    context: {
       user: { ...user, businessId: sessionData.businessId, branchId: sessionData.branchId },
       authorization: {
         permissions: permissionSummary.permissions,

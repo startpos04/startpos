@@ -8,7 +8,7 @@ async function testFetchTransactions() {
 
     const fromDate = new Date('2026-08-01')
     fromDate.setHours(0, 0, 0, 0)
-    
+
     const toDate = new Date('2026-08-31')
     toDate.setHours(23, 59, 59, 999)
 

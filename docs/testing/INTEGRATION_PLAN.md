@@ -1,5 +1,11 @@
 # Integration Test Master Plan
 
+**Status**: ⏳ **IN PROGRESS** - 2 test files written (40 tests), coverage map planned  
+**Last Updated**: August 28, 2026  
+**Current**: registration and billing integration tests exist
+
+---
+
 ## Goal
 
 90–100% confidence across every critical path. Tests at each layer do distinct work — they are

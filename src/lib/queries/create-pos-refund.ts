@@ -130,7 +130,7 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
 
     // --- Phase 11: Use compliance adapter to copy transaction snapshots (country-agnostic) ---
     const adapter = getComplianceAdapter()
-    
+
     // Phase 11 Task 4: Validate compliance data before allowing refund
     // SOFT VALIDATION: Warn but allow refunds for unregistered businesses
     // Build ComplianceData from user.compliance for validation
@@ -145,10 +145,10 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
       branchTaxOfficeCode: user.compliance.BRANCH_RDO_CODE,
       isTaxRegistered: user.configs.IS_VAT_REGISTERED,
     }
-    
+
     const missingFields = adapter.validateCompliance(complianceData)
     const hasIncompleteCompliance = missingFields.length > 0
-    
+
     // Log warning for audit purposes if compliance is incomplete
     if (hasIncompleteCompliance) {
       console.warn('[POS Refund] Incomplete compliance data:', {
@@ -157,7 +157,7 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
         message: 'Refund allowed but receipts may not be tax-compliant',
       })
     }
-    
+
     const refundSnapshotFields = adapter.copyRefundSnapshot({
       originalTransaction: snapshot,
       currentUser: { name: user.name },

@@ -10,8 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { unitCollection } from '@/db/collections'
 import MountManager from '@/lib/mount-manager'
-import { UNIT_ASIDE_ID, showUnitSidebar } from './-components/unit-sidebar'
 import { CreateUnitSidebar } from './-components/create-unit-sidebar'
+import { showUnitSidebar, UNIT_ASIDE_ID } from './-components/unit-sidebar'
 
 export function UnitsPage() {
   const { data, isLoading } = useLiveQuery(q => q.from({ unit: unitCollection }))

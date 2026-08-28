@@ -43,7 +43,7 @@ import { resolveCapabilities } from '../onboarding/capability-resolver'
 import { buildConfiguration } from '../onboarding/configuration-engine'
 import { suggestPlan } from '../onboarding/plan-advisor'
 import { classifyProfile } from '../onboarding/profile-classifier'
-import { interpretSurvey, extractRegistrationStatus } from '../onboarding/survey-interpreter'
+import { extractRegistrationStatus, interpretSurvey } from '../onboarding/survey-interpreter'
 import type { SurveyAnswers } from '../onboarding/types'
 import { prisma as rootPrisma } from '../prisma-client'
 

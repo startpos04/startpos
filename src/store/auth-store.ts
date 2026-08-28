@@ -28,10 +28,7 @@ const defaultValue = {
   authorization: null as AuthorizationSummary | null,
 }
 
-export type AuthState = Prettify<
-  | typeof defaultValue
-  | (Omit<typeof defaultValue, 'isAuthenticated' | 'user'> & { isAuthenticated: true; user: ServerUser })
->
+export type AuthState = Prettify<typeof defaultValue | (Omit<typeof defaultValue, 'isAuthenticated' | 'user'> & { isAuthenticated: true; user: ServerUser })>
 
 export const authStore = new Store<AuthState>(defaultValue)
 
@@ -92,13 +89,13 @@ export const refreshAuthUser = async (): Promise<void> => {
 if (typeof window !== 'undefined') {
   authStore.subscribe(() => {
     const state = authStore.state
-    
+
     // Only save to localStorage if user is authenticated
     if (!state.isAuthenticated || !state.user) {
       localStorage.removeItem('my-app-storage')
       return
     }
-    
+
     const storageData = { user: { id: state.user.id } }
 
     // Use type-safe localStorage setter

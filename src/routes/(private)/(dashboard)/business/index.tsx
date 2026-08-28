@@ -1,5 +1,5 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useLiveQuery } from '@tanstack/react-db'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { Building2, CreditCard, Shield, Sparkles, Users } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

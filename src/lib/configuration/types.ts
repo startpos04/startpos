@@ -4,12 +4,7 @@
  * Type definitions for Configuration System
  */
 
-import type {
-  ConfigCategory,
-  ConfigDataType,
-  ConfigurationKey,
-  ConfigurationScope,
-} from 'prisma/generated/prisma/enums'
+import type { ConfigCategory, ConfigDataType, ConfigurationKey, ConfigurationScope } from 'prisma/generated/prisma/enums'
 
 export type { ConfigCategory, ConfigDataType, ConfigurationKey, ConfigurationScope }
 

@@ -1,12 +1,12 @@
 /**
  * Compliance Adapter Interface
- * 
+ *
  * Provides country-agnostic abstraction for compliance data access.
  * Each country has its own adapter implementation that knows how to:
  * - Fetch compliance data from country-specific tables
  * - Transform it into a standard format
  * - Populate transaction snapshots with country-specific fields
- * 
+ *
  * This allows the same codebase to work across Philippines, Singapore, and USA
  * deployments without hardcoding country-specific logic.
  */
@@ -23,17 +23,17 @@ export interface ComplianceData {
   businessPermitNumber?: string
   businessPermitIssuedAt?: string
   businessTaxOfficeCode?: string
-  
+
   // Branch-level compliance IDs
   branchSerialNumber?: string
   branchCode?: string
   branchPermitNumber?: string
   branchTaxOfficeCode?: string
-  
+
   // VAT/GST/Sales Tax status
   isTaxRegistered: boolean
   taxRegistrationDate?: string
-  
+
   // Additional country-specific data (stored as JSON for flexibility)
   metadata?: Record<string, unknown>
 }
@@ -50,7 +50,7 @@ export interface TransactionSnapshotData {
   snapshotBranchSN: string
   snapshotCashierName: string
   snapshotCurrency: string
-  
+
   // Country-specific fields (populated by adapter)
   // These are Prisma's country-specific injected fields
   [key: string]: unknown
@@ -65,7 +65,7 @@ export interface UserContext {
     id: string
     name: string
     countryCode: string
-    [key: string]: unknown  // Country-specific relations
+    [key: string]: unknown // Country-specific relations
   }
   branch: {
     id: string
@@ -73,7 +73,7 @@ export interface UserContext {
     address: string | null
     serialNumber: string
     branchCode: string
-    [key: string]: unknown  // Country-specific relations
+    [key: string]: unknown // Country-specific relations
   }
   user: {
     id: string
@@ -88,7 +88,7 @@ export interface UserContext {
  */
 export interface RefundContext {
   originalTransaction: {
-    [key: string]: unknown  // Contains all snapshot fields
+    [key: string]: unknown // Contains all snapshot fields
   }
   currentUser: {
     name: string | null
@@ -104,13 +104,13 @@ export interface ComplianceAdapter {
    * Country code for this adapter (PH, SG, US)
    */
   readonly countryCode: string
-  
+
   /**
    * Extract compliance data from user context (auth layer).
    * Transforms country-specific compliance tables into standard ComplianceData format.
    */
   extractComplianceData(context: UserContext): ComplianceData
-  
+
   /**
    * Build Prisma include object for fetching compliance relations.
    * Each adapter knows which relations to include for its country.
@@ -119,7 +119,7 @@ export interface ComplianceAdapter {
     business: Prisma.BusinessInclude
     branch: Prisma.BranchInclude
   }
-  
+
   /**
    * Populate transaction snapshot fields for a new sale.
    * Returns an object with country-specific snapshot fields.
@@ -142,13 +142,13 @@ export interface ComplianceAdapter {
       scPwdDiscount?: number
     }
   }): Record<string, unknown>
-  
+
   /**
    * Copy compliance snapshot fields for a refund transaction.
    * Returns an object with country-specific snapshot fields copied from original.
    */
   copyRefundSnapshot(context: RefundContext): Record<string, unknown>
-  
+
   /**
    * Validate compliance data completeness.
    * Returns array of missing required fields, or empty array if valid.
@@ -163,11 +163,11 @@ export interface ComplianceAdapter {
 export interface ComplianceAdapterFactory {
   /**
    * Get the appropriate adapter for the current deployment.
-   * 
+   *
    * @param countryCode - Optional country code override. If not provided, uses DEPLOYMENT_COUNTRY env var.
    */
   getAdapter(countryCode?: string): ComplianceAdapter
-  
+
   /**
    * Register a custom adapter for a country.
    * Useful for testing or adding new countries without modifying the factory.

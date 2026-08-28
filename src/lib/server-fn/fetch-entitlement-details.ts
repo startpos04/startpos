@@ -8,12 +8,12 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
-import type { CapabilityKey } from '../entitlement/capability-keys'
 import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { requirePermission } from '../better-auth/permission-middleware'
-import { prisma as rootPrisma } from '../prisma-client'
+import type { CapabilityKey } from '../entitlement/capability-keys'
 import { CAPABILITY_REGISTRY } from '../onboarding/capability-registry'
+import { prisma as rootPrisma } from '../prisma-client'
 import { CATEGORY_LABELS, CATEGORY_ORDER } from '../tutorial/feature-library'
 
 // ---------------------------------------------------------------------------
@@ -27,15 +27,15 @@ export type EntitlementDetail = {
   isOperational: boolean
   category: string // e.g., "SALES", "INVENTORY"
   isBranchLevel: boolean // false = business-level only (like MANAGE_BILLING)
-  
+
   // Plan entitlement data
   usageLimit: number | null // null = unlimited
   currentUsage: number | null // null = not applicable
-  
+
   // Capability state
   isEnabled: boolean // Whether the capability is active for this business
   isEnabledAtBranch: boolean // Whether the capability is enabled at THIS branch
-  
+
   // Override info
   hasOverride: boolean
   overrideGranted: boolean | null
@@ -140,10 +140,10 @@ export const fetchEntitlementDetails = createServerFn({ method: 'GET' })
 
       // Fetch usage counter for current period FOR THIS BRANCH
       const usageCounter = await rootPrisma.usageCounter.findFirst({
-        where: { 
-          businessId, 
+        where: {
+          businessId,
           branchId,
-          isClosed: false 
+          isClosed: false,
         },
         select: { txCount: true },
         orderBy: { billingPeriodStart: 'desc' },
@@ -161,9 +161,7 @@ export const fetchEntitlementDetails = createServerFn({ method: 'GET' })
       })
 
       const activeStates = new Set(['ENABLED', 'CONFIGURED'])
-      const enabledCapabilities = new Set(
-        capabilityStates.filter(cs => activeStates.has(cs.state)).map(cs => cs.capabilityId),
-      )
+      const enabledCapabilities = new Set(capabilityStates.filter(cs => activeStates.has(cs.state)).map(cs => cs.capabilityId))
 
       console.log('[fetchEntitlementDetails] Step 4: Fetching branch capability configs...')
       // Fetch branch-level capability configurations
@@ -210,7 +208,7 @@ export const fetchEntitlementDetails = createServerFn({ method: 'GET' })
         // Count memberships (employees) ACROSS ALL BRANCHES (business-wide)
         // Employees can rotate between branches, so limit is business-level
         memberCount = await rootPrisma.membership.count({
-          where: { 
+          where: {
             businessId,
             deletedAt: null,
           },
@@ -218,7 +216,7 @@ export const fetchEntitlementDetails = createServerFn({ method: 'GET' })
 
         // Count products for this business (products are business-level, not branch-level)
         productCount = await rootPrisma.product.count({
-          where: { 
+          where: {
             businessId,
             deletedAt: null,
           },
@@ -230,7 +228,7 @@ export const fetchEntitlementDetails = createServerFn({ method: 'GET' })
       console.log('[fetchEntitlementDetails] Step 7: Building entitlements...')
       // Note: Branch count is omitted because MANAGE_BRANCHES is a business-level
       // capability and is filtered out from branch settings anyway
-      
+
       // Map usage counts to capability keys
       const usageCounts: Record<string, number> = {
         MANAGE_EMPLOYEES: memberCount,
@@ -243,14 +241,14 @@ export const fetchEntitlementDetails = createServerFn({ method: 'GET' })
           const capabilityKey = ent.featureKey as CapabilityKey
           const override = overrideMap.get(ent.featureKey)
           const isEnabled = enabledCapabilities.has(ent.featureKey)
-          
+
           // Check if enabled at branch level (defaults to true if no config exists)
           const isEnabledAtBranch = branchEnabledMap.get(capabilityKey) ?? true
-          
+
           // Find category from CAPABILITY_REGISTRY
           const registryEntry = CAPABILITY_REGISTRY.find(c => c.id === capabilityKey)
           const category = registryEntry?.category ?? 'PLATFORM'
-          
+
           // Check if this is a business-level capability
           const isBranchLevel = !BUSINESS_LEVEL_CAPABILITIES.has(capabilityKey)
 
@@ -276,7 +274,7 @@ export const fetchEntitlementDetails = createServerFn({ method: 'GET' })
 
       // Group entitlements by category
       const categoryMap = new Map<string, EntitlementDetail[]>()
-      
+
       for (const ent of entitlements) {
         const existing = categoryMap.get(ent.category) ?? []
         existing.push(ent)
@@ -284,19 +282,17 @@ export const fetchEntitlementDetails = createServerFn({ method: 'GET' })
       }
 
       // Build category groups with labels and ordering
-      const categoryGroups: CapabilityCategoryGroup[] = CATEGORY_ORDER
-        .map(category => {
-          const categoryEntitlements = categoryMap.get(category)
-          if (!categoryEntitlements || categoryEntitlements.length === 0) return null
+      const categoryGroups: CapabilityCategoryGroup[] = CATEGORY_ORDER.map(category => {
+        const categoryEntitlements = categoryMap.get(category)
+        if (!categoryEntitlements || categoryEntitlements.length === 0) return null
 
-          return {
-            category,
-            categoryLabel: CATEGORY_LABELS[category] ?? category,
-            isOperational: categoryEntitlements.some(e => e.isOperational),
-            entitlements: categoryEntitlements,
-          }
-        })
-        .filter((group): group is CapabilityCategoryGroup => group !== null)
+        return {
+          category,
+          categoryLabel: CATEGORY_LABELS[category] ?? category,
+          isOperational: categoryEntitlements.some(e => e.isOperational),
+          entitlements: categoryEntitlements,
+        }
+      }).filter((group): group is CapabilityCategoryGroup => group !== null)
 
       console.log('[fetchEntitlementDetails] Success! Returning', categoryGroups.length, 'category groups')
       return {

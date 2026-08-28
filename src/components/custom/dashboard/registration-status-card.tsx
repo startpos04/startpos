@@ -11,34 +11,34 @@ import { authStore } from '@/store/auth-store'
 
 /**
  * RegistrationStatusCard
- * 
+ *
  * Dashboard section showing business registration status with guidance.
  * Only visible to ADMIN and OWNER roles.
- * 
+ *
  * States:
  * - UNREGISTERED: Shows "Not registered yet" with guidance
  * - PENDING: Shows "Registration in progress" with missing fields
  * - REGISTERED (complete): Hidden (or shows brief success then disappears)
  * - REGISTERED (incomplete): Shows "Data incomplete" with missing fields
  * - EXPIRED: Shows "Registration expired" with renewal prompt
- * 
+ *
  * Dismissible for UNREGISTERED status (saved to localStorage).
  */
 export function RegistrationStatusCard() {
   const user = useStore(authStore, state => state.user)
   const [dismissed, setDismissed] = React.useState(false)
-  
+
   // Only show for ADMIN and OWNER roles
   const canSee = user?.role === Role.ADMIN || user?.role === Role.OWNER
   if (!canSee) return null
-  
+
   // Get registration status from business
   const registrationStatus = user?.business?.registrationStatus ?? 'UNREGISTERED'
-  
+
   // Check if compliance data is complete (for REGISTERED status)
   const isComplianceComplete = React.useMemo(() => {
     if (!user?.business || registrationStatus !== 'REGISTERED') return true
-    
+
     try {
       const adapter = getComplianceAdapter(user.business.countryCode)
       const complianceData = adapter.extractComplianceData({
@@ -52,7 +52,7 @@ export function RegistrationStatusCard() {
       return false
     }
   }, [user, registrationStatus])
-  
+
   // Check localStorage for dismissal (only for UNREGISTERED status)
   React.useEffect(() => {
     if (registrationStatus === 'UNREGISTERED') {
@@ -60,19 +60,19 @@ export function RegistrationStatusCard() {
       setDismissed(isDismissed)
     }
   }, [registrationStatus])
-  
+
   // Handle dismissal
   const handleDismiss = () => {
     localStorage.setItem('registration-status-dismissed', 'true')
     setDismissed(true)
   }
-  
+
   // Don't show if dismissed (only for UNREGISTERED)
   if (registrationStatus === 'UNREGISTERED' && dismissed) return null
-  
+
   // Don't show if REGISTERED and data is complete
   if (registrationStatus === 'REGISTERED' && isComplianceComplete) return null
-  
+
   // Render appropriate card based on status
   switch (registrationStatus) {
     case 'UNREGISTERED':
@@ -129,7 +129,12 @@ function UnregisteredCard({ onDismiss }: UnregisteredCardProps) {
               <ExternalLinkIcon className='h-3.5 w-3.5 ml-1.5' />
             </Link>
           </Button>
-          <Button asChild variant='ghost' size='sm' className='text-amber-700 hover:text-amber-800 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-950/40'>
+          <Button
+            asChild
+            variant='ghost'
+            size='sm'
+            className='text-amber-700 hover:text-amber-800 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-950/40'
+          >
             <a href='https://www.bir.gov.ph/' target='_blank' rel='noopener noreferrer'>
               Learn More
               <ExternalLinkIcon className='h-3.5 w-3.5 ml-1.5' />
@@ -147,11 +152,11 @@ function UnregisteredCard({ onDismiss }: UnregisteredCardProps) {
 
 function PendingCard() {
   const user = useStore(authStore, state => state.user)
-  
+
   // Get missing fields from compliance validation
   const missingFields = React.useMemo(() => {
     if (!user?.business) return []
-    
+
     try {
       const adapter = getComplianceAdapter(user.business.countryCode)
       const complianceData = adapter.extractComplianceData({
@@ -164,7 +169,7 @@ function PendingCard() {
       return ['Unable to validate compliance data']
     }
   }, [user])
-  
+
   return (
     <Card className='border-blue-200 bg-blue-50/50 dark:border-blue-900/30 dark:bg-blue-950/20'>
       <CardHeader className='pb-3'>
@@ -177,9 +182,7 @@ function PendingCard() {
         </div>
       </CardHeader>
       <CardContent className='space-y-3'>
-        <p className='text-sm text-blue-800 dark:text-blue-200'>
-          Add your TIN, permits, and business details to complete your registration.
-        </p>
+        <p className='text-sm text-blue-800 dark:text-blue-200'>Add your TIN, permits, and business details to complete your registration.</p>
         {missingFields.length > 0 && (
           <div className='text-sm'>
             <p className='font-medium text-blue-900 dark:text-blue-200 mb-1'>Missing:</p>
@@ -203,11 +206,11 @@ function PendingCard() {
 
 function RegisteredIncompleteCard() {
   const user = useStore(authStore, state => state.user)
-  
+
   // Get missing fields from compliance validation
   const missingFields = React.useMemo(() => {
     if (!user?.business) return []
-    
+
     try {
       const adapter = getComplianceAdapter(user.business.countryCode)
       const complianceData = adapter.extractComplianceData({
@@ -220,7 +223,7 @@ function RegisteredIncompleteCard() {
       return ['Unable to validate compliance data']
     }
   }, [user])
-  
+
   return (
     <Card className='border-destructive/30 bg-destructive/5'>
       <CardHeader className='pb-3'>
@@ -233,9 +236,7 @@ function RegisteredIncompleteCard() {
         </div>
       </CardHeader>
       <CardContent className='space-y-3'>
-        <p className='text-sm text-foreground'>
-          You marked your business as registered but some required information is missing.
-        </p>
+        <p className='text-sm text-foreground'>You marked your business as registered but some required information is missing.</p>
         {missingFields.length > 0 && (
           <div className='text-sm'>
             <p className='font-medium text-foreground mb-1'>Missing:</p>
@@ -275,9 +276,7 @@ function ExpiredCard() {
         </div>
       </CardHeader>
       <CardContent className='space-y-3'>
-        <p className='text-sm text-foreground'>
-          Your business registration has expired. Please renew your registration to continue issuing official receipts.
-        </p>
+        <p className='text-sm text-foreground'>Your business registration has expired. Please renew your registration to continue issuing official receipts.</p>
         <Button asChild variant='destructive' size='sm'>
           <Link to='/settings/compliance'>
             Renew Registration

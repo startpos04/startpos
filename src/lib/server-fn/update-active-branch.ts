@@ -4,11 +4,11 @@ import { getTenantPrisma } from '../prisma-client'
 
 /**
  * updateActiveBranch
- * 
+ *
  * Updates the user's active branch by switching their membership branchId.
  * This enables the context switcher to allow users to switch between branches
  * they have access to.
- * 
+ *
  * @param branchId - The ID of the branch to switch to
  * @returns Success result or error message
  */

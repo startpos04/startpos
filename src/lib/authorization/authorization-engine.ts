@@ -71,42 +71,39 @@ export const AuthorizationEngine = {
 
     // 2. Get user-specific permission grants/revokes
     const now = new Date()
-    
+
     // Check if we're on the server or client
     const isServer = typeof window === 'undefined'
-    
+
     let userPermissions: Array<{ userId: string; permissionId: string; granted: boolean; expiresAt: Date | null }>
     let allPermissions: Array<{ id: string; key: string }>
-    
+
     if (isServer) {
       // Server-side: use Prisma directly (rootPrisma for platform-wide permissions table)
       const { prisma: rootPrisma } = await import('@/lib/prisma-client')
-      
+
       // Fetch user permissions from database
       const dbUserPermissions = await rootPrisma.userPermission.findMany({
         where: {
           userId: ctx.userId,
-          OR: [
-            { expiresAt: null },
-            { expiresAt: { gt: now } }
-          ]
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
         },
         select: {
           userId: true,
           permissionId: true,
           granted: true,
           expiresAt: true,
-        }
+        },
       })
-      
+
       // Fetch all permissions to build the map
       const dbPermissions = await rootPrisma.permission.findMany({
         select: {
           id: true,
           key: true,
-        }
+        },
       })
-      
+
       userPermissions = dbUserPermissions
       allPermissions = dbPermissions
     } else {
@@ -120,11 +117,11 @@ export const AuthorizationEngine = {
         }
         return true
       })
-      
+
       // Get all permissions from collection
       allPermissions = [...permissionCollection.values()]
     }
-    
+
     const permissionMap = new Map(allPermissions.map(p => [p.id, p.key]))
 
     // 3. Separate grants and revokes
