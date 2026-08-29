@@ -1,7 +1,7 @@
 /**
  * billing/plans/index.tsx
  *
- * /billing/plans — Plan selection page.
+ * /business/subscription/plans — Plan selection page.
  *
  * Handles two modes:
  *   - New subscriber (no active subscription): calls createSubscription.
@@ -34,7 +34,7 @@ import { fetchPlans, type PlanWithEntitlements } from '@/lib/server-fn/fetch-pla
 import { cn } from '@/lib/utils'
 import { authStore } from '@/store/auth-store'
 
-export const Route = createFileRoute('/(private)/(dashboard)/business/billing/plans/')({
+export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/plans/')({
   component: PlansPage,
 })
 
@@ -342,7 +342,7 @@ function PlansPage() {
       {/* Header */}
       <div className='flex items-center gap-3'>
         <Button variant='ghost' size='icon' asChild className='shrink-0'>
-          <Link to='/business/billing'>
+          <Link to='/business/subscription'>
             <ArrowLeftIcon className='h-4 w-4' />
           </Link>
         </Button>
@@ -501,7 +501,7 @@ function PlansPage() {
             </div>
           </div>
           <Button variant='ghost' size='sm' asChild className='shrink-0 gap-1'>
-            <Link to='/business/billing/pricing'>
+            <Link to='/business/subscription/pricing'>
               Build custom plan <ArrowRightIcon className='h-3.5 w-3.5' />
             </Link>
           </Button>

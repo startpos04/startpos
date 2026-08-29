@@ -29,7 +29,7 @@ import type { InvoiceSummaryDTO } from '@/lib/billing/types'
 import { fetchInvoices } from '@/lib/server-fn/fetch-invoices'
 import { cn } from '@/lib/utils'
 
-export const Route = createFileRoute('/(private)/(dashboard)/business/billing/invoices/')({
+export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/invoices/')({
   component: InvoicesPage,
 })
 
@@ -147,7 +147,7 @@ function InvoicesPage() {
       {/* Header */}
       <div className='flex items-center gap-3'>
         <Button variant='ghost' size='icon' asChild>
-          <Link to='/business/billing'>
+          <Link to='/business/subscription'>
             <ArrowLeftIcon className='h-4 w-4' />
           </Link>
         </Button>
@@ -270,7 +270,7 @@ function EmptyState() {
         </p>
       </div>
       <Button variant='outline' size='sm' asChild>
-        <Link to='/business/billing'>Back to Billing</Link>
+        <Link to='/business/subscription'>Back to Billing</Link>
       </Button>
     </div>
   )

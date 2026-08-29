@@ -3,6 +3,7 @@ import type { OrderItemAddon } from 'prisma/generated/prisma/client'
 import { InvoiceType, OrderStatus, OrderType, PaymentMethod, SequenceType, TaxCategory, TaxLineType, TransactionType } from 'prisma/generated/prisma/enums'
 import {
   auditLogCollection,
+  branchCollection,
   creditLedgerCollection,
   inventoryCollection,
   inventoryMovementCollection,
@@ -18,6 +19,7 @@ import { dbTransaction } from '@/db/local-db-transaction'
 import type { PaymentLine } from '@/routes/(private)/pos/-components/payment-dialog'
 import { authStore } from '@/store/auth-store'
 import { AuditAction, AuditTargetType } from '../audit/types'
+import { BranchValidationEngine } from '../billing/branch-validation-engine'
 import { CreditEngine } from '../billing/credit-engine'
 import { BillingModel } from '../billing/types'
 import { UsageEngine } from '../billing/usage-engine'
@@ -413,7 +415,85 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       usageCounterId = null
     }
 
-    // --- 5b. DEDUCT CREDIT (Phase 3 — PREPAID_CREDITS billing model only) ---
+    // --- 5b. BRANCH QUOTA & CREDIT VALIDATION ---
+    // Check if branch has exceeded its txQuotaLimit and whether it has credits
+    // to allow the transaction to proceed. This validation runs for all billing models
+    // but only deducts credits when branch limit is reached.
+    
+    const branchId = user.branch.id
+    const currentPeriodStart = subscription?.currentPeriodStart ? new Date(subscription.currentPeriodStart) : new Date()
+    
+    // Get branch quota limit from branch collection
+    const branchQuotaLimit = BranchValidationEngine.getBranchQuotaLimit(branchCollection, branchId)
+    
+    // Get current branch usage from usage counter collection
+    const currentBranchUsage = BranchValidationEngine.getCurrentBranchUsage(
+      businessId,
+      branchId,
+      usageCounterCollection,
+      currentPeriodStart,
+    )
+    
+    // Get branch credit balance from credit ledger collection
+    const branchCreditSnapshot = BranchValidationEngine.getBranchCreditBalance(
+      creditLedgerCollection,
+      businessId,
+      branchId,
+    )
+    
+    // Validate branch transaction against quota and credits
+    const branchValidationResult = BranchValidationEngine.validateTransaction({
+      businessId,
+      branchId,
+      branchQuota: {
+        branchId,
+        txQuotaLimit: branchQuotaLimit,
+        currentUsage: currentBranchUsage,
+      },
+      branchCredits: branchCreditSnapshot,
+      usageCounter: openCounterEntry || null,
+    })
+    
+    if (!branchValidationResult.ok) {
+      // Branch validation failed - block the transaction
+      throw new Error(branchValidationResult.reason)
+    }
+    
+    // If branch validation requires credit deduction, create the ledger entry
+    let branchCreditEntry: import('../billing/branch-validation-engine').CreditLedgerEntryDTO | null = null
+    if (branchValidationResult.value.requiresCredits) {
+      branchCreditEntry = BranchValidationEngine.buildCreditDeductionEntry(
+        businessId,
+        branchId,
+        transactionId,
+        branchCreditSnapshot.balance,
+        user.id,
+      )
+      
+      // Insert the branch credit ledger entry into the local collection
+      creditLedgerCollection.insert({
+        id: crypto.randomUUID(),
+        businessId: branchCreditEntry.businessId,
+        branchId: branchCreditEntry.branchId,
+        eventType: branchCreditEntry.eventType as import('prisma/generated/prisma/browser').CreditEventType,
+        amount: branchCreditEntry.amount,
+        balanceAfter: branchCreditEntry.balanceAfter,
+        transactionId: branchCreditEntry.transactionId,
+        note: branchCreditEntry.note,
+        actorId: branchCreditEntry.actorId,
+        stripeSessionId: branchCreditEntry.stripeSessionId,
+        createdAt: new Date(),
+      })
+      
+      console.info('[createPosTransaction] Branch credit deducted:', {
+        branchId,
+        previousBalance: branchCreditSnapshot.balance,
+        newBalance: branchValidationResult.value.newCreditBalance,
+        reason: branchValidationResult.value.reason,
+      })
+    }
+
+    // --- 5c. DEDUCT CREDIT (Phase 3 — PREPAID_CREDITS billing model only) ---
     // Credit deduction is conditional on the billing model. For MONTHLY_SUBSCRIPTION
     // and HYBRID, this block is skipped entirely — zero performance cost.
     //

@@ -320,7 +320,7 @@ model BillingInvoiceItem {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// CreditLedger — Phase 3
+// CreditLedger — Phase 3 + Branch Billing
 // Append-only ledger of every credit event per branch.
 // Each branch has independent credit balance for P&L accounting.
 // The current balance for a branch is the `balanceAfter` of its most recent row.
@@ -336,6 +336,12 @@ model BillingInvoiceItem {
 //     may both read the same `balanceAfter` before either commits, allowing the
 //     balance to go temporarily negative. This is auditable via the ledger and
 //     will be hardened with an optimistic lock in a future phase.
+//   - stripeSessionId: Idempotency key for webhook handling (prevents duplicate credit grants)
+//
+// Branch Billing Usage:
+//   - Branches purchase credits when they need extra transaction capacity
+//   - Credits act as overflow when business quota is managed/limited by owner
+//   - Each transaction deducts 1 credit from branch balance
 // ---------------------------------------------------------------------------
 model CreditLedger {
   id         String   @id @default(cuid())
@@ -362,6 +368,9 @@ model CreditLedger {
 
   // The user (admin) who triggered this event; null = system / automated
   actorId String?
+
+  // Idempotency key — prevents duplicate credit grants on Stripe webhook retry
+  stripeSessionId String? @unique
 
   createdAt DateTime @default(now())
 

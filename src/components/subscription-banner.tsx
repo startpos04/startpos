@@ -49,7 +49,7 @@ export function SubscriptionBanner() {
       <Banner variant='warning' icon={<AlertTriangleIcon className='h-4 w-4 shrink-0' />}>
         <span>
           <strong>Payment overdue.</strong> Your account is in the grace period — operational features are still active. Please{' '}
-          <BannerLink to='/business/billing' variant='warning'>
+          <BannerLink to='/business/subscription' variant='warning'>
             update your payment method
           </BannerLink>{' '}
           to avoid service interruption.
@@ -64,7 +64,7 @@ export function SubscriptionBanner() {
       <Banner variant='error' icon={<XCircleIcon className='h-4 w-4 shrink-0' />}>
         <span>
           <strong>Subscription expired.</strong> Operational features (POS, orders, inventory) are currently blocked.{' '}
-          <BannerLink to='/business/billing' variant='error'>
+          <BannerLink to='/business/subscription' variant='error'>
             Reactivate your subscription
           </BannerLink>{' '}
           to restore access.
@@ -94,7 +94,7 @@ export function SubscriptionBanner() {
       <Banner variant='error' icon={<XCircleIcon className='h-4 w-4 shrink-0' />}>
         <span>
           <strong>Subscription cancelled.</strong> Operational features are blocked.{' '}
-          <BannerLink to='/business/billing' variant='error'>
+          <BannerLink to='/business/subscription' variant='error'>
             Reactivate your subscription
           </BannerLink>{' '}
           to restore access.
@@ -128,7 +128,7 @@ export function SubscriptionBanner() {
       <Banner variant='info' icon={<ClockIcon className='h-4 w-4 shrink-0' />}>
         <span>
           {daysLeft === 0 ? <strong>Your trial expires today.</strong> : <strong>{dayLabel} left in your trial.</strong>}{' '}
-          <BannerLink to='/business/billing' variant='info'>
+          <BannerLink to='/business/subscription' variant='info'>
             Choose a plan
           </BannerLink>{' '}
           to keep access after your trial ends.

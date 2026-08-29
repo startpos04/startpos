@@ -109,6 +109,10 @@ export const Permissions = {
   BRANCH_MANAGE_SETTINGS: 'branch:manage:settings',
   BRANCH_MANAGE_ENTITLEMENTS: 'branch:manage:entitlements',
 
+  // Billing & Credits
+  BRANCH_VIEW_BILLING: 'branch:view:billing',
+  BRANCH_MANAGE_BILLING: 'branch:manage:billing',
+
   // Tasks
   BRANCH_VIEW_TASKS: 'branch:view:tasks',
   BRANCH_CREATE_TASK: 'branch:create:task',

@@ -39,6 +39,7 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { RequirePermission } from '@/components/require-permission'
+import { TableView } from '@/components/custom/data-view/table-view'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,22 +65,21 @@ import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
 import MountManager, { type MountProps } from '@/lib/mount-manager'
 import { cancelSubscription } from '@/lib/server-fn/cancel-subscription'
 import { createBillingPortalSession } from '@/lib/server-fn/create-billing-portal-session'
+import { getBranchCreditBalance } from '@/lib/server-fn/get-branch-credit-balance'
 import { type AddonCatalogItem, fetchAddonCatalog, purchaseAddonSubscription } from '@/lib/server-fn/purchase-addon-subscription'
 import { fetchTxAddonPackages } from '@/lib/server-fn/purchase-tx-addon'
+import Tab from '@/components/custom/tab'
 import { cn } from '@/lib/utils'
+
 import { authStore, refreshUser } from '@/store/auth-store'
 
-export const Route = createFileRoute('/(private)/(dashboard)/business/billing/')({
+export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/')({
   component: () => (
     <RequirePermission permission={Permissions.BUSINESS_VIEW_BILLING}>
-      <BillingDashboard />
+      <SubscriptionDashboard />
     </RequirePermission>
   ),
 })
-
-// ---------------------------------------------------------------------------
-// Status badge config
-// ---------------------------------------------------------------------------
 
 type BadgeConfig = {
   label: string
@@ -148,10 +148,147 @@ function formatDate(iso: string | null | undefined): string {
 }
 
 // ---------------------------------------------------------------------------
+// BranchCreditsConsolidatedView
+// Shows consolidated view of branch credit balances across all branches
+// Only shown when business owner has MANAGE_BRANCHES permission
+// ---------------------------------------------------------------------------
+
+function BranchCreditsConsolidatedView() {
+  const user = useStore(authStore, state => state.user)
+  const canManageBranches = user?.entitlement?.capabilities?.includes('MANAGE_BRANCHES')
+
+  const { data: branchCredits, isLoading } = useQuery({
+    queryKey: ['consolidated-branch-credits'],
+    queryFn: () => getAllBranchCreditBalances(),
+    enabled: canManageBranches,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+
+  if (!canManageBranches) return null
+
+  const isSuccess = branchCredits?.success
+  const totalCredits = branchCredits?.totalCredits || 0
+  const branchCount = branchCredits?.branchCount || 0
+  const branches = branchCredits?.branches || []
+
+  return (
+    <Card>
+      <CardHeader className='pb-2'>
+        <div className='flex items-center gap-2'>
+          <GitBranchIcon className='h-4 w-4 text-muted-foreground' />
+          <CardTitle className='text-sm font-semibold'>Branch Credits</CardTitle>
+        </div>
+        <CardDescription className='text-xs'>
+          Credits across {branchCount} branch{branchCount === 1 ? '' : 'es'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className='space-y-3'>
+        {isLoading ? (
+          <div className='space-y-2'>
+            <div className='h-8 bg-muted animate-pulse rounded' />
+            <div className='h-4 bg-muted animate-pulse rounded w-3/4' />
+          </div>
+        ) : !isSuccess ? (
+          <p className='text-xs text-muted-foreground'>
+            Unable to load branch credit information
+          </p>
+        ) : (
+          <>
+            <div className='flex items-end gap-1.5'>
+              <p className={cn(
+                'text-2xl font-bold tabular-nums', 
+                totalCredits === 0 ? 'text-muted-foreground' : 'text-foreground'
+              )}>
+                {totalCredits.toLocaleString()}
+              </p>
+              <p className='text-xs text-muted-foreground pb-1'>total</p>
+            </div>
+            
+            {totalCredits === 0 ? (
+              <p className='text-xs text-muted-foreground'>
+                No branch credits purchased yet
+              </p>
+            ) : (
+              <p className='text-xs text-muted-foreground'>
+                Combined credits available for overflow transactions
+              </p>
+            )}
+
+            <div className='flex flex-col gap-1.5'>
+              <Button size='sm' variant='outline' className='w-full' asChild>
+                <Link to='/billing'>
+                  <ZapIcon className='h-3 w-3 mr-1.5' />
+                  Manage branch credits
+                </Link>
+              </Button>
+              
+              {branches.length > 0 && (
+                <div className='text-xs text-muted-foreground space-y-1'>
+                  <p className='font-medium'>By branch:</p>
+                  {branches.slice(0, 3).map((branch) => (
+                    <div key={branch.branchId} className='flex justify-between'>
+                      <span className='truncate'>{branch.branchName}</span>
+                      <span className='font-mono'>{branch.balance}</span>
+                    </div>
+                  ))}
+                  {branches.length > 3 && (
+                    <p className='text-center'>
+                      +{branches.length - 3} more
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // BillingDashboard
 // ---------------------------------------------------------------------------
 
-function BillingDashboard() {
+function SubscriptionDashboard() {
+  // Create wrapper components for tabs
+  const OverviewTabComponent = () => <OverviewTab />
+  const InvoicesTabComponent = () => <InvoicesTab />
+
+  const tabs = [
+    { 
+      label: 'Overview', 
+      Component: OverviewTabComponent
+    },
+    { 
+      label: 'Invoices', 
+      Component: InvoicesTabComponent
+    },
+  ]
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Page header - fixed */}
+      <div className="shrink-0 pb-4 px-4">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Subscription Management</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">
+          Manage your subscription plan, usage, and billing details.
+        </p>
+      </div>
+
+      {/* Tabs with scrollable content */}
+      <div className="flex-1 min-h-0">
+        <Tab tabs={tabs} defaultValue="Overview" className="h-full" tabClass='px-4'/>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// OverviewTab - Current subscription status and plan details
+// ---------------------------------------------------------------------------
+
+function OverviewTab() {
   const user = useStore(authStore, state => state.user)
   const entitlement = user?.entitlement
 
@@ -170,8 +307,340 @@ function BillingDashboard() {
 
   // Current period end
   const periodEnd = entitlement?.currentPeriodEnd
+  const txRemaining = entitlement?.txRemaining
 
-  // TX remaining — Phase 2: sourced from UsageCounter via entitlement assembly in auth-server
+  const isBlocked = SubscriptionStatusVO.isOperationallyBlocked(status)
+  const isInWarning = status === SubscriptionStatus.GRACE_PERIOD
+
+  return (
+    <div className="h-full overflow-y-auto px-4 py-1">
+      <div className="grid grid-cols-1 lg:grid-cols-[7fr_5fr] gap-6 items-start">
+        {/* Left column - Main content */}
+        <div className="flex flex-col gap-4 min-w-0">
+          {/* Status card */}
+          <Card className={cn('border', isBlocked && 'border-destructive/40', isInWarning && 'border-amber-300/60')}>
+            <CardHeader className='pb-3'>
+              <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-4'>
+                <div className='space-y-1'>
+                  <CardTitle className='text-lg'>Subscription Status</CardTitle>
+                  <CardDescription>Your current plan and subscription period.</CardDescription>
+                </div>
+                <Badge variant='outline' className={cn('flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 shrink-0 w-fit', badgeConfig.className)}>
+                  {badgeConfig.icon}
+                  {badgeConfig.label}
+                </Badge>
+              </div>
+            </CardHeader>
+          <CardContent className='space-y-4'>
+            {/* Trial countdown */}
+            {status === SubscriptionStatus.TRIAL && trialDaysLeft !== null && (
+              <div className='space-y-2'>
+                <div className='flex flex-col sm:flex-row sm:items-center justify-between text-sm gap-2'>
+                  <span className='text-muted-foreground flex items-center gap-1.5'>
+                    <ClockIcon className='h-4 w-4' />
+                    Trial progress
+                  </span>
+                  <span className='font-medium text-foreground'>
+                    {trialDaysLeft === 0 ? 'Expires today' : `${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} remaining`}
+                  </span>
+                </div>
+                <Progress value={trialProgress} className={cn('h-2', trialDaysLeft <= 7 && '[&>div]:bg-amber-500')} />
+                <p className='text-xs text-muted-foreground'>
+                  Trial ends on <span className='font-medium text-foreground'>{formatDate(entitlement?.trialEndsAt)}</span>
+                </p>
+              </div>
+            )}
+
+            {/* Billing period */}
+            {status === SubscriptionStatus.ACTIVE && periodEnd && !entitlement?.cancelledAt && (
+              <div className='flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-muted-foreground'>
+                <CalendarIcon className='h-4 w-4 shrink-0' />
+                <span>
+                  Current billing period ends <span className='font-medium text-foreground'>{formatDate(periodEnd)}</span>
+                </span>
+              </div>
+            )}
+
+            {/* Cancellation scheduled */}
+            {status === SubscriptionStatus.ACTIVE && entitlement?.cancelledAt && (
+              <div className='flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 dark:border-amber-800/60 dark:bg-amber-950/20'>
+                <AlertTriangleIcon className='h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5' />
+                <div className='text-sm'>
+                  <p className='font-medium text-amber-900 dark:text-amber-300'>Cancellation scheduled</p>
+                  <p className='text-amber-800/80 dark:text-amber-400/80 mt-0.5'>
+                    Your subscription is active until{' '}
+                    <span className='font-medium'>{periodEnd ? formatDate(periodEnd) : 'the end of your billing period'}</span>. After that, access to
+                    operational features will be restricted.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Fully cancelled */}
+            {status === SubscriptionStatus.CANCELLED && (
+              <div className='flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5'>
+                <XCircleIcon className='h-4 w-4 text-destructive shrink-0 mt-0.5' />
+                <div className='text-sm'>
+                  <p className='font-medium text-destructive'>Subscription cancelled</p>
+                  <p className='text-muted-foreground mt-0.5'>
+                    Operational features are currently restricted. Reactivate your subscription to restore access — you can pick any plan including your
+                    previous one.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <Separator />
+
+            {/* CTA section */}
+            <BillingCTAs status={status} isBlocked={isBlocked} cancelledAt={entitlement?.cancelledAt} />
+          </CardContent>
+        </Card>
+
+        {/* Plan Details */}
+        <Card>
+          <CardHeader className='pb-3'>
+            <CardTitle className='text-lg'>Plan Details</CardTitle>
+            <CardDescription>Features and limits included in your current subscription.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className='space-y-3'>
+              <PlanFeatureRow
+                label='Transaction processing'
+                value={txRemaining === null ? 'Unlimited' : `${(txRemaining ?? 0).toLocaleString()} remaining`}
+              />
+              <PlanFeatureRow label='Point of Sale (POS)' value='Included' />
+              <PlanFeatureRow label='Inventory management' value={entitlement?.capabilities.includes('MANAGE_INVENTORY') ? 'Included' : 'Not included'} />
+              <PlanFeatureRow label='Sales reports' value='Included' />
+              <PlanFeatureRow
+                label='Employee accounts'
+                value={
+                  entitlement?.capabilities.includes('MANAGE_EMPLOYEES')
+                    ? (() => {
+                        const caps = entitlement?.capabilities ?? []
+                        const hasInventory = caps.includes('MANAGE_INVENTORY')
+                        const hasPurchase = caps.includes('CREATE_PURCHASE')
+                        return hasInventory || hasPurchase ? 'Unlimited' : '1 seat'
+                      })()
+                    : 'Not included'
+                }
+              />
+              <PlanFeatureRow
+                label='Branch management'
+                value={
+                  entitlement?.capabilities.includes('MANAGE_BRANCHES')
+                    ? (() => {
+                        const caps = entitlement?.capabilities ?? []
+                        if (caps.includes('CREATE_PURCHASE')) return 'Up to 5 branches'
+                        if (caps.includes('MANAGE_INVENTORY')) return 'Up to 3 branches'
+                        return '1 branch'
+                      })()
+                    : 'Not included'
+                }
+              />
+              <PlanFeatureRow label='Vendor sessions' value={entitlement?.capabilities.includes('START_VENDOR_SESSION') ? 'Included' : 'Not included'} />
+              <PlanFeatureRow label='Supplier management' value={entitlement?.capabilities.includes('MANAGE_SUPPLIERS') ? 'Included' : 'Not included'} />
+              <PlanFeatureRow label='Data export' value={entitlement?.capabilities.includes('EXPORT_DATA') ? 'Included' : 'Not included'} />
+              <PlanFeatureRow label='Purchase orders' value={entitlement?.capabilities.includes('CREATE_PURCHASE') ? 'Included' : 'Not included'} />
+              <PlanFeatureRow label='Task management' value={entitlement?.capabilities.includes('CREATE_TASK') ? 'Included' : 'Not included'} />
+            </div>
+
+            {/* Upgrade nudge */}
+            {(status === SubscriptionStatus.TRIAL || status === SubscriptionStatus.EXPIRED) && (
+              <div className='mt-4 flex flex-col sm:flex-row sm:items-center justify-between rounded-lg bg-muted/50 px-4 py-3 gap-3'>
+                <p className='text-sm text-muted-foreground'>
+                  {status === SubscriptionStatus.TRIAL
+                    ? 'Trial is limited to 100 TX, 1 employee, and 1 branch. Upgrade for full access.'
+                    : 'Restore access by choosing a plan.'}
+                </p>
+                <Button size='sm' variant='ghost' className='shrink-0 gap-1 w-fit' asChild>
+                  <Link to={'/business/subscription/plans'}>
+                    View plans <ArrowRightIcon className='h-3.5 w-3.5' />
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Right column - Sidebar */}
+      <div className="space-y-4 lg:sticky lg:top-0">
+        <SubscriptionSidebar />
+        <ActiveAddons />
+      </div>
+    </div>
+  </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// InvoicesTab - Billing invoices table using TableView
+// ---------------------------------------------------------------------------
+
+function InvoicesTab() {
+  // Mock invoice data - replace with actual invoice query
+  const mockInvoices = [
+    {
+      id: 'inv_001',
+      number: 'INV-2024-001',
+      date: '2024-01-15',
+      dueDate: '2024-02-15',
+      amount: 99900, // in cents
+      status: 'paid',
+      description: 'Monthly subscription - January 2024'
+    },
+    {
+      id: 'inv_002', 
+      number: 'INV-2024-002',
+      date: '2024-02-15',
+      dueDate: '2024-03-15', 
+      amount: 99900,
+      status: 'paid',
+      description: 'Monthly subscription - February 2024'
+    },
+    {
+      id: 'inv_003',
+      number: 'INV-2024-003', 
+      date: '2024-03-15',
+      dueDate: '2024-04-15',
+      amount: 99900,
+      status: 'pending',
+      description: 'Monthly subscription - March 2024'
+    }
+  ]
+
+  // Define columns for the invoices table
+  const columns = [
+    {
+      id: 'number',
+      header: 'Invoice Number',
+      accessorFn: (row: any) => row.number,
+      cell: ({ getValue }: any) => (
+        <div className="font-medium text-sm">
+          {getValue()}
+        </div>
+      ),
+    },
+    {
+      id: 'description',
+      header: 'Description',
+      accessorFn: (row: any) => row.description,
+      cell: ({ getValue }: any) => (
+        <div className="text-sm text-muted-foreground">
+          {getValue()}
+        </div>
+      ),
+    },
+    {
+      id: 'date',
+      header: 'Date',
+      accessorFn: (row: any) => row.date,
+      cell: ({ getValue }: any) => {
+        const date = new Date(getValue())
+        return (
+          <div>
+            <div className="font-medium text-sm">
+              {date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              })}
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      id: 'dueDate',
+      header: 'Due Date', 
+      accessorFn: (row: any) => row.dueDate,
+      cell: ({ getValue }: any) => {
+        const date = new Date(getValue())
+        return (
+          <div className="text-sm">
+            {date.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            })}
+          </div>
+        )
+      },
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      accessorFn: (row: any) => row.status,
+      cell: ({ getValue }: any) => {
+        const status = getValue()
+        return (
+          <div className="flex items-center gap-2">
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              status === 'paid' ? 'bg-emerald-500' : 
+              status === 'pending' ? 'bg-amber-500' : 'bg-red-500'
+            )} />
+            <Badge variant={
+              status === 'paid' ? 'default' : 
+              status === 'pending' ? 'secondary' : 'destructive'
+            } className="text-xs capitalize">
+              {status}
+            </Badge>
+          </div>
+        )
+      },
+    },
+    {
+      id: 'amount',
+      header: 'Amount',
+      accessorFn: (row: any) => row.amount,
+      cell: ({ getValue }: any) => {
+        const amount = getValue() / 100 // Convert from cents
+        return (
+          <div className="text-right">
+            <span className="font-medium">
+              ₱{amount.toFixed(2)}
+            </span>
+          </div>
+        )
+      },
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      accessorFn: () => null,
+      cell: ({ row }: any) => (
+        <div className="text-right">
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+            Download
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
+  return (
+   <div className='px-4 flex flex-col grow'>
+     <TableView
+      data={mockInvoices}
+      columns={columns}
+      isFetching={false}
+      emptyMessage="No invoices found. Invoices will appear here once you have active billing."
+    />
+   </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// SubscriptionSidebar - Usage and credits information
+// ---------------------------------------------------------------------------
+
+function SubscriptionSidebar() {
+  const user = useStore(authStore, state => state.user)
+  const entitlement = user?.entitlement
+
+  const periodEnd = entitlement?.currentPeriodEnd
   const txRemaining = entitlement?.txRemaining
   const isUnlimited = txRemaining === null
   const billingModel = entitlement?.billingModel
@@ -183,296 +652,79 @@ function BillingDashboard() {
   const showUsageCard = isSubscription || isHybrid || (!isCredits && !billingModel)
   const showCreditsCard = isCredits || isHybrid
 
-  const isBlocked = SubscriptionStatusVO.isOperationallyBlocked(status)
-  const isInWarning = status === SubscriptionStatus.GRACE_PERIOD
-
   return (
-    <div className='flex flex-col gap-4 px-4'>
-      {/* Page header */}
-      <div>
-        <h1 className='text-2xl font-bold tracking-tight text-foreground'>Billing &amp; Subscription</h1>
-        <p className='text-muted-foreground text-sm mt-0.5'>Manage your subscription plan, usage, and billing details.</p>
-      </div>
-
-      {/* Two-column layout — left scrolls, right is sticky */}
-      <div className='grid grid-cols-[7fr_5fr] gap-6 items-start'>
-        {/* ── Left column — scrollable content ── */}
-        <div className='flex flex-col gap-4 min-w-0'>
-          {/* Status card */}
-          <Card className={cn('border', isBlocked && 'border-destructive/40', isInWarning && 'border-amber-300/60')}>
-            <CardHeader className='pb-3'>
-              <div className='flex items-start justify-between gap-4'>
-                <div className='space-y-1'>
-                  <CardTitle className='text-lg'>Subscription Status</CardTitle>
-                  <CardDescription>Your current plan and subscription period.</CardDescription>
-                </div>
-                <Badge variant='outline' className={cn('flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 shrink-0', badgeConfig.className)}>
-                  {badgeConfig.icon}
-                  {badgeConfig.label}
-                </Badge>
+    <div className="space-y-4">
+      {/* Usage / Credits */}
+      {showUsageCard && (
+        <Card>
+          <CardHeader className='pb-2'>
+            <div className='flex items-center gap-2'>
+              <ZapIcon className='h-4 w-4 text-muted-foreground' />
+              <CardTitle className='text-sm font-semibold'>Usage This Period</CardTitle>
+            </div>
+            <CardDescription className='text-xs'>{periodEnd ? `Period ends ${formatDate(periodEnd)}` : 'Current billing period'}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isUnlimited ? (
+              <div className='space-y-0.5'>
+                <p className='text-2xl font-bold text-foreground'>Unlimited</p>
+                <p className='text-xs text-muted-foreground'>No transaction cap</p>
               </div>
-            </CardHeader>
-            <CardContent className='space-y-4'>
-              {/* Trial countdown */}
-              {status === SubscriptionStatus.TRIAL && trialDaysLeft !== null && (
-                <div className='space-y-2'>
-                  <div className='flex items-center justify-between text-sm'>
-                    <span className='text-muted-foreground flex items-center gap-1.5'>
-                      <ClockIcon className='h-4 w-4' />
-                      Trial progress
-                    </span>
-                    <span className='font-medium text-foreground'>
-                      {trialDaysLeft === 0 ? 'Expires today' : `${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} remaining`}
-                    </span>
-                  </div>
-                  <Progress value={trialProgress} className={cn('h-2', trialDaysLeft <= 7 && '[&>div]:bg-amber-500')} />
-                  <p className='text-xs text-muted-foreground'>
-                    Trial ends on <span className='font-medium text-foreground'>{formatDate(entitlement?.trialEndsAt)}</span>
+            ) : (
+              <div className='space-y-1'>
+                <div className='flex items-end justify-between'>
+                  <p className={cn('text-2xl font-bold', txRemaining === 0 ? 'text-destructive' : 'text-foreground')}>
+                    {txRemaining !== null && txRemaining !== undefined ? txRemaining.toLocaleString() : '—'}
                   </p>
+                  <p className='text-xs text-muted-foreground pb-1'>remaining</p>
                 </div>
-              )}
-
-              {/* Billing period */}
-              {status === SubscriptionStatus.ACTIVE && periodEnd && !entitlement?.cancelledAt && (
-                <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-                  <CalendarIcon className='h-4 w-4 shrink-0' />
-                  <span>
-                    Current billing period ends <span className='font-medium text-foreground'>{formatDate(periodEnd)}</span>
-                  </span>
-                </div>
-              )}
-
-              {/* Cancellation scheduled — status is still ACTIVE but cancelledAt is set (end-of-period cancel) */}
-              {status === SubscriptionStatus.ACTIVE && entitlement?.cancelledAt && (
-                <div className='flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 dark:border-amber-800/60 dark:bg-amber-950/20'>
-                  <AlertTriangleIcon className='h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5' />
-                  <div className='text-sm'>
-                    <p className='font-medium text-amber-900 dark:text-amber-300'>Cancellation scheduled</p>
-                    <p className='text-amber-800/80 dark:text-amber-400/80 mt-0.5'>
-                      Your subscription is active until{' '}
-                      <span className='font-medium'>{periodEnd ? formatDate(periodEnd) : 'the end of your billing period'}</span>. After that, access to
-                      operational features will be restricted.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Fully cancelled — status is CANCELLED */}
-              {status === SubscriptionStatus.CANCELLED && (
-                <div className='flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5'>
-                  <XCircleIcon className='h-4 w-4 text-destructive shrink-0 mt-0.5' />
-                  <div className='text-sm'>
-                    <p className='font-medium text-destructive'>Subscription cancelled</p>
-                    <p className='text-muted-foreground mt-0.5'>
-                      Operational features are currently restricted. Reactivate your subscription to restore access — you can pick any plan including your
-                      previous one.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <Separator />
-
-              {/* CTA section */}
-              <BillingCTAs status={status} isBlocked={isBlocked} cancelledAt={entitlement?.cancelledAt} />
-            </CardContent>
-          </Card>
-
-          {/* Plan Details */}
-          <Card>
-            <CardHeader className='pb-3'>
-              <CardTitle className='text-lg'>Plan Details</CardTitle>
-              <CardDescription>Features and limits included in your current subscription.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className='space-y-3'>
-                <PlanFeatureRow
-                  label='Transaction processing'
-                  value={txRemaining === null ? 'Unlimited' : `${(txRemaining ?? 0).toLocaleString()} remaining`}
-                />
-                <PlanFeatureRow label='Point of Sale (POS)' value='Included' />
-                <PlanFeatureRow label='Inventory management' value={entitlement?.capabilities.includes('MANAGE_INVENTORY') ? 'Included' : 'Not included'} />
-                <PlanFeatureRow label='Sales reports' value='Included' />
-                <PlanFeatureRow
-                  label='Employee accounts'
-                  value={
-                    entitlement?.capabilities.includes('MANAGE_EMPLOYEES')
-                      ? (() => {
-                          const caps = entitlement?.capabilities ?? []
-                          const hasInventory = caps.includes('MANAGE_INVENTORY')
-                          const hasPurchase = caps.includes('CREATE_PURCHASE')
-                          return hasInventory || hasPurchase ? 'Unlimited' : '1 seat'
-                        })()
-                      : 'Not included'
-                  }
-                />
-                <PlanFeatureRow
-                  label='Branch management'
-                  value={
-                    entitlement?.capabilities.includes('MANAGE_BRANCHES')
-                      ? (() => {
-                          const caps = entitlement?.capabilities ?? []
-                          if (caps.includes('CREATE_PURCHASE')) return 'Up to 5 branches'
-                          if (caps.includes('MANAGE_INVENTORY')) return 'Up to 3 branches'
-                          return '1 branch'
-                        })()
-                      : 'Not included'
-                  }
-                />
-                <PlanFeatureRow label='Vendor sessions' value={entitlement?.capabilities.includes('START_VENDOR_SESSION') ? 'Included' : 'Not included'} />
-                <PlanFeatureRow label='Supplier management' value={entitlement?.capabilities.includes('MANAGE_SUPPLIERS') ? 'Included' : 'Not included'} />
-                <PlanFeatureRow label='Data export' value={entitlement?.capabilities.includes('EXPORT_DATA') ? 'Included' : 'Not included'} />
-                <PlanFeatureRow label='Purchase orders' value={entitlement?.capabilities.includes('CREATE_PURCHASE') ? 'Included' : 'Not included'} />
-                <PlanFeatureRow label='Task management' value={entitlement?.capabilities.includes('CREATE_TASK') ? 'Included' : 'Not included'} />
+                {txRemaining === 0 && <p className='text-xs text-destructive font-medium'>Allowance exhausted — upgrade to continue.</p>}
+                {txRemaining !== null && txRemaining !== undefined && txRemaining > 0 && (
+                  <p className='text-xs text-muted-foreground'>Transactions available this period</p>
+                )}
               </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-              {/* Upgrade nudge */}
-              {(status === SubscriptionStatus.TRIAL || status === SubscriptionStatus.EXPIRED) && (
-                <div className='mt-4 flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3'>
-                  <p className='text-sm text-muted-foreground'>
-                    {status === SubscriptionStatus.TRIAL
-                      ? 'Trial is limited to 100 TX, 1 employee, and 1 branch. Upgrade for full access.'
-                      : 'Restore access by choosing a plan.'}
+      {showCreditsCard && (
+        <Card>
+          <CardHeader className='pb-2'>
+            <div className='flex items-center gap-2'>
+              <CreditCardIcon className='h-4 w-4 text-muted-foreground' />
+              <CardTitle className='text-sm font-semibold'>Credits</CardTitle>
+            </div>
+            <CardDescription className='text-xs'>1 credit = 1 transaction</CardDescription>
+          </CardHeader>
+          <CardContent className='space-y-3'>
+            {entitlement?.creditBalance !== null && entitlement?.creditBalance !== undefined ? (
+              <>
+                <div className='flex items-end gap-1.5'>
+                  <p className={cn('text-2xl font-bold tabular-nums', entitlement.creditBalance === 0 ? 'text-destructive' : 'text-foreground')}>
+                    {entitlement.creditBalance.toLocaleString()}
                   </p>
-                  <Button size='sm' variant='ghost' className='shrink-0 gap-1' asChild>
-                    <Link to={'/billing/plans'}>
-                      View plans <ArrowRightIcon className='h-3.5 w-3.5' />
-                    </Link>
-                  </Button>
+                  <p className='text-xs text-muted-foreground pb-1'>remaining</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Add-ons */}
-          <ActiveAddons />
-        </div>
-
-        {/* ── Right column — sticky, never scrolls ── */}
-        <div className='sticky top-6 flex flex-col gap-4'>
-          {/* Usage / Credits */}
-          {showUsageCard && (
-            <Card>
-              <CardHeader className='pb-2'>
-                <div className='flex items-center gap-2'>
-                  <ZapIcon className='h-4 w-4 text-muted-foreground' />
-                  <CardTitle className='text-sm font-semibold'>Usage This Period</CardTitle>
-                </div>
-                <CardDescription className='text-xs'>{periodEnd ? `Period ends ${formatDate(periodEnd)}` : 'Current billing period'}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isUnlimited ? (
-                  <div className='space-y-0.5'>
-                    <p className='text-2xl font-bold text-foreground'>Unlimited</p>
-                    <p className='text-xs text-muted-foreground'>No transaction cap</p>
-                  </div>
-                ) : (
-                  <div className='space-y-1'>
-                    <div className='flex items-end justify-between'>
-                      <p className={cn('text-2xl font-bold', txRemaining === 0 ? 'text-destructive' : 'text-foreground')}>
-                        {txRemaining !== null && txRemaining !== undefined ? txRemaining.toLocaleString() : '—'}
-                      </p>
-                      <p className='text-xs text-muted-foreground pb-1'>remaining</p>
-                    </div>
-                    {txRemaining === 0 && <p className='text-xs text-destructive font-medium'>Allowance exhausted — upgrade to continue.</p>}
-                    {txRemaining !== null && txRemaining !== undefined && txRemaining > 0 && (
-                      <p className='text-xs text-muted-foreground'>Transactions available this period</p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {showCreditsCard && (
-            <Card>
-              <CardHeader className='pb-2'>
-                <div className='flex items-center gap-2'>
-                  <CreditCardIcon className='h-4 w-4 text-muted-foreground' />
-                  <CardTitle className='text-sm font-semibold'>Credits</CardTitle>
-                </div>
-                <CardDescription className='text-xs'>1 credit = 1 transaction</CardDescription>
-              </CardHeader>
-              <CardContent className='space-y-3'>
-                {entitlement?.creditBalance !== null && entitlement?.creditBalance !== undefined ? (
-                  <>
-                    <div className='flex items-end gap-1.5'>
-                      <p className={cn('text-2xl font-bold tabular-nums', entitlement.creditBalance === 0 ? 'text-destructive' : 'text-foreground')}>
-                        {entitlement.creditBalance.toLocaleString()}
-                      </p>
-                      <p className='text-xs text-muted-foreground pb-1'>remaining</p>
-                    </div>
-                    {entitlement.creditBalance === 0 && <p className='text-xs text-destructive font-medium'>Depleted — purchase more to continue.</p>}
-                    <Button size='sm' variant='outline' className='w-full' asChild>
-                      <Link to='/business/billing/credits'>
-                        View history <ArrowRightIcon className='h-3 w-3 ml-1' />
-                      </Link>
-                    </Button>
-                  </>
-                ) : (
-                  <p className='text-2xl font-bold text-muted-foreground'>—</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Invoices — only for subscription billing */}
-          {!showCreditsCard && (
-            <Card>
-              <CardHeader className='pb-2'>
-                <div className='flex items-center gap-2'>
-                  <FileTextIcon className='h-4 w-4 text-muted-foreground' />
-                  <CardTitle className='text-sm font-semibold'>Invoices</CardTitle>
-                </div>
-                <CardDescription className='text-xs'>Billing history &amp; payment status</CardDescription>
-              </CardHeader>
-              <CardContent>
+                {entitlement.creditBalance === 0 && <p className='text-xs text-destructive font-medium'>Depleted — purchase more to continue.</p>}
                 <Button size='sm' variant='outline' className='w-full' asChild>
-                  <Link to='/business/billing/invoices'>
-                    View invoices <ArrowRightIcon className='h-3 w-3 ml-1' />
+                  <Link to='/business/subscription/credits'>
+                    View history <ArrowRightIcon className='h-3 w-3 ml-1' />
                   </Link>
                 </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Quick actions */}
-          <Card>
-            <CardHeader className='pb-2'>
-              <CardTitle className='text-sm font-semibold'>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className='flex flex-col gap-2'>
-              {status === SubscriptionStatus.CANCELLED ? (
-                <Button size='sm' variant='default' className='w-full justify-start' asChild>
-                  <Link to={'/billing/plans'}>
-                    <RefreshCwIcon className='h-3.5 w-3.5 mr-2' />
-                    Reactivate subscription
-                  </Link>
-                </Button>
-              ) : (
-                <Button size='sm' variant='outline' className='w-full justify-start' asChild>
-                  <Link to={'/billing/plans'}>
-                    <CreditCardIcon className='h-3.5 w-3.5 mr-2' />
-                    {status === SubscriptionStatus.TRIAL ? 'Upgrade plan' : 'Change plan'}
-                  </Link>
-                </Button>
-              )}
-              <Button size='sm' variant='outline' className='w-full justify-start' asChild>
-                <Link to={'/billing/pricing'}>
-                  <ZapIcon className='h-3.5 w-3.5 mr-2' />
-                  Build custom plan
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              </>
+            ) : (
+              <p className='text-2xl font-bold text-muted-foreground'>—</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Sub-components
+// Status badge config
 // ---------------------------------------------------------------------------
 
 function PlanFeatureRow({ label, value }: { label: string; value: string }) {
@@ -793,7 +1045,7 @@ function BillingCTAs({ status, isBlocked, cancelledAt }: { status: SubscriptionS
       {/* Upgrade — shown during trial */}
       {status === SubscriptionStatus.TRIAL && (
         <Button size='sm' variant='default' asChild>
-          <Link to={'/billing/plans'}>
+          <Link to={'/business/subscription/plans'}>
             <CreditCardIcon className='h-4 w-4 mr-1.5' />
             Upgrade Plan
           </Link>
@@ -842,7 +1094,7 @@ function BillingCTAs({ status, isBlocked, cancelledAt }: { status: SubscriptionS
 
       {isBlocked && status !== SubscriptionStatus.LONG_TERM_INACTIVE && (
         <Button size='sm' variant='default' asChild>
-          <Link to={'/billing/plans'}>
+          <Link to={'/business/subscription/plans'}>
             <RefreshCwIcon className='h-4 w-4 mr-1.5' />
             Reactivate Subscription
           </Link>

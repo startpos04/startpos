@@ -95,6 +95,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     Permissions.BRANCH_VIEW_ORDERS,
     Permissions.BRANCH_CREATE_ORDER,
     Permissions.BRANCH_VIEW_SETTINGS,
+    Permissions.BRANCH_VIEW_BILLING,
   ])
 
   // Helper to determine if a route is a match or a sub-path of the current location
@@ -106,7 +107,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       // Exact match
       if (currentPath === itemUrl) return true
 
-      // Special case: /business should only match exactly, not /business/billing etc.
+      // Special case: /business should only match exactly, not /business/subscription etc.
       if (itemUrl === '/business') return false
 
       // Nested match: check if current path starts with itemUrl
@@ -136,12 +137,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       const businessItems = hasBusinessAccess
         ? [
             perms[Permissions.BUSINESS_VIEW_PROFILE] ? { title: 'Overview', url: '/business', isActive: false } : null,
-            perms[Permissions.BUSINESS_VIEW_CAPABILITIES] ? { title: 'Capabilities', url: '/business/capabilities', isActive: false } : null,
-            perms[Permissions.BUSINESS_VIEW_BILLING] ? { title: 'Billing', url: '/business/billing', isActive: false } : null,
-            perms[Permissions.BUSINESS_VIEW_SUPPLIERS] && caps.MANAGE_SUPPLIERS ? { title: 'Suppliers', url: '/business/suppliers', isActive: false } : null,
-            perms[Permissions.BUSINESS_VIEW_CUSTOMERS] && caps.CUSTOMER_PROFILES ? { title: 'Customers', url: '/business/customers', isActive: false } : null,
-            perms[Permissions.USER_MANAGE_PERMISSIONS] ? { title: 'Permissions', url: '/business/permissions', isActive: false } : null,
             perms[Permissions.BUSINESS_VIEW_PROFILE] ? { title: 'Profile', url: '/business/profile', isActive: false } : null,
+            perms[Permissions.BUSINESS_VIEW_CUSTOMERS] && caps.CUSTOMER_PROFILES ? { title: 'Customers', url: '/business/customers', isActive: false } : null,
+            perms[Permissions.BUSINESS_VIEW_SUPPLIERS] && caps.MANAGE_SUPPLIERS ? { title: 'Suppliers', url: '/business/suppliers', isActive: false } : null,
+            perms[Permissions.BUSINESS_VIEW_CAPABILITIES] ? { title: 'Capabilities', url: '/business/capabilities', isActive: false } : null,
+            perms[Permissions.USER_MANAGE_PERMISSIONS] ? { title: 'Permissions', url: '/business/permissions', isActive: false } : null,
+            perms[Permissions.BUSINESS_VIEW_BILLING] ? { title: 'Subscription', url: '/business/subscription', isActive: false } : null,
           ].filter(Boolean)
         : []
 
@@ -217,6 +218,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER],
               }
             : null,
+          perms[Permissions.BRANCH_VIEW_BILLING]
+            ? {
+                title: 'Billing',
+                url: '/billing',
+                icon: <CreditCardIcon />,
+                allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
+              }
+            : null,
           perms[Permissions.BRANCH_VIEW_SETTINGS]
             ? {
                 title: 'Settings',
@@ -290,11 +299,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 allowedRoles: [] as Role[], // Not used anymore, kept for type compatibility
               }
             : null,
-          perms[Permissions.BUSINESS_VIEW_CAPABILITIES]
+          perms[Permissions.BUSINESS_VIEW_PROFILE]
             ? {
-                title: 'Capabilities',
-                url: '/business/capabilities',
-                icon: <TerminalSquareIcon />,
+                title: 'Profile',
+                url: '/business/profile',
+                icon: <SettingsIcon />,
                 allowedRoles: [] as Role[],
               }
             : null,
@@ -306,11 +315,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 allowedRoles: [] as Role[],
               }
             : null,
-          perms[Permissions.BUSINESS_VIEW_BILLING]
+          perms[Permissions.BUSINESS_VIEW_CUSTOMERS] && caps.CUSTOMER_PROFILES
             ? {
-                title: 'Billing',
-                url: '/business/billing',
-                icon: <CreditCardIcon />,
+                title: 'Customers',
+                url: '/business/customers',
+                icon: <BookOpenIcon />,
                 allowedRoles: [] as Role[],
               }
             : null,
@@ -322,11 +331,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 allowedRoles: [] as Role[],
               }
             : null,
-          perms[Permissions.BUSINESS_VIEW_CUSTOMERS] && caps.CUSTOMER_PROFILES
+          perms[Permissions.BUSINESS_VIEW_CAPABILITIES]
             ? {
-                title: 'Customers',
-                url: '/business/customers',
-                icon: <BookOpenIcon />,
+                title: 'Capabilities',
+                url: '/business/capabilities',
+                icon: <TerminalSquareIcon />,
                 allowedRoles: [] as Role[],
               }
             : null,
@@ -338,11 +347,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 allowedRoles: [] as Role[],
               }
             : null,
-          perms[Permissions.BUSINESS_VIEW_PROFILE]
+          perms[Permissions.BUSINESS_VIEW_BILLING]
             ? {
-                title: 'Profile',
-                url: '/business/profile',
-                icon: <SettingsIcon />,
+                title: 'Subscription',
+                url: '/business/subscription',
+                icon: <CreditCardIcon />,
                 allowedRoles: [] as Role[],
               }
             : null,
@@ -418,6 +427,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               url: '/pos',
               icon: <BookOpenIcon />,
               allowedRoles: [Role.ADMIN, Role.SUPERVISOR, Role.CASHIER],
+            }
+          : null,
+        perms[Permissions.BRANCH_VIEW_BILLING]
+          ? {
+              title: 'Billing',
+              url: '/billing',
+              icon: <CreditCardIcon />,
+              allowedRoles: [Role.ADMIN, Role.SUPERVISOR],
             }
           : null,
         perms[Permissions.BRANCH_VIEW_SETTINGS]
@@ -543,7 +560,7 @@ function SubscriptionStatusFooter() {
   return (
     <SidebarFooter className='p-2'>
       <Link
-        to='/business/billing'
+        to='/business/subscription'
         className={cn('flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-colors hover:opacity-80', colorClass)}
       >
         <CreditCardIcon className='h-3.5 w-3.5 shrink-0' />

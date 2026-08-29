@@ -1,7 +1,7 @@
 /**
  * billing/pricing/index.tsx
  *
- * /billing/pricing — Composable Pricing Calculator
+ * /business/subscription/pricing — Composable Pricing Calculator
  *
  * Allows a business to select features à la carte, see a live price breakdown
  * driven entirely by server-side PricingEngine.calculate(), and generate a quote.
@@ -37,7 +37,7 @@ import { Switch } from '@/components/ui/switch'
 import { createPricingQuote } from '@/lib/server-fn/create-pricing-quote'
 import { cn } from '@/lib/utils'
 
-export const Route = createFileRoute('/(private)/(dashboard)/business/billing/pricing/')({
+export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/pricing/')({
   component: PricingCalculatorPage,
 })
 
@@ -198,7 +198,7 @@ function PricingCalculatorPage() {
       {/* Header */}
       <div className='flex items-center gap-3'>
         <Button variant='ghost' size='icon' asChild>
-          <Link to='/business/billing'>
+          <Link to='/business/subscription'>
             <ArrowLeftIcon className='h-4 w-4' />
           </Link>
         </Button>
@@ -344,7 +344,7 @@ function PricingCalculatorPage() {
 
                   <div className='flex flex-col gap-2'>
                     <Button size='sm' asChild>
-                      <Link to='/business/billing/quotes/$quoteId' params={{ quoteId: quoteResult.quoteId }}>
+                      <Link to='/business/subscription/quotes/$quoteId' params={{ quoteId: quoteResult.quoteId }}>
                         Review Quote
                         <ArrowRightIcon className='h-3.5 w-3.5 ml-1.5' />
                       </Link>
@@ -396,7 +396,7 @@ function PricingCalculatorPage() {
               <Separator />
 
               <div className='space-y-1'>
-                <Link to='/business/billing/quotes' className='flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors'>
+                <Link to='/business/subscription/quotes' className='flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors'>
                   View saved quotes <ArrowRightIcon className='h-3 w-3' />
                 </Link>
               </div>

@@ -83,6 +83,8 @@ export const RolePermissions: Record<string, PermissionKey[]> = {
     Permissions.BRANCH_VIEW_PRODUCTION,
     Permissions.BRANCH_CREATE_PRODUCTION,
     Permissions.BRANCH_MANAGE_PRODUCTION,
+    Permissions.BRANCH_VIEW_BILLING,
+    Permissions.BRANCH_MANAGE_BILLING,
 
     // User permissions
     Permissions.USER_VIEW_ACCOUNT,
@@ -140,6 +142,8 @@ export const RolePermissions: Record<string, PermissionKey[]> = {
     Permissions.BRANCH_VIEW_PRODUCTION,
     Permissions.BRANCH_CREATE_PRODUCTION,
     Permissions.BRANCH_MANAGE_PRODUCTION,
+    Permissions.BRANCH_VIEW_BILLING,
+    Permissions.BRANCH_MANAGE_BILLING,
 
     // User permissions
     Permissions.USER_VIEW_ACCOUNT,
@@ -187,6 +191,7 @@ export const RolePermissions: Record<string, PermissionKey[]> = {
     Permissions.BRANCH_VIEW_PRODUCTION,
     Permissions.BRANCH_CREATE_PRODUCTION,
     Permissions.BRANCH_MANAGE_PRODUCTION,
+    Permissions.BRANCH_VIEW_BILLING,
 
     // User permissions (no permission management)
     Permissions.USER_VIEW_ACCOUNT,

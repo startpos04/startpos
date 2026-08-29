@@ -35,7 +35,7 @@ import { getAuthUser } from '@/lib/better-auth/auth-server'
 import { purchaseAddonSubscription } from '@/lib/server-fn/purchase-addon-subscription'
 import { authStore, refreshUser } from '@/store/auth-store'
 
-export const Route = createFileRoute('/(private)/(dashboard)/business/billing/success/')({
+export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/success/')({
   validateSearch: z.object({
     plan: z.string().optional(),
     billing: z.string().optional(),

@@ -285,6 +285,16 @@ const PermissionMetadata: Record<string, { name: string; description: string; ca
     description: 'Configure branch feature entitlements',
     category: 'Branch Management',
   },
+  'branch:view:billing': {
+    name: 'View Branch Billing',
+    description: 'View branch credit balance and transaction limits',
+    category: 'Branch Management',
+  },
+  'branch:manage:billing': {
+    name: 'Manage Branch Billing',
+    description: 'Purchase credits and manage branch billing',
+    category: 'Branch Management',
+  },
   'branch:view:tasks': {
     name: 'View Tasks',
     description: 'View operational tasks',

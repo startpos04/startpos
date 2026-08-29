@@ -1,7 +1,7 @@
 // ============================================================================
 // GENERATED PRISMA SCHEMA - DO NOT EDIT
 // Country: PH
-// Generated: 2026-08-27T15:21:31.274Z
+// Generated: 2026-08-28T15:26:12.322Z
 // Source: base/* + philippines.prisma
 // ============================================================================
 
@@ -622,8 +622,9 @@ model Business {
   recalculationQueue CharacteristicsRecalculationQueue[]
 
   // Relations added in Phase 2
-  usageSummaries BusinessUsageSummary[]
-  auditLogs      AuditLog[]
+  usageSummaries           BusinessUsageSummary[]
+  auditLogs                AuditLog[]
+  capabilityConfigurations CapabilityConfiguration[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -661,6 +662,22 @@ model Branch {
   // ---------------------------------------------------------------------------
   offlineTerminalId String? // User ID of designated offline terminal (nullable)
 
+  // ---------------------------------------------------------------------------
+  // Branch Billing — Transaction Quota Limit
+  // ---------------------------------------------------------------------------
+  // txQuotaLimit sets the maximum transactions this branch can process per
+  // billing period. Set by business owner on /business/branches page.
+  //
+  // - null = no limit configured (unlimited within business quota)
+  // - When limit is reached, branch can purchase credits for overflow capacity
+  //
+  // Usage:
+  // - Business owner allocates transaction limits per branch
+  // - Branch managers see their limit and usage on /billing dashboard
+  // - When branch hits limit, they can purchase credits to continue
+  // ---------------------------------------------------------------------------
+  txQuotaLimit Int? // Branch transaction limit per month (nullable)
+
   members            Membership[]
   inventory          Inventory[]
   transactions       Transaction[]
@@ -686,7 +703,12 @@ model Branch {
   productionOrders ProductionOrder[]
 
   // Branch-level capability toggles (Phase 2 - Entitlements)
-  capabilityConfigs BranchCapabilityConfig[]
+  capabilityConfigs        BranchCapabilityConfig[]
+  capabilityConfigurations CapabilityConfiguration[]
+  
+  // Branch-level accounting (Phase 3 - Per-branch P&L)
+  usageCounters UsageCounter[]
+  creditLedger  CreditLedger[]
 
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -1572,6 +1594,49 @@ model BranchCapabilityConfig {
 }
 
 // =============================================================================
+// CAPABILITY CONFIGURATION
+// =============================================================================
+// Flexible per-capability settings storage. Each capability can define its own
+// configuration keys without requiring schema changes. Supports branch-level
+// and business-level scoping.
+//
+// Examples:
+//   - COMPLETE_CHECKOUT → allowed_payment_methods: "CASH,E_WALLET,CARD"
+//   - MANAGE_INVENTORY → low_stock_threshold: "10"
+//   - PRINT_RECEIPT → receipt_layout: "STANDARD"
+//
+// Design:
+//   - capabilityId namespaces settings per capability
+//   - key is freeform string (no enum constraint)
+//   - value stored as string (parse based on dataType)
+//   - dataType hints at how to parse value (BOOLEAN, STRING, JSON, NUMBER)
+//   - scope determines if setting applies at BRANCH or BUSINESS level
+
+model CapabilityConfiguration {
+  id           String             @id @default(cuid())
+  capabilityId String             // e.g., "COMPLETE_CHECKOUT", "MANAGE_INVENTORY"
+  key          String             // e.g., "allowed_payment_methods", "low_stock_threshold"
+  value        String             // Stored as string, parse based on dataType
+  dataType     ConfigDataType     // BOOLEAN, STRING, JSON, NUMBER (reuse existing enum)
+  scope        ConfigurationScope // BRANCH or BUSINESS
+  
+  // Scope references
+  branchId   String?
+  branch     Branch?   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([capabilityId, key, branchId, scope])
+  @@unique([capabilityId, key, businessId, scope])
+  @@index([capabilityId, branchId])
+  @@index([capabilityId, businessId])
+  @@map("capability_configurations")
+}
+
+// =============================================================================
 // BILLING MODELS - BusinessSubscription, SubscriptionStatusHistory, Feature, SubscriptionPlan, PlanEntitlement, EntitlementOverride, UsageCounter, BillingInvoice, BillingInvoiceItem, CreditLedger
 // =============================================================================
 
@@ -1801,14 +1866,16 @@ model UsageCounter {
   id         String   @id @default(cuid())
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   // The billing period this counter tracks (mirrors BusinessSubscription.currentPeriodStart)
   billingPeriodStart DateTime
   billingPeriodEnd   DateTime
 
-  // Transaction counts
-  txCount        Int @default(0) // Total transactions processed in this period
-  overageTxCount Int @default(0) // Transactions beyond includedTxPerMonth allowance
+  // Transaction counts (per branch)
+  txCount        Int @default(0) // Total transactions processed at this branch in this period
+  overageTxCount Int @default(0) // Transactions beyond branch's allocated allowance
 
   // isClosed = true once the period has ended and the reset job has run.
   // A closed counter is never mutated. A new counter is opened for the next period.
@@ -1819,8 +1886,9 @@ model UsageCounter {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([businessId, billingPeriodStart])
+  @@unique([businessId, branchId, billingPeriodStart])
   @@index([businessId, isClosed])
+  @@index([branchId, isClosed])
   @@map("usage_counters")
 }
 
@@ -1890,32 +1958,43 @@ model BillingInvoiceItem {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// CreditLedger — Phase 3
-// Append-only ledger of every credit event for a business.
-// The current balance is the `balanceAfter` of the most recent row.
+// CreditLedger — Phase 3 + Branch Billing
+// Append-only ledger of every credit event per branch.
+// Each branch has independent credit balance for P&L accounting.
+// The current balance for a branch is the `balanceAfter` of its most recent row.
 //
 // Design decisions:
 //   - Append-only: rows are never updated or deleted; every event adds a row.
-//   - `balanceAfter` is a snapshot — O(1) balance read (no SUM query needed).
+//   - Per-branch tracking: Each branch purchases and tracks credits independently
+//   - `balanceAfter` is a snapshot — O(1) balance read per branch (no SUM query needed).
 //   - `amount` is signed: positive = credit in, negative = credit out.
 //   - The `transactionId` FK is nullable — not all events come from a POS TX.
+//   - Business-level aggregation: Sum balanceAfter of latest row per branch for consolidated view
 //   - Race condition note (Phase 3 known limitation): two concurrent deductions
 //     may both read the same `balanceAfter` before either commits, allowing the
 //     balance to go temporarily negative. This is auditable via the ledger and
 //     will be hardened with an optimistic lock in a future phase.
+//   - stripeSessionId: Idempotency key for webhook handling (prevents duplicate credit grants)
+//
+// Branch Billing Usage:
+//   - Branches purchase credits when they need extra transaction capacity
+//   - Credits act as overflow when business quota is managed/limited by owner
+//   - Each transaction deducts 1 credit from branch balance
 // ---------------------------------------------------------------------------
 model CreditLedger {
   id         String   @id @default(cuid())
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   eventType CreditEventType
 
   // Signed amount in credit units (positive = add, negative = deduct)
   amount Int
 
-  // Running balance snapshot after this event is applied.
-  // The most recent row's balanceAfter is the current balance.
+  // Running balance snapshot for this branch after this event is applied.
+  // The most recent row's balanceAfter for a branch is that branch's current balance.
   balanceAfter Int
 
   // Optional reference to the POS transaction that triggered this event.
@@ -1928,9 +2007,13 @@ model CreditLedger {
   // The user (admin) who triggered this event; null = system / automated
   actorId String?
 
+  // Idempotency key — prevents duplicate credit grants on Stripe webhook retry
+  stripeSessionId String? @unique
+
   createdAt DateTime @default(now())
 
-  @@index([businessId, createdAt])
+  @@index([businessId, branchId, createdAt])
+  @@index([branchId, createdAt])
   @@index([transactionId])
   @@map("credit_ledger")
 }

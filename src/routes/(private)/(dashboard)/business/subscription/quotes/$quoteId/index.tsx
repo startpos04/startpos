@@ -40,7 +40,7 @@ import { convertQuoteToSubscription } from '@/lib/server-fn/convert-quote-to-sub
 import { fetchPricingQuote } from '@/lib/server-fn/fetch-pricing-quote'
 import { cn } from '@/lib/utils'
 
-export const Route = createFileRoute('/(private)/(dashboard)/business/billing/quotes/$quoteId/')({
+export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/quotes/$quoteId/')({
   component: QuoteDetailPage,
 })
 
@@ -92,7 +92,7 @@ function QuoteDetailPage() {
         <XCircleIcon className='h-10 w-10 text-muted-foreground/40' />
         <p className='text-sm text-muted-foreground'>Quote not found.</p>
         <Button variant='outline' size='sm' asChild>
-          <Link to='/business/billing/quotes'>Back to Quotes</Link>
+          <Link to='/business/subscription/quotes'>Back to Quotes</Link>
         </Button>
       </div>
     )
@@ -117,7 +117,7 @@ function QuoteDetailPage() {
       {/* Header */}
       <div className='flex items-center gap-3'>
         <Button variant='ghost' size='icon' asChild>
-          <Link to='/business/billing/quotes'>
+          <Link to='/business/subscription/quotes'>
             <ArrowLeftIcon className='h-4 w-4' />
           </Link>
         </Button>
@@ -327,7 +327,7 @@ function QuoteDetailPage() {
         <div className='flex items-center gap-2 rounded-md bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-300'>
           <CheckCircle2Icon className='h-4 w-4 shrink-0' />
           This quote has been converted to an active subscription.{' '}
-          <Link to='/business/billing' className='font-medium underline underline-offset-2'>
+          <Link to='/business/subscription' className='font-medium underline underline-offset-2'>
             View billing
           </Link>
         </div>

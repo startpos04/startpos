@@ -166,7 +166,7 @@ export function EntitlementsPage() {
               </div>
             </div>
             <Button variant='outline' size='sm' asChild>
-              <a href='/business/billing'>View Plans</a>
+              <a href='/business/subscription'>View Plans</a>
             </Button>
           </div>
         </CardContent>

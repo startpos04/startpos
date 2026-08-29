@@ -25,7 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { fetchPricingQuotes } from '@/lib/server-fn/fetch-pricing-quotes'
 import { cn } from '@/lib/utils'
 
-export const Route = createFileRoute('/(private)/(dashboard)/business/billing/quotes/')({
+export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/quotes/')({
   component: QuotesPage,
 })
 
@@ -101,7 +101,7 @@ function QuotesPage() {
     <div className='flex flex-col gap-6 px-4 py-6 max-w-4xl'>
       <div className='flex items-center gap-3'>
         <Button variant='ghost' size='icon' asChild>
-          <Link to='/business/billing'>
+          <Link to='/business/subscription'>
             <ArrowLeftIcon className='h-4 w-4' />
           </Link>
         </Button>
@@ -111,7 +111,7 @@ function QuotesPage() {
         </div>
         <div className='ml-auto'>
           <Button size='sm' asChild>
-            <Link to='/business/billing/pricing'>
+            <Link to='/business/subscription/pricing'>
               New Quote <ArrowRightIcon className='h-3.5 w-3.5 ml-1.5' />
             </Link>
           </Button>
@@ -166,7 +166,7 @@ function QuotesPage() {
                         </TableCell>
                         <TableCell className='pr-6 text-right'>
                           <Button variant='ghost' size='sm' asChild>
-                            <Link to='/business/billing/quotes/$quoteId' params={{ quoteId: quote.id }}>
+                            <Link to='/business/subscription/quotes/$quoteId' params={{ quoteId: quote.id }}>
                               View <ArrowRightIcon className='h-3 w-3 ml-1' />
                             </Link>
                           </Button>
@@ -193,7 +193,7 @@ function EmptyState() {
         <p className='text-xs text-muted-foreground max-w-xs'>Use the pricing calculator to build a custom plan and generate a quote.</p>
       </div>
       <Button variant='outline' size='sm' asChild>
-        <Link to='/business/billing/pricing'>Open Calculator</Link>
+        <Link to='/business/subscription/pricing'>Open Calculator</Link>
       </Button>
     </div>
   )

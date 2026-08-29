@@ -34,7 +34,7 @@ import { authStore } from '@/store/auth-store'
 // Route
 // ---------------------------------------------------------------------------
 
-export const Route = createFileRoute('/(private)/(dashboard)/business/billing/credits/')({
+export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/credits/')({
   validateSearch: (search: Record<string, unknown>) => ({
     page: Number(search['page']) || 1,
     pageSize: Number(search['pageSize']) || 30,

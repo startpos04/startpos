@@ -109,7 +109,7 @@ function BusinessOverview() {
               href='/business/capabilities'
             />
             <QuickActionCard title='Branches' description='Manage your branches' icon={<Building2 className='h-6 w-6' />} href='/business/branches' />
-            <QuickActionCard title='Billing' description='View plans and invoices' icon={<CreditCard className='h-6 w-6' />} href='/business/billing' />
+            <QuickActionCard title='Subscription' description='Manage plans and billing' icon={<CreditCard className='h-6 w-6' />} href='/business/subscription' />
             {canManagePermissions && (
               <QuickActionCard title='Permissions' description='Manage user permissions' icon={<Shield className='h-6 w-6' />} href='/business/permissions' />
             )}

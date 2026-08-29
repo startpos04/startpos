@@ -504,7 +504,12 @@ async function handleCheckoutSessionCompleted(event: WebhookEvent): Promise<Webh
     return handleTxAddonPurchase(event, session)
   }
 
-  // ---- Credit purchase branch ------------------------------------------------
+  // ---- Branch credit purchase branch -----------------------------------------
+  if (metaSource === 'branch_credit_purchase') {
+    return handleBranchCreditPurchase(event, session)
+  }
+
+  // ---- Business credit purchase branch ---------------------------------------
   if (metaSource !== 'credit_purchase') {
     return {
       eventId: event.id,
@@ -646,6 +651,86 @@ async function handleTxAddonPurchase(event: WebhookEvent, session: NonNullable<W
   }
 
   return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.PROCESSED }
+}
+
+// ---------------------------------------------------------------------------
+// handleBranchCreditPurchase
+// Creates a CreditLedger PURCHASE entry for a branch-specific credit purchase.
+// Idempotent via stripeSessionId unique constraint on CreditLedger.
+// ---------------------------------------------------------------------------
+async function handleBranchCreditPurchase(
+  event: WebhookEvent,
+  session: NonNullable<WebhookEvent['checkoutSession']>,
+): Promise<WebhookProcessingResult> {
+  if (session.paymentStatus !== 'paid') {
+    return {
+      eventId: event.id,
+      eventType: event.type,
+      outcome: WebhookOutcome.SKIPPED,
+      message: `Payment not complete (status: ${session.paymentStatus}).`,
+    }
+  }
+
+  const businessId = session.metadata['businessId']
+  const branchId = session.metadata['branchId']
+  const creditAmount = Number(session.metadata['creditAmount'] ?? '0')
+  const actorId = session.metadata['userId'] ?? null
+
+  if (!businessId || !branchId || creditAmount <= 0) {
+    return {
+      eventId: event.id,
+      eventType: event.type,
+      outcome: WebhookOutcome.SKIPPED,
+      message: 'Missing businessId, branchId, or creditAmount in session metadata.',
+    }
+  }
+
+  // Idempotency: check if this session was already processed using stripeSessionId
+  const existingEntry = await rootPrisma.creditLedger.findUnique({
+    where: { stripeSessionId: session.externalSessionId },
+    select: { id: true },
+  })
+
+  if (existingEntry) {
+    return {
+      eventId: event.id,
+      eventType: event.type,
+      outcome: WebhookOutcome.SKIPPED,
+      message: 'Branch credit purchase already processed for this session.',
+    }
+  }
+
+  // Fetch the current balance snapshot for this branch (O(1) read)
+  const latestEntry = await rootPrisma.creditLedger.findFirst({
+    where: { businessId, branchId },
+    orderBy: { createdAt: 'desc' },
+    select: { balanceAfter: true },
+  })
+
+  const previousBalance = latestEntry?.balanceAfter ?? 0
+  const newBalance = previousBalance + creditAmount
+
+  // Create the credit ledger entry
+  await rootPrisma.creditLedger.create({
+    data: {
+      businessId,
+      branchId,
+      eventType: CreditEventType.PURCHASE as import('prisma/generated/prisma/enums').CreditEventType,
+      amount: creditAmount,
+      balanceAfter: newBalance,
+      transactionId: null,
+      note: `Branch credit purchase via Stripe session ${session.externalSessionId}`,
+      actorId,
+      stripeSessionId: session.externalSessionId, // Idempotency key
+    },
+  })
+
+  return {
+    eventId: event.id,
+    eventType: event.type,
+    outcome: WebhookOutcome.PROCESSED,
+    message: `Granted ${creditAmount} credits to branch ${branchId}. New balance: ${newBalance}`,
+  }
 }
 
 // ---------------------------------------------------------------------------

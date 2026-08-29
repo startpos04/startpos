@@ -139,6 +139,22 @@ model Branch {
   // ---------------------------------------------------------------------------
   offlineTerminalId String? // User ID of designated offline terminal (nullable)
 
+  // ---------------------------------------------------------------------------
+  // Branch Billing — Transaction Quota Limit
+  // ---------------------------------------------------------------------------
+  // txQuotaLimit sets the maximum transactions this branch can process per
+  // billing period. Set by business owner on /business/branches page.
+  //
+  // - null = no limit configured (unlimited within business quota)
+  // - When limit is reached, branch can purchase credits for overflow capacity
+  //
+  // Usage:
+  // - Business owner allocates transaction limits per branch
+  // - Branch managers see their limit and usage on /billing dashboard
+  // - When branch hits limit, they can purchase credits to continue
+  // ---------------------------------------------------------------------------
+  txQuotaLimit Int? // Branch transaction limit per month (nullable)
+
   members            Membership[]
   inventory          Inventory[]
   transactions       Transaction[]
