@@ -4,7 +4,7 @@ import { Calendar, ShieldCheck, ShieldX } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import dayjs from '@/lib/dayjs'
-import type { AuditEntry } from '@/routes/(private)/(dashboard)/business/permissions/audit'
+import type { AuditEntry } from '@/routes/(private)/(dashboard)/business/permissions/-audit'
 
 export const auditCols = {
   action: (h: ColumnHelper<AuditEntry>) =>

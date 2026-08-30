@@ -4,47 +4,57 @@
  * Server function: create or activate a paid subscription for a business.
  *
  * Flow:
- *   1. Business admin selects a plan on /billing or /subscription/reactivate.
- *   2. This server function creates a Stripe subscription via the adapter.
+ *   1. Business admin selects a plan and payment provider on /billing or /subscription/reactivate.
+ *   2. This server function creates a subscription via the selected provider adapter.
  *   3. BusinessSubscription.externalId is updated atomically with the status change.
  *   4. A SubscriptionStatusHistory record is written.
  *   5. If a checkoutUrl is returned (incomplete subscription), the client
- *      redirects to Stripe to complete payment setup.
+ *      redirects to the provider to complete payment setup.
  *
  * Idempotency:
  *   - If BusinessSubscription.externalId already exists, this function is a
  *     no-op — the subscription was already created by a prior call.
  *
- * Environment variables required:
- *   STRIPE_SECRET_KEY              — Stripe secret key
- *   STRIPE_PLAN_STARTER_PRICE_ID   — Stripe Price ID for the Starter plan
- *   STRIPE_PLAN_PRO_PRICE_ID       — Stripe Price ID for the Professional plan
- *   STRIPE_PLAN_ENTERPRISE_PRICE_ID— Stripe Price ID for the Enterprise plan
+ * Architecture:
+ *   - Uses PaymentProviderService for provider selection and routing
+ *   - Provider-agnostic implementation using BillingProviderAdapter interface
+ *   - Supports multiple payment providers through provider registry
  */
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { authMiddleware } from '../better-auth/auth-middleware'
-import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
+import { getBillingAdapter } from '../billing/get-billing-adapter'
+import { paymentProviderService } from '../billing/payment-provider-service'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 import { SubscriptionStatus } from '../entitlement/entitlement-types'
 import { prisma as rootPrisma } from '../prisma-client'
 
 // ---------------------------------------------------------------------------
-// Plan → Stripe Price ID mapping
-// Loaded from environment variables — no hardcoded price IDs in source code.
+// Provider-agnostic price ID resolution
 // ---------------------------------------------------------------------------
 
-function getStripePriceId(planName: string, interval: 'monthly' | 'annual' | 'credits' = 'monthly'): string | null {
+function getProviderPriceId(providerId: string, planName: string, interval: 'monthly' | 'annual' | 'credits' = 'monthly'): string | null {
   const normalised = planName.toLowerCase().replace(/\s+/g, '_')
-  const suffix = interval === 'annual' ? '_ANNUAL' : interval === 'credits' ? '_CREDITS' : ''
-  const envKey = `STRIPE_PLAN_${normalised.toUpperCase()}${suffix}_PRICE_ID`
-  // Fall back to monthly price if credits-specific price not set
-  const specific = process.env[envKey] ?? null
-  if (!specific && interval === 'credits') {
-    return process.env[`STRIPE_PLAN_${normalised.toUpperCase()}_PRICE_ID`] ?? null
+  
+  if (providerId === 'stripe') {
+    const suffix = interval === 'annual' ? '_ANNUAL' : interval === 'credits' ? '_CREDITS' : ''
+    const envKey = `STRIPE_PLAN_${normalised.toUpperCase()}${suffix}_PRICE_ID`
+    // Fall back to monthly price if credits-specific price not set
+    const specific = process.env[envKey] ?? null
+    if (!specific && interval === 'credits') {
+      return process.env[`STRIPE_PLAN_${normalised.toUpperCase()}_PRICE_ID`] ?? null
+    }
+    return specific
   }
-  return specific
+  
+  if (providerId === 'manual') {
+    // Manual payments don't use external price IDs
+    return 'manual-plan'
+  }
+  
+  // Future providers can be added here
+  return null
 }
 
 // ---------------------------------------------------------------------------
@@ -54,6 +64,8 @@ function getStripePriceId(planName: string, interval: 'monthly' | 'annual' | 'cr
 const CreateSubscriptionInputSchema = z.object({
   /** The planId to subscribe to (Prisma SubscriptionPlan.id) */
   planId: z.string().min(1),
+  /** Payment provider ID to use for this subscription */
+  providerId: z.string().min(1).default('stripe'),
   /** Billing interval — defaults to monthly */
   billingInterval: z.enum(['monthly', 'annual']).default('monthly'),
   /** Billing model override — defaults to MONTHLY_SUBSCRIPTION; use PREPAID_CREDITS for credits plan */
@@ -120,17 +132,24 @@ export const createSubscription = createServerFn({ method: 'POST' })
       }
     }
 
-    // Resolve the Stripe Price ID for this plan
-    const priceInterval = data.billingModel === 'PREPAID_CREDITS' ? 'credits' : data.billingInterval
-    const stripePriceId = getStripePriceId(targetPlan.name, priceInterval)
-    if (!stripePriceId) {
+    // Get the appropriate provider adapter for this business
+    const adapter = await getBillingAdapter(businessId, data.providerId)
+    if (!adapter) {
       return {
         success: false as const,
-        error: `Stripe Price ID not configured for plan "${targetPlan.name}" (${priceInterval}). Set STRIPE_PLAN_${targetPlan.name.toUpperCase().replace(/\s+/g, '_')}${priceInterval === 'annual' ? '_ANNUAL' : priceInterval === 'credits' ? '_CREDITS' : ''}_PRICE_ID.`,
+        error: `Payment provider "${data.providerId}" is not available for this business.`,
       }
     }
 
-    const adapter = createStripeAdapter()
+    // Resolve the price ID for this plan and provider
+    const priceInterval = data.billingModel === 'PREPAID_CREDITS' ? 'credits' : data.billingInterval
+    const providerPriceId = getProviderPriceId(data.providerId, targetPlan.name, priceInterval)
+    if (!providerPriceId) {
+      return {
+        success: false as const,
+        error: `Price ID not configured for plan "${targetPlan.name}" on provider "${data.providerId}" (${priceInterval}).`,
+      }
+    }
 
     // Create a Stripe customer for this business (required before creating subscription)
     const userEmail = context.user.email ?? `billing+${businessId}@startpos.app`
@@ -142,35 +161,36 @@ export const createSubscription = createServerFn({ method: 'POST' })
 
     const appUrl = process.env['CANONICAL_URL'] ?? process.env['APP_URL'] ?? 'http://localhost:3000'
 
-    // Create the Stripe Checkout Session for the subscription.
-    // Stripe will redirect to successUrl after the user completes payment,
-    // and the webhooks (invoice.paid, customer.subscription.updated) will
-    // update the DB. The plan name is encoded in successUrl so the success
-    // page can display it without needing extra state.
+    // Create the provider subscription
+    // For hosted checkout providers, the user will be redirected to complete payment.
+    // For manual providers, the payment will be pending admin approval.
     const successUrl =
       data.billingModel === 'PREPAID_CREDITS'
         ? `${appUrl}/billing/credits?subscribed=1`
-        : `${appUrl}/billing/success?plan=${encodeURIComponent(targetPlan.name)}&billing=${data.billingInterval}`
+        : `${appUrl}/billing/success?plan=${encodeURIComponent(targetPlan.name)}&billing=${data.billingInterval}&provider=${data.providerId}`
 
     const providerResult = await adapter.createSubscription({
       externalCustomerId: customer.externalCustomerId,
-      externalPriceId: stripePriceId,
+      externalPriceId: providerPriceId,
       metadata: {
         businessId,
         planId: data.planId,
         userId,
+        providerId: data.providerId,
       },
       successUrl,
       cancelUrl: `${appUrl}/billing/plans`,
     })
 
-    // Determine the target status:
-    // With hosted checkout, the subscription isn't created until payment succeeds.
-    // Status stays as GRACE_PERIOD until the invoice.paid webhook fires.
-    // If checkoutUrl is null (e.g. free plan, no payment needed), activate immediately.
+    // Determine the target status based on provider capabilities:
+    // - Providers with automatic confirmation: ACTIVE (if no checkout URL) or GRACE_PERIOD (if checkout needed)
+    // - Providers requiring manual review: PENDING (awaiting admin approval)
+    const providerCapabilities = adapter.getCapabilities()
     const toStatus = providerResult.checkoutUrl
-      ? SubscriptionStatus.GRACE_PERIOD // Awaiting payment — webhook will promote to ACTIVE
-      : SubscriptionStatus.ACTIVE
+      ? SubscriptionStatus.GRACE_PERIOD // Awaiting payment completion
+      : providerCapabilities.supportsManualReview && !providerCapabilities.supportsAutomaticConfirmation
+        ? SubscriptionStatus.PENDING // Awaiting admin approval (manual providers)
+        : SubscriptionStatus.ACTIVE // Immediate activation
 
     // Validate the transition
     const canTransition = SubscriptionEngine.canTransition(
@@ -207,12 +227,22 @@ export const createSubscription = createServerFn({ method: 'POST' })
           updatedAt: now,
         },
       }),
+      // Update business preferred payment provider
+      rootPrisma.business.update({
+        where: { id: businessId },
+        data: {
+          preferredPaymentProvider: data.providerId as import('prisma/generated/prisma/enums').PaymentProvider,
+          updatedAt: now,
+        },
+      }),
       rootPrisma.subscriptionStatusHistory.create({
         data: {
           subscriptionId: existingSubscription.id,
           fromStatus: existingSubscription.status,
           toStatus,
-          reason: `Subscription checkout initiated for plan "${targetPlan.name}". Awaiting payment confirmation.`,
+          reason: toStatus === SubscriptionStatus.PENDING 
+            ? `Manual payment submitted for plan "${targetPlan.name}". Awaiting admin approval.`
+            : `Subscription checkout initiated for plan "${targetPlan.name}" via ${data.providerId}. ${providerResult.checkoutUrl ? 'Awaiting payment confirmation.' : 'Activated immediately.'}`,
           triggeredBy: userId,
         },
       }),

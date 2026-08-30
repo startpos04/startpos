@@ -24,7 +24,7 @@ import { z } from 'zod'
 import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { requirePermission } from '../better-auth/permission-middleware'
-import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
+import { getBillingAdapter } from '../billing/get-billing-adapter'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 import { SubscriptionStatus } from '../entitlement/entitlement-types'
 import { prisma as rootPrisma } from '../prisma-client'
@@ -91,7 +91,12 @@ export const cancelSubscription = createServerFn({ method: 'POST' })
     // Cancel with the billing provider if a provider subscription exists
     if (subscription.externalId) {
       try {
-        const adapter = createStripeAdapter()
+        // Get the appropriate provider adapter for this business
+        const adapter = await getBillingAdapter(businessId)
+        if (!adapter) {
+          return { success: false as const, error: 'No billing provider available for this business.' }
+        }
+        
         const result = await adapter.cancelSubscription({
           externalSubscriptionId: subscription.externalId,
           cancelImmediately: data.immediate,

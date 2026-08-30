@@ -6,7 +6,7 @@
  * 2. History - Transaction history table
  */
 
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertCircle, CreditCard, TrendingUp, Zap, ShoppingCartIcon, GitBranchIcon } from 'lucide-react'
@@ -24,6 +24,7 @@ import { fetchEntitlementDetails } from '@/lib/server-fn/fetch-entitlement-detai
 import { authStore } from '@/store/auth-store'
 import { cn } from '@/lib/utils'
 import { getBranchCreditPackages } from '@/lib/billing/credit-packages'
+import { useStore } from '@tanstack/react-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing/')({
   component: BranchBillingPage,
@@ -110,18 +111,26 @@ function OverviewTab() {
   }
 
   const branchName = user.branch.name
-  const txQuotaLimit = user.branch.txQuotaLimit
-  const currentUsage = entitlementData?.txUsedThisPeriod || 0
-  const creditBalance = creditData?.balance || 0
+  const txRemaining = entitlementData?.txRemaining ?? null
+  const txUsedThisPeriod = entitlementData?.txUsedThisPeriod ?? 0
+  const creditBalance = creditData?.balance ?? 0
   const isLoading = creditLoading || entitlementLoading
+  
+  // For display - show subscription TX quota
+  const isUnlimitedTx = txRemaining === null
+  const displayQuotaUsed = txUsedThisPeriod
+  const displayQuotaRemaining = txRemaining
+  const displayQuotaTotal = (displayQuotaRemaining !== null && displayQuotaUsed !== null) 
+    ? displayQuotaRemaining + displayQuotaUsed 
+    : null
 
   if (isLoading) {
     return <OverviewSkeleton />
   }
 
   // Determine if branch is approaching or at its limit
-  const isAtLimit = txQuotaLimit && currentUsage >= txQuotaLimit
-  const isNearLimit = txQuotaLimit && currentUsage >= txQuotaLimit * 0.8
+  const isAtLimit = !isUnlimitedTx && displayQuotaRemaining !== null && displayQuotaRemaining <= 0
+  const isNearLimit = !isUnlimitedTx && displayQuotaRemaining !== null && displayQuotaRemaining > 0 && displayQuotaRemaining <= (displayQuotaUsed + displayQuotaRemaining) * 0.2
 
   return (
     <div className="h-full overflow-y-auto">
@@ -135,22 +144,25 @@ function OverviewTab() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {currentUsage.toLocaleString()} / {txQuotaLimit?.toLocaleString() || '∞'}
+              {isUnlimitedTx 
+                ? '∞' 
+                : `${(displayQuotaRemaining ?? 0).toLocaleString()} / ${(displayQuotaTotal ?? 0).toLocaleString()}`
+              }
             </div>
             <p className="text-xs text-muted-foreground">
-              {txQuotaLimit 
-                ? `${Math.max(0, txQuotaLimit - currentUsage).toLocaleString()} remaining this period`
-                : 'Unlimited transactions'
+              {isUnlimitedTx 
+                ? 'Unlimited transactions in current period'
+                : `${displayQuotaUsed.toLocaleString()} used this period`
               }
             </p>
             {isAtLimit && (
               <Badge variant="destructive" className="mt-2">
-                Limit Reached
+                Quota Exhausted
               </Badge>
             )}
             {isNearLimit && !isAtLimit && (
               <Badge variant="secondary" className="mt-2">
-                Approaching Limit
+                Running Low
               </Badge>
             )}
           </CardContent>
@@ -168,11 +180,6 @@ function OverviewTab() {
             {creditBalance === 0 && isAtLimit && (
               <Badge variant="destructive" className="mt-2">
                 No Credits Available
-              </Badge>
-            )}
-            {creditBalance > 0 && (
-              <Badge variant="default" className="mt-2">
-                {creditBalance.toLocaleString()} Credits
               </Badge>
             )}
           </CardContent>

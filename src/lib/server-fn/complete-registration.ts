@@ -223,19 +223,19 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         })
 
         // ------------------------------------------------------------------
-        // Step 3: Create Membership (role = ADMIN)
+        // Step 3: Create Membership (role = OWNER)
         // ------------------------------------------------------------------
         await tx.membership.create({
           data: {
             userId,
             businessId: business.id,
             branchId: branch.id,
-            role: 'ADMIN' as import('prisma/generated/prisma/enums').Role,
+            role: 'OWNER' as import('prisma/generated/prisma/enums').Role,
           },
         })
 
         // ------------------------------------------------------------------
-        // Step 3b: Promote the User record to ADMIN.
+        // Step 3b: Promote the User record to OWNER.
         // User.role defaults to CASHIER at sign-up (auth.ts additionalFields).
         // getAuthUser reads userData.role from the User table, not Membership.
         // Also saves contactNumber and legal consent timestamps if provided.
@@ -243,7 +243,7 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         await tx.user.update({
           where: { id: userId },
           data: {
-            role: 'ADMIN' as import('prisma/generated/prisma/enums').Role,
+            role: 'OWNER' as import('prisma/generated/prisma/enums').Role,
             ...(data.contactNumber ? { contactNumber: data.contactNumber } : {}),
             // Legal consent — record the version and timestamp so we have
             // a per-user audit trail of exactly what they agreed to and when.
@@ -321,6 +321,7 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         await tx.creditLedger.create({
           data: {
             businessId: business.id,
+            branchId: branch.id,
             eventType: CreditEventType.PROMOTIONAL as import('prisma/generated/prisma/enums').CreditEventType,
             amount: COMPLIMENTARY_CREDITS,
             balanceAfter: COMPLIMENTARY_CREDITS,
@@ -524,7 +525,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
             name: data.name,
             email: data.email,
             emailVerified: true, // OTP was verified before this call
-            role: 'ADMIN' as import('prisma/generated/prisma/enums').Role,
+            role: 'OWNER' as import('prisma/generated/prisma/enums').Role,
             ...(data.contactNumber ? { contactNumber: data.contactNumber } : {}),
             ...(data.termsAcceptedAt
               ? {
@@ -585,7 +586,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
             userId: user.id,
             businessId: business.id,
             branchId: branch.id,
-            role: 'ADMIN' as import('prisma/generated/prisma/enums').Role,
+            role: 'OWNER' as import('prisma/generated/prisma/enums').Role,
           },
         })
 
@@ -643,6 +644,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
         await tx.creditLedger.create({
           data: {
             businessId: business.id,
+            branchId: branch.id,
             eventType: CreditEventType.PROMOTIONAL as import('prisma/generated/prisma/enums').CreditEventType,
             amount: COMPLIMENTARY_CREDITS,
             balanceAfter: COMPLIMENTARY_CREDITS,

@@ -133,10 +133,13 @@ create_price "STRIPE_PLAN_STARTER_ANNUAL_PRICE_ID" "Starter Plan (Annual)"  2784
 create_price "STRIPE_PLAN_GROWTH_ANNUAL_PRICE_ID"  "Growth Plan (Annual)"   75840  "usd"  "year"
 create_price "STRIPE_PLAN_PREMIUM_ANNUAL_PRICE_ID" "Premium Plan (Annual)"  143040 "usd"  "year"
 
-# ── Credit package prices (one-time) ─────────────────────────────────────────
-create_price "STRIPE_CREDIT_PKG_10_PRICE_ID"  "10 Credits"  500  "usd"  "one_time"
-create_price "STRIPE_CREDIT_PKG_50_PRICE_ID"  "50 Credits"  2000 "usd"  "one_time"
-create_price "STRIPE_CREDIT_PKG_100_PRICE_ID" "100 Credits" 3500 "usd"  "one_time"
+# ── Branch credit package prices (one-time) ─────────────────────────────────
+# Used by /billing page for branch-specific credit purchases
+create_price "STRIPE_BRANCH_CREDIT_10_PRICE_ID"   "10 Branch Credits"   500   "php"  "one_time"
+create_price "STRIPE_BRANCH_CREDIT_50_PRICE_ID"   "50 Branch Credits"   2000  "php"  "one_time"
+create_price "STRIPE_BRANCH_CREDIT_100_PRICE_ID"  "100 Branch Credits"  3500  "php"  "one_time"
+create_price "STRIPE_BRANCH_CREDIT_500_PRICE_ID"  "500 Branch Credits"  15000 "php"  "one_time"
+create_price "STRIPE_BRANCH_CREDIT_1000_PRICE_ID" "1000 Branch Credits" 25000 "php"  "one_time"
 
 # ── TX top-up addon prices (one-time) ────────────────────────────────────────
 create_price "STRIPE_TX_ADDON_500_PRICE_ID"  "500 TX Addon"  1000 "usd"  "one_time"

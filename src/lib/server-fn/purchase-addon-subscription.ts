@@ -31,7 +31,7 @@ import { z } from 'zod'
 import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { requirePermission } from '../better-auth/permission-middleware'
-import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
+import { getBillingAdapter } from '../billing/get-billing-adapter'
 
 // ---------------------------------------------------------------------------
 // Addon catalog
@@ -177,7 +177,20 @@ export const purchaseAddonSubscription = createServerFn({ method: 'POST' })
       }
     }
 
-    const adapter = createStripeAdapter()
+    // Get the appropriate provider adapter for this business
+    const adapter = await getBillingAdapter(businessId)
+    if (!adapter) {
+      return { success: false as const, error: 'No billing provider available for this business.' }
+    }
+
+    // Check if the provider supports recurring subscriptions (required for addons)
+    const capabilities = adapter.getCapabilities()
+    if (!capabilities.supportsRecurring) {
+      return {
+        success: false as const,
+        error: 'Addon subscriptions are not supported with your current payment method.',
+      }
+    }
     const appUrl = process.env['APP_URL'] ?? process.env['VITE_APP_URL'] ?? 'http://localhost:3000'
 
     const result = await adapter.createAddonSubscription({

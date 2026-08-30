@@ -98,6 +98,8 @@ export type ProviderInvoice = {
  * All interactions with an external payment provider go through this interface.
  * The Application Layer (server functions, jobs, webhook handler) depends only
  * on this interface — never on Stripe types directly.
+ * 
+ * Extended for PAYMENT_ADAPTER_ARCHITECTURE with provider capabilities and identity methods.
  */
 export interface BillingProviderAdapter {
   /**
@@ -212,6 +214,58 @@ export interface BillingProviderAdapter {
    *          return 400 and not process the payload.
    */
   verifyWebhookSignature(params: { rawBody: string | Buffer; signature: string; secret: string }): Promise<WebhookEvent>
+
+  // ---------------------------------------------------------------------------
+  // PAYMENT_ADAPTER_ARCHITECTURE Extensions
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Get provider capabilities
+   * Used by UI and billing workflows to adapt behavior
+   */
+  getCapabilities(): ProviderCapabilities
+
+  /**
+   * Get provider identity
+   * Returns machine-readable provider ID (e.g., 'stripe', 'manual', 'paymongo')
+   */
+  getProviderId(): PaymentProviderId
+
+  /**
+   * Get human-readable provider name
+   * Returns display name (e.g., 'Stripe', 'Manual Payment', 'PayMongo')
+   */
+  getProviderName(): string
+
+  /**
+   * Create refund (future extension)
+   * Not all providers support automated refunds
+   * Manual providers return 'manual' in result
+   */
+  createRefund?(params: {
+    externalPaymentId: string
+    amount: number
+    reason?: string
+  }): Promise<RefundResult>
+}
+
+// Additional types for the extended interface
+export type PaymentProviderId = 'stripe' | 'manual' | 'paymongo' | 'xendit' | 'bank_transfer'
+
+export type ProviderCapabilities = {
+  supportsAutomaticConfirmation: boolean   // Stripe: true, Manual: false
+  supportsManualReview: boolean            // Stripe: false, Manual: true  
+  supportsWebhook: boolean                 // Stripe: true, Manual: false
+  supportsRefund: boolean                  // Stripe: true, Manual: false
+  supportsRecurring: boolean               // Stripe: true, Manual: false
+  supportsCustomerPortal: boolean          // Stripe: true, Manual: false
+}
+
+export type RefundResult = {
+  externalRefundId?: string
+  status: 'succeeded' | 'pending' | 'failed' | 'manual'
+  amount: number
+  reason?: string
 }
 
 // ---------------------------------------------------------------------------

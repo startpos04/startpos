@@ -271,6 +271,42 @@ enum PaymentMethod {
   CREDIT
 }
 
+// ---------------------------------------------------------------------------
+// PAYMENT ADAPTER ARCHITECTURE - Provider-Agnostic Payment Enums
+// ---------------------------------------------------------------------------
+
+// Payment providers for billing/subscription payments (separate from POS PaymentMethod)
+enum PaymentProvider {
+  STRIPE
+  MANUAL
+  PAYMONGO
+  XENDIT
+  BANK_TRANSFER
+}
+
+// Payment methods for billing payments - using PaymentMethod2 to avoid conflict with existing POS PaymentMethod
+enum PaymentMethod2 {
+  CARD
+  GCASH
+  MAYA
+  BANK_TRANSFER
+  GRABPAY
+  SHOPEE_PAY
+  PAYMAYA
+  OTHER
+}
+
+// Payment statuses for billing payments
+enum PaymentStatus {
+  PENDING
+  PENDING_APPROVAL     // Manual payments awaiting admin review
+  SUCCEEDED
+  FAILED
+  EXPIRED
+  REFUNDED
+  CANCELLED
+}
+
 // --- Notifications ---
 enum NotificationPriority {
   LOW

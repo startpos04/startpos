@@ -50,7 +50,7 @@ const SUBSCRIPTION_CONFIG = {
     billing: '/billing',
     subscription: '/subscription',
     plans: '/plans',
-    paymentMethods: '/billing/payment-methods',
+    paymentMethods: '/business/subscription/payment-methods',
     invoices: '/billing/invoices',
     usage: '/billing/usage',
     settings: '/settings',

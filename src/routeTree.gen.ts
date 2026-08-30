@@ -43,7 +43,11 @@ import { Route as privatedashboardSettingsIndexRouteImport } from './routes/(pri
 import { Route as privatedashboardBusinessIndexRouteImport } from './routes/(private)/(dashboard)/business/index'
 import { Route as privatedashboardBillingIndexRouteImport } from './routes/(private)/(dashboard)/billing/index'
 import { Route as privatedashboardAccountIndexRouteImport } from './routes/(private)/(dashboard)/account/index'
+import { Route as ApiBillingWebhookStripeRouteImport } from './routes/api/billing/webhook/stripe'
 import { Route as privatedashboardSettingsComplianceRouteImport } from './routes/(private)/(dashboard)/settings/compliance'
+import { Route as privatedashboardBillingPaymentMethodsRouteImport } from './routes/(private)/(dashboard)/business/subscription/payment-methods.tsx'
+import { Route as privatedashboardBillingManualPaymentRouteImport } from './routes/(private)/(dashboard)/billing/manual-payment'
+import { Route as privatedashboardadminPaymentApprovalsRouteImport } from './routes/(private)/(dashboard)/(admin)/payment-approvals'
 import { Route as privatedashboardBusinessSuppliersRouteRouteImport } from './routes/(private)/(dashboard)/business/suppliers/route'
 import { Route as privatedashboardBusinessSubscriptionRouteRouteImport } from './routes/(private)/(dashboard)/business/subscription/route'
 import { Route as privatedashboardBusinessCustomersRouteRouteImport } from './routes/(private)/(dashboard)/business/customers/route'
@@ -265,11 +269,34 @@ const privatedashboardAccountIndexRoute =
     path: '/',
     getParentRoute: () => privatedashboardAccountRouteRoute,
   } as any)
+const ApiBillingWebhookStripeRoute = ApiBillingWebhookStripeRouteImport.update({
+  id: '/api/billing/webhook/stripe',
+  path: '/api/billing/webhook/stripe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const privatedashboardSettingsComplianceRoute =
   privatedashboardSettingsComplianceRouteImport.update({
     id: '/compliance',
     path: '/compliance',
     getParentRoute: () => privatedashboardSettingsRouteRoute,
+  } as any)
+const privatedashboardBillingPaymentMethodsRoute =
+  privatedashboardBillingPaymentMethodsRouteImport.update({
+    id: '/payment-methods',
+    path: '/payment-methods',
+    getParentRoute: () => privatedashboardBillingRouteRoute,
+  } as any)
+const privatedashboardBillingManualPaymentRoute =
+  privatedashboardBillingManualPaymentRouteImport.update({
+    id: '/manual-payment',
+    path: '/manual-payment',
+    getParentRoute: () => privatedashboardBillingRouteRoute,
+  } as any)
+const privatedashboardadminPaymentApprovalsRoute =
+  privatedashboardadminPaymentApprovalsRouteImport.update({
+    id: '/payment-approvals',
+    path: '/payment-approvals',
+    getParentRoute: () => privatedashboardadminRouteRoute,
   } as any)
 const privatedashboardBusinessSuppliersRouteRoute =
   privatedashboardBusinessSuppliersRouteRouteImport.update({
@@ -537,7 +564,11 @@ export interface FileRoutesByFullPath {
   '/business/customers': typeof privatedashboardBusinessCustomersRouteRouteWithChildren
   '/business/subscription': typeof privatedashboardBusinessSubscriptionRouteRouteWithChildren
   '/business/suppliers': typeof privatedashboardBusinessSuppliersRouteRouteWithChildren
+  '/payment-approvals': typeof privatedashboardadminPaymentApprovalsRoute
+  '/billing/manual-payment': typeof privatedashboardBillingManualPaymentRoute
+  '/billing/payment-methods': typeof privatedashboardBillingPaymentMethodsRoute
   '/settings/compliance': typeof privatedashboardSettingsComplianceRoute
+  '/api/billing/webhook/stripe': typeof ApiBillingWebhookStripeRoute
   '/account/': typeof privatedashboardAccountIndexRoute
   '/billing/': typeof privatedashboardBillingIndexRoute
   '/business/': typeof privatedashboardBusinessIndexRoute
@@ -601,7 +632,11 @@ export interface FileRoutesByTo {
   '/pos': typeof privatePosIndexRoute
   '/tasks': typeof privateTasksIndexRoute
   '/subscription/reactivate': typeof SubscriptionReactivateIndexRoute
+  '/payment-approvals': typeof privatedashboardadminPaymentApprovalsRoute
+  '/billing/manual-payment': typeof privatedashboardBillingManualPaymentRoute
+  '/billing/payment-methods': typeof privatedashboardBillingPaymentMethodsRoute
   '/settings/compliance': typeof privatedashboardSettingsComplianceRoute
+  '/api/billing/webhook/stripe': typeof ApiBillingWebhookStripeRoute
   '/account': typeof privatedashboardAccountIndexRoute
   '/business': typeof privatedashboardBusinessIndexRoute
   '/settings': typeof privatedashboardSettingsIndexRoute
@@ -678,7 +713,11 @@ export interface FileRoutesById {
   '/(private)/(dashboard)/business/customers': typeof privatedashboardBusinessCustomersRouteRouteWithChildren
   '/(private)/(dashboard)/business/subscription': typeof privatedashboardBusinessSubscriptionRouteRouteWithChildren
   '/(private)/(dashboard)/business/suppliers': typeof privatedashboardBusinessSuppliersRouteRouteWithChildren
+  '/(private)/(dashboard)/(admin)/payment-approvals': typeof privatedashboardadminPaymentApprovalsRoute
+  '/(private)/(dashboard)/billing/manual-payment': typeof privatedashboardBillingManualPaymentRoute
+  '/(private)/(dashboard)/billing/payment-methods': typeof privatedashboardBillingPaymentMethodsRoute
   '/(private)/(dashboard)/settings/compliance': typeof privatedashboardSettingsComplianceRoute
+  '/api/billing/webhook/stripe': typeof ApiBillingWebhookStripeRoute
   '/(private)/(dashboard)/account/': typeof privatedashboardAccountIndexRoute
   '/(private)/(dashboard)/billing/': typeof privatedashboardBillingIndexRoute
   '/(private)/(dashboard)/business/': typeof privatedashboardBusinessIndexRoute
@@ -751,7 +790,11 @@ export interface FileRouteTypes {
     | '/business/customers'
     | '/business/subscription'
     | '/business/suppliers'
+    | '/payment-approvals'
+    | '/billing/manual-payment'
+    | '/billing/payment-methods'
     | '/settings/compliance'
+    | '/api/billing/webhook/stripe'
     | '/account/'
     | '/billing/'
     | '/business/'
@@ -815,7 +858,11 @@ export interface FileRouteTypes {
     | '/pos'
     | '/tasks'
     | '/subscription/reactivate'
+    | '/payment-approvals'
+    | '/billing/manual-payment'
+    | '/billing/payment-methods'
     | '/settings/compliance'
+    | '/api/billing/webhook/stripe'
     | '/account'
     | '/business'
     | '/settings'
@@ -891,7 +938,11 @@ export interface FileRouteTypes {
     | '/(private)/(dashboard)/business/customers'
     | '/(private)/(dashboard)/business/subscription'
     | '/(private)/(dashboard)/business/suppliers'
+    | '/(private)/(dashboard)/(admin)/payment-approvals'
+    | '/(private)/(dashboard)/billing/manual-payment'
+    | '/(private)/(dashboard)/billing/payment-methods'
     | '/(private)/(dashboard)/settings/compliance'
+    | '/api/billing/webhook/stripe'
     | '/(private)/(dashboard)/account/'
     | '/(private)/(dashboard)/billing/'
     | '/(private)/(dashboard)/business/'
@@ -946,6 +997,7 @@ export interface RootRouteChildren {
   UnauthorizedRoute: typeof UnauthorizedRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   SubscriptionReactivateIndexRoute: typeof SubscriptionReactivateIndexRoute
+  ApiBillingWebhookStripeRoute: typeof ApiBillingWebhookStripeRoute
   ApiBillingWebhookIndexRoute: typeof ApiBillingWebhookIndexRoute
   ApiCronDailyIndexRoute: typeof ApiCronDailyIndexRoute
 }
@@ -1190,12 +1242,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardAccountIndexRouteImport
       parentRoute: typeof privatedashboardAccountRouteRoute
     }
+    '/api/billing/webhook/stripe': {
+      id: '/api/billing/webhook/stripe'
+      path: '/api/billing/webhook/stripe'
+      fullPath: '/api/billing/webhook/stripe'
+      preLoaderRoute: typeof ApiBillingWebhookStripeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(private)/(dashboard)/settings/compliance': {
       id: '/(private)/(dashboard)/settings/compliance'
       path: '/compliance'
       fullPath: '/settings/compliance'
       preLoaderRoute: typeof privatedashboardSettingsComplianceRouteImport
       parentRoute: typeof privatedashboardSettingsRouteRoute
+    }
+    '/(private)/(dashboard)/billing/payment-methods': {
+      id: '/(private)/(dashboard)/billing/payment-methods'
+      path: '/payment-methods'
+      fullPath: '/billing/payment-methods'
+      preLoaderRoute: typeof privatedashboardBillingPaymentMethodsRouteImport
+      parentRoute: typeof privatedashboardBillingRouteRoute
+    }
+    '/(private)/(dashboard)/billing/manual-payment': {
+      id: '/(private)/(dashboard)/billing/manual-payment'
+      path: '/manual-payment'
+      fullPath: '/billing/manual-payment'
+      preLoaderRoute: typeof privatedashboardBillingManualPaymentRouteImport
+      parentRoute: typeof privatedashboardBillingRouteRoute
+    }
+    '/(private)/(dashboard)/(admin)/payment-approvals': {
+      id: '/(private)/(dashboard)/(admin)/payment-approvals'
+      path: '/payment-approvals'
+      fullPath: '/payment-approvals'
+      preLoaderRoute: typeof privatedashboardadminPaymentApprovalsRouteImport
+      parentRoute: typeof privatedashboardadminRouteRoute
     }
     '/(private)/(dashboard)/business/suppliers': {
       id: '/(private)/(dashboard)/business/suppliers'
@@ -1500,6 +1580,7 @@ const privatedashboardadminPreparationRouteRouteWithChildren =
 
 interface privatedashboardadminRouteRouteChildren {
   privatedashboardadminPreparationRouteRoute: typeof privatedashboardadminPreparationRouteRouteWithChildren
+  privatedashboardadminPaymentApprovalsRoute: typeof privatedashboardadminPaymentApprovalsRoute
   privatedashboardadminEmployeesIndexRoute: typeof privatedashboardadminEmployeesIndexRoute
   privatedashboardadminIngredientsIndexRoute: typeof privatedashboardadminIngredientsIndexRoute
   privatedashboardadminProductsIndexRoute: typeof privatedashboardadminProductsIndexRoute
@@ -1517,6 +1598,8 @@ const privatedashboardadminRouteRouteChildren: privatedashboardadminRouteRouteCh
   {
     privatedashboardadminPreparationRouteRoute:
       privatedashboardadminPreparationRouteRouteWithChildren,
+    privatedashboardadminPaymentApprovalsRoute:
+      privatedashboardadminPaymentApprovalsRoute,
     privatedashboardadminEmployeesIndexRoute:
       privatedashboardadminEmployeesIndexRoute,
     privatedashboardadminIngredientsIndexRoute:
@@ -1597,11 +1680,17 @@ const privatedashboardAccountRouteRouteWithChildren =
   )
 
 interface privatedashboardBillingRouteRouteChildren {
+  privatedashboardBillingManualPaymentRoute: typeof privatedashboardBillingManualPaymentRoute
+  privatedashboardBillingPaymentMethodsRoute: typeof privatedashboardBillingPaymentMethodsRoute
   privatedashboardBillingIndexRoute: typeof privatedashboardBillingIndexRoute
 }
 
 const privatedashboardBillingRouteRouteChildren: privatedashboardBillingRouteRouteChildren =
   {
+    privatedashboardBillingManualPaymentRoute:
+      privatedashboardBillingManualPaymentRoute,
+    privatedashboardBillingPaymentMethodsRoute:
+      privatedashboardBillingPaymentMethodsRoute,
     privatedashboardBillingIndexRoute: privatedashboardBillingIndexRoute,
   }
 
@@ -1827,6 +1916,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnauthorizedRoute: UnauthorizedRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   SubscriptionReactivateIndexRoute: SubscriptionReactivateIndexRoute,
+  ApiBillingWebhookStripeRoute: ApiBillingWebhookStripeRoute,
   ApiBillingWebhookIndexRoute: ApiBillingWebhookIndexRoute,
   ApiCronDailyIndexRoute: ApiCronDailyIndexRoute,
 }

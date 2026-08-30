@@ -179,25 +179,12 @@ function RouteComponent() {
           <a href='/employees/create' onClick={handleAdd} className='contents'>
             <Button
               size='sm'
-              className={`shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] ${atEmployeeLimit ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={atEmployeeLimit}
+              className='shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]'
             >
               <Plus /> Add Employee
             </Button>
           </a>
         </div>
-
-        {atEmployeeLimit && (
-          <div className='rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 p-3'>
-            <div className='text-sm text-amber-800 dark:text-amber-200'>
-              <div className='font-medium'>Employee limit reached</div>
-              <div className='mt-1'>
-                Your current plan allows {planEmployeeLimit} employee{planEmployeeLimit === 1 ? '' : 's'}. Upgrade your plan or purchase employee add-ons to add
-                more team members.
-              </div>
-            </div>
-          </div>
-        )}
 
         <TableView
           data={data}

@@ -70,6 +70,7 @@ model BusinessSubscription {
   createdAt                    DateTime                      @default(now())
   updatedAt                    DateTime                      @updatedAt
   businessSubscriptionFeatures BusinessSubscriptionFeature[]
+  billingPayments              BillingPayment[]
 
   @@index([businessId, status])
   @@map("business_subscriptions")
@@ -278,11 +279,15 @@ model BillingInvoice {
 
   // Phase 4 — external billing provider reference
   externalInvoiceId String? // e.g. Stripe invoice ID
+  
+  // Provider tracking for multi-provider support
+  providerName String? // "stripe", "manual", "paymongo", etc.
 
   dueAt  DateTime? // Payment due date
   paidAt DateTime? // When payment was confirmed
 
-  items BillingInvoiceItem[]
+  items           BillingInvoiceItem[]
+  billingPayments BillingPayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -452,4 +457,105 @@ model BusinessSubscriptionFeature {
   @@unique([subscriptionId, featureKey])
   @@index([subscriptionId])
   @@map("business_subscription_features")
+}
+
+// ---------------------------------------------------------------------------
+// PAYMENT ADAPTER ARCHITECTURE - Provider-Agnostic Payment System
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// BillingPayment — Universal payment record for billing/subscription payments
+// Tracks all billing payments regardless of provider (Stripe, Manual, PayMongo, etc.)
+// SEPARATE from POS Payment model which handles in-store transactions
+// ---------------------------------------------------------------------------
+model BillingPayment {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Provider identification (permanent, immutable)
+  provider      PaymentProvider // STRIPE, MANUAL, PAYMONGO, etc.
+  paymentMethod PaymentMethod2  // CARD, GCASH, MAYA, BANK_TRANSFER, etc.
+
+  // Payment details
+  amount   Int    // cents
+  currency String @default("PHP")
+  status   PaymentStatus
+
+  // Provider references
+  providerTransactionId String? // Stripe: pi_xxx, Manual: null
+  providerReference     String? // User-provided reference number for manual payments
+  providerMetadata      Json?   // Provider-specific data
+
+  // Relationships
+  subscriptionId String?
+  subscription   BusinessSubscription? @relation(fields: [subscriptionId], references: [id])
+  invoiceId      String?
+  invoice        BillingInvoice?       @relation(fields: [invoiceId], references: [id])
+
+  // Manual payment approval (if applicable)
+  requiresApproval Boolean   @default(false)
+  approvedAt       DateTime?
+  approvedById     String?
+  approvedBy       User?     @relation(fields: [approvedById], references: [id])
+  rejectedAt       DateTime?
+  rejectionReason  String?
+
+  // Audit
+  proofImageUrl String? @db.Text // For manual payments
+  notes         String? @db.Text
+  actorId       String? // User who initiated payment
+
+  // Payment attempts
+  attempts BillingPaymentAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, createdAt])
+  @@index([provider, status])
+  @@index([subscriptionId])
+  @@map("billing_payments")
+}
+
+// ---------------------------------------------------------------------------
+// BillingPaymentAttempt — Retry tracking for billing payments
+// ---------------------------------------------------------------------------
+model BillingPaymentAttempt {
+  id        String         @id @default(cuid())
+  paymentId String
+  payment   BillingPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  attemptNumber  Int       @default(1)
+  status         String    // PENDING, SUCCEEDED, FAILED
+  failureCode    String?
+  failureMessage String?
+
+  createdAt DateTime @default(now())
+
+  @@index([paymentId])
+  @@map("billing_payment_attempts")
+}
+
+// ---------------------------------------------------------------------------
+// WebhookEvent — Provider-agnostic webhook event tracking for idempotency
+// ---------------------------------------------------------------------------
+model WebhookEvent {
+  id         String          @id @default(cuid())
+  provider   PaymentProvider
+  externalId String          // Provider event ID
+  eventType  String          // Normalized event type
+  status     String          @default("RECEIVED") // RECEIVED, PROCESSED, SKIPPED, ERROR
+  rawPayload Json            // Full provider payload for replay
+  errorMessage String?
+  processedAt  DateTime?
+
+  businessId String? // Resolved after processing
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, externalId]) // Idempotency constraint
+  @@index([provider, status])
+  @@map("webhook_events")
 }

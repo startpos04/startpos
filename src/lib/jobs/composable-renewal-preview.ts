@@ -10,6 +10,7 @@
  *   3. Calls PricingEngine.validateGrandfatheredPrices to detect price changes
  *   4. If any feature prices have changed since the snapshot, emits a notification
  *      so the business can review before renewal
+ *   5. Uses PaymentProviderService to add provider-specific renewal guidance
  *
  * Idempotency:
  *   - Notifications are not re-sent if an unread notification for the same
@@ -17,19 +18,24 @@
  *
  * Architecture contract (ADR-001, ADR-009):
  *   - PricingEngine has zero infrastructure imports — receives data as DTOs.
- *   - This job is the infrastructure layer: fetches data, calls engine, persists output.
- *   - Receives rootPrisma as a parameter — no globals.
+ *   - Uses PaymentProviderRegistry to get provider-specific guidance
+ *   - This job is the infrastructure layer: fetches data, calls engines, persists output.
+ *   - Receives rootPrisma as parameter — no globals.
  *
  * Usage:
  *   const result = await runComposableRenewalPreviewJob(rootPrisma, { previewWindowDays: 7 })
  */
 
-import type { PrismaClient } from 'prisma/generated/prisma/client'
 import { createPricingCatalogRepositoryWithDeps } from '../billing/pricing/pricing-catalog-repository'
 import { PricingEngine } from '../billing/pricing/pricing-engine'
 import type { BusinessSubscriptionFeatureDTO } from '../billing/pricing/types'
+import { paymentProviderRegistry, type PaymentProviderId } from '../billing/payment-provider-registry'
+import '@/lib/billing/init-providers' // Ensure providers are registered
 import type { CapabilityKey } from '../entitlement/capability-keys'
+import { prisma } from '@/lib/prisma-client'
 import { type JobResult, jobError, jobSuccess } from './index'
+
+type PrismaClient = typeof prisma
 
 // ---------------------------------------------------------------------------
 // Job configuration
@@ -73,6 +79,8 @@ export async function runComposableRenewalPreviewJob(
         business: {
           select: {
             id: true,
+            name: true,
+            preferredPaymentProvider: true,
             members: {
               where: { role: 'ADMIN' },
               select: { userId: true },
@@ -146,6 +154,35 @@ export async function runComposableRenewalPreviewJob(
         continue
       }
 
+      // Get provider information for pricing change context
+      const providerId = sub.business.preferredPaymentProvider as PaymentProviderId
+      let providerGuidance = ''
+      
+      if (providerId) {
+        try {
+          const providerDisplayName = paymentProviderRegistry.getDisplayName(providerId)
+          const capabilities = paymentProviderRegistry.getCapabilities(providerId)
+          
+          switch (providerId) {
+            case 'stripe':
+              if (capabilities?.supportsRecurring) {
+                providerGuidance = ' Your payment method will be charged automatically at renewal.'
+              } else {
+                providerGuidance = ' Please ensure your payment method is up to date.'
+              }
+              break
+            case 'manual':
+              providerGuidance = ` Please prepare your manual payment before renewal.`
+              break
+            default:
+              providerGuidance = ` Payment will be processed via ${providerDisplayName}.`
+              break
+          }
+        } catch (error) {
+          warnings.push(`Business ${sub.businessId}: Failed to get provider guidance: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      }
+
       // Build notification message
       const changeList = notices
         .map(n => {
@@ -157,7 +194,7 @@ export async function runComposableRenewalPreviewJob(
       await prisma.notification.create({
         data: {
           title: 'Upcoming Pricing Changes at Renewal',
-          message: `Your subscription renews in ${config.previewWindowDays} days. The following features have pricing changes: ${changeList}. Review your plan at /billing/pricing.`,
+          message: `Your subscription renews in ${config.previewWindowDays} days. The following features have pricing changes: ${changeList}. Review your plan at /billing/pricing.${providerGuidance}`,
           type: 'SYSTEM_ALERT',
           priority: 'MEDIUM',
           isRead: false,
@@ -165,6 +202,7 @@ export async function runComposableRenewalPreviewJob(
           metadata: JSON.stringify({
             priceChangeCount: notices.length,
             renewalDate: sub.currentPeriodEnd?.toISOString(),
+            providerId,
           }),
           userId: adminMember.userId,
           businessId: sub.businessId,

@@ -20,9 +20,10 @@
  *   3. billing-invoice-generation  — must run AFTER usage-counter-reset
  *   4. pricing-quote-expiry        — independent; no ordering requirement
  *   5. composable-renewal-preview  — must run AFTER pricing-quote-expiry
+ *   6. subscription-renewal-reminders — provider-agnostic renewal reminders
  *
  *   Jobs 1–3 are sequential (3 depends on 2's output).
- *   Jobs 4–5 run after 1–3 but are also sequential (5 depends on 4).
+ *   Jobs 4–6 run after 1–3 but are independent of each other.
  *   The overall run is fail-fast per job: if a job returns outcome='error'
  *   it is recorded but subsequent jobs still run (non-fatal isolation).
  *
@@ -45,9 +46,11 @@ import { ConfigurationEngine } from '@/lib/configuration/configuration-engine'
 import type { JobResult } from '@/lib/jobs'
 import { runBillingInvoiceGenerationJob } from '@/lib/jobs/billing-invoice-generation'
 import { runComposableRenewalPreviewJob } from '@/lib/jobs/composable-renewal-preview'
+import { runSubscriptionRenewalRemindersJob } from '@/lib/jobs/subscription-renewal-reminders'
 import { runPricingQuoteExpiryJob } from '@/lib/jobs/pricing-quote-expiry'
 import { runSubscriptionLifecycleJob } from '@/lib/jobs/subscription-lifecycle'
 import { runUsageCounterResetJob } from '@/lib/jobs/usage-counter-reset'
+import '@/lib/billing/init-providers' // Ensure providers are registered
 import { prisma as rootPrisma } from '@/lib/prisma-client'
 
 // ---------------------------------------------------------------------------
@@ -142,6 +145,9 @@ export const Route = createFileRoute('/api/cron/daily/' as never)({
 
         // Job 5 — notify businesses about upcoming composable price changes
         results.push(await runComposableRenewalPreviewJob(rootPrisma, { previewWindowDays: 7 }))
+
+        // Job 6 — send general subscription renewal reminders
+        results.push(await runSubscriptionRenewalRemindersJob(rootPrisma, { reminderWindowDays: [7, 3, 1] }))
 
         // -------------------------------------------------------------------
         // 5. Summarise and respond

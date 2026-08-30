@@ -18,7 +18,7 @@ import { fetchPermissionAuditLog, fetchUsersWithPermissions, fetchAllPermissions
 import { AuditDetailsSidebar } from './audit/-components/audit-details-sidebar'
 import { AUDIT_ASIDE_ID, closeAuditSidebar, showAuditSidebar } from './audit/-components/audit-sidebar'
 import { Route } from './index'
-import type { AuditEntry } from './audit'
+import type { AuditEntry } from './-audit'
 
 export function AuditLogTab() {
   const { view = 'table', search = '', page = 1, pageSize = 20 } = useSearch({ from: '/(private)/(dashboard)/business/permissions/' })

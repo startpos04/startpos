@@ -4,35 +4,50 @@
  * /business/subscription/plans — Plan selection page.
  *
  * Handles two modes:
- *   - New subscriber (no active subscription): calls createSubscription.
+ *   - New subscriber (no active subscription): shows provider selection then calls createSubscription.
  *   - Existing subscriber (active plan): shows a change dialog with billing
  *     model selector, then calls changeSubscription.
  *
  * Architecture:
  *   - No price calculations in the component — prices come from DB via fetchPlans.
- *   - createSubscription handles first-time activation.
+ *   - Provider selection uses PaymentProviderService for business-level routing.
+ *   - createSubscription handles first-time activation with provider context.
  *   - changeSubscription handles all plan/model switching (immediate).
  *   - isCurrent is derived from authStore.entitlement.planId.
  */
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
-import { AlertTriangleIcon, ArrowLeftIcon, ArrowRightIcon, CheckIcon, CoinsIcon, LayersIcon, ServerIcon, SparklesIcon, ZapIcon } from 'lucide-react'
-import { useState } from 'react'
-import { toast } from 'sonner'
 import { GCashPaymentGuide } from '@/components/custom/gcash-payment-guide'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
+import { paymentProviderRegistry } from '@/lib/billing/payment-provider-registry'
+import { getEnabledProviderConfigs } from '@/lib/billing/provider-config'
 import { BillingModel } from '@/lib/billing/types'
 import { changeSubscription } from '@/lib/server-fn/change-subscription'
 import { createSubscription } from '@/lib/server-fn/create-subscription'
 import { fetchPlans, type PlanWithEntitlements } from '@/lib/server-fn/fetch-plans'
 import { cn } from '@/lib/utils'
 import { authStore } from '@/store/auth-store'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { useStore } from '@tanstack/react-store'
+import {
+  AlertTriangleIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  Banknote,
+  CheckIcon,
+  CoinsIcon,
+  CreditCardIcon,
+  LayersIcon,
+  ServerIcon,
+  SparklesIcon,
+  ZapIcon
+} from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/plans/')({
   component: PlansPage,
@@ -242,12 +257,137 @@ function ChangePlanDialog({ open, onOpenChange, plan, billingMethod, currentBill
 }
 
 // ---------------------------------------------------------------------------
+// Provider selection dialog
+// Shown when new subscribers need to choose a payment method
+// ---------------------------------------------------------------------------
+
+interface ProviderSelectionDialogProps {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  plan: PlanWithEntitlements
+  billingMethod: BillingMethod
+  onConfirm: (providerId: string) => void
+  isPending: boolean
+}
+
+function ProviderSelectionDialog({ 
+  open, 
+  onOpenChange, 
+  plan, 
+  billingMethod, 
+  onConfirm, 
+  isPending 
+}: ProviderSelectionDialogProps) {
+  const [selectedProvider, setSelectedProvider] = useState<string>('stripe')
+  const enabledProviders = getEnabledProviderConfigs()
+
+  const getProviderIcon = (providerId: string) => {
+    switch (providerId) {
+      case 'stripe':
+        return <CreditCardIcon className="h-5 w-5 text-blue-600" />
+      case 'manual':
+        return <Banknote className="h-5 w-5 text-green-600" />
+      default:
+        return <ZapIcon className="h-5 w-5 text-primary" />
+    }
+  }
+
+  const getProviderDescription = (providerId: string, config: any) => {
+    switch (providerId) {
+      case 'stripe':
+        return 'Credit/debit cards • Instant activation • Automatic billing'
+      case 'manual':
+        return `${config.paymentMethod} transfer • Admin approval within 24h • Manual billing`
+      default:
+        return 'Payment provider'
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Choose Payment Method</DialogTitle>
+          <DialogDescription>
+            Select how you'd like to pay for your {plan.name} plan
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          {enabledProviders.map(({ providerId, config }) => {
+            const registry = paymentProviderRegistry.getConfig(providerId)
+            const isSelected = selectedProvider === providerId
+
+            return (
+              <button
+                key={providerId}
+                type="button"
+                onClick={() => setSelectedProvider(providerId)}
+                className={cn(
+                  'w-full flex items-center justify-between rounded-lg border p-4 text-left transition-all',
+                  'hover:border-primary/60 hover:bg-primary/5',
+                  isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card',
+                )}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {getProviderIcon(providerId)}
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm">
+                      {registry?.displayName || providerId}
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {getProviderDescription(providerId, config)}
+                    </p>
+                    {registry?.badges?.map((badge) => (
+                      <Badge key={badge} variant="secondary" className="text-xs mt-1 mr-1">
+                        {badge}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <div className={cn(
+                    "w-4 h-4 rounded-full border-2 transition-colors",
+                    isSelected 
+                      ? "border-primary bg-primary" 
+                      : "border-muted-foreground"
+                  )}>
+                    {isSelected && (
+                      <CheckIcon className="w-2.5 h-2.5 text-primary-foreground m-0.5" />
+                    )}
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+          <p className="font-medium mb-1">💡 Payment Security</p>
+          <p>All payment methods use bank-level encryption. Your payment details are never stored on our servers.</p>
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            Cancel
+          </Button>
+          <Button onClick={() => onConfirm(selectedProvider)} disabled={isPending}>
+            {isPending ? 'Processing…' : 'Continue to Payment'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // PlansPage
 // ---------------------------------------------------------------------------
 
 function PlansPage() {
   const [billingMethod, setBillingMethod] = useState<BillingMethod>('monthly')
   const [selectingPlan, setSelectingPlan] = useState<PlanWithEntitlements | null>(null)
+  const [selectingProvider, setSelectingProvider] = useState<PlanWithEntitlements | null>(null)
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
 
   const { user } = useStore(authStore, state => state)
@@ -265,10 +405,11 @@ function PlansPage() {
 
   // First-time subscription (no active plan)
   const createMutation = useMutation({
-    mutationFn: (planId: string) =>
+    mutationFn: ({ planId, providerId }: { planId: string; providerId: string }) =>
       createSubscription({
         data: {
           planId,
+          providerId, // Pass the selected provider
           billingInterval: billingMethod === 'annual' ? 'annual' : 'monthly',
           billingModel: billingMethod === 'credits' ? 'PREPAID_CREDITS' : undefined,
         },
@@ -325,10 +466,21 @@ function PlansPage() {
       // Open the change dialog so user can pick billing method
       setSelectingPlan(plan)
     } else {
-      // First-time subscriber — go straight to checkout
-      setPendingPlanId(plan.id)
-      createMutation.mutate(plan.id)
+      // First-time subscriber — show provider selection first
+      setSelectingProvider(plan)
     }
+  }
+
+  const handleProviderSelect = (providerId: string) => {
+    if (!selectingProvider) return
+    
+    setPendingPlanId(selectingProvider.id)
+    setSelectingProvider(null)
+    
+    createMutation.mutate({ 
+      planId: selectingProvider.id, 
+      providerId 
+    })
   }
 
   const handleConfirmChange = (method: BillingMethod) => {
@@ -548,6 +700,20 @@ function PlansPage() {
           creditBalance={creditBalance}
           isPending={isPending}
           onConfirm={handleConfirmChange}
+        />
+      )}
+
+      {/* Provider selection dialog — only shown for new subscribers */}
+      {selectingProvider && (
+        <ProviderSelectionDialog
+          open={!!selectingProvider}
+          onOpenChange={v => {
+            if (!v) setSelectingProvider(null)
+          }}
+          plan={selectingProvider}
+          billingMethod={billingMethod}
+          onConfirm={handleProviderSelect}
+          isPending={isPending}
         />
       )}
     </div>

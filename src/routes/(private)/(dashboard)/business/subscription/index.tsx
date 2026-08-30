@@ -71,7 +71,7 @@ import { fetchTxAddonPackages } from '@/lib/server-fn/purchase-tx-addon'
 import Tab from '@/components/custom/tab'
 import { cn } from '@/lib/utils'
 
-import { authStore, refreshUser } from '@/store/auth-store'
+import { authStore, refreshUser, refreshAuthUser } from '@/store/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/')({
   component: () => (
@@ -148,12 +148,12 @@ function formatDate(iso: string | null | undefined): string {
 }
 
 // ---------------------------------------------------------------------------
-// BranchCreditsConsolidatedView
-// Shows consolidated view of branch credit balances across all branches
+// BranchTransactionQuotaView
+// Shows consolidated view of branch transaction quotas across all branches
 // Only shown when business owner has MANAGE_BRANCHES permission
 // ---------------------------------------------------------------------------
 
-function BranchCreditsConsolidatedView() {
+function BranchTransactionQuotaView() {
   const user = useStore(authStore, state => state.user)
   const canManageBranches = user?.entitlement?.capabilities?.includes('MANAGE_BRANCHES')
 
@@ -176,10 +176,10 @@ function BranchCreditsConsolidatedView() {
       <CardHeader className='pb-2'>
         <div className='flex items-center gap-2'>
           <GitBranchIcon className='h-4 w-4 text-muted-foreground' />
-          <CardTitle className='text-sm font-semibold'>Branch Credits</CardTitle>
+          <CardTitle className='text-sm font-semibold'>Branch Transaction Quota</CardTitle>
         </div>
         <CardDescription className='text-xs'>
-          Credits across {branchCount} branch{branchCount === 1 ? '' : 'es'}
+          Transactions across {branchCount} branch{branchCount === 1 ? '' : 'es'}
         </CardDescription>
       </CardHeader>
       <CardContent className='space-y-3'>
@@ -190,7 +190,7 @@ function BranchCreditsConsolidatedView() {
           </div>
         ) : !isSuccess ? (
           <p className='text-xs text-muted-foreground'>
-            Unable to load branch credit information
+            Unable to load branch quota information
           </p>
         ) : (
           <>
@@ -206,11 +206,11 @@ function BranchCreditsConsolidatedView() {
             
             {totalCredits === 0 ? (
               <p className='text-xs text-muted-foreground'>
-                No branch credits purchased yet
+                No prepaid transactions purchased yet
               </p>
             ) : (
               <p className='text-xs text-muted-foreground'>
-                Combined credits available for overflow transactions
+                Combined quota available for overflow transactions
               </p>
             )}
 
@@ -218,7 +218,7 @@ function BranchCreditsConsolidatedView() {
               <Button size='sm' variant='outline' className='w-full' asChild>
                 <Link to='/billing'>
                   <ZapIcon className='h-3 w-3 mr-1.5' />
-                  Manage branch credits
+                  Manage branch quota
                 </Link>
               </Button>
               
@@ -254,6 +254,7 @@ function SubscriptionDashboard() {
   // Create wrapper components for tabs
   const OverviewTabComponent = () => <OverviewTab />
   const InvoicesTabComponent = () => <InvoicesTab />
+  const PaymentMethodsTabComponent = () => <PaymentMethodsTab />
 
   const tabs = [
     { 
@@ -263,6 +264,10 @@ function SubscriptionDashboard() {
     { 
       label: 'Invoices', 
       Component: InvoicesTabComponent
+    },
+    { 
+      label: 'Payment Methods', 
+      Component: PaymentMethodsTabComponent
     },
   ]
 
@@ -291,6 +296,20 @@ function SubscriptionDashboard() {
 function OverviewTab() {
   const user = useStore(authStore, state => state.user)
   const entitlement = user?.entitlement
+
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await refreshAuthUser()
+      toast.success('Subscription details updated')
+    } catch (error) {
+      toast.error('Failed to refresh subscription details')
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   const status = entitlement?.status ?? SubscriptionStatus.TRIAL
   const badgeConfig = getStatusBadgeConfig(status)
@@ -325,10 +344,21 @@ function OverviewTab() {
                   <CardTitle className='text-lg'>Subscription Status</CardTitle>
                   <CardDescription>Your current plan and subscription period.</CardDescription>
                 </div>
-                <Badge variant='outline' className={cn('flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 shrink-0 w-fit', badgeConfig.className)}>
-                  {badgeConfig.icon}
-                  {badgeConfig.label}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="h-7 px-2"
+                  >
+                    <RefreshCwIcon className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+                  </Button>
+                  <Badge variant='outline' className={cn('flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 shrink-0 w-fit', badgeConfig.className)}>
+                    {badgeConfig.icon}
+                    {badgeConfig.label}
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
           <CardContent className='space-y-4'>
@@ -479,7 +509,8 @@ function OverviewTab() {
 // ---------------------------------------------------------------------------
 
 function InvoicesTab() {
-  // Mock invoice data - replace with actual invoice query
+  // TODO: Replace with actual invoice query from database
+  // Currently showing mock data for UI demonstration
   const mockInvoices = [
     {
       id: 'inv_001',
@@ -509,6 +540,10 @@ function InvoicesTab() {
       description: 'Monthly subscription - March 2024'
     }
   ]
+  
+  // Show empty state for new accounts instead of mock data
+  const hasRealInvoices = false // TODO: Check if business has actual invoices
+  const invoices = hasRealInvoices ? mockInvoices : []
 
   // Define columns for the invoices table
   const columns = [
@@ -623,7 +658,7 @@ function InvoicesTab() {
   return (
    <div className='px-4 flex flex-col grow'>
      <TableView
-      data={mockInvoices}
+      data={invoices}
       columns={columns}
       isFetching={false}
       emptyMessage="No invoices found. Invoices will appear here once you have active billing."
@@ -644,13 +679,19 @@ function SubscriptionSidebar() {
   const txRemaining = entitlement?.txRemaining
   const isUnlimited = txRemaining === null
   const billingModel = entitlement?.billingModel
+  const status = entitlement?.status
 
   // Derived billing model flags for card visibility
   const isCredits = billingModel === 'PREPAID_CREDITS'
   const isSubscription = billingModel === 'MONTHLY_SUBSCRIPTION' || billingModel === 'YEARLY_SUBSCRIPTION'
   const isHybrid = billingModel === 'HYBRID'
-  const showUsageCard = isSubscription || isHybrid || (!isCredits && !billingModel)
-  const showCreditsCard = isCredits || isHybrid
+  
+  // Show usage card for subscriptions, hybrid, and TRIAL (even though TRIAL uses PREPAID_CREDITS)
+  const showUsageCard = isSubscription || isHybrid || status === SubscriptionStatus.TRIAL || (!isCredits && !billingModel)
+  
+  // Only show credits card for actual PREPAID_CREDITS users (not TRIAL)
+  // TRIAL uses PREPAID_CREDITS billing model but should only show the usage card
+  const showCreditsCard = (isCredits || isHybrid) && status !== SubscriptionStatus.TRIAL
 
   return (
     <div className="space-y-4">
@@ -664,25 +705,39 @@ function SubscriptionSidebar() {
             </div>
             <CardDescription className='text-xs'>{periodEnd ? `Period ends ${formatDate(periodEnd)}` : 'Current billing period'}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className='space-y-3'>
             {isUnlimited ? (
-              <div className='space-y-0.5'>
-                <p className='text-2xl font-bold text-foreground'>Unlimited</p>
-                <p className='text-xs text-muted-foreground'>No transaction cap</p>
-              </div>
-            ) : (
-              <div className='space-y-1'>
-                <div className='flex items-end justify-between'>
-                  <p className={cn('text-2xl font-bold', txRemaining === 0 ? 'text-destructive' : 'text-foreground')}>
-                    {txRemaining !== null && txRemaining !== undefined ? txRemaining.toLocaleString() : '—'}
-                  </p>
-                  <p className='text-xs text-muted-foreground pb-1'>remaining</p>
+              <>
+                <div className='space-y-0.5'>
+                  <p className='text-2xl font-bold text-foreground'>Unlimited</p>
+                  <p className='text-xs text-muted-foreground'>No transaction cap</p>
                 </div>
-                {txRemaining === 0 && <p className='text-xs text-destructive font-medium'>Allowance exhausted — upgrade to continue.</p>}
-                {txRemaining !== null && txRemaining !== undefined && txRemaining > 0 && (
-                  <p className='text-xs text-muted-foreground'>Transactions available this period</p>
-                )}
-              </div>
+                <Button size='sm' variant='outline' className='w-full' asChild>
+                  <Link to='/transactions'>
+                    View history <ArrowRightIcon className='h-3 w-3 ml-1' />
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className='space-y-1'>
+                  <div className='flex items-end justify-between'>
+                    <p className={cn('text-2xl font-bold', txRemaining === 0 ? 'text-destructive' : 'text-foreground')}>
+                      {txRemaining !== null && txRemaining !== undefined ? txRemaining.toLocaleString() : '—'}
+                    </p>
+                    <p className='text-xs text-muted-foreground pb-1'>remaining</p>
+                  </div>
+                  {txRemaining === 0 && <p className='text-xs text-destructive font-medium'>Allowance exhausted — upgrade to continue.</p>}
+                  {txRemaining !== null && txRemaining !== undefined && txRemaining > 0 && (
+                    <p className='text-xs text-muted-foreground'>Transactions available this period</p>
+                  )}
+                </div>
+                <Button size='sm' variant='outline' className='w-full' asChild>
+                  <Link to='/transactions'>
+                    View history <ArrowRightIcon className='h-3 w-3 ml-1' />
+                  </Link>
+                </Button>
+              </>
             )}
           </CardContent>
         </Card>
@@ -692,10 +747,10 @@ function SubscriptionSidebar() {
         <Card>
           <CardHeader className='pb-2'>
             <div className='flex items-center gap-2'>
-              <CreditCardIcon className='h-4 w-4 text-muted-foreground' />
-              <CardTitle className='text-sm font-semibold'>Credits</CardTitle>
+              <ZapIcon className='h-4 w-4 text-muted-foreground' />
+              <CardTitle className='text-sm font-semibold'>Transaction Quota</CardTitle>
             </div>
-            <CardDescription className='text-xs'>1 credit = 1 transaction</CardDescription>
+            <CardDescription className='text-xs'>Prepaid transactions available</CardDescription>
           </CardHeader>
           <CardContent className='space-y-3'>
             {entitlement?.creditBalance !== null && entitlement?.creditBalance !== undefined ? (
@@ -704,12 +759,15 @@ function SubscriptionSidebar() {
                   <p className={cn('text-2xl font-bold tabular-nums', entitlement.creditBalance === 0 ? 'text-destructive' : 'text-foreground')}>
                     {entitlement.creditBalance.toLocaleString()}
                   </p>
-                  <p className='text-xs text-muted-foreground pb-1'>remaining</p>
+                  <p className='text-xs text-muted-foreground pb-1'>transactions</p>
                 </div>
-                {entitlement.creditBalance === 0 && <p className='text-xs text-destructive font-medium'>Depleted — purchase more to continue.</p>}
+                {entitlement.creditBalance === 0 && <p className='text-xs text-destructive font-medium'>Quota depleted — purchase more to continue.</p>}
+                {entitlement.creditBalance > 0 && (
+                  <p className='text-xs text-muted-foreground'>Available for overflow or prepaid billing</p>
+                )}
                 <Button size='sm' variant='outline' className='w-full' asChild>
                   <Link to='/business/subscription/credits'>
-                    View history <ArrowRightIcon className='h-3 w-3 ml-1' />
+                    View credit history <ArrowRightIcon className='h-3 w-3 ml-1' />
                   </Link>
                 </Button>
               </>
@@ -1149,5 +1207,116 @@ function GracePeriodPortalButton() {
       <CreditCardIcon className='h-4 w-4' />
       {portalMutation.isPending ? 'Opening…' : 'Update Payment Method'}
     </Button>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// PaymentMethodsTab - Payment method management
+// ---------------------------------------------------------------------------
+
+function PaymentMethodsTab() {
+  const user = useStore(authStore, state => state.user)
+  const preferredProvider = user?.business?.preferredPaymentProvider
+  
+  return (
+    <div className="h-full overflow-y-auto px-4 py-1">
+      <div className="max-w-4xl space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Payment Methods</h2>
+            <p className="text-sm text-muted-foreground">
+              Manage how you pay for subscriptions and services
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Current Payment Method</CardTitle>
+            <CardDescription>
+              The payment method used for your business subscription
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {preferredProvider ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <CreditCardIcon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium capitalize">
+                        {preferredProvider === 'manual' 
+                          ? 'Manual Payment' 
+                          : preferredProvider}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {preferredProvider === 'stripe' 
+                          ? 'Credit/debit cards with automatic processing'
+                          : 'Manual payments with admin approval'}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="default" className="bg-green-100 text-green-800">
+                    Active
+                  </Badge>
+                </div>
+                <div className="flex justify-end">
+                  <Button variant="outline" asChild>
+                    <Link to="/business/subscription/payment-methods">
+                      Manage Payment Methods
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <CreditCardIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No Payment Method Set</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Choose a payment method to manage your subscription
+                </p>
+                <Button asChild>
+                  <Link to="/business/subscription/payment-methods">
+                    Set Up Payment Method
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Additional payment information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Payment Options</CardTitle>
+            <CardDescription>
+              Available payment methods for your subscription
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-start gap-3 p-3 rounded-lg border">
+              <CreditCardIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium text-sm">Credit/Debit Card (Stripe)</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Automatic billing with instant activation. Securely processed via Stripe.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg border">
+              <MailIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium text-sm">Manual Payment</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Submit payment proof for admin review. Typically activated within 24 hours.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   )
 }

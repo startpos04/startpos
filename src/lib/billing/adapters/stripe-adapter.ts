@@ -25,7 +25,11 @@ import type {
   ProviderInvoice,
   WebhookEvent,
   WebhookEventType,
+  PaymentProviderId,
+  ProviderCapabilities,
 } from '../billing-provider'
+import { paymentProviderRegistry } from '../payment-provider-registry'
+import { loadProviderConfigs, isProviderEnabled } from '../provider-config'
 
 // ---------------------------------------------------------------------------
 // Stripe event types we handle
@@ -313,6 +317,38 @@ class StripeAdapter implements BillingProviderAdapter {
   }
 
   // -------------------------------------------------------------------------
+  // PAYMENT_ADAPTER_ARCHITECTURE Extensions
+  // -------------------------------------------------------------------------
+
+  /**
+   * Get provider capabilities
+   */
+  getCapabilities(): ProviderCapabilities {
+    return {
+      supportsAutomaticConfirmation: true,
+      supportsManualReview: false,
+      supportsWebhook: true,
+      supportsRefund: true,
+      supportsRecurring: true,
+      supportsCustomerPortal: true,
+    }
+  }
+
+  /**
+   * Get provider ID
+   */
+  getProviderId(): PaymentProviderId {
+    return 'stripe'
+  }
+
+  /**
+   * Get provider display name
+   */
+  getProviderName(): string {
+    return 'Stripe'
+  }
+
+  // -------------------------------------------------------------------------
   // normaliseStripeEvent (private)
   // -------------------------------------------------------------------------
   private normaliseStripeEvent(event: Stripe.Event): WebhookEvent {
@@ -409,3 +445,28 @@ export function getStripeWebhookSecret(): string {
 }
 
 export { HANDLED_STRIPE_EVENT_TYPES }
+
+// ---------------------------------------------------------------------------
+// Provider Registration
+// Register Stripe adapter with the payment provider registry
+// ---------------------------------------------------------------------------
+
+// Auto-register Stripe provider if enabled
+if (isProviderEnabled('stripe')) {
+  const config = loadProviderConfigs()
+  
+  paymentProviderRegistry.register('stripe', createStripeAdapter(), {
+    providerId: 'stripe',
+    displayName: 'Credit/Debit Card',
+    description: 'Instant activation with automatic monthly renewal via Stripe',
+    isEnabled: true,
+    requiresApproval: false,
+    gracePeriodDays: 0,
+    badges: ['Recommended', 'Instant Activation'],
+    displayOrder: 1,
+    config: {
+      ...config.stripe,
+      manageRoute: '/billing/portal',
+    },
+  })
+}

@@ -50,7 +50,7 @@ const PAYMENT_FAILURE_CONFIG = {
     dashboard: '/dashboard',
     billing: '/billing',
     subscription: '/subscription',
-    paymentMethods: '/billing/payment-methods',
+    paymentMethods: '/business/subscription/payment-methods',
     invoices: '/billing/invoices',
     notifications: '/notifications',
     pos: '/pos',

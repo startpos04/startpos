@@ -1,16 +1,21 @@
 /**
  * create-billing-portal-session.ts
  *
- * Server function: create a Stripe Billing Portal session for the current user.
+ * Server function: create a billing portal session for the current user.
  *
- * The portal is Stripe's hosted UI where customers can:
+ * The portal is a hosted UI where customers can:
  *   - Update their payment method (primary use case for GRACE_PERIOD)
  *   - View and download past invoices
  *   - Cancel or change their subscription
  *
+ * Provider support:
+ *   - Only available for providers that support customer portals
+ *   - Stripe: Full-featured billing portal
+ *   - Manual: Returns error (no portal available)
+ *
  * Customer ID resolution (in order):
  *   1. externalId on BusinessSubscription → retrieve subscription → get customer
- *   2. Fallback: search Stripe customers by the user's email
+ *   2. Fallback: search provider customers by the user's email
  *
  * The customer is returned to /billing after they finish in the portal.
  */
@@ -20,7 +25,7 @@ import Stripe from 'stripe'
 import { Permissions } from '../authorization/permission-keys'
 import { authMiddleware } from '../better-auth/auth-middleware'
 import { requirePermission } from '../better-auth/permission-middleware'
-import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
+import { getBillingAdapter } from '../billing/get-billing-adapter'
 import { prisma as rootPrisma } from '../prisma-client'
 
 export const createBillingPortalSession = createServerFn({ method: 'POST' })
@@ -69,7 +74,21 @@ export const createBillingPortalSession = createServerFn({ method: 'POST' })
         }
       }
 
-      const adapter = createStripeAdapter()
+      // Get the appropriate provider adapter for this business
+      const adapter = await getBillingAdapter(businessId)
+      if (!adapter) {
+        return { success: false as const, error: 'No billing provider available for this business.' }
+      }
+
+      // Check if the provider supports customer portals
+      const capabilities = adapter.getCapabilities()
+      if (!capabilities.supportsCustomerPortal) {
+        return {
+          success: false as const,
+          error: 'Customer portal is not available for your current payment method.',
+        }
+      }
+
       const session = await adapter.createCustomerPortalSession({
         externalCustomerId: customerId,
         returnUrl: `${appUrl}/billing`,

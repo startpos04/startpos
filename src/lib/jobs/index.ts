@@ -32,6 +32,11 @@
  *     Purpose: detect grandfathered price changes; notify businesses before renewal
  *     Dependencies: active PricingCatalog must exist (seeded in Phase 5)
  *
+ *   subscription-renewal-reminders  → src/lib/jobs/subscription-renewal-reminders.ts  [Phase 7]
+ *     Trigger: daily cron (runs independently)
+ *     Purpose: send provider-agnostic renewal reminders at configurable intervals
+ *     Dependencies: PaymentProviderRegistry for provider-specific guidance
+ *
  * Usage (server-side entry point, e.g. a cron endpoint):
  *   import { rootPrisma } from '@/lib/prisma-client'
  *   import { runSubscriptionLifecycleJob } from '@/lib/jobs/subscription-lifecycle'
@@ -44,6 +49,7 @@
  *   await runBillingInvoiceGenerationJob(rootPrisma, overagePolicy, stripeAdapter)
  *   await runPricingQuoteExpiryJob(rootPrisma)
  *   await runComposableRenewalPreviewJob(rootPrisma, { previewWindowDays: 7 })
+ *   await runSubscriptionRenewalRemindersJob(rootPrisma, { reminderWindowDays: [7, 3, 1] })
  */
 
 // ---------------------------------------------------------------------------
