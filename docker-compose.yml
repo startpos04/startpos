@@ -23,7 +23,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./prisma/models/ensure-database.sh:/ensure-database.sh:ro
+      - ./startpos-core/prisma/models/ensure-database.sh:/ensure-database.sh:ro
     entrypoint: ['/bin/sh', '/ensure-database.sh']
     depends_on:
       db:
@@ -42,7 +42,6 @@ services:
         condition: service_completed_successfully
     ports:
       - '${PUBLIC_PORT:-3200}:${PORT:-3000}'
-      - '51212:51212'
     env_file:
       - .env
     shm_size: '1gb'

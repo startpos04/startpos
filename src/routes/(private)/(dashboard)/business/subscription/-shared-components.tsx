@@ -32,22 +32,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+} from '@startpos-core/components/ui/alert-dialog'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@startpos-core/components/ui/dialog'
 import { SubscriptionPolicy } from '@/lib/billing/policies/subscription-policy'
 import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
-import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
+import { SubscriptionStatus } from '@startpos-core/lib/entitlement/entitlement-types'
 import MountManager, { type MountProps } from '@/lib/mount-manager'
 import { cancelSubscription } from '@/lib/server-fn/cancel-subscription'
 import { createBillingPortalSession } from '@/lib/server-fn/create-billing-portal-session'
-import { getAuthUser } from '@/lib/better-auth/auth-server'
+import { getAuthUser } from '@startpos-core/lib/better-auth/auth-server'
 import { type AddonCatalogItem, fetchAddonCatalog, purchaseAddonSubscription } from '@/lib/server-fn/purchase-addon-subscription'
 import { fetchTxAddonPackages } from '@/lib/server-fn/purchase-tx-addon'
-import { cn } from '@/lib/utils'
-import { authStore, refreshUser } from '@/lib/better-auth/auth-store'
+import { cn } from '@startpos-core/lib/utils'
+import { authStore, refreshUser } from '@startpos-core/lib/better-auth/auth-store'
 
 type BadgeConfig = {
   label: string

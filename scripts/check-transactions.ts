@@ -1,4 +1,4 @@
-import { prisma } from '../src/lib/prisma-client'
+import { prisma } from '../startpos-core/lib/prisma-client'
 
 async function checkTransactions() {
   try {

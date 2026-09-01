@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: TODO: fix */
 import type { ColumnHelper } from '@tanstack/react-table'
-import { Badge } from '@/components/ui/badge'
-import dayjs from '@/lib/dayjs'
-import { cn } from '@/lib/utils'
+import { Badge } from '@startpos-core/components/ui/badge'
+import dayjs from '@startpos-core/lib/dayjs'
+import { cn } from '@startpos-core/lib/utils'
 
 type EventConfig = { label: string; badgeClass: string }
 

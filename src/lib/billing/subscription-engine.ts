@@ -34,8 +34,8 @@
  *   const transition = SubscriptionEngine.buildTransitionRecord(snapshot, targetStatus, reason, triggeredBy)
  */
 
-import { SubscriptionStatus } from '../entitlement/entitlement-types'
-import { type OperationResult, opFail, opOk } from '../result'
+import { SubscriptionStatus } from '@startpos-core/lib/entitlement/entitlement-types'
+import { type OperationResult, opFail, opOk } from '@startpos-core/lib/result'
 import { SubscriptionPolicy } from './policies/subscription-policy'
 import { type BillingModel, type LifecycleThresholds, type StatusTransitionRecord, type SubscriptionSnapshot, TransitionTrigger } from './types'
 

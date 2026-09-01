@@ -1,5 +1,5 @@
 import { ArrowUpRight } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import type { TransactionReportStats } from '../-utils/calculate-stats'
 import type { TransactionReport } from '../-utils/fetch-transaction-reports'

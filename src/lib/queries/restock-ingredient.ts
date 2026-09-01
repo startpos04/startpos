@@ -7,12 +7,12 @@ import {
   productVariantCollection,
   purchaseCollection,
   purchaseItemCollection,
-} from '@/db/collections'
-import { dbTransaction } from '@/db/local-db-transaction'
+} from '@startpos-core/db/collections'
+import { dbTransaction } from '@startpos-core/db/local-db-transaction'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
-import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { sequenceAPI } from '@startpos-core/lib/prisma-client/sequence-api'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 import { fetchStructuredId } from './fetch-structured-id'
 
 export const restockSchema = z.object({

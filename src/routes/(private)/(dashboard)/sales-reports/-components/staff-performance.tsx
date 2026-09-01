@@ -1,7 +1,7 @@
 import { Users } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import { Avatar, AvatarFallback } from '@startpos-core/components/ui/avatar'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { Progress } from '@startpos-core/components/ui/progress'
 import type { TransactionReportStats } from '../-utils/calculate-stats'
 
 export function StaffPerformance({ stats }: { stats: TransactionReportStats }) {

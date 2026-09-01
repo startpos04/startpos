@@ -3,11 +3,11 @@ import { useStore } from '@tanstack/react-store'
 import { AlertCircleIcon, CheckCircleIcon, CircleDashedIcon, ExternalLinkIcon, XCircleIcon } from 'lucide-react'
 import { Role } from 'prisma/generated/prisma/enums'
 import * as React from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
 import { getComplianceAdapter } from '@/lib/compliance'
-import { cn } from '@/lib/utils'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { cn } from '@startpos-core/lib/utils'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 /**
  * RegistrationStatusCard

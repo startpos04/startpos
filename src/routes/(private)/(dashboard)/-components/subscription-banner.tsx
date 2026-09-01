@@ -22,9 +22,9 @@ import { Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { AlertTriangleIcon, ClockIcon, XCircleIcon } from 'lucide-react'
 import { SubscriptionPolicy } from '@/lib/billing/policies/subscription-policy'
-import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
-import { cn } from '@/lib/utils'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { SubscriptionStatus } from '@startpos-core/lib/entitlement/entitlement-types'
+import { cn } from '@startpos-core/lib/utils'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 // ---------------------------------------------------------------------------
 // Trial warning threshold — show the trial banner in the last N days

@@ -1,14 +1,14 @@
 import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { Toaster } from 'sonner'
-import { NavigationProgress } from '@/components/custom/navigation-progress'
-import { ThemeProvider } from '@/components/custom/theme/theme-provider'
-import { useSw } from '@/hooks/use-sw'
-import { getAuthUser } from '@/lib/better-auth/auth-server' // Import your server function
-import { APP_NAME } from '@/lib/constants'
+import { NavigationProgress } from '@startpos-core/components/custom/navigation-progress'
+import { ThemeProvider } from '@startpos-core/components/custom/theme/theme-provider'
+import { useSw } from '@startpos-core/hooks/use-sw'
+import { getAuthUser } from '@startpos-core/lib/better-auth/auth-server' // Import your server function
+import { APP_NAME } from '@startpos-core/lib/constants'
 import MountManager from '@/lib/mount-manager'
 import type { MyRouterContext } from '@/router'
-import { setUser } from '@/lib/better-auth/auth-store'
+import { setUser } from '@startpos-core/lib/better-auth/auth-store'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({

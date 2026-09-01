@@ -11,7 +11,7 @@
  * - Event routing to appropriate business logic
  */
 
-import { prisma } from '@/lib/prisma-client'
+import { prisma } from '@startpos-core/lib/prisma-client'
 import type { WebhookEvent, WebhookProcessingResult } from '@/lib/billing/billing-provider'
 import { WebhookOutcome } from '@/lib/billing/types'
 

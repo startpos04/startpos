@@ -27,13 +27,13 @@ import { ArrowRightIcon, BuildingIcon, CheckCircle2Icon, CrownIcon, GitBranchIco
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { getAuthUser } from '@/lib/better-auth/auth-server'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { Separator } from '@startpos-core/components/ui/separator'
+import { getAuthUser } from '@startpos-core/lib/better-auth/auth-server'
 import { purchaseAddonSubscription } from '@/lib/server-fn/purchase-addon-subscription'
-import { authStore, refreshUser } from '@/lib/better-auth/auth-store'
+import { authStore, refreshUser } from '@startpos-core/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/success/')({
   validateSearch: z.object({

@@ -25,7 +25,7 @@ import type {
   inventoryCollection as InventoryCollectionType,
   inventoryMovementCollection as MovementCollectionType,
   operationalTaskCollection as TaskCollectionType,
-} from '@/db/collections'
+} from '@startpos-core/db/collections'
 import { InventoryPolicy } from '@/lib/inventory/inventory-policy'
 import type { InventoryMode } from '@/lib/onboarding/types'
 import type { feTask } from '@/lib/queries/fetch-tasks'

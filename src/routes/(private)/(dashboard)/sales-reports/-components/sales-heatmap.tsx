@@ -1,6 +1,6 @@
 import { Timer } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
 import type { TransactionReportStats } from '../-utils/calculate-stats'
 
 export function SalesHeatmap({ stats }: { stats: TransactionReportStats }) {

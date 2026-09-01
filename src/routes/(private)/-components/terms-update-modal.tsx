@@ -22,12 +22,12 @@ import { useStore } from '@tanstack/react-store'
 import { FileText, Loader2, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@startpos-core/components/ui/button'
+import { Checkbox } from '@startpos-core/components/ui/checkbox'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@startpos-core/components/ui/dialog'
 import { acceptTerms } from '@/lib/server-fn/accept-terms'
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '@/lib/server-fn/complete-registration'
-import { authStore, refreshAuthUser } from '@/lib/better-auth/auth-store'
+import { authStore, refreshAuthUser } from '@startpos-core/lib/better-auth/auth-store'
 
 // ---------------------------------------------------------------------------
 // Version staleness check

@@ -2,15 +2,15 @@ import { createServerFn } from '@tanstack/react-start'
 import _ from 'lodash'
 import type { Prisma } from 'prisma/generated/prisma/client'
 import { type ComplianceKey, type ConfigurationKey, Role } from 'prisma/generated/prisma/enums'
-import { AuthorizationEngine } from '../authorization/authorization-engine'
-import { SubscriptionEngine } from '../billing/subscription-engine'
-import { BillingModel, type LifecycleThresholds } from '../billing/types'
-import { getComplianceAdapter, getComplianceIncludes } from '../compliance'
-import { Capabilities, type CapabilityKey } from '../entitlement/capability-keys'
-import { EntitlementEngine } from '../entitlement/entitlement-engine'
-import type { EntitlementOverrideDTO } from '../entitlement/entitlement-types'
-import { getTenantPrisma, prisma as rootPrisma } from '../prisma-client'
-import { ComplianceKeySchema, type ComplianceKeyTypes, ConfigKeySchema, type ConfigKeyTypes } from '../types'
+import { AuthorizationEngine } from '@startpos-core/lib/authorization/authorization-engine'
+import { SubscriptionEngine } from '../../../src/lib/billing/subscription-engine'
+import { BillingModel, type LifecycleThresholds } from '../../../src/lib/billing/types'
+import { getComplianceAdapter, getComplianceIncludes } from '../../../src/lib/compliance'
+import { Capabilities, type CapabilityKey } from '@startpos-core/lib/entitlement/capability-keys'
+import { EntitlementEngine } from '@startpos-core/lib/entitlement/entitlement-engine'
+import type { EntitlementOverrideDTO } from '@startpos-core/lib/entitlement/entitlement-types'
+import { getTenantPrisma, prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
+import { ComplianceKeySchema, type ComplianceKeyTypes, ConfigKeySchema, type ConfigKeyTypes } from '@startpos-core/lib/types'
 import { auth } from './auth'
 import { authMiddleware } from './auth-middleware'
 
@@ -266,7 +266,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       // Map Prisma SubscriptionStatus enum string to the TS const value.
       // Both are the same string values so a cast is safe; the domain layer
       // stays infrastructure-free by using its own const object.
-      const status = businessSubscription.status as import('../entitlement/entitlement-types').SubscriptionStatus
+      const status = businessSubscription.status as import('@startpos-core/lib/entitlement/entitlement-types').SubscriptionStatus
 
       const planFeatures = businessSubscription.plan.entitlements.map((e: { featureKey: string }) => e.featureKey as CapabilityKey)
 
@@ -382,7 +382,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
           })
 
           if (freshSubscription) {
-            const status = freshSubscription.status as import('../entitlement/entitlement-types').SubscriptionStatus
+            const status = freshSubscription.status as import('@startpos-core/lib/entitlement/entitlement-types').SubscriptionStatus
             const planFeatures = freshSubscription.plan.entitlements.map((e: { featureKey: string }) => e.featureKey as CapabilityKey)
             const usageLimits: Partial<Record<CapabilityKey, number>> = {}
             for (const e of freshSubscription.plan.entitlements) {
@@ -461,7 +461,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       ? {
           trialEndsAt: businessSubscription.trialEndsAt ?? null,
           currentPeriodEnd: businessSubscription.currentPeriodEnd ?? null,
-          billingModel: (businessSubscription.billingModel ?? null) as import('../entitlement/entitlement-types').BillingModelDomain | null,
+          billingModel: (businessSubscription.billingModel ?? null) as import('@startpos-core/lib/entitlement/entitlement-types').BillingModelDomain | null,
           cancelledAt: businessSubscription.cancelledAt ?? null,
           planId: businessSubscription.planId ?? null,
         }

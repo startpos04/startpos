@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
-import { Dashboard } from '@/components/custom/dashboard'
+import { Dashboard } from '@startpos-core/components/custom/dashboard'
 import { SubscriptionBanner } from './-components/subscription-banner'
 
 export const Route = createFileRoute('/(private)/(dashboard)')({

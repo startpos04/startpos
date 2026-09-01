@@ -10,8 +10,8 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { prisma as rootPrisma } from '../prisma-client'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from './complete-registration'
 
 export const acceptTerms = createServerFn({ method: 'POST' })

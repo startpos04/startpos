@@ -3,6 +3,7 @@ import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { nitro } from 'nitro/vite'
+import { resolve } from 'node:path'
 import type { Plugin } from 'vite'
 import { defineConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
@@ -102,6 +103,14 @@ const serverConfig = {
 }
 
 const config = defineConfig({
+  resolve: {
+    alias: [
+      {
+        find: /^@startpos-core\/(.*)/,
+        replacement: resolve(__dirname, 'startpos-core') + '/$1',
+      },
+    ],
+  },
   plugins: [
     crossOriginHeadersPlugin(), // must be first: enforce:'pre' + registration order
     viteTsConfigPaths({

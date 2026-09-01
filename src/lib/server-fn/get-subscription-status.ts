@@ -7,8 +7,8 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { authMiddleware } from '@/lib/better-auth/auth-middleware'
-import { prisma } from '@/lib/prisma-client'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { prisma } from '@startpos-core/lib/prisma-client'
 
 const getSubscriptionStatusSchema = z.object({
   subscriptionId: z.string(),

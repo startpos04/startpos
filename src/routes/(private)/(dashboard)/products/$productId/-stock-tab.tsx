@@ -4,8 +4,8 @@
  * Displays inventory levels per variant, batch, and location with expiry tracking
  */
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import dayjs from '@/lib/dayjs'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@startpos-core/components/ui/table'
+import dayjs from '@startpos-core/lib/dayjs'
 
 interface StockTabProps {
   product: any

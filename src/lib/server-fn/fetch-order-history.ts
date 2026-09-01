@@ -1,11 +1,11 @@
 import { createServerFn } from '@tanstack/react-start'
 import { OrderStatus, OrderType } from 'prisma/generated/prisma/enums'
 import z from 'zod'
-import { Permissions } from '@/lib/authorization/permission-keys'
-import { authMiddleware } from '@/lib/better-auth/auth-middleware'
-import { requirePermission } from '@/lib/better-auth/permission-middleware'
-import dayjs from '@/lib/dayjs'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
+import dayjs from '@startpos-core/lib/dayjs'
+import { crudAPI } from '@startpos-core/lib/prisma-client/crud-api'
 
 const PAGE_SIZE = 50
 

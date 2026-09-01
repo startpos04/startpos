@@ -9,10 +9,10 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
+import { crudAPI } from '@startpos-core/lib/prisma-client/crud-api'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
 import type { InvoiceSummaryDTO } from '../billing/types'
 
 const FetchInvoicesSchema = z.object({

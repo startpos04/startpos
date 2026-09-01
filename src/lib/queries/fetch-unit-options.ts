@@ -1,5 +1,5 @@
 import { useLiveQuery } from '@tanstack/react-db'
-import { unitCollection } from '@/db/collections'
+import { unitCollection } from '@startpos-core/db/collections'
 
 export const fetchUnitOptions = () => {
   const result = useLiveQuery(q => q.from({ unit: unitCollection }))

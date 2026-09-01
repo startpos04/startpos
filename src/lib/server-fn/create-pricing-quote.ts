@@ -20,14 +20,14 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
 import { createPricingCatalogRepositoryWithDeps } from '../billing/pricing/pricing-catalog-repository'
 import { PricingEngine } from '../billing/pricing/pricing-engine'
 import type { PricingConfig } from '../billing/pricing/types'
 import { PricingStrategy } from '../billing/pricing/types'
-import { prisma as rootPrisma } from '../prisma-client'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 
 // ---------------------------------------------------------------------------
 // Input schema
@@ -83,7 +83,7 @@ export const createPricingQuote = createServerFn({ method: 'POST' })
       data.promoDiscountPct > 0 ? PricingStrategy.PROMOTIONAL : PricingStrategy.FEATURE_BASED,
       {
         businessId,
-        selectedFeatureKeys: data.selectedFeatureKeys as import('../entitlement/capability-keys').CapabilityKey[],
+        selectedFeatureKeys: data.selectedFeatureKeys as import('@startpos-core/lib/entitlement/capability-keys').CapabilityKey[],
         branchCount: data.branchCount,
         requestAnnual: data.requestAnnual,
         promoDiscountPct: data.promoDiscountPct,
@@ -101,7 +101,7 @@ export const createPricingQuote = createServerFn({ method: 'POST' })
       calcResult.value,
       {
         businessId,
-        selectedFeatureKeys: data.selectedFeatureKeys as import('../entitlement/capability-keys').CapabilityKey[],
+        selectedFeatureKeys: data.selectedFeatureKeys as import('@startpos-core/lib/entitlement/capability-keys').CapabilityKey[],
         branchCount: data.branchCount,
         requestAnnual: data.requestAnnual,
         calculatedAt,

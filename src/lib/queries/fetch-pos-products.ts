@@ -9,8 +9,8 @@ import {
   productComponentCollection,
   productVariantCollection,
   unitCollection,
-} from '@/db/collections'
-import type { Prettify } from '../types'
+} from '@startpos-core/db/collections'
+import type { Prettify } from '@startpos-core/lib/types'
 
 export interface fetchPosProductsProps {
   searchQuery?: string | undefined

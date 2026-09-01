@@ -4,7 +4,7 @@
  * Displays tax breakdown, summary, and compliance data
  */
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@startpos-core/components/ui/table'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import type { TransactionHistoryItem } from '@/lib/server-fn/fetch-transaction-history'
 

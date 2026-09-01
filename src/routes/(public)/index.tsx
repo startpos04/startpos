@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import Loading from '@/components/custom/loading'
-import { authStore } from '@/lib/better-auth/auth-store'
+import Loading from '@startpos-core/components/custom/loading'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(public)/')({
   component: RouteComponent,

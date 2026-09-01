@@ -31,8 +31,8 @@ import { PricingEngine } from '../billing/pricing/pricing-engine'
 import type { BusinessSubscriptionFeatureDTO } from '../billing/pricing/types'
 import { paymentProviderRegistry, type PaymentProviderId } from '../billing/payment-provider-registry'
 import '@/lib/billing/init-providers' // Ensure providers are registered
-import type { CapabilityKey } from '../entitlement/capability-keys'
-import { prisma } from '@/lib/prisma-client'
+import type { CapabilityKey } from '@startpos-core/lib/entitlement/capability-keys'
+import { prisma } from '@startpos-core/lib/prisma-client'
 import { type JobResult, jobError, jobSuccess } from './index'
 
 type PrismaClient = typeof prisma

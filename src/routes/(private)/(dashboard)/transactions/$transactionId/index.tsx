@@ -5,24 +5,24 @@ import { AlertTriangle, Download, Receipt, RotateCcw, X } from 'lucide-react'
 import { TransactionType } from 'prisma/generated/prisma/enums'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
-import Tab from '@/components/custom/tab'
+import Tab from '@startpos-core/components/custom/tab'
 import MountManager from '@/lib/mount-manager'
-import { AlertPrompt } from '@/components/custom/prompt/alert-prompt'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { orderCollection, orderItemCollection, paymentCollection, transactionCollection, transactionTaxLineCollection, userCollection } from '@/db/collections'
-import { useIsOnline } from '@/hooks/use-is-online'
+import { AlertPrompt } from '@startpos-core/components/custom/prompt/alert-prompt'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@startpos-core/components/ui/dialog'
+import { orderCollection, orderItemCollection, paymentCollection, transactionCollection, transactionTaxLineCollection, userCollection } from '@startpos-core/db/collections'
+import { useIsOnline } from '@startpos-core/hooks/use-is-online'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import dayjs from '@/lib/dayjs'
-import { Capabilities } from '@/lib/entitlement/capability-keys'
+import dayjs from '@startpos-core/lib/dayjs'
+import { Capabilities } from '@startpos-core/lib/entitlement/capability-keys'
 import type { MountProps } from '@/lib/mount-manager'
 import { createPosRefund } from '@/lib/queries/create-pos-refund'
 import { downloadTransactionsCSV } from '@/lib/server-fn/download-tranasctions'
 import { fetchTransactionHistory, type TransactionHistoryItem } from '@/lib/server-fn/fetch-transaction-history'
-import { cn } from '@/lib/utils'
-import { downloadCsv } from '@/lib/utils/download-csv'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { cn } from '@startpos-core/lib/utils'
+import { downloadCsv } from '@startpos-core/lib/utils/download-csv'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 import { closeTransactionSidebar } from '../-components/transaction-sidebar'
 import { ItemsTab } from './-items-tab'
 import { PaymentsTab } from './-payments-tab'
@@ -203,7 +203,7 @@ function RouteComponent({ transaction: propTransaction, onClose }: RouteComponen
         snapshotBufferRate: ((transaction! as Record<string, unknown>)['snapshotBufferRate'] as number) ?? 0,
         priceConfiguration: ((transaction! as Record<string, unknown>)['priceConfiguration'] as string) ?? 'INCLUSIVE',
         invoiceType: ((transaction! as Record<string, unknown>)['invoiceType'] as string) ?? 'SALES_INVOICE',
-        complianceData: (transaction!.complianceData ?? {}) as unknown as import('@/lib/types').TransactionComplianceData,
+        complianceData: (transaction!.complianceData ?? {}) as unknown as import('@startpos-core/lib/types').TransactionComplianceData,
         payments: transaction!.payments.map(p => ({
           id: p.id,
           method: p.method,

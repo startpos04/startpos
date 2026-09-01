@@ -11,7 +11,7 @@
  * - No external API calls - all state managed in database
  */
 
-import dayjs from '@/lib/dayjs'
+import dayjs from '@startpos-core/lib/dayjs'
 import type {
   BillingProviderAdapter,
   CancelSubscriptionResult,
@@ -25,7 +25,7 @@ import type {
 } from '../billing-provider'
 import { paymentProviderRegistry } from '../payment-provider-registry'
 import { getProviderConfig } from '../provider-config'
-import { prisma } from '@/lib/prisma-client'
+import { prisma } from '@startpos-core/lib/prisma-client'
 
 export type ManualPaymentProviderConfig = {
   paymentMethod: 'GCASH' | 'BANK_TRANSFER' | 'MAYA'

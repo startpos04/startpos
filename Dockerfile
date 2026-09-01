@@ -29,7 +29,7 @@ ENV DEPLOYMENT_COUNTRY=PH
 # Generate Prisma schema and client from base files
 RUN pnpm run prisma:generate
 ENV NODE_ENV=development
-EXPOSE 3000 51212
+EXPOSE 3000
 CMD ["pnpm", "run", "dev:docker"]
 
 # ---------- Production build ----------

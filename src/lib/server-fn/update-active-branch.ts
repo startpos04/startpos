@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { getTenantPrisma } from '../prisma-client'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { getTenantPrisma } from '@startpos-core/lib/prisma-client'
 
 /**
  * updateActiveBranch

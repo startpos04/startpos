@@ -8,7 +8,7 @@
 import { Bluetooth, BluetoothConnected, DollarSign } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
+import { Button } from '@startpos-core/components/ui/button'
 import { BluetoothPrinter, getBluetoothPrinter } from '@/lib/bluetooth-printer'
 
 export function BluetoothPrinterControl() {

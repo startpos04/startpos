@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
 import type { InventoryData } from '..'
 
 export function LowStockAlert({ inventoryData }: { inventoryData: InventoryData }) {

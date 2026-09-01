@@ -12,8 +12,8 @@
  */
 
 import type { BillingPayment, BusinessSubscription, PaymentProvider, PaymentSyncStatus } from '@prisma/client'
-import { prisma } from '@/lib/prisma-client'
-import dayjs from '@/lib/dayjs'
+import { prisma } from '@startpos-core/lib/prisma-client'
+import dayjs from '@startpos-core/lib/dayjs'
 
 // ---------------------------------------------------------------------------
 // Types

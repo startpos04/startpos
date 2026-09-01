@@ -6,10 +6,10 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
-import { getTenantPrisma } from '../prisma-client'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
+import { getTenantPrisma } from '@startpos-core/lib/prisma-client'
 
 export const fetchBranchUsers = createServerFn({ method: 'POST' })
   .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_EMPLOYEES)])

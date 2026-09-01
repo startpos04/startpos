@@ -4,7 +4,7 @@
  * Displays line items for the order with product details, quantities, and prices
  */
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@startpos-core/components/ui/table'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import type { OrderHistoryItem } from '@/lib/server-fn/fetch-order-history'
 

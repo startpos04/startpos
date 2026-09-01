@@ -14,7 +14,7 @@
  * as plain DTOs via PricingEngine.calculate(). Returns a PricingResult.
  */
 
-import type { CapabilityKey } from '@/lib/entitlement/capability-keys'
+import type { CapabilityKey } from '@startpos-core/lib/entitlement/capability-keys'
 import type { PricingCatalogDTO, PricingConfig, PricingInput, QuoteLineItemDTO } from '../types'
 import { QuoteLineType } from '../types'
 import { PricingResultFactory } from '../value-objects/pricing-result'

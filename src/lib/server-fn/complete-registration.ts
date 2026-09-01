@@ -34,7 +34,7 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { authMiddleware } from '../better-auth/auth-middleware'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
 import { CreditEventType } from '../billing/credit-engine'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 import { BillingModel, type LifecycleThresholds } from '../billing/types'
@@ -45,7 +45,7 @@ import { suggestPlan } from '../onboarding/plan-advisor'
 import { classifyProfile } from '../onboarding/profile-classifier'
 import { extractRegistrationStatus, interpretSurvey } from '../onboarding/survey-interpreter'
 import type { SurveyAnswers } from '../onboarding/types'
-import { prisma as rootPrisma } from '../prisma-client'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 
 // ---------------------------------------------------------------------------
 // Input schema — v2 only (adaptive survey path)

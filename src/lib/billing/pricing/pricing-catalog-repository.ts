@@ -19,7 +19,7 @@
  */
 
 import type { PrismaClient } from 'prisma/generated/prisma/client'
-import type { CapabilityKey } from '@/lib/entitlement/capability-keys'
+import type { CapabilityKey } from '@startpos-core/lib/entitlement/capability-keys'
 import type { FeatureBundleVersionDTO, FeatureDependencyDTO, FeaturePriceDTO, PricingCatalogDTO, PricingCategory } from './types'
 
 // ---------------------------------------------------------------------------

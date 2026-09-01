@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: TODO: fix */
 import type { ColumnHelper } from '@tanstack/react-table'
 import { Clock } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { cn } from '@startpos-core/lib/utils'
 import type { CapabilityStateRow } from '@/lib/server-fn/fetch-capability-states'
 
 export const businessCapabilityCols = {

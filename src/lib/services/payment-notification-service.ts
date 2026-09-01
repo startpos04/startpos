@@ -22,9 +22,9 @@
  *   await paymentNotificationService.processScheduledNotifications()
  */
 
-import dayjs from '@/lib/dayjs'
+import dayjs from '@startpos-core/lib/dayjs'
 import type { BusinessSubscription } from 'prisma/generated/prisma/models'
-import { prisma } from '@/lib/prisma-client'
+import { prisma } from '@startpos-core/lib/prisma-client'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 import type { SubscriptionSnapshot } from '../billing/types'
 

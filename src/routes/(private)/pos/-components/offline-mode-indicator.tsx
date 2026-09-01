@@ -13,9 +13,9 @@
 import { useStore } from '@tanstack/react-store'
 import { AlertCircle, CheckCircle, WifiOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Card } from '@startpos-core/components/ui/card'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 export function OfflineModeIndicator() {
   const [isOffline, setIsOffline] = useState(false)

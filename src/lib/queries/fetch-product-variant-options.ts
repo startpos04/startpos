@@ -1,5 +1,5 @@
 import { eq, useLiveQuery } from '@tanstack/react-db'
-import { productCollection, productVariantCollection } from '@/db/collections'
+import { productCollection, productVariantCollection } from '@startpos-core/db/collections'
 
 export const fetchProductVariantOptions = () => {
   const result = useLiveQuery(q =>

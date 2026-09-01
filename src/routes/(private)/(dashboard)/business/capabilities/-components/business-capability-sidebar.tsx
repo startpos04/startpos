@@ -5,7 +5,7 @@
  */
 
 import type { ReactNode } from 'react'
-import { Aside } from '@/components/custom/aside'
+import { Aside } from '@startpos-core/components/custom/aside'
 import MountManager from '@/lib/mount-manager'
 
 export const BUSINESS_CAPABILITY_ASIDE_ID = 'business-capability-aside'

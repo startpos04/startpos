@@ -11,10 +11,10 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { Permissions } from '@/lib/authorization/permission-keys'
-import { authMiddleware } from '@/lib/better-auth/auth-middleware'
-import { requirePermission } from '@/lib/better-auth/permission-middleware'
-import { prisma as rootPrisma } from '@/lib/prisma-client'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 
 export const CreateBranchInputSchema = z.object({
   name: z.string().min(1).max(100),

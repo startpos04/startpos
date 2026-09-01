@@ -1,10 +1,10 @@
 import { useSearch } from '@tanstack/react-router'
 import { ReceiptText } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
 import MountManager from '@/lib/mount-manager'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
-import { getQueryClient } from '@/lib/query-client'
+import { getQueryClient } from '@startpos-core/lib/query-client'
 import { ActiveOrdersDialog } from '../../orders'
 
 export const ActiveOrdersButton = () => {

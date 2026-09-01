@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Aside } from '@/components/custom/aside'
+import { Aside } from '@startpos-core/components/custom/aside'
 import MountManager from '@/lib/mount-manager'
 
 export const ORDER_HISTORY_ASIDE_ID = 'order-history-aside'

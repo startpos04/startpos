@@ -1,9 +1,9 @@
 import { and, eq, gte, lte, not, toArray, useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, redirect, useNavigate, useSearch } from '@tanstack/react-router'
 import { Download, PackageCheck } from 'lucide-react'
-import { type DateRange, DateRangeInput } from '@/components/custom/form/date-rage-input'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { type DateRange, DateRangeInput } from '@startpos-core/components/custom/form/date-rage-input'
+import { Button } from '@startpos-core/components/ui/button'
+import { ScrollArea } from '@startpos-core/components/ui/scroll-area'
 import {
   categoryCollection,
   inventoryCollection,
@@ -12,10 +12,10 @@ import {
   productVariantCollection,
   unitCollection,
   userCollection,
-} from '@/db/collections'
-import dayjs from '@/lib/dayjs'
+} from '@startpos-core/db/collections'
+import dayjs from '@startpos-core/lib/dayjs'
 import { downloadInventoryCsv } from '@/lib/server-fn/download-inventory'
-import { downloadCsv } from '@/lib/utils/download-csv'
+import { downloadCsv } from '@startpos-core/lib/utils/download-csv'
 import { ActiveBatches } from './-components/active-batches'
 import { InventoryHealth } from './-components/inventory-health'
 import { LowStockAlert } from './-components/low-stock-alert'
@@ -98,8 +98,8 @@ export const fetchInventoryReports = (from?: string | Date, to?: string | Date) 
 export type FetchInventoryReportsReturn = ReturnType<typeof fetchInventoryReports>
 export type InventoryData = NonNullable<FetchInventoryReportsReturn['data']>
 
-import { Capabilities } from '@/lib/entitlement/capability-keys'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { Capabilities } from '@startpos-core/lib/entitlement/capability-keys'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/inventory-reports/')({
   beforeLoad: () => {

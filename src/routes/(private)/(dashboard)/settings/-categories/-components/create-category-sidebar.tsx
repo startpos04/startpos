@@ -1,11 +1,11 @@
 import { Plus, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { categoryCollection } from '@/db/collections'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { Button } from '@startpos-core/components/ui/button'
+import { Input } from '@startpos-core/components/ui/input'
+import { Label } from '@startpos-core/components/ui/label'
+import { categoryCollection } from '@startpos-core/db/collections'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 import { closeCategorySidebar } from './category-sidebar'
 
 export function CreateCategorySidebar() {

@@ -14,8 +14,8 @@
  *   const eligible = PlanEngine.upgradeOptions(currentPlanSortOrder, plans)
  */
 
-import { SubscriptionStatus } from '../entitlement/entitlement-types'
-import { type OperationResult, opFail, opOk } from '../result'
+import { SubscriptionStatus } from '@startpos-core/lib/entitlement/entitlement-types'
+import { type OperationResult, opFail, opOk } from '@startpos-core/lib/result'
 import { SubscriptionStatusVO } from './value-objects/subscription-status'
 
 // ---------------------------------------------------------------------------

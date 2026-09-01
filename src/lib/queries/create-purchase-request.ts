@@ -20,12 +20,12 @@
  */
 
 import { PurchaseStatus, Role, SequenceType } from 'prisma/generated/prisma/enums'
-import { auditLogCollection, membershipCollection, purchaseCollection, purchaseItemCollection } from '@/db/collections'
-import { dbTransaction } from '@/db/local-db-transaction'
+import { auditLogCollection, membershipCollection, purchaseCollection, purchaseItemCollection } from '@startpos-core/db/collections'
+import { dbTransaction } from '@startpos-core/db/local-db-transaction'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
-import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { sequenceAPI } from '@startpos-core/lib/prisma-client/sequence-api'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 import { type CreatePurchaseInput, createPurchaseSchema } from './create-purchase'
 import { fetchStructuredId } from './fetch-structured-id'
 

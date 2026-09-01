@@ -16,7 +16,7 @@
 
 import { ChevronDownIcon, ChevronUpIcon, SmartphoneIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@startpos-core/components/ui/collapsible'
 
 const DISMISSED_KEY = 'gcash_guide_dismissed'
 

@@ -23,8 +23,8 @@
  *   const quote = PricingEngine.generateQuote(result, input)
  */
 
-import type { CapabilityKey } from '@/lib/entitlement/capability-keys'
-import { type OperationResult, opFail, opOk } from '@/lib/result'
+import type { CapabilityKey } from '@startpos-core/lib/entitlement/capability-keys'
+import { type OperationResult, opFail, opOk } from '@startpos-core/lib/result'
 import { EnterprisePricingStrategy } from './strategies/enterprise-pricing-strategy'
 import { FeatureBasedPricingStrategy } from './strategies/feature-based-pricing-strategy'
 import { type FlatSubscriptionInput, FlatSubscriptionPricingStrategy } from './strategies/flat-subscription-pricing-strategy'

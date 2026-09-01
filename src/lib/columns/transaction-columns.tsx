@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: TODO: fix */
 import type { ColumnHelper } from '@tanstack/react-table'
 import type { PaymentMethod, TransactionType } from 'prisma/generated/prisma/enums'
-import { Badge } from '@/components/ui/badge'
-import dayjs from '@/lib/dayjs'
+import { Badge } from '@startpos-core/components/ui/badge'
+import dayjs from '@startpos-core/lib/dayjs'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 
 const TYPE_LABELS: Record<TransactionType, string> = {

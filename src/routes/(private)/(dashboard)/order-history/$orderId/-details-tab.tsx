@@ -6,9 +6,9 @@
 
 import { Receipt } from 'lucide-react'
 import type { OrderStatus, OrderType, PaymentMethod } from 'prisma/generated/prisma/enums'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@startpos-core/components/ui/badge'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import dayjs from '@/lib/dayjs'
+import dayjs from '@startpos-core/lib/dayjs'
 import type { OrderHistoryItem } from '@/lib/server-fn/fetch-order-history'
 
 interface DetailsTabProps {

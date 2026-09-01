@@ -1,8 +1,8 @@
 import { useLiveQuery } from '@tanstack/react-db'
 import { useMemo } from 'react'
-import { getColumns } from '@/components/custom/data-view'
-import { MultiView } from '@/components/custom/data-view/multi-view'
-import { locationCollection } from '@/db/collections'
+import { getColumns } from '@startpos-core/components/custom/data-view'
+import { MultiView } from '@startpos-core/components/custom/data-view/multi-view'
+import { locationCollection } from '@startpos-core/db/collections'
 
 export function LocationsPage() {
   const { data, isLoading } = useLiveQuery(q => q.from({ location: locationCollection }))

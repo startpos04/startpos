@@ -3,12 +3,12 @@ import { BadgeCheck, Save, UserCircle } from 'lucide-react'
 import { Role } from 'prisma/generated/prisma/enums'
 import type { ReactNode } from 'react'
 import z from 'zod'
-import { ImageInput } from '@/components/custom/form/image-input'
-import { SelectInput } from '@/components/custom/form/select-input'
-import { TextInput } from '@/components/custom/form/text-input'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { userCollection } from '@/db/collections'
+import { ImageInput } from '@startpos-core/components/custom/form/image-input'
+import { SelectInput } from '@startpos-core/components/custom/form/select-input'
+import { TextInput } from '@startpos-core/components/custom/form/text-input'
+import { Button } from '@startpos-core/components/ui/button'
+import { Separator } from '@startpos-core/components/ui/separator'
+import { userCollection } from '@startpos-core/db/collections'
 
 interface CreateAccountProps {
   defaultValues: CreateAccountFormData

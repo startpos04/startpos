@@ -21,11 +21,11 @@
 import type { SubscriptionStatus as SubscriptionStatusEnum } from 'prisma/generated/prisma/enums'
 import type { WebhookEvent, WebhookProcessingResult } from '@/lib/billing/billing-provider'
 import { WebhookOutcome, TransitionTrigger } from '@/lib/billing/types'
-import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
+import { SubscriptionStatus } from '@startpos-core/lib/entitlement/entitlement-types'
 import { SubscriptionEngine } from '@/lib/billing/subscription-engine'
 import { CreditEngine, CreditEventType } from '@/lib/billing/credit-engine'
 import { advancePaymentService } from '@/lib/billing/advance-payment-service'
-import { prisma } from '@/lib/prisma-client'
+import { prisma } from '@startpos-core/lib/prisma-client'
 import type { WebhookEventHandler } from './shared-handlers'
 
 // ---------------------------------------------------------------------------

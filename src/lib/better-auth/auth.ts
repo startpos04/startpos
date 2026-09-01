@@ -4,7 +4,7 @@ import { emailOTP } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { Role } from 'prisma/generated/prisma/enums'
 import { Resend } from 'resend'
-import { prisma } from '../prisma-client'
+import { prisma } from '@startpos-core/lib/prisma-client'
 
 const apiKey = process.env['RESEND_API_KEY']
 console.log('[auth.ts] RESEND_API_KEY present:', !!apiKey, `${apiKey?.slice(0, 10)}...`)

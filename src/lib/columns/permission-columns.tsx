@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: TODO: fix */
 import type { ColumnHelper } from '@tanstack/react-table'
 import { Shield, ShieldCheck, Users } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@startpos-core/components/ui/badge'
 import type { PermissionWithEmployees } from '@/lib/queries/permission-management'
 
 export const permissionCols = {

@@ -6,8 +6,8 @@
  */
 
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
-import { Permissions } from '@/lib/authorization/permission-keys'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing')({
   beforeLoad: ({ context }) => {

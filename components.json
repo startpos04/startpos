@@ -13,11 +13,11 @@
   "iconLibrary": "lucide",
   "rtl": false,
   "aliases": {
-    "components": "@/components",
-    "utils": "@/lib/utils",
-    "ui": "@/components/ui",
+    "components": "@startpos-core/components",
+    "utils": "@startpos-core/lib/utils",
+    "ui": "@startpos-core/components/ui",
     "lib": "@/lib",
-    "hooks": "@/hooks"
+    "hooks": "@startpos-core/hooks"
   },
   "menuColor": "default",
   "menuAccent": "subtle",

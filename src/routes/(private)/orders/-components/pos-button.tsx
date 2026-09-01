@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { ShoppingCart } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@startpos-core/components/ui/button'
 
 export const PosButton = () => {
   const navigate = useNavigate({ from: '/orders/' })

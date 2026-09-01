@@ -1,4 +1,4 @@
-import dayjs from '@/lib/dayjs'
+import dayjs from '@startpos-core/lib/dayjs'
 import type { TransactionReport } from './fetch-transaction-reports'
 
 export const calculateStats = (transactions: TransactionReport[]) => {

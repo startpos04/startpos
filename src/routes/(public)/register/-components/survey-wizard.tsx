@@ -24,9 +24,9 @@
 
 import { ChevronLeft, Loader2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
 import {
   Q1_OPTIONS,
   Q2_OPTIONS,
@@ -50,7 +50,7 @@ import {
   Q12_OPTIONS,
   type SurveyAnswers,
 } from '@/lib/onboarding/types'
-import { cn } from '@/lib/utils'
+import { cn } from '@startpos-core/lib/utils'
 
 // ---------------------------------------------------------------------------
 // Types

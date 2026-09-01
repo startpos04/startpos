@@ -17,7 +17,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { Resend } from 'resend'
 import { z } from 'zod'
-import { prisma } from '../prisma-client'
+import { prisma } from '@startpos-core/lib/prisma-client'
 
 const OTP_LENGTH = 6
 const OTP_EXPIRES_IN_SECONDS = 600 // 10 minutes

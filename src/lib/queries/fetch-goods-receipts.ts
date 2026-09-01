@@ -16,7 +16,7 @@ import {
   productVariantCollection,
   unitCollection,
   userCollection,
-} from '@/db/collections'
+} from '@startpos-core/db/collections'
 
 export const fetchGoodsReceipts = (purchaseId: string) => {
   const result = useLiveQuery(q =>

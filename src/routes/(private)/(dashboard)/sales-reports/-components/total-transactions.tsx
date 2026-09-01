@@ -1,5 +1,5 @@
 import { ShoppingCart } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
 import type { TransactionReport } from '../-utils/fetch-transaction-reports'
 
 export function TotalTransactions({ transactions }: { transactions: TransactionReport[] }) {

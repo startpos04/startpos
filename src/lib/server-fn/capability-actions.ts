@@ -10,11 +10,11 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requireCapability } from '../better-auth/entitlement-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
-import { Capabilities } from '../entitlement/capability-keys'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requireCapability } from '@startpos-core/lib/better-auth/entitlement-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
+import { Capabilities } from '@startpos-core/lib/entitlement/capability-keys'
 import type { ControlResult } from '../evolution/capability-control'
 import { accept, correctCharacteristic, dismiss, enable, pause, restore } from '../evolution/capability-control'
 import type { BusinessCharacteristics } from '../onboarding/types'

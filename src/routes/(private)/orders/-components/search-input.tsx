@@ -2,7 +2,7 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 import _ from 'lodash'
 import { Search } from 'lucide-react'
 import { type ChangeEvent, useCallback } from 'react'
-import { Input } from '@/components/ui/input'
+import { Input } from '@startpos-core/components/ui/input'
 
 export const SearchInput = () => {
   const { search: searchQuery } = useSearch({ from: '/(private)/pos/' })

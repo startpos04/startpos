@@ -1,5 +1,5 @@
 import { eq, useLiveQuery } from '@tanstack/react-db'
-import { operationalTaskCollection, userCollection } from '@/db/collections'
+import { operationalTaskCollection, userCollection } from '@startpos-core/db/collections'
 
 export const fetchTasks = (taskId?: string | null) => {
   const result = useLiveQuery(

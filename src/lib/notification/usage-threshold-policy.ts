@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { safeJsonParse, safeJsonStringify } from '@/lib/json-utils'
+import { safeJsonParse, safeJsonStringify } from '@startpos-core/lib/json-utils'
 
 /**
  * usage-threshold-policy.ts

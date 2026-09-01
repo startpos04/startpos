@@ -16,7 +16,7 @@
  *   - Works with offline-first collections
  */
 
-import { type OperationResult, opFail, opOk } from '../result'
+import { type OperationResult, opFail, opOk } from '@startpos-core/lib/result'
 import type { UsageCounterSnapshot } from './types'
 
 // ---------------------------------------------------------------------------

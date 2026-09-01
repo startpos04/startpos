@@ -7,7 +7,7 @@
  * Public — no auth required. Uses coreAPI (platform-level, no tenant scope).
  */
 
-import { coreAPI } from '@/lib/prisma-client/core-api'
+import { coreAPI } from '@startpos-core/lib/prisma-client/core-api'
 
 export type PlanWithEntitlements = {
   id: string

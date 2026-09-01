@@ -13,8 +13,8 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { prisma as rootPrisma } from '../prisma-client'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 
 export const revokeSession = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])

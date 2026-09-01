@@ -15,13 +15,13 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
-import { ConfigurationEngine } from '../configuration/configuration-engine'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
+import { ConfigurationEngine } from '@startpos-core/lib/configuration/configuration-engine'
 import { HintEngine } from '../hint/hint-engine'
 import type { HintDTO, HintLogDTO } from '../hint/hint-types'
-import { prisma as rootPrisma } from '../prisma-client'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 
 const DEFAULT_HINT_FREQUENCY_DAYS = 1
 

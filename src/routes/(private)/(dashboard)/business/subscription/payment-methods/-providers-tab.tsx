@@ -5,9 +5,9 @@
  */
 
 import { CheckCircleIcon, ZapIcon } from 'lucide-react'
-import { TableView } from '@/components/custom/data-view/table-view'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { TableView } from '@startpos-core/components/custom/data-view/table-view'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
 import { paymentProviderRegistry } from '@/lib/billing/payment-provider-registry'
 import { getEnabledProviderConfigs } from '@/lib/billing/provider-config'
 

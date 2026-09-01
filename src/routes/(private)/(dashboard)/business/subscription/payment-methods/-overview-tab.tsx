@@ -16,12 +16,12 @@ import {
   ZapIcon
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
 import { paymentProviderRegistry } from '@/lib/billing/payment-provider-registry'
 import { getEnabledProviderConfigs } from '@/lib/billing/provider-config'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 export function OverviewTab() {
   const navigate = useNavigate()

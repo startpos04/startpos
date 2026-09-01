@@ -4,8 +4,8 @@
  * Displays which products use this ingredient and the quantity/cost per recipe
  */
 
-import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@startpos-core/components/ui/table'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 
 interface RecipesTabProps {

@@ -1,5 +1,5 @@
 import { useLiveQuery } from '@tanstack/react-db'
-import { branchCollection } from '@/db/collections'
+import { branchCollection } from '@startpos-core/db/collections'
 
 export const fetchBranchOptions = () => {
   const result = useLiveQuery(q => q.from({ branch: branchCollection }))

@@ -11,9 +11,9 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
-import Tab from '@/components/custom/tab'
-import { RequirePermission } from '@/components/custom/guards/require-permission'
-import { Permissions } from '@/lib/authorization/permission-keys'
+import Tab from '@startpos-core/components/custom/tab'
+import { RequirePermission } from '@startpos-core/components/custom/guards/require-permission'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
 import { OverviewTab } from './-overview-tab'
 import { InvoicesTab } from './-invoices-tab'
 import { PaymentMethodsTab } from './-payment-methods-tab'

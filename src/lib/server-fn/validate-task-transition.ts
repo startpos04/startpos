@@ -55,8 +55,8 @@
 import { createServerFn } from '@tanstack/react-start'
 import { TaskStatus } from 'prisma/generated/prisma/enums'
 import { checkWorkflowPermission } from '../../routes/(private)/tasks/$taskId/-components/task-workflow'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { getTenantPrisma } from '../prisma-client'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { getTenantPrisma } from '@startpos-core/lib/prisma-client'
 
 // ---------------------------------------------------------------------------
 // Input / Output types

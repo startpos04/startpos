@@ -6,11 +6,11 @@ import {
   operationalTaskCollection,
   productCollection,
   productVariantCollection,
-} from '@/db/collections'
-import { dbTransaction } from '@/db/local-db-transaction'
+} from '@startpos-core/db/collections'
+import { dbTransaction } from '@startpos-core/db/local-db-transaction'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
-import { safeJsonStringify } from '@/lib/json-utils'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { safeJsonStringify } from '@startpos-core/lib/json-utils'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 import { type NotificationMetadata, NotificationMetadataSchema } from './notification-types'
 import type { ThresholdSeverity, UsageNotificationResult } from './usage-notification-types'
 

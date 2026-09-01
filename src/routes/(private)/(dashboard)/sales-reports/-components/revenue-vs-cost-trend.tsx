@@ -1,6 +1,6 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import dayjs from '@/lib/dayjs'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import dayjs from '@startpos-core/lib/dayjs'
 import type { TransactionReportStats } from '../-utils/calculate-stats'
 
 export function RevenueVsCostTrend({ stats }: { stats: TransactionReportStats }) {

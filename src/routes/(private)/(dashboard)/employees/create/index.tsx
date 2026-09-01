@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
+import { Button } from '@startpos-core/components/ui/button'
 import { createEmployee } from '@/lib/server-fn/create-employee'
 import { closeEmployeeSidebar } from '../-components/employee-sidebar'
 import { CreateAccount, type CreateAccountFormData } from './-create-account'

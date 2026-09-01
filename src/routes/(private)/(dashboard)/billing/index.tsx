@@ -8,7 +8,7 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
-import Tab from '@/components/custom/tab'
+import Tab from '@startpos-core/components/custom/tab'
 import MountManager from '@/lib/mount-manager'
 import { OverviewTab } from './-overview-tab'
 import { HistoryTab } from './-history-tab'

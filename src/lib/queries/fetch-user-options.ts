@@ -1,5 +1,5 @@
 import { useLiveQuery } from '@tanstack/react-db'
-import { userCollection } from '@/db/collections'
+import { userCollection } from '@startpos-core/db/collections'
 
 export const fetchUserOptions = () => {
   const result = useLiveQuery(q => q.from({ user: userCollection }))

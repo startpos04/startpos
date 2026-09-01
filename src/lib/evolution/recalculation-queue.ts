@@ -240,7 +240,7 @@ interface PrismaClientLike {
 // Singleton — swap in tests with NoOpRecalculationQueue
 // ---------------------------------------------------------------------------
 
-import { prisma as rootPrisma } from '../prisma-client'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 
 /**
  * The global recalculation queue singleton.

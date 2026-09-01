@@ -1,4 +1,4 @@
-import { ThemeToggle } from '@/components/custom/theme/theme-toggle'
+import { ThemeToggle } from '@startpos-core/components/custom/theme/theme-toggle'
 import { PosButton } from './pos-button'
 import { ProfileDropdown } from './profile-dropdown'
 import Title from './title'

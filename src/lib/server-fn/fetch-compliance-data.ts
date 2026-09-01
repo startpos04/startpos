@@ -15,7 +15,7 @@
  */
 
 import { z } from 'zod'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
+import { crudAPI } from '@startpos-core/lib/prisma-client/crud-api'
 
 // ---------------------------------------------------------------------------
 // Input schema

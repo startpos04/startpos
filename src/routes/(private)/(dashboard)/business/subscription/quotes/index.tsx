@@ -17,13 +17,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowLeftIcon, ArrowRightIcon, CheckCircle2Icon, ClockIcon, FileTextIcon, RefreshCwIcon, XCircleIcon } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { Skeleton } from '@startpos-core/components/ui/skeleton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@startpos-core/components/ui/table'
 import { fetchPricingQuotes } from '@/lib/server-fn/fetch-pricing-quotes'
-import { cn } from '@/lib/utils'
+import { cn } from '@startpos-core/lib/utils'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/quotes/')({
   component: QuotesPage,

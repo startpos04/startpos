@@ -12,11 +12,11 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import type { UserPermission } from 'prisma/generated/prisma/browser'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
-import { coreAPI } from '../prisma-client/core-api'
-import { crudAPI } from '../prisma-client/crud-api'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
+import { coreAPI } from '@startpos-core/lib/prisma-client/core-api'
+import { crudAPI } from '@startpos-core/lib/prisma-client/crud-api'
 
 // ---------------------------------------------------------------------------
 // Types

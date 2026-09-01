@@ -2,25 +2,25 @@ import { AlertTriangle, Check, Loader2, Package, X } from 'lucide-react'
 import { SequenceType } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@startpos-core/components/ui/button'
+import { Input } from '@startpos-core/components/ui/input'
+import { Label } from '@startpos-core/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@startpos-core/components/ui/select'
+import { Textarea } from '@startpos-core/components/ui/textarea'
 import {
   inventoryCollection,
   inventoryMovementCollection,
   productionOrderCollection,
   productionOrderItemCollection,
   productVariantCollection,
-} from '@/db/collections'
-import { dbTransaction } from '@/db/local-db-transaction'
+} from '@startpos-core/db/collections'
+import { dbTransaction } from '@startpos-core/db/local-db-transaction'
 import type { MountProps } from '@/lib/mount-manager'
-import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
+import { sequenceAPI } from '@startpos-core/lib/prisma-client/sequence-api'
 import { ProductionEngine } from '@/lib/production'
 import type { BatchPreparedProduct } from '@/lib/queries/fetch-batch-prepared-products'
 import { fetchStructuredId } from '@/lib/queries/fetch-structured-id'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 import { closePreparationSidebar } from './preparation-sidebar'
 
 interface PrepareProductSidebarProps extends MountProps {

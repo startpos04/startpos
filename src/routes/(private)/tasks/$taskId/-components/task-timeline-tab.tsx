@@ -1,6 +1,6 @@
 import { Ban, Calendar, CheckCircle2, Clock, FileCheck, History, Star } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import dayjs from '@/lib/dayjs'
+import { Card, CardContent, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import dayjs from '@startpos-core/lib/dayjs'
 import type { feTask } from '@/lib/queries/fetch-tasks'
 
 interface TaskTimelineTabProps {

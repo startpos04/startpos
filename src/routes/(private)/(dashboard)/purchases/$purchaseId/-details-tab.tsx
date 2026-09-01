@@ -6,7 +6,7 @@
 
 import { Building2, FileText } from 'lucide-react'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import dayjs from '@/lib/dayjs'
+import dayjs from '@startpos-core/lib/dayjs'
 import type { fePurchase } from '@/lib/queries/fetch-purchases'
 
 interface DetailsTabProps {

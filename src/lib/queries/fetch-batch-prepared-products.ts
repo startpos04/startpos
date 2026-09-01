@@ -1,5 +1,5 @@
 import { eq, toArray, useLiveQuery } from '@tanstack/react-db'
-import { productCollection, productComponentCollection, productVariantCollection, unitCollection } from '@/db/collections'
+import { productCollection, productComponentCollection, productVariantCollection, unitCollection } from '@startpos-core/db/collections'
 
 export interface BatchPreparedProduct {
   id: string

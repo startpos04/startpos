@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { BellOff, CheckCheck, Loader2 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { useInView } from '@/hooks/use-in-view'
-import { useNotifications } from '@/hooks/use-notifications'
-import dayjs from '@/lib/dayjs'
-import { cn } from '@/lib/utils'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent } from '@startpos-core/components/ui/card'
+import { ScrollArea } from '@startpos-core/components/ui/scroll-area'
+import { useInView } from '@startpos-core/hooks/use-in-view'
+import { useNotifications } from '@startpos-core/hooks/use-notifications'
+import dayjs from '@startpos-core/lib/dayjs'
+import { cn } from '@startpos-core/lib/utils'
 
 export const Route = createFileRoute('/(private)/(dashboard)/notifications')({
   component: RouteComponent,

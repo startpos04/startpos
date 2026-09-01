@@ -32,7 +32,7 @@
  *   added in a future hardening phase. A code comment is placed on deduct().
  */
 
-import { type OperationResult, opFail, opOk } from '../result'
+import { type OperationResult, opFail, opOk } from '@startpos-core/lib/result'
 import * as CreditBalance from './value-objects/credit-balance'
 
 // ---------------------------------------------------------------------------

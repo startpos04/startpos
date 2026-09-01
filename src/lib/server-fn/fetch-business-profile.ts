@@ -8,14 +8,14 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
 import { getStaleIntentFields } from '../evolution/intent-expiry-checker'
 import type { CharacteristicSource, LivingCharacteristics, SourcedValue } from '../evolution/types'
 import { DEFAULT_CHARACTERISTICS } from '../onboarding/defaults'
 import type { BusinessCharacteristics } from '../onboarding/types'
-import { crudAPI } from '../prisma-client/crud-api'
+import { crudAPI } from '@startpos-core/lib/prisma-client/crud-api'
 
 // ---------------------------------------------------------------------------
 // Output types

@@ -1,15 +1,15 @@
 import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { AppWrapper } from '@/components/custom/app-wrapper'
+import { AppWrapper } from '@startpos-core/components/custom/app-wrapper'
 import { TermsUpdateModal } from './-components/terms-update-modal'
-import Loading from '@/components/custom/loading'
+import Loading from '@startpos-core/components/custom/loading'
 import { WelcomeModal } from './-components/welcome-modal'
-import { localAuthCollection } from '@/db/local-auth'
-import { useIsOnline } from '@/hooks/use-is-online'
-import { AuthEngine } from '@/lib/better-auth/auth-engine'
+import { localAuthCollection } from '@startpos-core/db/local-auth'
+import { useIsOnline } from '@startpos-core/hooks/use-is-online'
+import { AuthEngine } from '@startpos-core/lib/better-auth/auth-engine'
 import MountManager from '@/lib/mount-manager'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)')({
   component: () => (

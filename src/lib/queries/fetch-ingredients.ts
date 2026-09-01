@@ -7,7 +7,7 @@ import {
   productComponentCollection,
   productVariantCollection,
   unitCollection,
-} from '@/db/collections'
+} from '@startpos-core/db/collections'
 
 export const fetchIngredients = (ingredientId?: string) => {
   const result = useLiveQuery(

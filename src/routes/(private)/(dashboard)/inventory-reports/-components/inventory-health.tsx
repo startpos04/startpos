@@ -1,7 +1,7 @@
 import { TrendingUp } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import dayjs from '@/lib/dayjs'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { Progress } from '@startpos-core/components/ui/progress'
+import dayjs from '@startpos-core/lib/dayjs'
 import type { InventoryData } from '..'
 
 export function InventoryHealth({ inventoryData }: { inventoryData: InventoryData }) {

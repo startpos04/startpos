@@ -8,7 +8,7 @@
  * to comply with the project's erasableSyntaxOnly constraint.
  */
 
-import type { SubscriptionStatus } from '../entitlement/entitlement-types'
+import type { SubscriptionStatus } from '@startpos-core/lib/entitlement/entitlement-types'
 
 // ---------------------------------------------------------------------------
 // BillingModel

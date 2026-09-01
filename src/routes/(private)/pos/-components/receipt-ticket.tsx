@@ -1,12 +1,12 @@
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { useStore } from '@tanstack/react-store'
-import { useCapability } from '@/hooks/use-capability'
+import { useCapability } from '@startpos-core/hooks/use-capability'
 import { getComplianceLines, getReceiptFooterText, getTaxRateLabel } from '@/lib/compliance/receipt-helper'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import dayjs from '@/lib/dayjs'
-import { Capabilities } from '@/lib/entitlement/capability-keys'
+import dayjs from '@startpos-core/lib/dayjs'
+import { Capabilities } from '@startpos-core/lib/entitlement/capability-keys'
 import type { CreatePosTransactionResponse } from '@/lib/queries/create-pos-transaction'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 import type { posFormOpts } from '..'
 
 // Constants for predictable math

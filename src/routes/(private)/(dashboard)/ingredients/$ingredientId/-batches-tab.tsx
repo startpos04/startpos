@@ -5,9 +5,9 @@
  */
 
 import { MapPin } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
-import dayjs from '@/lib/dayjs'
-import { cn } from '@/lib/utils'
+import { Card, CardContent } from '@startpos-core/components/ui/card'
+import dayjs from '@startpos-core/lib/dayjs'
+import { cn } from '@startpos-core/lib/utils'
 
 interface BatchesTabProps {
   primaryVariant: any

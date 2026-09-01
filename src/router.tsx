@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { createRouter } from '@tanstack/react-router'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
-import { getQueryClient } from './lib/query-client'
+import { getQueryClient } from '@startpos-core/lib/query-client'
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
 

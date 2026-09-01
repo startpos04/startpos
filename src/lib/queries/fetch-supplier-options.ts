@@ -1,5 +1,5 @@
 import { useLiveQuery } from '@tanstack/react-db'
-import { supplierCollection } from '@/db/collections'
+import { supplierCollection } from '@startpos-core/db/collections'
 
 export const fetchSupplierOptions = () => {
   const result = useLiveQuery(q => q.from({ supplier: supplierCollection }))

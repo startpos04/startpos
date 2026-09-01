@@ -38,7 +38,7 @@
  *     Dependencies: PaymentProviderRegistry for provider-specific guidance
  *
  * Usage (server-side entry point, e.g. a cron endpoint):
- *   import { rootPrisma } from '@/lib/prisma-client'
+ *   import { rootPrisma } from '@startpos-core/lib/prisma-client'
  *   import { runSubscriptionLifecycleJob } from '@/lib/jobs/subscription-lifecycle'
  *   import { runUsageCounterResetJob } from '@/lib/jobs/usage-counter-reset'
  *   import { runBillingInvoiceGenerationJob } from '@/lib/jobs/billing-invoice-generation'

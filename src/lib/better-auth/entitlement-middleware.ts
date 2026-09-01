@@ -6,8 +6,8 @@
  * client session) so it cannot be spoofed.
  *
  * Usage:
- *   import { requireCapability } from '@/lib/better-auth/entitlement-middleware'
- *   import { Capabilities } from '@/lib/entitlement/capability-keys'
+ *   import { requireCapability } from '@startpos-core/lib/better-auth/entitlement-middleware'
+ *   import { Capabilities } from '@startpos-core/lib/entitlement/capability-keys'
  *
  *   export const createOrder = createServerFn({ method: 'POST' })
  *     .middleware([authMiddleware, requireCapability(Capabilities.CREATE_ORDER)])
@@ -39,11 +39,11 @@
  */
 
 import { createMiddleware } from '@tanstack/react-start'
-import { BillingModel } from '../billing/types'
-import { Capabilities, type CapabilityKey } from '../entitlement/capability-keys'
-import { EntitlementEngine } from '../entitlement/entitlement-engine'
-import type { EntitlementContext, EntitlementOverrideDTO } from '../entitlement/entitlement-types'
-import { prisma as rootPrisma } from '../prisma-client'
+import { BillingModel } from '../../../src/lib/billing/types'
+import { Capabilities, type CapabilityKey } from '@startpos-core/lib/entitlement/capability-keys'
+import { EntitlementEngine } from '@startpos-core/lib/entitlement/entitlement-engine'
+import type { EntitlementContext, EntitlementOverrideDTO } from '@startpos-core/lib/entitlement/entitlement-types'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 
 // ---------------------------------------------------------------------------
 // Entitlement error — thrown when the capability is denied

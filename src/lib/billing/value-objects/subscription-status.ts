@@ -10,7 +10,7 @@
  * is for Billing-domain callers that need richer status reasoning.
  */
 
-import { SubscriptionStatus } from '../../entitlement/entitlement-types'
+import { SubscriptionStatus } from '@startpos-core/lib/entitlement/entitlement-types'
 
 // Re-export so callers can import both the status values and this VO from one place.
 export { SubscriptionStatus }

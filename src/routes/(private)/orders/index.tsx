@@ -2,14 +2,14 @@ import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { Ban, CheckCheck, ChevronDown, Clock, CreditCard, DollarSign, Play, SquarePen, Undo2, User } from 'lucide-react'
 import { OrderStatus } from 'prisma/generated/prisma/browser'
 import { toast } from 'sonner'
-import { GridView } from '@/components/custom/data-view/grid-view'
-import { AlertPrompt } from '@/components/custom/prompt/alert-prompt'
-import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
-import { useSubscriptionGate } from '@/components/custom/guards/feature-disabled'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { GridView } from '@startpos-core/components/custom/data-view/grid-view'
+import { AlertPrompt } from '@startpos-core/components/custom/prompt/alert-prompt'
+import { WarningPrompt } from '@startpos-core/components/custom/prompt/warning-prompt'
+import { useSubscriptionGate } from '@startpos-core/components/custom/guards/feature-disabled'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { Dialog, DialogContent } from '@startpos-core/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,16 +17,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Separator } from '@/components/ui/separator'
-import { orderCollection } from '@/db/collections'
+} from '@startpos-core/components/ui/dropdown-menu'
+import { Separator } from '@startpos-core/components/ui/separator'
+import { orderCollection } from '@startpos-core/db/collections'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import { Capabilities } from '@/lib/entitlement/capability-keys'
+import { Capabilities } from '@startpos-core/lib/entitlement/capability-keys'
 import MountManager, { type MountProps } from '@/lib/mount-manager'
 import { createPosRefund } from '@/lib/queries/create-pos-refund'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
-import { cn } from '@/lib/utils'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { cn } from '@startpos-core/lib/utils'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 import { ActiveOrdersHeader } from './-components/header'
 
 const statusVariants: Record<OrderStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -202,7 +202,7 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
                   cashierId: tx.cashierId,
                   orderId: tx.orderId,
                   snapshotCustomerName: tx.snapshotCustomerName ?? null,
-                  complianceData: tx.complianceData as import('@/lib/types').TransactionComplianceData,
+                  complianceData: tx.complianceData as import('@startpos-core/lib/types').TransactionComplianceData,
                   payments: [], // orders page doesn't have payment detail — omit
                   taxLines: [], // orders page doesn't have tax line detail — omit
                 })

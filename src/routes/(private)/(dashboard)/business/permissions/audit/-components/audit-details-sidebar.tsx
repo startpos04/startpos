@@ -5,12 +5,12 @@
  */
 
 import { Calendar, Shield, ShieldCheck, ShieldX, User, X } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
-import dayjs from '@/lib/dayjs'
+import { Avatar, AvatarFallback, AvatarImage } from '@startpos-core/components/ui/avatar'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { ScrollArea } from '@startpos-core/components/ui/scroll-area'
+import { Separator } from '@startpos-core/components/ui/separator'
+import dayjs from '@startpos-core/lib/dayjs'
 import type { AuditEntry } from '../../-permissions-tab'
 import { closeAuditSidebar } from './audit-sidebar'
 

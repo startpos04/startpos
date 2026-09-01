@@ -24,10 +24,10 @@
 import { Clock, Loader2, Sparkles, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardFooter } from '@startpos-core/components/ui/card'
 import { acceptCapability, dismissCapability } from '@/lib/server-fn/capability-actions'
-import { cn } from '@/lib/utils'
+import { cn } from '@startpos-core/lib/utils'
 
 // ---------------------------------------------------------------------------
 // Props

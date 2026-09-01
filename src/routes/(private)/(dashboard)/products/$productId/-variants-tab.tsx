@@ -4,7 +4,7 @@
  * Displays all variants with their SKUs and prices
  */
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@startpos-core/components/ui/table'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 
 interface VariantsTabProps {

@@ -1,8 +1,8 @@
 import { TrendingDown } from 'lucide-react'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { cn } from '@/lib/utils'
+import { Card, CardContent, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { Progress } from '@startpos-core/components/ui/progress'
+import { cn } from '@startpos-core/lib/utils'
 import type { InventoryData } from '..'
 
 export function WasteRate({ inventoryData }: { inventoryData: InventoryData }) {

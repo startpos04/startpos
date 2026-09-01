@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { askQuestion, confirmYesNo, getDatabaseTarget, isProductionDatabaseTarget } from './db-script-utils'
+import { askQuestion, confirmYesNo, getDatabaseTarget, isProductionDatabaseTarget } from '../startpos-core/prisma/db-script-utils'
 
 async function main() {
   const { dbUrl, dbTarget, nodeEnv } = getDatabaseTarget()

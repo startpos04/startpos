@@ -7,12 +7,12 @@
 
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Calendar, Shield, ShieldCheck, ShieldX, User } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
-import dayjs from '@/lib/dayjs'
+import { Avatar, AvatarFallback } from '@startpos-core/components/ui/avatar'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { ScrollArea } from '@startpos-core/components/ui/scroll-area'
+import { Separator } from '@startpos-core/components/ui/separator'
+import dayjs from '@startpos-core/lib/dayjs'
 import { fetchUsersWithPermissions } from '@/lib/queries/permission-management'
 
 export function PermissionAuditTab() {

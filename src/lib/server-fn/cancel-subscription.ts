@@ -21,13 +21,13 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
 import { getBillingAdapter } from '../billing/get-billing-adapter'
 import { SubscriptionEngine } from '../billing/subscription-engine'
-import { SubscriptionStatus } from '../entitlement/entitlement-types'
-import { prisma as rootPrisma } from '../prisma-client'
+import { SubscriptionStatus } from '@startpos-core/lib/entitlement/entitlement-types'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 
 // ---------------------------------------------------------------------------
 // Input schema

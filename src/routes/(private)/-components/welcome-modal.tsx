@@ -23,10 +23,10 @@ import { Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { SparklesIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@startpos-core/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@startpos-core/components/ui/dialog'
 import type { OperationalProfile } from '@/lib/onboarding/types'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 // ---------------------------------------------------------------------------
 // localStorage key — scoped to userId so each account tracks independently

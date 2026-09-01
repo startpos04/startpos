@@ -7,7 +7,7 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 import { Bell, Globe, Palette } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
 
 export const Route = createFileRoute('/(private)/(dashboard)/account/preferences/')({
   component: PreferencesPage,

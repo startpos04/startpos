@@ -5,10 +5,10 @@
  */
 
 import { Ban, Calendar, Mail, ShieldAlert } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import dayjs from '@/lib/dayjs'
-import { cn } from '@/lib/utils'
+import { Button } from '@startpos-core/components/ui/button'
+import { Separator } from '@startpos-core/components/ui/separator'
+import dayjs from '@startpos-core/lib/dayjs'
+import { cn } from '@startpos-core/lib/utils'
 
 interface OverviewTabProps {
   employee: any

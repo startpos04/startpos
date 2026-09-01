@@ -13,8 +13,8 @@ import { createServerFn } from '@tanstack/react-start'
 import { HEADERS } from '@tanstack/react-start/server'
 import { Resend } from 'resend'
 import { z } from 'zod'
-import { auth } from '../better-auth/auth'
-import { prisma } from '../prisma-client'
+import { auth } from '@startpos-core/lib/better-auth/auth'
+import { prisma } from '@startpos-core/lib/prisma-client'
 
 const OTP_LENGTH = 6
 const OTP_EXPIRES_IN_SECONDS = 600 // 10 minutes

@@ -5,7 +5,7 @@
  */
 
 import { type PaymentMethod } from 'prisma/generated/prisma/enums'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@startpos-core/components/ui/badge'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import type { TransactionHistoryItem } from '@/lib/server-fn/fetch-transaction-history'
 

@@ -3,9 +3,9 @@ import { count, eq, toArray, useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute } from '@tanstack/react-router'
 import { Edit, User as UserIcon, X } from 'lucide-react'
 import { toast } from 'sonner'
-import Tab from '@/components/custom/tab'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import Tab from '@startpos-core/components/custom/tab'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
 import {
   branchCollection,
   businessCollection,
@@ -14,11 +14,11 @@ import {
   sessionCollection,
   transactionCollection,
   userCollection,
-} from '@/db/collections'
+} from '@startpos-core/db/collections'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import type { MountProps } from '@/lib/mount-manager'
 import { writeAudit } from '@/lib/server-fn/write-audit'
-import { cn } from '@/lib/utils'
+import { cn } from '@startpos-core/lib/utils'
 import { closeEmployeeSidebar, showEmployeeSidebar } from '../-components/employee-sidebar'
 import { EditEmployeeSidebar } from './-edit-account'
 import { OverviewTab } from './-overview-tab'

@@ -23,8 +23,8 @@
  *   - Returns OperationResult — callers act on result, never catch exceptions.
  */
 
-import type { CapabilityKey } from '@/lib/entitlement/capability-keys'
-import { type OperationResult, opFail, opOk } from '@/lib/result'
+import type { CapabilityKey } from '@startpos-core/lib/entitlement/capability-keys'
+import { type OperationResult, opFail, opOk } from '@startpos-core/lib/result'
 import type { BillingModel } from '../types'
 
 // ---------------------------------------------------------------------------

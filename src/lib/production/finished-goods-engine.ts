@@ -23,7 +23,7 @@ import type {
   inventoryCollection as InventoryCollectionType,
   inventoryMovementCollection as MovementCollectionType,
   productVariantCollection as ProductVariantCollectionType,
-} from '@/db/collections'
+} from '@startpos-core/db/collections'
 import { getInventoryMode, InventoryPolicy } from '@/lib/inventory'
 
 // ---------------------------------------------------------------------------

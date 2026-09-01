@@ -18,7 +18,7 @@ import type { BusinessRegistrationStatus } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
 import { getComplianceAdapter } from '@/lib/compliance'
 import { extractComplianceFromForm } from '@/lib/compliance/validation'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
+import { crudAPI } from '@startpos-core/lib/prisma-client/crud-api'
 
 // ---------------------------------------------------------------------------
 // Input schema

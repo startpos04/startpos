@@ -30,7 +30,7 @@
  */
 
 import type { PrismaClient } from 'prisma/generated/prisma/client'
-import { prisma as rootPrisma } from '@/lib/prisma-client'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 import type { AuditEntryDTO } from './types'
 
 // ---------------------------------------------------------------------------

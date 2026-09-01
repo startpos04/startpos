@@ -9,9 +9,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { PermissionKeys } from '../authorization/permission-keys'
-import { Capabilities } from '../entitlement/capability-keys'
-import { coreAPI } from '../prisma-client/core-api'
-import { crudAPI } from '../prisma-client/crud-api'
+import { Capabilities } from '@startpos-core/lib/entitlement/capability-keys'
+import { coreAPI } from '@startpos-core/lib/prisma-client/core-api'
+import { crudAPI } from '@startpos-core/lib/prisma-client/crud-api'
 import { authMiddleware } from './auth-middleware'
 import { requireCapability } from './entitlement-middleware'
 import { checkPermission, PermissionDeniedError, requireAllPermissions, requireAnyPermission, requirePermission } from './permission-middleware'

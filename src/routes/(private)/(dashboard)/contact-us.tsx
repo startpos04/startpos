@@ -8,10 +8,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { BuildingIcon, ExternalLinkIcon, KeyRoundIcon, LifeBuoyIcon, LightbulbIcon, MailIcon, MessageCircleIcon, ServerIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { Separator } from '@startpos-core/components/ui/separator'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/contact-us')({
   component: ContactUsPage,

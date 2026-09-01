@@ -4,12 +4,12 @@ import { AlertTriangle } from 'lucide-react'
 import numeral from 'numeral'
 import type { Inventory, ProductComponent, ProductVariant } from 'prisma/generated/prisma/client'
 import { VariantAttributeType } from 'prisma/generated/prisma/enums'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@startpos-core/components/ui/avatar'
+import { Badge } from '@startpos-core/components/ui/badge'
 import { PosStockEngine, type posItem } from '../conversion/pos-stock-engine'
 import { PriceEngine } from '../conversion/price-engine'
 import type { posProduct } from '../queries/fetch-pos-products'
-import { cn } from '../utils'
+import { cn } from '@startpos-core/lib/utils'
 
 export const productCols = {
   image: (h: ColumnHelper<any>) =>

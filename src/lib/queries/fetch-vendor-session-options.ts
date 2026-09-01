@@ -1,5 +1,5 @@
 import { eq, useLiveQuery } from '@tanstack/react-db'
-import { userCollection, vendorSessionCollection } from '@/db/collections'
+import { userCollection, vendorSessionCollection } from '@startpos-core/db/collections'
 
 export const fetchVendorSessionOptions = () => {
   const result = useLiveQuery(q =>

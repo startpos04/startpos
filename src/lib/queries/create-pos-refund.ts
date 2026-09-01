@@ -6,15 +6,15 @@ import {
   paymentCollection,
   transactionCollection,
   transactionTaxLineCollection,
-} from '@/db/collections'
-import { dbTransaction } from '@/db/local-db-transaction'
+} from '@startpos-core/db/collections'
+import { dbTransaction } from '@startpos-core/db/local-db-transaction'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import { getComplianceAdapter } from '@/lib/compliance'
-import { Capabilities } from '@/lib/entitlement/capability-keys'
-import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
+import { Capabilities } from '@startpos-core/lib/entitlement/capability-keys'
+import { sequenceAPI } from '@startpos-core/lib/prisma-client/sequence-api'
 import { writeAudit } from '@/lib/server-fn/write-audit'
-import type { TransactionComplianceData } from '@/lib/types'
-import { authStore } from '@/lib/better-auth/auth-store'
+import type { TransactionComplianceData } from '@startpos-core/lib/types'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 import { fetchStructuredId } from './fetch-structured-id'
 
 // ---------------------------------------------------------------------------

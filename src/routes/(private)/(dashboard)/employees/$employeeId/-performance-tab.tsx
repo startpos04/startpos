@@ -5,8 +5,8 @@
  */
 
 import { Package, Receipt, Smartphone } from 'lucide-react'
-import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
+import { Progress } from '@startpos-core/components/ui/progress'
+import { Separator } from '@startpos-core/components/ui/separator'
 
 interface PerformanceTabProps {
   employee: any

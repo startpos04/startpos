@@ -22,7 +22,7 @@
  *   myWorkflow.isTerminal(state)                   // boolean
  */
 
-import { type OperationResult, opFail, opOk } from './result'
+import { type OperationResult, opFail, opOk } from '@startpos-core/lib/result'
 
 // ---------------------------------------------------------------------------
 // Guard types

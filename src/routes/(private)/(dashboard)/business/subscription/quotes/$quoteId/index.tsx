@@ -28,17 +28,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { Skeleton } from '@/components/ui/skeleton'
+} from '@startpos-core/components/ui/alert-dialog'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { Separator } from '@startpos-core/components/ui/separator'
+import { Skeleton } from '@startpos-core/components/ui/skeleton'
 import { acceptPricingQuote } from '@/lib/server-fn/accept-pricing-quote'
 import { cancelPricingQuote } from '@/lib/server-fn/cancel-pricing-quote'
 import { convertQuoteToSubscription } from '@/lib/server-fn/convert-quote-to-subscription'
 import { fetchPricingQuote } from '@/lib/server-fn/fetch-pricing-quote'
-import { cn } from '@/lib/utils'
+import { cn } from '@startpos-core/lib/utils'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/quotes/$quoteId/')({
   component: QuoteDetailPage,

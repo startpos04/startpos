@@ -1,5 +1,5 @@
 {
-  "include": ["src/**/*.ts", "src/**/*.tsx", "eslint.config.js", "prettier.config.js", "vite.config.js"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "startpos-core/**/*.ts", "startpos-core/**/*.tsx", "eslint.config.js", "prettier.config.js", "vite.config.js"],
   "exclude": [
     "node_modules",
     "dist",
@@ -47,7 +47,8 @@
 
     "paths": {
       "prisma/*": ["./prisma/*"],
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@startpos-core/*": ["./startpos-core/*"]
     }
   }
 }

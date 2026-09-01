@@ -32,7 +32,7 @@
 import { CAPABILITY_REGISTRY } from '../onboarding/capability-registry'
 import { resolveCapabilities } from '../onboarding/capability-resolver'
 import { classifyProfile } from '../onboarding/profile-classifier'
-import { prisma as rootPrisma } from '../prisma-client'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 import { BusinessEventBus } from './business-event-bus'
 import { classifyHealthStage } from './business-health-model'
 import { advance } from './capability-control'

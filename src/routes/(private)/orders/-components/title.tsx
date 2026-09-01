@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { APP_NAME } from '@/lib/constants'
-import dayjs from '@/lib/dayjs'
+import { APP_NAME } from '@startpos-core/lib/constants'
+import dayjs from '@startpos-core/lib/dayjs'
 
 function Title() {
   const [now, setNow] = useState(dayjs())

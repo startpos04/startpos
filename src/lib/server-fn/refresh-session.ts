@@ -18,9 +18,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
-import { authClient } from '../better-auth/auth-client'
-import { getAuthUser } from '../better-auth/auth-server'
-import { prisma } from '../prisma-client'
+import { authClient } from '@startpos-core/lib/better-auth/auth-client'
+import { getAuthUser } from '@startpos-core/lib/better-auth/auth-server'
+import { prisma } from '@startpos-core/lib/prisma-client'
 
 export const refreshSession = createServerFn({ method: 'POST' }).handler(async () => {
   // Read the current session from the request cookie

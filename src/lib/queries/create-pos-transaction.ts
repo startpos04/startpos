@@ -14,10 +14,10 @@ import {
   transactionCollection,
   transactionTaxLineCollection,
   usageCounterCollection,
-} from '@/db/collections'
-import { dbTransaction } from '@/db/local-db-transaction'
+} from '@startpos-core/db/collections'
+import { dbTransaction } from '@startpos-core/db/local-db-transaction'
 import type { PaymentLine } from '@/routes/(private)/pos/-components/payment-dialog'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 import { AuditAction, AuditTargetType } from '../audit/types'
 import { BranchValidationEngine } from '../billing/branch-validation-engine'
 import { CreditEngine } from '../billing/credit-engine'
@@ -29,7 +29,7 @@ import { TaxEngine } from '../conversion/tax-engine'
 import { CostingEngine } from '../costing'
 import { getInventoryMode, InventoryPolicy } from '../inventory'
 import { NotificationEngine } from '../notification/notification-engine'
-import { sequenceAPI } from '../prisma-client/sequence-api'
+import { sequenceAPI } from '@startpos-core/lib/prisma-client/sequence-api'
 import { ConcurrencyError, FinishedGoodsEngine } from '../production'
 import type { posProduct } from './fetch-pos-products'
 import { fetchStructuredId } from './fetch-structured-id'

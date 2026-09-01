@@ -14,7 +14,7 @@
  */
 
 import { InventoryType, MovementType } from 'prisma/generated/prisma/enums'
-import type { inventoryCollection as InventoryCollectionType, inventoryMovementCollection as MovementCollectionType } from '@/db/collections'
+import type { inventoryCollection as InventoryCollectionType, inventoryMovementCollection as MovementCollectionType } from '@startpos-core/db/collections'
 import { getInventoryMode, InventoryPolicy } from '@/lib/inventory'
 
 // ---------------------------------------------------------------------------

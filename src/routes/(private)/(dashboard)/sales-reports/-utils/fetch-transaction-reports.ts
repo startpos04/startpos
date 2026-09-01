@@ -1,6 +1,6 @@
 import { and, eq, gte, lte, toArray, useLiveQuery } from '@tanstack/react-db'
-import { orderCollection, orderItemCollection, productCollection, productVariantCollection, transactionCollection, userCollection } from '@/db/collections'
-import dayjs from '@/lib/dayjs'
+import { orderCollection, orderItemCollection, productCollection, productVariantCollection, transactionCollection, userCollection } from '@startpos-core/db/collections'
+import dayjs from '@startpos-core/lib/dayjs'
 
 export const fetchTransactionReport = (from?: string | Date, to?: string | Date) => {
   const result = useLiveQuery(

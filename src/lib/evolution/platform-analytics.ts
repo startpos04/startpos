@@ -17,7 +17,7 @@
  * They should only be called from admin-authenticated server paths.
  */
 
-import { crudAPI } from '../prisma-client/crud-api'
+import { crudAPI } from '@startpos-core/lib/prisma-client/crud-api'
 
 // ---------------------------------------------------------------------------
 // Types

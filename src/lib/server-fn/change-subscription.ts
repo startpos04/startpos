@@ -46,13 +46,13 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
 import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
 import { BillingModel } from '../billing/types'
-import { SubscriptionStatus } from '../entitlement/entitlement-types'
-import { prisma as rootPrisma } from '../prisma-client'
+import { SubscriptionStatus } from '@startpos-core/lib/entitlement/entitlement-types'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 
 // ---------------------------------------------------------------------------
 // Price ID resolution — same helper as create-subscription.ts

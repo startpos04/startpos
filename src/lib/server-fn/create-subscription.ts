@@ -23,12 +23,12 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { authMiddleware } from '../better-auth/auth-middleware'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
 import { getBillingAdapter } from '../billing/get-billing-adapter'
 import { paymentProviderService } from '../billing/payment-provider-service'
 import { SubscriptionEngine } from '../billing/subscription-engine'
-import { SubscriptionStatus } from '../entitlement/entitlement-types'
-import { prisma as rootPrisma } from '../prisma-client'
+import { SubscriptionStatus } from '@startpos-core/lib/entitlement/entitlement-types'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 
 // ---------------------------------------------------------------------------
 // Provider-agnostic price ID resolution

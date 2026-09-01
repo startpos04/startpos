@@ -5,7 +5,7 @@
  */
 
 import { Package } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@startpos-core/components/ui/button'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 

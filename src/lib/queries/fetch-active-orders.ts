@@ -7,8 +7,8 @@ import {
   productCollection,
   productVariantCollection,
   transactionCollection,
-} from '@/db/collections'
-import dayjs from '@/lib/dayjs'
+} from '@startpos-core/db/collections'
+import dayjs from '@startpos-core/lib/dayjs'
 
 export const fetchActiveOrders = () => {
   // --- 1. FETCH BASE ORDERS ONLY (No Joins) ---

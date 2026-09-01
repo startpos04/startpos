@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Aside } from '@/components/custom/aside'
+import { Aside } from '@startpos-core/components/custom/aside'
 import MountManager from '@/lib/mount-manager'
 
 export const CATEGORY_ASIDE_ID = 'category-aside'

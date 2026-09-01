@@ -26,7 +26,7 @@
  * app entry point (e.g. app-bootstrap.ts, server startup, or root.tsx).
  */
 
-import { prisma as rootPrisma } from '../prisma-client'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 import type { BusinessEvent } from './business-event-bus'
 import { BusinessEventBus } from './business-event-bus'
 

@@ -18,7 +18,7 @@
  * Architectural contract: zero infrastructure imports.
  */
 
-import type { CapabilityKey } from '@/lib/entitlement/capability-keys'
+import type { CapabilityKey } from '@startpos-core/lib/entitlement/capability-keys'
 import type { FeatureBundleVersionDTO, FeaturePriceDTO, PricingCatalogDTO, PricingConfig, PricingInput, QuoteLineItemDTO } from '../types'
 import { BundlePricingType, QuoteLineType } from '../types'
 import { PricingResultFactory } from '../value-objects/pricing-result'

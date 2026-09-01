@@ -17,7 +17,7 @@
  * These feed into threshold tuning decisions for Phase 7+.
  */
 
-import { crudAPI } from '../prisma-client/crud-api'
+import { crudAPI } from '@startpos-core/lib/prisma-client/crud-api'
 
 // ---------------------------------------------------------------------------
 // Types

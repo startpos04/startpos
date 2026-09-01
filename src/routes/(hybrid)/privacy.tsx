@@ -9,9 +9,9 @@
  */
 
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { LegalFooter } from '@/components/custom/legal-footer'
-import { ThemeToggle } from '@/components/custom/theme/theme-toggle'
-import { APP_NAME } from '@/lib/constants'
+import { LegalFooter } from '@startpos-core/components/custom/legal-footer'
+import { ThemeToggle } from '@startpos-core/components/custom/theme/theme-toggle'
+import { APP_NAME } from '@startpos-core/lib/constants'
 
 export const Route = createFileRoute('/(hybrid)/privacy')({
   component: PrivacyPage,

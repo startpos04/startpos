@@ -18,10 +18,10 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { authMiddleware } from '@/lib/better-auth/auth-middleware'
-import { requirePermission } from '@/lib/better-auth/permission-middleware'
-import { prisma } from '@/lib/prisma-client'
-import { Permissions } from '@/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
+import { prisma } from '@startpos-core/lib/prisma-client'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
 import { advancePaymentService } from '@/lib/billing/advance-payment-service'
 import { paymentNotificationService } from '@/lib/services/payment-notification-service'
 

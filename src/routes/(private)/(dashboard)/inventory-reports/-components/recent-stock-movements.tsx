@@ -1,9 +1,9 @@
 import { ArrowRightLeft } from 'lucide-react'
 import { MovementType } from 'prisma/generated/prisma/enums'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import dayjs from '@/lib/dayjs'
-import { cn } from '@/lib/utils'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import dayjs from '@startpos-core/lib/dayjs'
+import { cn } from '@startpos-core/lib/utils'
 import type { InventoryData } from '..'
 
 export function RecentStockMovements({ inventoryData }: { inventoryData: InventoryData }) {

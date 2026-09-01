@@ -25,9 +25,9 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
 import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
 
 // ---------------------------------------------------------------------------
@@ -124,7 +124,7 @@ export const purchaseTxAddon = createServerFn({ method: 'POST' })
       }
     }
 
-    const { prisma: rootPrisma } = await import('../prisma-client')
+    const { prisma: rootPrisma } = await import('@startpos-core/lib/prisma-client')
 
     const subscription = await rootPrisma.businessSubscription.findUnique({
       where: { businessId },

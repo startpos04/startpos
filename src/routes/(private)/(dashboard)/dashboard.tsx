@@ -23,13 +23,13 @@ import { RecommendationCard } from './-components/recommendation-card'
 import { RegistrationStatusCard } from './-components/registration-status-card'
 import { FeatureLibrary } from './-components/feature-library'
 import { FirstRunGuide, useFirstRun } from './-components/first-run-guide'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { creditLedgerCollection, hintCollection, orderCollection, productCollection, userCollection } from '@/db/collections'
+import { Card, CardContent, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { creditLedgerCollection, hintCollection, orderCollection, productCollection, userCollection } from '@startpos-core/db/collections'
 import { HEALTH_STAGE_HINTS } from '@/lib/evolution/business-health-model'
 import { fetchCapabilityStates } from '@/lib/server-fn/fetch-capability-states'
 import { fetchDashboardHints } from '@/lib/server-fn/fetch-dashboard-hints'
-import { cn } from '@/lib/utils'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { cn } from '@startpos-core/lib/utils'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/dashboard')({
   component: DashboardPage,

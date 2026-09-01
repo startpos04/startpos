@@ -7,13 +7,13 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
 import { isAlwaysOn } from '../evolution/capability-lifecycle'
 import { CAPABILITY_REGISTRY } from '../onboarding/capability-registry'
 import type { CapabilityLifecycleState } from '../onboarding/types'
-import { crudAPI } from '../prisma-client/crud-api'
+import { crudAPI } from '@startpos-core/lib/prisma-client/crud-api'
 
 // ---------------------------------------------------------------------------
 // Output type

@@ -11,7 +11,7 @@
  *   - Monetary amounts: all integers in cents (or basis points where noted).
  */
 
-import type { CapabilityKey } from '@/lib/entitlement/capability-keys'
+import type { CapabilityKey } from '@startpos-core/lib/entitlement/capability-keys'
 
 // ---------------------------------------------------------------------------
 // BundlePricingType — mirrors the Prisma enum in the domain layer

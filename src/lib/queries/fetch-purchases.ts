@@ -1,5 +1,5 @@
 import { eq, toArray, useLiveQuery } from '@tanstack/react-db'
-import { productCollection, productVariantCollection, purchaseCollection, purchaseItemCollection, supplierCollection, unitCollection } from '@/db/collections'
+import { productCollection, productVariantCollection, purchaseCollection, purchaseItemCollection, supplierCollection, unitCollection } from '@startpos-core/db/collections'
 
 export const fetchPurchases = () => {
   const result = useLiveQuery(q =>

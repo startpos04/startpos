@@ -23,8 +23,8 @@
 
 import { Link } from '@tanstack/react-router'
 import { XIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { Button } from '@startpos-core/components/ui/button'
+import { cn } from '@startpos-core/lib/utils'
 
 // ---------------------------------------------------------------------------
 // Props

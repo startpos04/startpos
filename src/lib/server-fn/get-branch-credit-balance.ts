@@ -15,9 +15,9 @@
  */
 
 import { createServerFn } from '@tanstack/react-start'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
 
 // ---------------------------------------------------------------------------
 // getBranchCreditBalance server function
@@ -42,7 +42,7 @@ export const getBranchCreditBalance = createServerFn({ method: 'GET' })
       }
     }
 
-    const { prisma: rootPrisma } = await import('../prisma-client')
+    const { prisma: rootPrisma } = await import('@startpos-core/lib/prisma-client')
 
     // Verify branch belongs to this business (security check)
     const branch = await rootPrisma.branch.findFirst({
@@ -87,7 +87,7 @@ export const getAllBranchCreditBalances = createServerFn({ method: 'GET' })
     }
 
     const { businessId } = context.user
-    const { prisma: rootPrisma } = await import('../prisma-client')
+    const { prisma: rootPrisma } = await import('@startpos-core/lib/prisma-client')
 
     // Get all branches for this business
     const branches = await rootPrisma.branch.findMany({

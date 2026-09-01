@@ -11,7 +11,7 @@
  * 3. Platform default (Stripe)
  */
 
-import { prisma } from '@/lib/prisma-client'
+import { prisma } from '@startpos-core/lib/prisma-client'
 import { paymentProviderRegistry, type PaymentProviderId, type PaymentProviderConfig, type BillingProviderAdapter } from './payment-provider-registry'
 
 export class PaymentProviderService {

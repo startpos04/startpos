@@ -23,12 +23,12 @@ import type {
   productionOrderCollection as ProductionOrderCollectionType,
   productionOrderItemCollection as ProductionOrderItemCollectionType,
   productVariantCollection as ProductVariantCollectionType,
-} from '@/db/collections'
+} from '@startpos-core/db/collections'
 import { UnitEngine } from '@/lib/conversion/unit-engine'
 import { FIFOEngine } from '@/lib/costing/fifo-engine'
 import { getInventoryMode, InventoryPolicy } from '@/lib/inventory'
-import type { OperationResult } from '@/lib/result'
-import { opFail, opOk } from '@/lib/result'
+import type { OperationResult } from '@startpos-core/lib/result'
+import { opFail, opOk } from '@startpos-core/lib/result'
 
 // ---------------------------------------------------------------------------
 // Shared tenant-context type

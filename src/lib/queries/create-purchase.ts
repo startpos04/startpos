@@ -7,13 +7,13 @@ import {
   productVariantCollection,
   purchaseCollection,
   purchaseItemCollection,
-} from '@/db/collections'
+} from '@startpos-core/db/collections'
 // inventoryCollection + inventoryMovementCollection are passed to InventoryEngine — kept for the pass-through
-import { dbTransaction } from '@/db/local-db-transaction'
+import { dbTransaction } from '@startpos-core/db/local-db-transaction'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
-import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { sequenceAPI } from '@startpos-core/lib/prisma-client/sequence-api'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 import { fetchStructuredId } from './fetch-structured-id'
 
 export const createPurchaseLineSchema = z.object({

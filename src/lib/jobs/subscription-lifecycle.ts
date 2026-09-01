@@ -30,7 +30,7 @@
 import type { PrismaClient } from 'prisma/generated/prisma/client'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 import type { BillingModel, LifecycleThresholds, SubscriptionSnapshot } from '../billing/types'
-import type { SubscriptionStatus } from '../entitlement/entitlement-types'
+import type { SubscriptionStatus } from '@startpos-core/lib/entitlement/entitlement-types'
 import { type JobResult, jobError, jobSuccess } from './index'
 
 // ---------------------------------------------------------------------------

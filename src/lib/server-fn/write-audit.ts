@@ -27,7 +27,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { AuditEngine } from '../audit/audit-engine'
 import { recordAudit } from '../audit/record-audit'
 import type { AuditEntryDTO } from '../audit/types'
-import { authMiddleware } from '../better-auth/auth-middleware'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
 
 export const writeAudit = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])

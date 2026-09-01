@@ -1,12 +1,12 @@
 import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { getColumns } from '@/components/custom/data-view'
-import { MultiView } from '@/components/custom/data-view/multi-view'
-import { RequireAccess } from '@/components/custom/guards/require-access'
-import { supplierCollection } from '@/db/collections'
-import { Permissions } from '@/lib/authorization/permission-keys'
-import { Capabilities } from '@/lib/entitlement/capability-keys'
+import { getColumns } from '@startpos-core/components/custom/data-view'
+import { MultiView } from '@startpos-core/components/custom/data-view/multi-view'
+import { RequireAccess } from '@startpos-core/components/custom/guards/require-access'
+import { supplierCollection } from '@startpos-core/db/collections'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { Capabilities } from '@startpos-core/lib/entitlement/capability-keys'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/suppliers/')({
   component: () => (

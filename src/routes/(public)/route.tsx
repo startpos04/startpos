@@ -1,11 +1,11 @@
 import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { AppWrapper } from '@/components/custom/app-wrapper'
-import { LegalFooter } from '@/components/custom/legal-footer'
-import { localAuthCollection } from '@/db/local-auth'
-import { useIsOnline } from '@/hooks/use-is-online'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { AppWrapper } from '@startpos-core/components/custom/app-wrapper'
+import { LegalFooter } from '@startpos-core/components/custom/legal-footer'
+import { localAuthCollection } from '@startpos-core/db/local-auth'
+import { useIsOnline } from '@startpos-core/hooks/use-is-online'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(public)')({
   component: () => (

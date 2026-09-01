@@ -1,5 +1,5 @@
 import { Zap } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
 import type { TransactionReportStats } from '../-utils/calculate-stats'
 
 export function TopSellers({ stats }: { stats: TransactionReportStats }) {

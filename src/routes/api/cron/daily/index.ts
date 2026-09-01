@@ -42,7 +42,7 @@
 
 import { createFileRoute } from '@tanstack/react-router'
 import type { BillingProviderAdapter } from '@/lib/billing/billing-provider'
-import { ConfigurationEngine } from '@/lib/configuration/configuration-engine'
+import { ConfigurationEngine } from '@startpos-core/lib/configuration/configuration-engine'
 import type { JobResult } from '@/lib/jobs'
 import { runBillingInvoiceGenerationJob } from '@/lib/jobs/billing-invoice-generation'
 import { runComposableRenewalPreviewJob } from '@/lib/jobs/composable-renewal-preview'
@@ -51,7 +51,7 @@ import { runPricingQuoteExpiryJob } from '@/lib/jobs/pricing-quote-expiry'
 import { runSubscriptionLifecycleJob } from '@/lib/jobs/subscription-lifecycle'
 import { runUsageCounterResetJob } from '@/lib/jobs/usage-counter-reset'
 import '@/lib/billing/init-providers' // Ensure providers are registered
-import { prisma as rootPrisma } from '@/lib/prisma-client'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 
 // ---------------------------------------------------------------------------
 // Route registration (TanStack Start file-based routing)

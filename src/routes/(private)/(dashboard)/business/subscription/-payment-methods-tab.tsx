@@ -7,10 +7,10 @@
 import { Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { CreditCardIcon, MailIcon } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 export function PaymentMethodsTab() {
   const user = useStore(authStore, state => state.user)

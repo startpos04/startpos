@@ -1,9 +1,9 @@
 import { PurchaseStatus } from 'prisma/generated/prisma/enums'
-import { inventoryCollection, inventoryMovementCollection, purchaseCollection, purchaseItemCollection } from '@/db/collections'
-import { dbTransaction } from '@/db/local-db-transaction'
+import { inventoryCollection, inventoryMovementCollection, purchaseCollection, purchaseItemCollection } from '@startpos-core/db/collections'
+import { dbTransaction } from '@startpos-core/db/local-db-transaction'
 import { getInventoryMode } from '@/lib/inventory'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 /**
  * Voids a purchase order — mirrors the refund pattern from createPosRefund.

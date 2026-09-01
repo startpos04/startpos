@@ -5,8 +5,8 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
-import { getColumns } from '@/components/custom/data-view'
-import { TableView } from '@/components/custom/data-view/table-view'
+import { getColumns } from '@startpos-core/components/custom/data-view'
+import { TableView } from '@startpos-core/components/custom/data-view/table-view'
 import { invoiceCols } from '@/lib/columns/invoice-columns'
 import { getBranchCreditBalance } from '@/lib/server-fn/get-branch-credit-balance'
 

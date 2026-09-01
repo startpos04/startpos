@@ -6,7 +6,7 @@
  * Used by inventory mutation callers to determine which policy to enforce.
  */
 
-import { businessCollection } from '@/db/collections'
+import { businessCollection } from '@startpos-core/db/collections'
 import { projectToCharacteristics } from '@/lib/evolution/characteristics-engine'
 import { DEFAULT_CHARACTERISTICS } from '@/lib/onboarding/defaults'
 import type { InventoryMode } from '@/lib/onboarding/types'

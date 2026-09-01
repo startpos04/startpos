@@ -6,7 +6,7 @@
  */
 
 import type { BillingPayment, BusinessSubscription } from '@prisma/client'
-import { prisma } from '@/lib/prisma-client'
+import { prisma } from '@startpos-core/lib/prisma-client'
 import { createAdvancePaymentSyncService } from './advance-payment-sync-service'
 import { createStripeAdapter } from './adapters/stripe-adapter'
 

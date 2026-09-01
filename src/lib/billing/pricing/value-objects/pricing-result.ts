@@ -17,7 +17,7 @@
  *   - Factory function validates the invariants before returning.
  */
 
-import type { CapabilityKey } from '@/lib/entitlement/capability-keys'
+import type { CapabilityKey } from '@startpos-core/lib/entitlement/capability-keys'
 import type { QuoteLineItemDTO } from '../types'
 import type { TaxBreakdownLine } from './tax-breakdown-line'
 

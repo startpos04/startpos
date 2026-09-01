@@ -16,15 +16,15 @@
 import { AlertTriangle, FileText, Loader2, ShieldAlert, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import dayjs from '@/lib/dayjs'
+import { WarningPrompt } from '@startpos-core/components/custom/prompt/warning-prompt'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { Separator } from '@startpos-core/components/ui/separator'
+import dayjs from '@startpos-core/lib/dayjs'
 import MountManager from '@/lib/mount-manager'
 import { requestAccountDeletion } from '@/lib/server-fn/request-account-deletion'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { authStore } from '@startpos-core/lib/better-auth/auth-store'
 
 export function AccountPage() {
   const { user } = authStore.state

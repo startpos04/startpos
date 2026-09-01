@@ -17,7 +17,7 @@
  *   - All monetary amounts are integers in cents.
  */
 
-import type { CapabilityKey } from '@/lib/entitlement/capability-keys'
+import type { CapabilityKey } from '@startpos-core/lib/entitlement/capability-keys'
 
 // ---------------------------------------------------------------------------
 // PriceChangeDirection

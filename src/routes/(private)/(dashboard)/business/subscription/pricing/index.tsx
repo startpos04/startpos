@@ -28,14 +28,14 @@ import {
   TagIcon,
 } from 'lucide-react'
 import { useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
+import { Badge } from '@startpos-core/components/ui/badge'
+import { Button } from '@startpos-core/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@startpos-core/components/ui/card'
+import { Label } from '@startpos-core/components/ui/label'
+import { Separator } from '@startpos-core/components/ui/separator'
+import { Switch } from '@startpos-core/components/ui/switch'
 import { createPricingQuote } from '@/lib/server-fn/create-pricing-quote'
-import { cn } from '@/lib/utils'
+import { cn } from '@startpos-core/lib/utils'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/pricing/')({
   component: PricingCalculatorPage,

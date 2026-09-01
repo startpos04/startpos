@@ -22,11 +22,11 @@
 
 import { createServerFn } from '@tanstack/react-start'
 import Stripe from 'stripe'
-import { Permissions } from '../authorization/permission-keys'
-import { authMiddleware } from '../better-auth/auth-middleware'
-import { requirePermission } from '../better-auth/permission-middleware'
+import { Permissions } from '@startpos-core/lib/authorization/permission-keys'
+import { authMiddleware } from '@startpos-core/lib/better-auth/auth-middleware'
+import { requirePermission } from '@startpos-core/lib/better-auth/permission-middleware'
 import { getBillingAdapter } from '../billing/get-billing-adapter'
-import { prisma as rootPrisma } from '../prisma-client'
+import { prisma as rootPrisma } from '@startpos-core/lib/prisma-client'
 
 export const createBillingPortalSession = createServerFn({ method: 'POST' })
   .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING)])

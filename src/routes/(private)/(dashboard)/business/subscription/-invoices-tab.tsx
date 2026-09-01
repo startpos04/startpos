@@ -4,9 +4,9 @@
  * Displays billing invoices table
  */
 
-import { getColumns } from '@/components/custom/data-view'
-import { TableView } from '@/components/custom/data-view/table-view'
-import { Button } from '@/components/ui/button'
+import { getColumns } from '@startpos-core/components/custom/data-view'
+import { TableView } from '@startpos-core/components/custom/data-view/table-view'
+import { Button } from '@startpos-core/components/ui/button'
 import { invoiceCols } from '@/lib/columns/invoice-columns'
 
 export function InvoicesTab() {

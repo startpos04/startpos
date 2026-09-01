@@ -1,5 +1,5 @@
 import { useLiveQuery } from '@tanstack/react-db'
-import { locationCollection } from '@/db/collections'
+import { locationCollection } from '@startpos-core/db/collections'
 
 export const fetchLocationOptions = () => {
   const result = useLiveQuery(q => q.from({ location: locationCollection }))

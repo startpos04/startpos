@@ -4,7 +4,7 @@
  * Displays the line items for a purchase order
  */
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@startpos-core/components/ui/table'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import type { fePurchase } from '@/lib/queries/fetch-purchases'
 

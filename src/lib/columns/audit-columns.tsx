@@ -1,9 +1,9 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: TODO: fix */
 import type { ColumnHelper } from '@tanstack/react-table'
 import { Calendar, ShieldCheck, ShieldX } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import dayjs from '@/lib/dayjs'
+import { Avatar, AvatarFallback, AvatarImage } from '@startpos-core/components/ui/avatar'
+import { Badge } from '@startpos-core/components/ui/badge'
+import dayjs from '@startpos-core/lib/dayjs'
 import type { AuditEntry } from '@/routes/(private)/(dashboard)/business/permissions/-audit'
 
 export const auditCols = {

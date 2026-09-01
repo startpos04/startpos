@@ -33,8 +33,8 @@
 
 import { paymentProviderRegistry, type PaymentProviderId } from '../billing/payment-provider-registry'
 import '@/lib/billing/init-providers' // Ensure providers are registered
-import { prisma } from '@/lib/prisma-client'
-import dayjs from '@/lib/dayjs'
+import { prisma } from '@startpos-core/lib/prisma-client'
+import dayjs from '@startpos-core/lib/dayjs'
 import { type JobResult, jobError, jobSuccess } from './index'
 
 type PrismaClient = typeof prisma
