@@ -98,7 +98,7 @@ function QuotesPage() {
   const totalItems = data?.totalItems ?? 0
 
   return (
-    <div className='flex flex-col gap-6 px-4 py-6 max-w-4xl'>
+    <div className='flex flex-col gap-6 px-4 pb-6 max-w-4xl'>
       <div className='flex items-center gap-3'>
         <Button variant='ghost' size='icon' asChild>
           <Link to='/business/subscription'>
@@ -106,7 +106,7 @@ function QuotesPage() {
           </Link>
         </Button>
         <div>
-          <h1 className='text-3xl font-bold tracking-tight text-foreground'>Quotes</h1>
+          <h1 className='text-2xl font-bold tracking-tight text-foreground'>Quotes</h1>
           <p className='text-muted-foreground text-sm mt-0.5'>Saved pricing quotes for your business.</p>
         </div>
         <div className='ml-auto'>

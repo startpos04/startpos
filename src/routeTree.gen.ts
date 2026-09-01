@@ -9,18 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as publicRouteRouteImport } from './routes/(public)/route'
 import { Route as privateRouteRouteImport } from './routes/(private)/route'
+import { Route as hybridRouteRouteImport } from './routes/(hybrid)/route'
 import { Route as publicIndexRouteImport } from './routes/(public)/index'
-import { Route as publicRegisterRouteImport } from './routes/(public)/register'
 import { Route as publicLoginRouteImport } from './routes/(public)/login'
 import { Route as publicForgotPasswordRouteImport } from './routes/(public)/forgot-password'
-import { Route as privateBillingRouteImport } from './routes/(private)/billing'
+import { Route as hybridUnauthorizedRouteImport } from './routes/(hybrid)/unauthorized'
+import { Route as hybridTermsRouteImport } from './routes/(hybrid)/terms'
+import { Route as hybridPrivacyRouteImport } from './routes/(hybrid)/privacy'
 import { Route as privatedashboardRouteRouteImport } from './routes/(private)/(dashboard)/route'
-import { Route as SubscriptionReactivateIndexRouteImport } from './routes/subscription/reactivate/index'
+import { Route as publicRegisterIndexRouteImport } from './routes/(public)/register/index'
 import { Route as privateTasksIndexRouteImport } from './routes/(private)/tasks/index'
 import { Route as privatePosIndexRouteImport } from './routes/(private)/pos/index'
 import { Route as privateOrdersIndexRouteImport } from './routes/(private)/orders/index'
@@ -30,28 +29,44 @@ import { Route as privatedashboardNotificationsRouteImport } from './routes/(pri
 import { Route as privatedashboardDashboardRouteImport } from './routes/(private)/(dashboard)/dashboard'
 import { Route as privatedashboardContactUsRouteImport } from './routes/(private)/(dashboard)/contact-us'
 import { Route as privatedashboardSettingsRouteRouteImport } from './routes/(private)/(dashboard)/settings/route'
+import { Route as privatedashboardPreparationRouteRouteImport } from './routes/(private)/(dashboard)/preparation/route'
 import { Route as privatedashboardBusinessRouteRouteImport } from './routes/(private)/(dashboard)/business/route'
 import { Route as privatedashboardBillingRouteRouteImport } from './routes/(private)/(dashboard)/billing/route'
 import { Route as privatedashboardAccountRouteRouteImport } from './routes/(private)/(dashboard)/account/route'
-import { Route as privatedashboardsupervisorRouteRouteImport } from './routes/(private)/(dashboard)/(supervisor)/route'
-import { Route as privatedashboardadminRouteRouteImport } from './routes/(private)/(dashboard)/(admin)/route'
+import { Route as ApiCronHourlyIndexRouteImport } from './routes/api/cron/hourly/index'
 import { Route as ApiCronDailyIndexRouteImport } from './routes/api/cron/daily/index'
 import { Route as ApiBillingWebhookIndexRouteImport } from './routes/api/billing/webhook/index'
 import { Route as privateTasksCreateIndexRouteImport } from './routes/(private)/tasks/create/index'
 import { Route as privateTasksTaskIdIndexRouteImport } from './routes/(private)/tasks/$taskId/index'
+import { Route as privatedashboardTransactionsIndexRouteImport } from './routes/(private)/(dashboard)/transactions/index'
 import { Route as privatedashboardSettingsIndexRouteImport } from './routes/(private)/(dashboard)/settings/index'
+import { Route as privatedashboardSalesReportsIndexRouteImport } from './routes/(private)/(dashboard)/sales-reports/index'
+import { Route as privatedashboardPurchasesIndexRouteImport } from './routes/(private)/(dashboard)/purchases/index'
+import { Route as privatedashboardProductsIndexRouteImport } from './routes/(private)/(dashboard)/products/index'
+import { Route as privatedashboardPreparationIndexRouteImport } from './routes/(private)/(dashboard)/preparation/index'
+import { Route as privatedashboardOrderHistoryIndexRouteImport } from './routes/(private)/(dashboard)/order-history/index'
+import { Route as privatedashboardInventoryReportsIndexRouteImport } from './routes/(private)/(dashboard)/inventory-reports/index'
+import { Route as privatedashboardIngredientsIndexRouteImport } from './routes/(private)/(dashboard)/ingredients/index'
+import { Route as privatedashboardEmployeesIndexRouteImport } from './routes/(private)/(dashboard)/employees/index'
 import { Route as privatedashboardBusinessIndexRouteImport } from './routes/(private)/(dashboard)/business/index'
 import { Route as privatedashboardBillingIndexRouteImport } from './routes/(private)/(dashboard)/billing/index'
 import { Route as privatedashboardAccountIndexRouteImport } from './routes/(private)/(dashboard)/account/index'
 import { Route as ApiBillingWebhookStripeRouteImport } from './routes/api/billing/webhook/stripe'
 import { Route as privatedashboardSettingsComplianceRouteImport } from './routes/(private)/(dashboard)/settings/compliance'
-import { Route as privatedashboardBillingPaymentMethodsRouteImport } from './routes/(private)/(dashboard)/business/subscription/payment-methods.tsx'
+import { Route as privatedashboardPreparationHistoryRouteImport } from './routes/(private)/(dashboard)/preparation/history'
 import { Route as privatedashboardBillingManualPaymentRouteImport } from './routes/(private)/(dashboard)/billing/manual-payment'
-import { Route as privatedashboardadminPaymentApprovalsRouteImport } from './routes/(private)/(dashboard)/(admin)/payment-approvals'
 import { Route as privatedashboardBusinessSuppliersRouteRouteImport } from './routes/(private)/(dashboard)/business/suppliers/route'
 import { Route as privatedashboardBusinessSubscriptionRouteRouteImport } from './routes/(private)/(dashboard)/business/subscription/route'
 import { Route as privatedashboardBusinessCustomersRouteRouteImport } from './routes/(private)/(dashboard)/business/customers/route'
-import { Route as privatedashboardadminPreparationRouteRouteImport } from './routes/(private)/(dashboard)/(admin)/preparation/route'
+import { Route as privatedashboardTransactionsTransactionIdIndexRouteImport } from './routes/(private)/(dashboard)/transactions/$transactionId/index'
+import { Route as privatedashboardPurchasesPurchaseIdIndexRouteImport } from './routes/(private)/(dashboard)/purchases/$purchaseId/index'
+import { Route as privatedashboardProductsCreateIndexRouteImport } from './routes/(private)/(dashboard)/products/create/index'
+import { Route as privatedashboardProductsProductIdIndexRouteImport } from './routes/(private)/(dashboard)/products/$productId/index'
+import { Route as privatedashboardOrderHistoryOrderIdIndexRouteImport } from './routes/(private)/(dashboard)/order-history/$orderId/index'
+import { Route as privatedashboardIngredientsCreateIndexRouteImport } from './routes/(private)/(dashboard)/ingredients/create/index'
+import { Route as privatedashboardIngredientsIngredientIdIndexRouteImport } from './routes/(private)/(dashboard)/ingredients/$ingredientId/index'
+import { Route as privatedashboardEmployeesCreateIndexRouteImport } from './routes/(private)/(dashboard)/employees/create/index'
+import { Route as privatedashboardEmployeesEmployeeIdIndexRouteImport } from './routes/(private)/(dashboard)/employees/$employeeId/index'
 import { Route as privatedashboardBusinessSuppliersIndexRouteImport } from './routes/(private)/(dashboard)/business/suppliers/index'
 import { Route as privatedashboardBusinessSubscriptionIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/index'
 import { Route as privatedashboardBusinessProfileIndexRouteImport } from './routes/(private)/(dashboard)/business/profile/index'
@@ -61,49 +76,18 @@ import { Route as privatedashboardBusinessCapabilitiesIndexRouteImport } from '.
 import { Route as privatedashboardBusinessBranchesIndexRouteImport } from './routes/(private)/(dashboard)/business/branches/index'
 import { Route as privatedashboardAccountSecurityIndexRouteImport } from './routes/(private)/(dashboard)/account/security/index'
 import { Route as privatedashboardAccountPreferencesIndexRouteImport } from './routes/(private)/(dashboard)/account/preferences/index'
-import { Route as privatedashboardsupervisorTransactionsIndexRouteImport } from './routes/(private)/(dashboard)/(supervisor)/transactions/index'
-import { Route as privatedashboardsupervisorSalesReportsIndexRouteImport } from './routes/(private)/(dashboard)/(supervisor)/sales-reports/index'
-import { Route as privatedashboardsupervisorOrderHistoryIndexRouteImport } from './routes/(private)/(dashboard)/(supervisor)/order-history/index'
-import { Route as privatedashboardsupervisorInventoryReportsIndexRouteImport } from './routes/(private)/(dashboard)/(supervisor)/inventory-reports/index'
-import { Route as privatedashboardadminPurchasesIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/purchases/index'
-import { Route as privatedashboardadminProductsIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/products/index'
-import { Route as privatedashboardadminPreparationIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/preparation/index'
-import { Route as privatedashboardadminIngredientsIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/ingredients/index'
-import { Route as privatedashboardadminEmployeesIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/index'
-import { Route as privatedashboardadminPreparationHistoryRouteImport } from './routes/(private)/(dashboard)/(admin)/preparation/history'
+import { Route as privatedashboardBusinessSubscriptionPaymentMethodsRouteImport } from './routes/(private)/(dashboard)/business/subscription/payment-methods'
 import { Route as privatedashboardBusinessSubscriptionSuccessIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/success/index'
+import { Route as privatedashboardBusinessSubscriptionReactivateIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/reactivate/index'
 import { Route as privatedashboardBusinessSubscriptionQuotesIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/quotes/index'
 import { Route as privatedashboardBusinessSubscriptionPricingIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/pricing/index'
 import { Route as privatedashboardBusinessSubscriptionPlansIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/plans/index'
 import { Route as privatedashboardBusinessSubscriptionInvoicesIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/invoices/index'
 import { Route as privatedashboardBusinessSubscriptionCreditsIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/credits/index'
+import { Route as privatedashboardBusinessSubscriptionCheckoutIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/checkout/index'
 import { Route as privatedashboardBusinessPermissionsAuditIndexRouteImport } from './routes/(private)/(dashboard)/business/permissions/audit/index'
-import { Route as privatedashboardsupervisorTransactionsTransactionIdIndexRouteImport } from './routes/(private)/(dashboard)/(supervisor)/transactions/$transactionId/index'
-import { Route as privatedashboardsupervisorOrderHistoryOrderIdIndexRouteImport } from './routes/(private)/(dashboard)/(supervisor)/order-history/$orderId/index'
-import { Route as privatedashboardadminPurchasesPurchaseIdIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/purchases/$purchaseId/index'
-import { Route as privatedashboardadminProductsCreateIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/products/create/index'
-import { Route as privatedashboardadminProductsProductIdIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/products/$productId/index'
-import { Route as privatedashboardadminIngredientsCreateIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/ingredients/create/index'
-import { Route as privatedashboardadminIngredientsIngredientIdIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/ingredients/$ingredientId/index'
-import { Route as privatedashboardadminEmployeesCreateIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/create/index'
-import { Route as privatedashboardadminEmployeesEmployeeIdIndexRouteImport } from './routes/(private)/(dashboard)/(admin)/employees/$employeeId/index'
 import { Route as privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/quotes/$quoteId/index'
 
-const UnauthorizedRoute = UnauthorizedRouteImport.update({
-  id: '/unauthorized',
-  path: '/unauthorized',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const publicRouteRoute = publicRouteRouteImport.update({
   id: '/(public)',
   getParentRoute: () => rootRouteImport,
@@ -112,14 +96,13 @@ const privateRouteRoute = privateRouteRouteImport.update({
   id: '/(private)',
   getParentRoute: () => rootRouteImport,
 } as any)
+const hybridRouteRoute = hybridRouteRouteImport.update({
+  id: '/(hybrid)',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const publicIndexRoute = publicIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => publicRouteRoute,
-} as any)
-const publicRegisterRoute = publicRegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
   getParentRoute: () => publicRouteRoute,
 } as any)
 const publicLoginRoute = publicLoginRouteImport.update({
@@ -132,21 +115,30 @@ const publicForgotPasswordRoute = publicForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => publicRouteRoute,
 } as any)
-const privateBillingRoute = privateBillingRouteImport.update({
-  id: '/billing',
-  path: '/billing',
-  getParentRoute: () => privateRouteRoute,
+const hybridUnauthorizedRoute = hybridUnauthorizedRouteImport.update({
+  id: '/unauthorized',
+  path: '/unauthorized',
+  getParentRoute: () => hybridRouteRoute,
+} as any)
+const hybridTermsRoute = hybridTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => hybridRouteRoute,
+} as any)
+const hybridPrivacyRoute = hybridPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => hybridRouteRoute,
 } as any)
 const privatedashboardRouteRoute = privatedashboardRouteRouteImport.update({
   id: '/(dashboard)',
   getParentRoute: () => privateRouteRoute,
 } as any)
-const SubscriptionReactivateIndexRoute =
-  SubscriptionReactivateIndexRouteImport.update({
-    id: '/subscription/reactivate/',
-    path: '/subscription/reactivate/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const publicRegisterIndexRoute = publicRegisterIndexRouteImport.update({
+  id: '/register/',
+  path: '/register/',
+  getParentRoute: () => publicRouteRoute,
+} as any)
 const privateTasksIndexRoute = privateTasksIndexRouteImport.update({
   id: '/tasks/',
   path: '/tasks/',
@@ -169,9 +161,9 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 } as any)
 const publicRegisterBusinessSetupRoute =
   publicRegisterBusinessSetupRouteImport.update({
-    id: '/business-setup',
-    path: '/business-setup',
-    getParentRoute: () => publicRegisterRoute,
+    id: '/register/business-setup',
+    path: '/register/business-setup',
+    getParentRoute: () => publicRouteRoute,
   } as any)
 const privatedashboardNotificationsRoute =
   privatedashboardNotificationsRouteImport.update({
@@ -197,6 +189,12 @@ const privatedashboardSettingsRouteRoute =
     path: '/settings',
     getParentRoute: () => privatedashboardRouteRoute,
   } as any)
+const privatedashboardPreparationRouteRoute =
+  privatedashboardPreparationRouteRouteImport.update({
+    id: '/preparation',
+    path: '/preparation',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
 const privatedashboardBusinessRouteRoute =
   privatedashboardBusinessRouteRouteImport.update({
     id: '/business',
@@ -215,16 +213,11 @@ const privatedashboardAccountRouteRoute =
     path: '/account',
     getParentRoute: () => privatedashboardRouteRoute,
   } as any)
-const privatedashboardsupervisorRouteRoute =
-  privatedashboardsupervisorRouteRouteImport.update({
-    id: '/(supervisor)',
-    getParentRoute: () => privatedashboardRouteRoute,
-  } as any)
-const privatedashboardadminRouteRoute =
-  privatedashboardadminRouteRouteImport.update({
-    id: '/(admin)',
-    getParentRoute: () => privatedashboardRouteRoute,
-  } as any)
+const ApiCronHourlyIndexRoute = ApiCronHourlyIndexRouteImport.update({
+  id: '/api/cron/hourly/',
+  path: '/api/cron/hourly/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCronDailyIndexRoute = ApiCronDailyIndexRouteImport.update({
   id: '/api/cron/daily/',
   path: '/api/cron/daily/',
@@ -245,11 +238,65 @@ const privateTasksTaskIdIndexRoute = privateTasksTaskIdIndexRouteImport.update({
   path: '/tasks/$taskId/',
   getParentRoute: () => privateRouteRoute,
 } as any)
+const privatedashboardTransactionsIndexRoute =
+  privatedashboardTransactionsIndexRouteImport.update({
+    id: '/transactions/',
+    path: '/transactions/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
 const privatedashboardSettingsIndexRoute =
   privatedashboardSettingsIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => privatedashboardSettingsRouteRoute,
+  } as any)
+const privatedashboardSalesReportsIndexRoute =
+  privatedashboardSalesReportsIndexRouteImport.update({
+    id: '/sales-reports/',
+    path: '/sales-reports/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardPurchasesIndexRoute =
+  privatedashboardPurchasesIndexRouteImport.update({
+    id: '/purchases/',
+    path: '/purchases/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardProductsIndexRoute =
+  privatedashboardProductsIndexRouteImport.update({
+    id: '/products/',
+    path: '/products/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardPreparationIndexRoute =
+  privatedashboardPreparationIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => privatedashboardPreparationRouteRoute,
+  } as any)
+const privatedashboardOrderHistoryIndexRoute =
+  privatedashboardOrderHistoryIndexRouteImport.update({
+    id: '/order-history/',
+    path: '/order-history/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardInventoryReportsIndexRoute =
+  privatedashboardInventoryReportsIndexRouteImport.update({
+    id: '/inventory-reports/',
+    path: '/inventory-reports/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardIngredientsIndexRoute =
+  privatedashboardIngredientsIndexRouteImport.update({
+    id: '/ingredients/',
+    path: '/ingredients/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardEmployeesIndexRoute =
+  privatedashboardEmployeesIndexRouteImport.update({
+    id: '/employees/',
+    path: '/employees/',
+    getParentRoute: () => privatedashboardRouteRoute,
   } as any)
 const privatedashboardBusinessIndexRoute =
   privatedashboardBusinessIndexRouteImport.update({
@@ -280,23 +327,17 @@ const privatedashboardSettingsComplianceRoute =
     path: '/compliance',
     getParentRoute: () => privatedashboardSettingsRouteRoute,
   } as any)
-const privatedashboardBillingPaymentMethodsRoute =
-  privatedashboardBillingPaymentMethodsRouteImport.update({
-    id: '/payment-methods',
-    path: '/payment-methods',
-    getParentRoute: () => privatedashboardBillingRouteRoute,
+const privatedashboardPreparationHistoryRoute =
+  privatedashboardPreparationHistoryRouteImport.update({
+    id: '/history',
+    path: '/history',
+    getParentRoute: () => privatedashboardPreparationRouteRoute,
   } as any)
 const privatedashboardBillingManualPaymentRoute =
   privatedashboardBillingManualPaymentRouteImport.update({
     id: '/manual-payment',
     path: '/manual-payment',
     getParentRoute: () => privatedashboardBillingRouteRoute,
-  } as any)
-const privatedashboardadminPaymentApprovalsRoute =
-  privatedashboardadminPaymentApprovalsRouteImport.update({
-    id: '/payment-approvals',
-    path: '/payment-approvals',
-    getParentRoute: () => privatedashboardadminRouteRoute,
   } as any)
 const privatedashboardBusinessSuppliersRouteRoute =
   privatedashboardBusinessSuppliersRouteRouteImport.update({
@@ -316,11 +357,59 @@ const privatedashboardBusinessCustomersRouteRoute =
     path: '/customers',
     getParentRoute: () => privatedashboardBusinessRouteRoute,
   } as any)
-const privatedashboardadminPreparationRouteRoute =
-  privatedashboardadminPreparationRouteRouteImport.update({
-    id: '/preparation',
-    path: '/preparation',
-    getParentRoute: () => privatedashboardadminRouteRoute,
+const privatedashboardTransactionsTransactionIdIndexRoute =
+  privatedashboardTransactionsTransactionIdIndexRouteImport.update({
+    id: '/transactions/$transactionId/',
+    path: '/transactions/$transactionId/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardPurchasesPurchaseIdIndexRoute =
+  privatedashboardPurchasesPurchaseIdIndexRouteImport.update({
+    id: '/purchases/$purchaseId/',
+    path: '/purchases/$purchaseId/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardProductsCreateIndexRoute =
+  privatedashboardProductsCreateIndexRouteImport.update({
+    id: '/products/create/',
+    path: '/products/create/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardProductsProductIdIndexRoute =
+  privatedashboardProductsProductIdIndexRouteImport.update({
+    id: '/products/$productId/',
+    path: '/products/$productId/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardOrderHistoryOrderIdIndexRoute =
+  privatedashboardOrderHistoryOrderIdIndexRouteImport.update({
+    id: '/order-history/$orderId/',
+    path: '/order-history/$orderId/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardIngredientsCreateIndexRoute =
+  privatedashboardIngredientsCreateIndexRouteImport.update({
+    id: '/ingredients/create/',
+    path: '/ingredients/create/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardIngredientsIngredientIdIndexRoute =
+  privatedashboardIngredientsIngredientIdIndexRouteImport.update({
+    id: '/ingredients/$ingredientId/',
+    path: '/ingredients/$ingredientId/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardEmployeesCreateIndexRoute =
+  privatedashboardEmployeesCreateIndexRouteImport.update({
+    id: '/employees/create/',
+    path: '/employees/create/',
+    getParentRoute: () => privatedashboardRouteRoute,
+  } as any)
+const privatedashboardEmployeesEmployeeIdIndexRoute =
+  privatedashboardEmployeesEmployeeIdIndexRouteImport.update({
+    id: '/employees/$employeeId/',
+    path: '/employees/$employeeId/',
+    getParentRoute: () => privatedashboardRouteRoute,
   } as any)
 const privatedashboardBusinessSuppliersIndexRoute =
   privatedashboardBusinessSuppliersIndexRouteImport.update({
@@ -376,70 +465,22 @@ const privatedashboardAccountPreferencesIndexRoute =
     path: '/preferences/',
     getParentRoute: () => privatedashboardAccountRouteRoute,
   } as any)
-const privatedashboardsupervisorTransactionsIndexRoute =
-  privatedashboardsupervisorTransactionsIndexRouteImport.update({
-    id: '/transactions/',
-    path: '/transactions/',
-    getParentRoute: () => privatedashboardsupervisorRouteRoute,
-  } as any)
-const privatedashboardsupervisorSalesReportsIndexRoute =
-  privatedashboardsupervisorSalesReportsIndexRouteImport.update({
-    id: '/sales-reports/',
-    path: '/sales-reports/',
-    getParentRoute: () => privatedashboardsupervisorRouteRoute,
-  } as any)
-const privatedashboardsupervisorOrderHistoryIndexRoute =
-  privatedashboardsupervisorOrderHistoryIndexRouteImport.update({
-    id: '/order-history/',
-    path: '/order-history/',
-    getParentRoute: () => privatedashboardsupervisorRouteRoute,
-  } as any)
-const privatedashboardsupervisorInventoryReportsIndexRoute =
-  privatedashboardsupervisorInventoryReportsIndexRouteImport.update({
-    id: '/inventory-reports/',
-    path: '/inventory-reports/',
-    getParentRoute: () => privatedashboardsupervisorRouteRoute,
-  } as any)
-const privatedashboardadminPurchasesIndexRoute =
-  privatedashboardadminPurchasesIndexRouteImport.update({
-    id: '/purchases/',
-    path: '/purchases/',
-    getParentRoute: () => privatedashboardadminRouteRoute,
-  } as any)
-const privatedashboardadminProductsIndexRoute =
-  privatedashboardadminProductsIndexRouteImport.update({
-    id: '/products/',
-    path: '/products/',
-    getParentRoute: () => privatedashboardadminRouteRoute,
-  } as any)
-const privatedashboardadminPreparationIndexRoute =
-  privatedashboardadminPreparationIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => privatedashboardadminPreparationRouteRoute,
-  } as any)
-const privatedashboardadminIngredientsIndexRoute =
-  privatedashboardadminIngredientsIndexRouteImport.update({
-    id: '/ingredients/',
-    path: '/ingredients/',
-    getParentRoute: () => privatedashboardadminRouteRoute,
-  } as any)
-const privatedashboardadminEmployeesIndexRoute =
-  privatedashboardadminEmployeesIndexRouteImport.update({
-    id: '/employees/',
-    path: '/employees/',
-    getParentRoute: () => privatedashboardadminRouteRoute,
-  } as any)
-const privatedashboardadminPreparationHistoryRoute =
-  privatedashboardadminPreparationHistoryRouteImport.update({
-    id: '/history',
-    path: '/history',
-    getParentRoute: () => privatedashboardadminPreparationRouteRoute,
+const privatedashboardBusinessSubscriptionPaymentMethodsRoute =
+  privatedashboardBusinessSubscriptionPaymentMethodsRouteImport.update({
+    id: '/payment-methods',
+    path: '/payment-methods',
+    getParentRoute: () => privatedashboardBusinessSubscriptionRouteRoute,
   } as any)
 const privatedashboardBusinessSubscriptionSuccessIndexRoute =
   privatedashboardBusinessSubscriptionSuccessIndexRouteImport.update({
     id: '/success/',
     path: '/success/',
+    getParentRoute: () => privatedashboardBusinessSubscriptionRouteRoute,
+  } as any)
+const privatedashboardBusinessSubscriptionReactivateIndexRoute =
+  privatedashboardBusinessSubscriptionReactivateIndexRouteImport.update({
+    id: '/reactivate/',
+    path: '/reactivate/',
     getParentRoute: () => privatedashboardBusinessSubscriptionRouteRoute,
   } as any)
 const privatedashboardBusinessSubscriptionQuotesIndexRoute =
@@ -472,65 +513,17 @@ const privatedashboardBusinessSubscriptionCreditsIndexRoute =
     path: '/credits/',
     getParentRoute: () => privatedashboardBusinessSubscriptionRouteRoute,
   } as any)
+const privatedashboardBusinessSubscriptionCheckoutIndexRoute =
+  privatedashboardBusinessSubscriptionCheckoutIndexRouteImport.update({
+    id: '/checkout/',
+    path: '/checkout/',
+    getParentRoute: () => privatedashboardBusinessSubscriptionRouteRoute,
+  } as any)
 const privatedashboardBusinessPermissionsAuditIndexRoute =
   privatedashboardBusinessPermissionsAuditIndexRouteImport.update({
     id: '/permissions/audit/',
     path: '/permissions/audit/',
     getParentRoute: () => privatedashboardBusinessRouteRoute,
-  } as any)
-const privatedashboardsupervisorTransactionsTransactionIdIndexRoute =
-  privatedashboardsupervisorTransactionsTransactionIdIndexRouteImport.update({
-    id: '/transactions/$transactionId/',
-    path: '/transactions/$transactionId/',
-    getParentRoute: () => privatedashboardsupervisorRouteRoute,
-  } as any)
-const privatedashboardsupervisorOrderHistoryOrderIdIndexRoute =
-  privatedashboardsupervisorOrderHistoryOrderIdIndexRouteImport.update({
-    id: '/order-history/$orderId/',
-    path: '/order-history/$orderId/',
-    getParentRoute: () => privatedashboardsupervisorRouteRoute,
-  } as any)
-const privatedashboardadminPurchasesPurchaseIdIndexRoute =
-  privatedashboardadminPurchasesPurchaseIdIndexRouteImport.update({
-    id: '/purchases/$purchaseId/',
-    path: '/purchases/$purchaseId/',
-    getParentRoute: () => privatedashboardadminRouteRoute,
-  } as any)
-const privatedashboardadminProductsCreateIndexRoute =
-  privatedashboardadminProductsCreateIndexRouteImport.update({
-    id: '/products/create/',
-    path: '/products/create/',
-    getParentRoute: () => privatedashboardadminRouteRoute,
-  } as any)
-const privatedashboardadminProductsProductIdIndexRoute =
-  privatedashboardadminProductsProductIdIndexRouteImport.update({
-    id: '/products/$productId/',
-    path: '/products/$productId/',
-    getParentRoute: () => privatedashboardadminRouteRoute,
-  } as any)
-const privatedashboardadminIngredientsCreateIndexRoute =
-  privatedashboardadminIngredientsCreateIndexRouteImport.update({
-    id: '/ingredients/create/',
-    path: '/ingredients/create/',
-    getParentRoute: () => privatedashboardadminRouteRoute,
-  } as any)
-const privatedashboardadminIngredientsIngredientIdIndexRoute =
-  privatedashboardadminIngredientsIngredientIdIndexRouteImport.update({
-    id: '/ingredients/$ingredientId/',
-    path: '/ingredients/$ingredientId/',
-    getParentRoute: () => privatedashboardadminRouteRoute,
-  } as any)
-const privatedashboardadminEmployeesCreateIndexRoute =
-  privatedashboardadminEmployeesCreateIndexRouteImport.update({
-    id: '/employees/create/',
-    path: '/employees/create/',
-    getParentRoute: () => privatedashboardadminRouteRoute,
-  } as any)
-const privatedashboardadminEmployeesEmployeeIdIndexRoute =
-  privatedashboardadminEmployeesEmployeeIdIndexRouteImport.update({
-    id: '/employees/$employeeId/',
-    path: '/employees/$employeeId/',
-    getParentRoute: () => privatedashboardadminRouteRoute,
   } as any)
 const privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRoute =
   privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRouteImport.update({
@@ -540,16 +533,16 @@ const privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/privacy': typeof PrivacyRoute
-  '/terms': typeof TermsRoute
-  '/unauthorized': typeof UnauthorizedRoute
-  '/billing': typeof privatedashboardBillingRouteRouteWithChildren
+  '/privacy': typeof hybridPrivacyRoute
+  '/terms': typeof hybridTermsRoute
+  '/unauthorized': typeof hybridUnauthorizedRoute
   '/forgot-password': typeof publicForgotPasswordRoute
   '/login': typeof publicLoginRoute
-  '/register': typeof publicRegisterRouteWithChildren
   '/': typeof publicIndexRoute
   '/account': typeof privatedashboardAccountRouteRouteWithChildren
+  '/billing': typeof privatedashboardBillingRouteRouteWithChildren
   '/business': typeof privatedashboardBusinessRouteRouteWithChildren
+  '/preparation': typeof privatedashboardPreparationRouteRouteWithChildren
   '/settings': typeof privatedashboardSettingsRouteRouteWithChildren
   '/contact-us': typeof privatedashboardContactUsRoute
   '/dashboard': typeof privatedashboardDashboardRoute
@@ -559,34 +552,33 @@ export interface FileRoutesByFullPath {
   '/orders/': typeof privateOrdersIndexRoute
   '/pos/': typeof privatePosIndexRoute
   '/tasks/': typeof privateTasksIndexRoute
-  '/subscription/reactivate/': typeof SubscriptionReactivateIndexRoute
-  '/preparation': typeof privatedashboardadminPreparationRouteRouteWithChildren
+  '/register/': typeof publicRegisterIndexRoute
   '/business/customers': typeof privatedashboardBusinessCustomersRouteRouteWithChildren
   '/business/subscription': typeof privatedashboardBusinessSubscriptionRouteRouteWithChildren
   '/business/suppliers': typeof privatedashboardBusinessSuppliersRouteRouteWithChildren
-  '/payment-approvals': typeof privatedashboardadminPaymentApprovalsRoute
   '/billing/manual-payment': typeof privatedashboardBillingManualPaymentRoute
-  '/billing/payment-methods': typeof privatedashboardBillingPaymentMethodsRoute
+  '/preparation/history': typeof privatedashboardPreparationHistoryRoute
   '/settings/compliance': typeof privatedashboardSettingsComplianceRoute
   '/api/billing/webhook/stripe': typeof ApiBillingWebhookStripeRoute
   '/account/': typeof privatedashboardAccountIndexRoute
   '/billing/': typeof privatedashboardBillingIndexRoute
   '/business/': typeof privatedashboardBusinessIndexRoute
+  '/employees/': typeof privatedashboardEmployeesIndexRoute
+  '/ingredients/': typeof privatedashboardIngredientsIndexRoute
+  '/inventory-reports/': typeof privatedashboardInventoryReportsIndexRoute
+  '/order-history/': typeof privatedashboardOrderHistoryIndexRoute
+  '/preparation/': typeof privatedashboardPreparationIndexRoute
+  '/products/': typeof privatedashboardProductsIndexRoute
+  '/purchases/': typeof privatedashboardPurchasesIndexRoute
+  '/sales-reports/': typeof privatedashboardSalesReportsIndexRoute
   '/settings/': typeof privatedashboardSettingsIndexRoute
+  '/transactions/': typeof privatedashboardTransactionsIndexRoute
   '/tasks/$taskId/': typeof privateTasksTaskIdIndexRoute
   '/tasks/create/': typeof privateTasksCreateIndexRoute
   '/api/billing/webhook/': typeof ApiBillingWebhookIndexRoute
   '/api/cron/daily/': typeof ApiCronDailyIndexRoute
-  '/preparation/history': typeof privatedashboardadminPreparationHistoryRoute
-  '/employees/': typeof privatedashboardadminEmployeesIndexRoute
-  '/ingredients/': typeof privatedashboardadminIngredientsIndexRoute
-  '/preparation/': typeof privatedashboardadminPreparationIndexRoute
-  '/products/': typeof privatedashboardadminProductsIndexRoute
-  '/purchases/': typeof privatedashboardadminPurchasesIndexRoute
-  '/inventory-reports/': typeof privatedashboardsupervisorInventoryReportsIndexRoute
-  '/order-history/': typeof privatedashboardsupervisorOrderHistoryIndexRoute
-  '/sales-reports/': typeof privatedashboardsupervisorSalesReportsIndexRoute
-  '/transactions/': typeof privatedashboardsupervisorTransactionsIndexRoute
+  '/api/cron/hourly/': typeof ApiCronHourlyIndexRoute
+  '/business/subscription/payment-methods': typeof privatedashboardBusinessSubscriptionPaymentMethodsRoute
   '/account/preferences/': typeof privatedashboardAccountPreferencesIndexRoute
   '/account/security/': typeof privatedashboardAccountSecurityIndexRoute
   '/business/branches/': typeof privatedashboardBusinessBranchesIndexRoute
@@ -596,32 +588,32 @@ export interface FileRoutesByFullPath {
   '/business/profile/': typeof privatedashboardBusinessProfileIndexRoute
   '/business/subscription/': typeof privatedashboardBusinessSubscriptionIndexRoute
   '/business/suppliers/': typeof privatedashboardBusinessSuppliersIndexRoute
-  '/employees/$employeeId/': typeof privatedashboardadminEmployeesEmployeeIdIndexRoute
-  '/employees/create/': typeof privatedashboardadminEmployeesCreateIndexRoute
-  '/ingredients/$ingredientId/': typeof privatedashboardadminIngredientsIngredientIdIndexRoute
-  '/ingredients/create/': typeof privatedashboardadminIngredientsCreateIndexRoute
-  '/products/$productId/': typeof privatedashboardadminProductsProductIdIndexRoute
-  '/products/create/': typeof privatedashboardadminProductsCreateIndexRoute
-  '/purchases/$purchaseId/': typeof privatedashboardadminPurchasesPurchaseIdIndexRoute
-  '/order-history/$orderId/': typeof privatedashboardsupervisorOrderHistoryOrderIdIndexRoute
-  '/transactions/$transactionId/': typeof privatedashboardsupervisorTransactionsTransactionIdIndexRoute
+  '/employees/$employeeId/': typeof privatedashboardEmployeesEmployeeIdIndexRoute
+  '/employees/create/': typeof privatedashboardEmployeesCreateIndexRoute
+  '/ingredients/$ingredientId/': typeof privatedashboardIngredientsIngredientIdIndexRoute
+  '/ingredients/create/': typeof privatedashboardIngredientsCreateIndexRoute
+  '/order-history/$orderId/': typeof privatedashboardOrderHistoryOrderIdIndexRoute
+  '/products/$productId/': typeof privatedashboardProductsProductIdIndexRoute
+  '/products/create/': typeof privatedashboardProductsCreateIndexRoute
+  '/purchases/$purchaseId/': typeof privatedashboardPurchasesPurchaseIdIndexRoute
+  '/transactions/$transactionId/': typeof privatedashboardTransactionsTransactionIdIndexRoute
   '/business/permissions/audit/': typeof privatedashboardBusinessPermissionsAuditIndexRoute
+  '/business/subscription/checkout/': typeof privatedashboardBusinessSubscriptionCheckoutIndexRoute
   '/business/subscription/credits/': typeof privatedashboardBusinessSubscriptionCreditsIndexRoute
   '/business/subscription/invoices/': typeof privatedashboardBusinessSubscriptionInvoicesIndexRoute
   '/business/subscription/plans/': typeof privatedashboardBusinessSubscriptionPlansIndexRoute
   '/business/subscription/pricing/': typeof privatedashboardBusinessSubscriptionPricingIndexRoute
   '/business/subscription/quotes/': typeof privatedashboardBusinessSubscriptionQuotesIndexRoute
+  '/business/subscription/reactivate/': typeof privatedashboardBusinessSubscriptionReactivateIndexRoute
   '/business/subscription/success/': typeof privatedashboardBusinessSubscriptionSuccessIndexRoute
   '/business/subscription/quotes/$quoteId/': typeof privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRoute
 }
 export interface FileRoutesByTo {
-  '/privacy': typeof PrivacyRoute
-  '/terms': typeof TermsRoute
-  '/unauthorized': typeof UnauthorizedRoute
-  '/billing': typeof privatedashboardBillingIndexRoute
+  '/privacy': typeof hybridPrivacyRoute
+  '/terms': typeof hybridTermsRoute
+  '/unauthorized': typeof hybridUnauthorizedRoute
   '/forgot-password': typeof publicForgotPasswordRoute
   '/login': typeof publicLoginRoute
-  '/register': typeof publicRegisterRouteWithChildren
   '/': typeof publicIndexRoute
   '/contact-us': typeof privatedashboardContactUsRoute
   '/dashboard': typeof privatedashboardDashboardRoute
@@ -631,29 +623,30 @@ export interface FileRoutesByTo {
   '/orders': typeof privateOrdersIndexRoute
   '/pos': typeof privatePosIndexRoute
   '/tasks': typeof privateTasksIndexRoute
-  '/subscription/reactivate': typeof SubscriptionReactivateIndexRoute
-  '/payment-approvals': typeof privatedashboardadminPaymentApprovalsRoute
+  '/register': typeof publicRegisterIndexRoute
   '/billing/manual-payment': typeof privatedashboardBillingManualPaymentRoute
-  '/billing/payment-methods': typeof privatedashboardBillingPaymentMethodsRoute
+  '/preparation/history': typeof privatedashboardPreparationHistoryRoute
   '/settings/compliance': typeof privatedashboardSettingsComplianceRoute
   '/api/billing/webhook/stripe': typeof ApiBillingWebhookStripeRoute
   '/account': typeof privatedashboardAccountIndexRoute
+  '/billing': typeof privatedashboardBillingIndexRoute
   '/business': typeof privatedashboardBusinessIndexRoute
+  '/employees': typeof privatedashboardEmployeesIndexRoute
+  '/ingredients': typeof privatedashboardIngredientsIndexRoute
+  '/inventory-reports': typeof privatedashboardInventoryReportsIndexRoute
+  '/order-history': typeof privatedashboardOrderHistoryIndexRoute
+  '/preparation': typeof privatedashboardPreparationIndexRoute
+  '/products': typeof privatedashboardProductsIndexRoute
+  '/purchases': typeof privatedashboardPurchasesIndexRoute
+  '/sales-reports': typeof privatedashboardSalesReportsIndexRoute
   '/settings': typeof privatedashboardSettingsIndexRoute
+  '/transactions': typeof privatedashboardTransactionsIndexRoute
   '/tasks/$taskId': typeof privateTasksTaskIdIndexRoute
   '/tasks/create': typeof privateTasksCreateIndexRoute
   '/api/billing/webhook': typeof ApiBillingWebhookIndexRoute
   '/api/cron/daily': typeof ApiCronDailyIndexRoute
-  '/preparation/history': typeof privatedashboardadminPreparationHistoryRoute
-  '/employees': typeof privatedashboardadminEmployeesIndexRoute
-  '/ingredients': typeof privatedashboardadminIngredientsIndexRoute
-  '/preparation': typeof privatedashboardadminPreparationIndexRoute
-  '/products': typeof privatedashboardadminProductsIndexRoute
-  '/purchases': typeof privatedashboardadminPurchasesIndexRoute
-  '/inventory-reports': typeof privatedashboardsupervisorInventoryReportsIndexRoute
-  '/order-history': typeof privatedashboardsupervisorOrderHistoryIndexRoute
-  '/sales-reports': typeof privatedashboardsupervisorSalesReportsIndexRoute
-  '/transactions': typeof privatedashboardsupervisorTransactionsIndexRoute
+  '/api/cron/hourly': typeof ApiCronHourlyIndexRoute
+  '/business/subscription/payment-methods': typeof privatedashboardBusinessSubscriptionPaymentMethodsRoute
   '/account/preferences': typeof privatedashboardAccountPreferencesIndexRoute
   '/account/security': typeof privatedashboardAccountSecurityIndexRoute
   '/business/branches': typeof privatedashboardBusinessBranchesIndexRoute
@@ -663,42 +656,42 @@ export interface FileRoutesByTo {
   '/business/profile': typeof privatedashboardBusinessProfileIndexRoute
   '/business/subscription': typeof privatedashboardBusinessSubscriptionIndexRoute
   '/business/suppliers': typeof privatedashboardBusinessSuppliersIndexRoute
-  '/employees/$employeeId': typeof privatedashboardadminEmployeesEmployeeIdIndexRoute
-  '/employees/create': typeof privatedashboardadminEmployeesCreateIndexRoute
-  '/ingredients/$ingredientId': typeof privatedashboardadminIngredientsIngredientIdIndexRoute
-  '/ingredients/create': typeof privatedashboardadminIngredientsCreateIndexRoute
-  '/products/$productId': typeof privatedashboardadminProductsProductIdIndexRoute
-  '/products/create': typeof privatedashboardadminProductsCreateIndexRoute
-  '/purchases/$purchaseId': typeof privatedashboardadminPurchasesPurchaseIdIndexRoute
-  '/order-history/$orderId': typeof privatedashboardsupervisorOrderHistoryOrderIdIndexRoute
-  '/transactions/$transactionId': typeof privatedashboardsupervisorTransactionsTransactionIdIndexRoute
+  '/employees/$employeeId': typeof privatedashboardEmployeesEmployeeIdIndexRoute
+  '/employees/create': typeof privatedashboardEmployeesCreateIndexRoute
+  '/ingredients/$ingredientId': typeof privatedashboardIngredientsIngredientIdIndexRoute
+  '/ingredients/create': typeof privatedashboardIngredientsCreateIndexRoute
+  '/order-history/$orderId': typeof privatedashboardOrderHistoryOrderIdIndexRoute
+  '/products/$productId': typeof privatedashboardProductsProductIdIndexRoute
+  '/products/create': typeof privatedashboardProductsCreateIndexRoute
+  '/purchases/$purchaseId': typeof privatedashboardPurchasesPurchaseIdIndexRoute
+  '/transactions/$transactionId': typeof privatedashboardTransactionsTransactionIdIndexRoute
   '/business/permissions/audit': typeof privatedashboardBusinessPermissionsAuditIndexRoute
+  '/business/subscription/checkout': typeof privatedashboardBusinessSubscriptionCheckoutIndexRoute
   '/business/subscription/credits': typeof privatedashboardBusinessSubscriptionCreditsIndexRoute
   '/business/subscription/invoices': typeof privatedashboardBusinessSubscriptionInvoicesIndexRoute
   '/business/subscription/plans': typeof privatedashboardBusinessSubscriptionPlansIndexRoute
   '/business/subscription/pricing': typeof privatedashboardBusinessSubscriptionPricingIndexRoute
   '/business/subscription/quotes': typeof privatedashboardBusinessSubscriptionQuotesIndexRoute
+  '/business/subscription/reactivate': typeof privatedashboardBusinessSubscriptionReactivateIndexRoute
   '/business/subscription/success': typeof privatedashboardBusinessSubscriptionSuccessIndexRoute
   '/business/subscription/quotes/$quoteId': typeof privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/(hybrid)': typeof hybridRouteRouteWithChildren
   '/(private)': typeof privateRouteRouteWithChildren
   '/(public)': typeof publicRouteRouteWithChildren
-  '/privacy': typeof PrivacyRoute
-  '/terms': typeof TermsRoute
-  '/unauthorized': typeof UnauthorizedRoute
   '/(private)/(dashboard)': typeof privatedashboardRouteRouteWithChildren
-  '/(private)/billing': typeof privateBillingRoute
+  '/(hybrid)/privacy': typeof hybridPrivacyRoute
+  '/(hybrid)/terms': typeof hybridTermsRoute
+  '/(hybrid)/unauthorized': typeof hybridUnauthorizedRoute
   '/(public)/forgot-password': typeof publicForgotPasswordRoute
   '/(public)/login': typeof publicLoginRoute
-  '/(public)/register': typeof publicRegisterRouteWithChildren
   '/(public)/': typeof publicIndexRoute
-  '/(private)/(dashboard)/(admin)': typeof privatedashboardadminRouteRouteWithChildren
-  '/(private)/(dashboard)/(supervisor)': typeof privatedashboardsupervisorRouteRouteWithChildren
   '/(private)/(dashboard)/account': typeof privatedashboardAccountRouteRouteWithChildren
   '/(private)/(dashboard)/billing': typeof privatedashboardBillingRouteRouteWithChildren
   '/(private)/(dashboard)/business': typeof privatedashboardBusinessRouteRouteWithChildren
+  '/(private)/(dashboard)/preparation': typeof privatedashboardPreparationRouteRouteWithChildren
   '/(private)/(dashboard)/settings': typeof privatedashboardSettingsRouteRouteWithChildren
   '/(private)/(dashboard)/contact-us': typeof privatedashboardContactUsRoute
   '/(private)/(dashboard)/dashboard': typeof privatedashboardDashboardRoute
@@ -708,34 +701,33 @@ export interface FileRoutesById {
   '/(private)/orders/': typeof privateOrdersIndexRoute
   '/(private)/pos/': typeof privatePosIndexRoute
   '/(private)/tasks/': typeof privateTasksIndexRoute
-  '/subscription/reactivate/': typeof SubscriptionReactivateIndexRoute
-  '/(private)/(dashboard)/(admin)/preparation': typeof privatedashboardadminPreparationRouteRouteWithChildren
+  '/(public)/register/': typeof publicRegisterIndexRoute
   '/(private)/(dashboard)/business/customers': typeof privatedashboardBusinessCustomersRouteRouteWithChildren
   '/(private)/(dashboard)/business/subscription': typeof privatedashboardBusinessSubscriptionRouteRouteWithChildren
   '/(private)/(dashboard)/business/suppliers': typeof privatedashboardBusinessSuppliersRouteRouteWithChildren
-  '/(private)/(dashboard)/(admin)/payment-approvals': typeof privatedashboardadminPaymentApprovalsRoute
   '/(private)/(dashboard)/billing/manual-payment': typeof privatedashboardBillingManualPaymentRoute
-  '/(private)/(dashboard)/billing/payment-methods': typeof privatedashboardBillingPaymentMethodsRoute
+  '/(private)/(dashboard)/preparation/history': typeof privatedashboardPreparationHistoryRoute
   '/(private)/(dashboard)/settings/compliance': typeof privatedashboardSettingsComplianceRoute
   '/api/billing/webhook/stripe': typeof ApiBillingWebhookStripeRoute
   '/(private)/(dashboard)/account/': typeof privatedashboardAccountIndexRoute
   '/(private)/(dashboard)/billing/': typeof privatedashboardBillingIndexRoute
   '/(private)/(dashboard)/business/': typeof privatedashboardBusinessIndexRoute
+  '/(private)/(dashboard)/employees/': typeof privatedashboardEmployeesIndexRoute
+  '/(private)/(dashboard)/ingredients/': typeof privatedashboardIngredientsIndexRoute
+  '/(private)/(dashboard)/inventory-reports/': typeof privatedashboardInventoryReportsIndexRoute
+  '/(private)/(dashboard)/order-history/': typeof privatedashboardOrderHistoryIndexRoute
+  '/(private)/(dashboard)/preparation/': typeof privatedashboardPreparationIndexRoute
+  '/(private)/(dashboard)/products/': typeof privatedashboardProductsIndexRoute
+  '/(private)/(dashboard)/purchases/': typeof privatedashboardPurchasesIndexRoute
+  '/(private)/(dashboard)/sales-reports/': typeof privatedashboardSalesReportsIndexRoute
   '/(private)/(dashboard)/settings/': typeof privatedashboardSettingsIndexRoute
+  '/(private)/(dashboard)/transactions/': typeof privatedashboardTransactionsIndexRoute
   '/(private)/tasks/$taskId/': typeof privateTasksTaskIdIndexRoute
   '/(private)/tasks/create/': typeof privateTasksCreateIndexRoute
   '/api/billing/webhook/': typeof ApiBillingWebhookIndexRoute
   '/api/cron/daily/': typeof ApiCronDailyIndexRoute
-  '/(private)/(dashboard)/(admin)/preparation/history': typeof privatedashboardadminPreparationHistoryRoute
-  '/(private)/(dashboard)/(admin)/employees/': typeof privatedashboardadminEmployeesIndexRoute
-  '/(private)/(dashboard)/(admin)/ingredients/': typeof privatedashboardadminIngredientsIndexRoute
-  '/(private)/(dashboard)/(admin)/preparation/': typeof privatedashboardadminPreparationIndexRoute
-  '/(private)/(dashboard)/(admin)/products/': typeof privatedashboardadminProductsIndexRoute
-  '/(private)/(dashboard)/(admin)/purchases/': typeof privatedashboardadminPurchasesIndexRoute
-  '/(private)/(dashboard)/(supervisor)/inventory-reports/': typeof privatedashboardsupervisorInventoryReportsIndexRoute
-  '/(private)/(dashboard)/(supervisor)/order-history/': typeof privatedashboardsupervisorOrderHistoryIndexRoute
-  '/(private)/(dashboard)/(supervisor)/sales-reports/': typeof privatedashboardsupervisorSalesReportsIndexRoute
-  '/(private)/(dashboard)/(supervisor)/transactions/': typeof privatedashboardsupervisorTransactionsIndexRoute
+  '/api/cron/hourly/': typeof ApiCronHourlyIndexRoute
+  '/(private)/(dashboard)/business/subscription/payment-methods': typeof privatedashboardBusinessSubscriptionPaymentMethodsRoute
   '/(private)/(dashboard)/account/preferences/': typeof privatedashboardAccountPreferencesIndexRoute
   '/(private)/(dashboard)/account/security/': typeof privatedashboardAccountSecurityIndexRoute
   '/(private)/(dashboard)/business/branches/': typeof privatedashboardBusinessBranchesIndexRoute
@@ -745,21 +737,23 @@ export interface FileRoutesById {
   '/(private)/(dashboard)/business/profile/': typeof privatedashboardBusinessProfileIndexRoute
   '/(private)/(dashboard)/business/subscription/': typeof privatedashboardBusinessSubscriptionIndexRoute
   '/(private)/(dashboard)/business/suppliers/': typeof privatedashboardBusinessSuppliersIndexRoute
-  '/(private)/(dashboard)/(admin)/employees/$employeeId/': typeof privatedashboardadminEmployeesEmployeeIdIndexRoute
-  '/(private)/(dashboard)/(admin)/employees/create/': typeof privatedashboardadminEmployeesCreateIndexRoute
-  '/(private)/(dashboard)/(admin)/ingredients/$ingredientId/': typeof privatedashboardadminIngredientsIngredientIdIndexRoute
-  '/(private)/(dashboard)/(admin)/ingredients/create/': typeof privatedashboardadminIngredientsCreateIndexRoute
-  '/(private)/(dashboard)/(admin)/products/$productId/': typeof privatedashboardadminProductsProductIdIndexRoute
-  '/(private)/(dashboard)/(admin)/products/create/': typeof privatedashboardadminProductsCreateIndexRoute
-  '/(private)/(dashboard)/(admin)/purchases/$purchaseId/': typeof privatedashboardadminPurchasesPurchaseIdIndexRoute
-  '/(private)/(dashboard)/(supervisor)/order-history/$orderId/': typeof privatedashboardsupervisorOrderHistoryOrderIdIndexRoute
-  '/(private)/(dashboard)/(supervisor)/transactions/$transactionId/': typeof privatedashboardsupervisorTransactionsTransactionIdIndexRoute
+  '/(private)/(dashboard)/employees/$employeeId/': typeof privatedashboardEmployeesEmployeeIdIndexRoute
+  '/(private)/(dashboard)/employees/create/': typeof privatedashboardEmployeesCreateIndexRoute
+  '/(private)/(dashboard)/ingredients/$ingredientId/': typeof privatedashboardIngredientsIngredientIdIndexRoute
+  '/(private)/(dashboard)/ingredients/create/': typeof privatedashboardIngredientsCreateIndexRoute
+  '/(private)/(dashboard)/order-history/$orderId/': typeof privatedashboardOrderHistoryOrderIdIndexRoute
+  '/(private)/(dashboard)/products/$productId/': typeof privatedashboardProductsProductIdIndexRoute
+  '/(private)/(dashboard)/products/create/': typeof privatedashboardProductsCreateIndexRoute
+  '/(private)/(dashboard)/purchases/$purchaseId/': typeof privatedashboardPurchasesPurchaseIdIndexRoute
+  '/(private)/(dashboard)/transactions/$transactionId/': typeof privatedashboardTransactionsTransactionIdIndexRoute
   '/(private)/(dashboard)/business/permissions/audit/': typeof privatedashboardBusinessPermissionsAuditIndexRoute
+  '/(private)/(dashboard)/business/subscription/checkout/': typeof privatedashboardBusinessSubscriptionCheckoutIndexRoute
   '/(private)/(dashboard)/business/subscription/credits/': typeof privatedashboardBusinessSubscriptionCreditsIndexRoute
   '/(private)/(dashboard)/business/subscription/invoices/': typeof privatedashboardBusinessSubscriptionInvoicesIndexRoute
   '/(private)/(dashboard)/business/subscription/plans/': typeof privatedashboardBusinessSubscriptionPlansIndexRoute
   '/(private)/(dashboard)/business/subscription/pricing/': typeof privatedashboardBusinessSubscriptionPricingIndexRoute
   '/(private)/(dashboard)/business/subscription/quotes/': typeof privatedashboardBusinessSubscriptionQuotesIndexRoute
+  '/(private)/(dashboard)/business/subscription/reactivate/': typeof privatedashboardBusinessSubscriptionReactivateIndexRoute
   '/(private)/(dashboard)/business/subscription/success/': typeof privatedashboardBusinessSubscriptionSuccessIndexRoute
   '/(private)/(dashboard)/business/subscription/quotes/$quoteId/': typeof privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRoute
 }
@@ -769,13 +763,13 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/unauthorized'
-    | '/billing'
     | '/forgot-password'
     | '/login'
-    | '/register'
     | '/'
     | '/account'
+    | '/billing'
     | '/business'
+    | '/preparation'
     | '/settings'
     | '/contact-us'
     | '/dashboard'
@@ -785,34 +779,33 @@ export interface FileRouteTypes {
     | '/orders/'
     | '/pos/'
     | '/tasks/'
-    | '/subscription/reactivate/'
-    | '/preparation'
+    | '/register/'
     | '/business/customers'
     | '/business/subscription'
     | '/business/suppliers'
-    | '/payment-approvals'
     | '/billing/manual-payment'
-    | '/billing/payment-methods'
+    | '/preparation/history'
     | '/settings/compliance'
     | '/api/billing/webhook/stripe'
     | '/account/'
     | '/billing/'
     | '/business/'
+    | '/employees/'
+    | '/ingredients/'
+    | '/inventory-reports/'
+    | '/order-history/'
+    | '/preparation/'
+    | '/products/'
+    | '/purchases/'
+    | '/sales-reports/'
     | '/settings/'
+    | '/transactions/'
     | '/tasks/$taskId/'
     | '/tasks/create/'
     | '/api/billing/webhook/'
     | '/api/cron/daily/'
-    | '/preparation/history'
-    | '/employees/'
-    | '/ingredients/'
-    | '/preparation/'
-    | '/products/'
-    | '/purchases/'
-    | '/inventory-reports/'
-    | '/order-history/'
-    | '/sales-reports/'
-    | '/transactions/'
+    | '/api/cron/hourly/'
+    | '/business/subscription/payment-methods'
     | '/account/preferences/'
     | '/account/security/'
     | '/business/branches/'
@@ -826,17 +819,19 @@ export interface FileRouteTypes {
     | '/employees/create/'
     | '/ingredients/$ingredientId/'
     | '/ingredients/create/'
+    | '/order-history/$orderId/'
     | '/products/$productId/'
     | '/products/create/'
     | '/purchases/$purchaseId/'
-    | '/order-history/$orderId/'
     | '/transactions/$transactionId/'
     | '/business/permissions/audit/'
+    | '/business/subscription/checkout/'
     | '/business/subscription/credits/'
     | '/business/subscription/invoices/'
     | '/business/subscription/plans/'
     | '/business/subscription/pricing/'
     | '/business/subscription/quotes/'
+    | '/business/subscription/reactivate/'
     | '/business/subscription/success/'
     | '/business/subscription/quotes/$quoteId/'
   fileRoutesByTo: FileRoutesByTo
@@ -844,10 +839,8 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/unauthorized'
-    | '/billing'
     | '/forgot-password'
     | '/login'
-    | '/register'
     | '/'
     | '/contact-us'
     | '/dashboard'
@@ -857,29 +850,30 @@ export interface FileRouteTypes {
     | '/orders'
     | '/pos'
     | '/tasks'
-    | '/subscription/reactivate'
-    | '/payment-approvals'
+    | '/register'
     | '/billing/manual-payment'
-    | '/billing/payment-methods'
+    | '/preparation/history'
     | '/settings/compliance'
     | '/api/billing/webhook/stripe'
     | '/account'
+    | '/billing'
     | '/business'
+    | '/employees'
+    | '/ingredients'
+    | '/inventory-reports'
+    | '/order-history'
+    | '/preparation'
+    | '/products'
+    | '/purchases'
+    | '/sales-reports'
     | '/settings'
+    | '/transactions'
     | '/tasks/$taskId'
     | '/tasks/create'
     | '/api/billing/webhook'
     | '/api/cron/daily'
-    | '/preparation/history'
-    | '/employees'
-    | '/ingredients'
-    | '/preparation'
-    | '/products'
-    | '/purchases'
-    | '/inventory-reports'
-    | '/order-history'
-    | '/sales-reports'
-    | '/transactions'
+    | '/api/cron/hourly'
+    | '/business/subscription/payment-methods'
     | '/account/preferences'
     | '/account/security'
     | '/business/branches'
@@ -893,37 +887,37 @@ export interface FileRouteTypes {
     | '/employees/create'
     | '/ingredients/$ingredientId'
     | '/ingredients/create'
+    | '/order-history/$orderId'
     | '/products/$productId'
     | '/products/create'
     | '/purchases/$purchaseId'
-    | '/order-history/$orderId'
     | '/transactions/$transactionId'
     | '/business/permissions/audit'
+    | '/business/subscription/checkout'
     | '/business/subscription/credits'
     | '/business/subscription/invoices'
     | '/business/subscription/plans'
     | '/business/subscription/pricing'
     | '/business/subscription/quotes'
+    | '/business/subscription/reactivate'
     | '/business/subscription/success'
     | '/business/subscription/quotes/$quoteId'
   id:
     | '__root__'
+    | '/(hybrid)'
     | '/(private)'
     | '/(public)'
-    | '/privacy'
-    | '/terms'
-    | '/unauthorized'
     | '/(private)/(dashboard)'
-    | '/(private)/billing'
+    | '/(hybrid)/privacy'
+    | '/(hybrid)/terms'
+    | '/(hybrid)/unauthorized'
     | '/(public)/forgot-password'
     | '/(public)/login'
-    | '/(public)/register'
     | '/(public)/'
-    | '/(private)/(dashboard)/(admin)'
-    | '/(private)/(dashboard)/(supervisor)'
     | '/(private)/(dashboard)/account'
     | '/(private)/(dashboard)/billing'
     | '/(private)/(dashboard)/business'
+    | '/(private)/(dashboard)/preparation'
     | '/(private)/(dashboard)/settings'
     | '/(private)/(dashboard)/contact-us'
     | '/(private)/(dashboard)/dashboard'
@@ -933,34 +927,33 @@ export interface FileRouteTypes {
     | '/(private)/orders/'
     | '/(private)/pos/'
     | '/(private)/tasks/'
-    | '/subscription/reactivate/'
-    | '/(private)/(dashboard)/(admin)/preparation'
+    | '/(public)/register/'
     | '/(private)/(dashboard)/business/customers'
     | '/(private)/(dashboard)/business/subscription'
     | '/(private)/(dashboard)/business/suppliers'
-    | '/(private)/(dashboard)/(admin)/payment-approvals'
     | '/(private)/(dashboard)/billing/manual-payment'
-    | '/(private)/(dashboard)/billing/payment-methods'
+    | '/(private)/(dashboard)/preparation/history'
     | '/(private)/(dashboard)/settings/compliance'
     | '/api/billing/webhook/stripe'
     | '/(private)/(dashboard)/account/'
     | '/(private)/(dashboard)/billing/'
     | '/(private)/(dashboard)/business/'
+    | '/(private)/(dashboard)/employees/'
+    | '/(private)/(dashboard)/ingredients/'
+    | '/(private)/(dashboard)/inventory-reports/'
+    | '/(private)/(dashboard)/order-history/'
+    | '/(private)/(dashboard)/preparation/'
+    | '/(private)/(dashboard)/products/'
+    | '/(private)/(dashboard)/purchases/'
+    | '/(private)/(dashboard)/sales-reports/'
     | '/(private)/(dashboard)/settings/'
+    | '/(private)/(dashboard)/transactions/'
     | '/(private)/tasks/$taskId/'
     | '/(private)/tasks/create/'
     | '/api/billing/webhook/'
     | '/api/cron/daily/'
-    | '/(private)/(dashboard)/(admin)/preparation/history'
-    | '/(private)/(dashboard)/(admin)/employees/'
-    | '/(private)/(dashboard)/(admin)/ingredients/'
-    | '/(private)/(dashboard)/(admin)/preparation/'
-    | '/(private)/(dashboard)/(admin)/products/'
-    | '/(private)/(dashboard)/(admin)/purchases/'
-    | '/(private)/(dashboard)/(supervisor)/inventory-reports/'
-    | '/(private)/(dashboard)/(supervisor)/order-history/'
-    | '/(private)/(dashboard)/(supervisor)/sales-reports/'
-    | '/(private)/(dashboard)/(supervisor)/transactions/'
+    | '/api/cron/hourly/'
+    | '/(private)/(dashboard)/business/subscription/payment-methods'
     | '/(private)/(dashboard)/account/preferences/'
     | '/(private)/(dashboard)/account/security/'
     | '/(private)/(dashboard)/business/branches/'
@@ -970,61 +963,40 @@ export interface FileRouteTypes {
     | '/(private)/(dashboard)/business/profile/'
     | '/(private)/(dashboard)/business/subscription/'
     | '/(private)/(dashboard)/business/suppliers/'
-    | '/(private)/(dashboard)/(admin)/employees/$employeeId/'
-    | '/(private)/(dashboard)/(admin)/employees/create/'
-    | '/(private)/(dashboard)/(admin)/ingredients/$ingredientId/'
-    | '/(private)/(dashboard)/(admin)/ingredients/create/'
-    | '/(private)/(dashboard)/(admin)/products/$productId/'
-    | '/(private)/(dashboard)/(admin)/products/create/'
-    | '/(private)/(dashboard)/(admin)/purchases/$purchaseId/'
-    | '/(private)/(dashboard)/(supervisor)/order-history/$orderId/'
-    | '/(private)/(dashboard)/(supervisor)/transactions/$transactionId/'
+    | '/(private)/(dashboard)/employees/$employeeId/'
+    | '/(private)/(dashboard)/employees/create/'
+    | '/(private)/(dashboard)/ingredients/$ingredientId/'
+    | '/(private)/(dashboard)/ingredients/create/'
+    | '/(private)/(dashboard)/order-history/$orderId/'
+    | '/(private)/(dashboard)/products/$productId/'
+    | '/(private)/(dashboard)/products/create/'
+    | '/(private)/(dashboard)/purchases/$purchaseId/'
+    | '/(private)/(dashboard)/transactions/$transactionId/'
     | '/(private)/(dashboard)/business/permissions/audit/'
+    | '/(private)/(dashboard)/business/subscription/checkout/'
     | '/(private)/(dashboard)/business/subscription/credits/'
     | '/(private)/(dashboard)/business/subscription/invoices/'
     | '/(private)/(dashboard)/business/subscription/plans/'
     | '/(private)/(dashboard)/business/subscription/pricing/'
     | '/(private)/(dashboard)/business/subscription/quotes/'
+    | '/(private)/(dashboard)/business/subscription/reactivate/'
     | '/(private)/(dashboard)/business/subscription/success/'
     | '/(private)/(dashboard)/business/subscription/quotes/$quoteId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  hybridRouteRoute: typeof hybridRouteRouteWithChildren
   privateRouteRoute: typeof privateRouteRouteWithChildren
   publicRouteRoute: typeof publicRouteRouteWithChildren
-  PrivacyRoute: typeof PrivacyRoute
-  TermsRoute: typeof TermsRoute
-  UnauthorizedRoute: typeof UnauthorizedRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  SubscriptionReactivateIndexRoute: typeof SubscriptionReactivateIndexRoute
   ApiBillingWebhookStripeRoute: typeof ApiBillingWebhookStripeRoute
   ApiBillingWebhookIndexRoute: typeof ApiBillingWebhookIndexRoute
   ApiCronDailyIndexRoute: typeof ApiCronDailyIndexRoute
+  ApiCronHourlyIndexRoute: typeof ApiCronHourlyIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/unauthorized': {
-      id: '/unauthorized'
-      path: '/unauthorized'
-      fullPath: '/unauthorized'
-      preLoaderRoute: typeof UnauthorizedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/(public)': {
       id: '/(public)'
       path: ''
@@ -1039,18 +1011,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privateRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(hybrid)': {
+      id: '/(hybrid)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof hybridRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(public)/': {
       id: '/(public)/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof publicIndexRouteImport
-      parentRoute: typeof publicRouteRoute
-    }
-    '/(public)/register': {
-      id: '/(public)/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof publicRegisterRouteImport
       parentRoute: typeof publicRouteRoute
     }
     '/(public)/login': {
@@ -1067,12 +1039,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof publicForgotPasswordRouteImport
       parentRoute: typeof publicRouteRoute
     }
-    '/(private)/billing': {
-      id: '/(private)/billing'
-      path: '/billing'
-      fullPath: '/billing'
-      preLoaderRoute: typeof privateBillingRouteImport
-      parentRoute: typeof privateRouteRoute
+    '/(hybrid)/unauthorized': {
+      id: '/(hybrid)/unauthorized'
+      path: '/unauthorized'
+      fullPath: '/unauthorized'
+      preLoaderRoute: typeof hybridUnauthorizedRouteImport
+      parentRoute: typeof hybridRouteRoute
+    }
+    '/(hybrid)/terms': {
+      id: '/(hybrid)/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof hybridTermsRouteImport
+      parentRoute: typeof hybridRouteRoute
+    }
+    '/(hybrid)/privacy': {
+      id: '/(hybrid)/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof hybridPrivacyRouteImport
+      parentRoute: typeof hybridRouteRoute
     }
     '/(private)/(dashboard)': {
       id: '/(private)/(dashboard)'
@@ -1081,12 +1067,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardRouteRouteImport
       parentRoute: typeof privateRouteRoute
     }
-    '/subscription/reactivate/': {
-      id: '/subscription/reactivate/'
-      path: '/subscription/reactivate'
-      fullPath: '/subscription/reactivate/'
-      preLoaderRoute: typeof SubscriptionReactivateIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/(public)/register/': {
+      id: '/(public)/register/'
+      path: '/register'
+      fullPath: '/register/'
+      preLoaderRoute: typeof publicRegisterIndexRouteImport
+      parentRoute: typeof publicRouteRoute
     }
     '/(private)/tasks/': {
       id: '/(private)/tasks/'
@@ -1118,10 +1104,10 @@ declare module '@tanstack/react-router' {
     }
     '/(public)/register/business-setup': {
       id: '/(public)/register/business-setup'
-      path: '/business-setup'
+      path: '/register/business-setup'
       fullPath: '/register/business-setup'
       preLoaderRoute: typeof publicRegisterBusinessSetupRouteImport
-      parentRoute: typeof publicRegisterRoute
+      parentRoute: typeof publicRouteRoute
     }
     '/(private)/(dashboard)/notifications': {
       id: '/(private)/(dashboard)/notifications'
@@ -1151,6 +1137,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardSettingsRouteRouteImport
       parentRoute: typeof privatedashboardRouteRoute
     }
+    '/(private)/(dashboard)/preparation': {
+      id: '/(private)/(dashboard)/preparation'
+      path: '/preparation'
+      fullPath: '/preparation'
+      preLoaderRoute: typeof privatedashboardPreparationRouteRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
     '/(private)/(dashboard)/business': {
       id: '/(private)/(dashboard)/business'
       path: '/business'
@@ -1172,19 +1165,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardAccountRouteRouteImport
       parentRoute: typeof privatedashboardRouteRoute
     }
-    '/(private)/(dashboard)/(supervisor)': {
-      id: '/(private)/(dashboard)/(supervisor)'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof privatedashboardsupervisorRouteRouteImport
-      parentRoute: typeof privatedashboardRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)': {
-      id: '/(private)/(dashboard)/(admin)'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof privatedashboardadminRouteRouteImport
-      parentRoute: typeof privatedashboardRouteRoute
+    '/api/cron/hourly/': {
+      id: '/api/cron/hourly/'
+      path: '/api/cron/hourly'
+      fullPath: '/api/cron/hourly/'
+      preLoaderRoute: typeof ApiCronHourlyIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/cron/daily/': {
       id: '/api/cron/daily/'
@@ -1214,12 +1200,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privateTasksTaskIdIndexRouteImport
       parentRoute: typeof privateRouteRoute
     }
+    '/(private)/(dashboard)/transactions/': {
+      id: '/(private)/(dashboard)/transactions/'
+      path: '/transactions'
+      fullPath: '/transactions/'
+      preLoaderRoute: typeof privatedashboardTransactionsIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
     '/(private)/(dashboard)/settings/': {
       id: '/(private)/(dashboard)/settings/'
       path: '/'
       fullPath: '/settings/'
       preLoaderRoute: typeof privatedashboardSettingsIndexRouteImport
       parentRoute: typeof privatedashboardSettingsRouteRoute
+    }
+    '/(private)/(dashboard)/sales-reports/': {
+      id: '/(private)/(dashboard)/sales-reports/'
+      path: '/sales-reports'
+      fullPath: '/sales-reports/'
+      preLoaderRoute: typeof privatedashboardSalesReportsIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/purchases/': {
+      id: '/(private)/(dashboard)/purchases/'
+      path: '/purchases'
+      fullPath: '/purchases/'
+      preLoaderRoute: typeof privatedashboardPurchasesIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/products/': {
+      id: '/(private)/(dashboard)/products/'
+      path: '/products'
+      fullPath: '/products/'
+      preLoaderRoute: typeof privatedashboardProductsIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/preparation/': {
+      id: '/(private)/(dashboard)/preparation/'
+      path: '/'
+      fullPath: '/preparation/'
+      preLoaderRoute: typeof privatedashboardPreparationIndexRouteImport
+      parentRoute: typeof privatedashboardPreparationRouteRoute
+    }
+    '/(private)/(dashboard)/order-history/': {
+      id: '/(private)/(dashboard)/order-history/'
+      path: '/order-history'
+      fullPath: '/order-history/'
+      preLoaderRoute: typeof privatedashboardOrderHistoryIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/inventory-reports/': {
+      id: '/(private)/(dashboard)/inventory-reports/'
+      path: '/inventory-reports'
+      fullPath: '/inventory-reports/'
+      preLoaderRoute: typeof privatedashboardInventoryReportsIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/ingredients/': {
+      id: '/(private)/(dashboard)/ingredients/'
+      path: '/ingredients'
+      fullPath: '/ingredients/'
+      preLoaderRoute: typeof privatedashboardIngredientsIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/employees/': {
+      id: '/(private)/(dashboard)/employees/'
+      path: '/employees'
+      fullPath: '/employees/'
+      preLoaderRoute: typeof privatedashboardEmployeesIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
     }
     '/(private)/(dashboard)/business/': {
       id: '/(private)/(dashboard)/business/'
@@ -1256,12 +1305,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardSettingsComplianceRouteImport
       parentRoute: typeof privatedashboardSettingsRouteRoute
     }
-    '/(private)/(dashboard)/billing/payment-methods': {
-      id: '/(private)/(dashboard)/billing/payment-methods'
-      path: '/payment-methods'
-      fullPath: '/billing/payment-methods'
-      preLoaderRoute: typeof privatedashboardBillingPaymentMethodsRouteImport
-      parentRoute: typeof privatedashboardBillingRouteRoute
+    '/(private)/(dashboard)/preparation/history': {
+      id: '/(private)/(dashboard)/preparation/history'
+      path: '/history'
+      fullPath: '/preparation/history'
+      preLoaderRoute: typeof privatedashboardPreparationHistoryRouteImport
+      parentRoute: typeof privatedashboardPreparationRouteRoute
     }
     '/(private)/(dashboard)/billing/manual-payment': {
       id: '/(private)/(dashboard)/billing/manual-payment'
@@ -1269,13 +1318,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/billing/manual-payment'
       preLoaderRoute: typeof privatedashboardBillingManualPaymentRouteImport
       parentRoute: typeof privatedashboardBillingRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/payment-approvals': {
-      id: '/(private)/(dashboard)/(admin)/payment-approvals'
-      path: '/payment-approvals'
-      fullPath: '/payment-approvals'
-      preLoaderRoute: typeof privatedashboardadminPaymentApprovalsRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
     }
     '/(private)/(dashboard)/business/suppliers': {
       id: '/(private)/(dashboard)/business/suppliers'
@@ -1298,12 +1340,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardBusinessCustomersRouteRouteImport
       parentRoute: typeof privatedashboardBusinessRouteRoute
     }
-    '/(private)/(dashboard)/(admin)/preparation': {
-      id: '/(private)/(dashboard)/(admin)/preparation'
-      path: '/preparation'
-      fullPath: '/preparation'
-      preLoaderRoute: typeof privatedashboardadminPreparationRouteRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
+    '/(private)/(dashboard)/transactions/$transactionId/': {
+      id: '/(private)/(dashboard)/transactions/$transactionId/'
+      path: '/transactions/$transactionId'
+      fullPath: '/transactions/$transactionId/'
+      preLoaderRoute: typeof privatedashboardTransactionsTransactionIdIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/purchases/$purchaseId/': {
+      id: '/(private)/(dashboard)/purchases/$purchaseId/'
+      path: '/purchases/$purchaseId'
+      fullPath: '/purchases/$purchaseId/'
+      preLoaderRoute: typeof privatedashboardPurchasesPurchaseIdIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/products/create/': {
+      id: '/(private)/(dashboard)/products/create/'
+      path: '/products/create'
+      fullPath: '/products/create/'
+      preLoaderRoute: typeof privatedashboardProductsCreateIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/products/$productId/': {
+      id: '/(private)/(dashboard)/products/$productId/'
+      path: '/products/$productId'
+      fullPath: '/products/$productId/'
+      preLoaderRoute: typeof privatedashboardProductsProductIdIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/order-history/$orderId/': {
+      id: '/(private)/(dashboard)/order-history/$orderId/'
+      path: '/order-history/$orderId'
+      fullPath: '/order-history/$orderId/'
+      preLoaderRoute: typeof privatedashboardOrderHistoryOrderIdIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/ingredients/create/': {
+      id: '/(private)/(dashboard)/ingredients/create/'
+      path: '/ingredients/create'
+      fullPath: '/ingredients/create/'
+      preLoaderRoute: typeof privatedashboardIngredientsCreateIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/ingredients/$ingredientId/': {
+      id: '/(private)/(dashboard)/ingredients/$ingredientId/'
+      path: '/ingredients/$ingredientId'
+      fullPath: '/ingredients/$ingredientId/'
+      preLoaderRoute: typeof privatedashboardIngredientsIngredientIdIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/employees/create/': {
+      id: '/(private)/(dashboard)/employees/create/'
+      path: '/employees/create'
+      fullPath: '/employees/create/'
+      preLoaderRoute: typeof privatedashboardEmployeesCreateIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
+    }
+    '/(private)/(dashboard)/employees/$employeeId/': {
+      id: '/(private)/(dashboard)/employees/$employeeId/'
+      path: '/employees/$employeeId'
+      fullPath: '/employees/$employeeId/'
+      preLoaderRoute: typeof privatedashboardEmployeesEmployeeIdIndexRouteImport
+      parentRoute: typeof privatedashboardRouteRoute
     }
     '/(private)/(dashboard)/business/suppliers/': {
       id: '/(private)/(dashboard)/business/suppliers/'
@@ -1368,81 +1466,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardAccountPreferencesIndexRouteImport
       parentRoute: typeof privatedashboardAccountRouteRoute
     }
-    '/(private)/(dashboard)/(supervisor)/transactions/': {
-      id: '/(private)/(dashboard)/(supervisor)/transactions/'
-      path: '/transactions'
-      fullPath: '/transactions/'
-      preLoaderRoute: typeof privatedashboardsupervisorTransactionsIndexRouteImport
-      parentRoute: typeof privatedashboardsupervisorRouteRoute
-    }
-    '/(private)/(dashboard)/(supervisor)/sales-reports/': {
-      id: '/(private)/(dashboard)/(supervisor)/sales-reports/'
-      path: '/sales-reports'
-      fullPath: '/sales-reports/'
-      preLoaderRoute: typeof privatedashboardsupervisorSalesReportsIndexRouteImport
-      parentRoute: typeof privatedashboardsupervisorRouteRoute
-    }
-    '/(private)/(dashboard)/(supervisor)/order-history/': {
-      id: '/(private)/(dashboard)/(supervisor)/order-history/'
-      path: '/order-history'
-      fullPath: '/order-history/'
-      preLoaderRoute: typeof privatedashboardsupervisorOrderHistoryIndexRouteImport
-      parentRoute: typeof privatedashboardsupervisorRouteRoute
-    }
-    '/(private)/(dashboard)/(supervisor)/inventory-reports/': {
-      id: '/(private)/(dashboard)/(supervisor)/inventory-reports/'
-      path: '/inventory-reports'
-      fullPath: '/inventory-reports/'
-      preLoaderRoute: typeof privatedashboardsupervisorInventoryReportsIndexRouteImport
-      parentRoute: typeof privatedashboardsupervisorRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/purchases/': {
-      id: '/(private)/(dashboard)/(admin)/purchases/'
-      path: '/purchases'
-      fullPath: '/purchases/'
-      preLoaderRoute: typeof privatedashboardadminPurchasesIndexRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/products/': {
-      id: '/(private)/(dashboard)/(admin)/products/'
-      path: '/products'
-      fullPath: '/products/'
-      preLoaderRoute: typeof privatedashboardadminProductsIndexRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/preparation/': {
-      id: '/(private)/(dashboard)/(admin)/preparation/'
-      path: '/'
-      fullPath: '/preparation/'
-      preLoaderRoute: typeof privatedashboardadminPreparationIndexRouteImport
-      parentRoute: typeof privatedashboardadminPreparationRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/ingredients/': {
-      id: '/(private)/(dashboard)/(admin)/ingredients/'
-      path: '/ingredients'
-      fullPath: '/ingredients/'
-      preLoaderRoute: typeof privatedashboardadminIngredientsIndexRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/employees/': {
-      id: '/(private)/(dashboard)/(admin)/employees/'
-      path: '/employees'
-      fullPath: '/employees/'
-      preLoaderRoute: typeof privatedashboardadminEmployeesIndexRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/preparation/history': {
-      id: '/(private)/(dashboard)/(admin)/preparation/history'
-      path: '/history'
-      fullPath: '/preparation/history'
-      preLoaderRoute: typeof privatedashboardadminPreparationHistoryRouteImport
-      parentRoute: typeof privatedashboardadminPreparationRouteRoute
+    '/(private)/(dashboard)/business/subscription/payment-methods': {
+      id: '/(private)/(dashboard)/business/subscription/payment-methods'
+      path: '/payment-methods'
+      fullPath: '/business/subscription/payment-methods'
+      preLoaderRoute: typeof privatedashboardBusinessSubscriptionPaymentMethodsRouteImport
+      parentRoute: typeof privatedashboardBusinessSubscriptionRouteRoute
     }
     '/(private)/(dashboard)/business/subscription/success/': {
       id: '/(private)/(dashboard)/business/subscription/success/'
       path: '/success'
       fullPath: '/business/subscription/success/'
       preLoaderRoute: typeof privatedashboardBusinessSubscriptionSuccessIndexRouteImport
+      parentRoute: typeof privatedashboardBusinessSubscriptionRouteRoute
+    }
+    '/(private)/(dashboard)/business/subscription/reactivate/': {
+      id: '/(private)/(dashboard)/business/subscription/reactivate/'
+      path: '/reactivate'
+      fullPath: '/business/subscription/reactivate/'
+      preLoaderRoute: typeof privatedashboardBusinessSubscriptionReactivateIndexRouteImport
       parentRoute: typeof privatedashboardBusinessSubscriptionRouteRoute
     }
     '/(private)/(dashboard)/business/subscription/quotes/': {
@@ -1480,75 +1522,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardBusinessSubscriptionCreditsIndexRouteImport
       parentRoute: typeof privatedashboardBusinessSubscriptionRouteRoute
     }
+    '/(private)/(dashboard)/business/subscription/checkout/': {
+      id: '/(private)/(dashboard)/business/subscription/checkout/'
+      path: '/checkout'
+      fullPath: '/business/subscription/checkout/'
+      preLoaderRoute: typeof privatedashboardBusinessSubscriptionCheckoutIndexRouteImport
+      parentRoute: typeof privatedashboardBusinessSubscriptionRouteRoute
+    }
     '/(private)/(dashboard)/business/permissions/audit/': {
       id: '/(private)/(dashboard)/business/permissions/audit/'
       path: '/permissions/audit'
       fullPath: '/business/permissions/audit/'
       preLoaderRoute: typeof privatedashboardBusinessPermissionsAuditIndexRouteImport
       parentRoute: typeof privatedashboardBusinessRouteRoute
-    }
-    '/(private)/(dashboard)/(supervisor)/transactions/$transactionId/': {
-      id: '/(private)/(dashboard)/(supervisor)/transactions/$transactionId/'
-      path: '/transactions/$transactionId'
-      fullPath: '/transactions/$transactionId/'
-      preLoaderRoute: typeof privatedashboardsupervisorTransactionsTransactionIdIndexRouteImport
-      parentRoute: typeof privatedashboardsupervisorRouteRoute
-    }
-    '/(private)/(dashboard)/(supervisor)/order-history/$orderId/': {
-      id: '/(private)/(dashboard)/(supervisor)/order-history/$orderId/'
-      path: '/order-history/$orderId'
-      fullPath: '/order-history/$orderId/'
-      preLoaderRoute: typeof privatedashboardsupervisorOrderHistoryOrderIdIndexRouteImport
-      parentRoute: typeof privatedashboardsupervisorRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/purchases/$purchaseId/': {
-      id: '/(private)/(dashboard)/(admin)/purchases/$purchaseId/'
-      path: '/purchases/$purchaseId'
-      fullPath: '/purchases/$purchaseId/'
-      preLoaderRoute: typeof privatedashboardadminPurchasesPurchaseIdIndexRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/products/create/': {
-      id: '/(private)/(dashboard)/(admin)/products/create/'
-      path: '/products/create'
-      fullPath: '/products/create/'
-      preLoaderRoute: typeof privatedashboardadminProductsCreateIndexRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/products/$productId/': {
-      id: '/(private)/(dashboard)/(admin)/products/$productId/'
-      path: '/products/$productId'
-      fullPath: '/products/$productId/'
-      preLoaderRoute: typeof privatedashboardadminProductsProductIdIndexRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/ingredients/create/': {
-      id: '/(private)/(dashboard)/(admin)/ingredients/create/'
-      path: '/ingredients/create'
-      fullPath: '/ingredients/create/'
-      preLoaderRoute: typeof privatedashboardadminIngredientsCreateIndexRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/ingredients/$ingredientId/': {
-      id: '/(private)/(dashboard)/(admin)/ingredients/$ingredientId/'
-      path: '/ingredients/$ingredientId'
-      fullPath: '/ingredients/$ingredientId/'
-      preLoaderRoute: typeof privatedashboardadminIngredientsIngredientIdIndexRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/employees/create/': {
-      id: '/(private)/(dashboard)/(admin)/employees/create/'
-      path: '/employees/create'
-      fullPath: '/employees/create/'
-      preLoaderRoute: typeof privatedashboardadminEmployeesCreateIndexRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
-    }
-    '/(private)/(dashboard)/(admin)/employees/$employeeId/': {
-      id: '/(private)/(dashboard)/(admin)/employees/$employeeId/'
-      path: '/employees/$employeeId'
-      fullPath: '/employees/$employeeId/'
-      preLoaderRoute: typeof privatedashboardadminEmployeesEmployeeIdIndexRouteImport
-      parentRoute: typeof privatedashboardadminRouteRoute
     }
     '/(private)/(dashboard)/business/subscription/quotes/$quoteId/': {
       id: '/(private)/(dashboard)/business/subscription/quotes/$quoteId/'
@@ -1560,104 +1546,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface privatedashboardadminPreparationRouteRouteChildren {
-  privatedashboardadminPreparationHistoryRoute: typeof privatedashboardadminPreparationHistoryRoute
-  privatedashboardadminPreparationIndexRoute: typeof privatedashboardadminPreparationIndexRoute
+interface hybridRouteRouteChildren {
+  hybridPrivacyRoute: typeof hybridPrivacyRoute
+  hybridTermsRoute: typeof hybridTermsRoute
+  hybridUnauthorizedRoute: typeof hybridUnauthorizedRoute
 }
 
-const privatedashboardadminPreparationRouteRouteChildren: privatedashboardadminPreparationRouteRouteChildren =
-  {
-    privatedashboardadminPreparationHistoryRoute:
-      privatedashboardadminPreparationHistoryRoute,
-    privatedashboardadminPreparationIndexRoute:
-      privatedashboardadminPreparationIndexRoute,
-  }
-
-const privatedashboardadminPreparationRouteRouteWithChildren =
-  privatedashboardadminPreparationRouteRoute._addFileChildren(
-    privatedashboardadminPreparationRouteRouteChildren,
-  )
-
-interface privatedashboardadminRouteRouteChildren {
-  privatedashboardadminPreparationRouteRoute: typeof privatedashboardadminPreparationRouteRouteWithChildren
-  privatedashboardadminPaymentApprovalsRoute: typeof privatedashboardadminPaymentApprovalsRoute
-  privatedashboardadminEmployeesIndexRoute: typeof privatedashboardadminEmployeesIndexRoute
-  privatedashboardadminIngredientsIndexRoute: typeof privatedashboardadminIngredientsIndexRoute
-  privatedashboardadminProductsIndexRoute: typeof privatedashboardadminProductsIndexRoute
-  privatedashboardadminPurchasesIndexRoute: typeof privatedashboardadminPurchasesIndexRoute
-  privatedashboardadminEmployeesEmployeeIdIndexRoute: typeof privatedashboardadminEmployeesEmployeeIdIndexRoute
-  privatedashboardadminEmployeesCreateIndexRoute: typeof privatedashboardadminEmployeesCreateIndexRoute
-  privatedashboardadminIngredientsIngredientIdIndexRoute: typeof privatedashboardadminIngredientsIngredientIdIndexRoute
-  privatedashboardadminIngredientsCreateIndexRoute: typeof privatedashboardadminIngredientsCreateIndexRoute
-  privatedashboardadminProductsProductIdIndexRoute: typeof privatedashboardadminProductsProductIdIndexRoute
-  privatedashboardadminProductsCreateIndexRoute: typeof privatedashboardadminProductsCreateIndexRoute
-  privatedashboardadminPurchasesPurchaseIdIndexRoute: typeof privatedashboardadminPurchasesPurchaseIdIndexRoute
+const hybridRouteRouteChildren: hybridRouteRouteChildren = {
+  hybridPrivacyRoute: hybridPrivacyRoute,
+  hybridTermsRoute: hybridTermsRoute,
+  hybridUnauthorizedRoute: hybridUnauthorizedRoute,
 }
 
-const privatedashboardadminRouteRouteChildren: privatedashboardadminRouteRouteChildren =
-  {
-    privatedashboardadminPreparationRouteRoute:
-      privatedashboardadminPreparationRouteRouteWithChildren,
-    privatedashboardadminPaymentApprovalsRoute:
-      privatedashboardadminPaymentApprovalsRoute,
-    privatedashboardadminEmployeesIndexRoute:
-      privatedashboardadminEmployeesIndexRoute,
-    privatedashboardadminIngredientsIndexRoute:
-      privatedashboardadminIngredientsIndexRoute,
-    privatedashboardadminProductsIndexRoute:
-      privatedashboardadminProductsIndexRoute,
-    privatedashboardadminPurchasesIndexRoute:
-      privatedashboardadminPurchasesIndexRoute,
-    privatedashboardadminEmployeesEmployeeIdIndexRoute:
-      privatedashboardadminEmployeesEmployeeIdIndexRoute,
-    privatedashboardadminEmployeesCreateIndexRoute:
-      privatedashboardadminEmployeesCreateIndexRoute,
-    privatedashboardadminIngredientsIngredientIdIndexRoute:
-      privatedashboardadminIngredientsIngredientIdIndexRoute,
-    privatedashboardadminIngredientsCreateIndexRoute:
-      privatedashboardadminIngredientsCreateIndexRoute,
-    privatedashboardadminProductsProductIdIndexRoute:
-      privatedashboardadminProductsProductIdIndexRoute,
-    privatedashboardadminProductsCreateIndexRoute:
-      privatedashboardadminProductsCreateIndexRoute,
-    privatedashboardadminPurchasesPurchaseIdIndexRoute:
-      privatedashboardadminPurchasesPurchaseIdIndexRoute,
-  }
-
-const privatedashboardadminRouteRouteWithChildren =
-  privatedashboardadminRouteRoute._addFileChildren(
-    privatedashboardadminRouteRouteChildren,
-  )
-
-interface privatedashboardsupervisorRouteRouteChildren {
-  privatedashboardsupervisorInventoryReportsIndexRoute: typeof privatedashboardsupervisorInventoryReportsIndexRoute
-  privatedashboardsupervisorOrderHistoryIndexRoute: typeof privatedashboardsupervisorOrderHistoryIndexRoute
-  privatedashboardsupervisorSalesReportsIndexRoute: typeof privatedashboardsupervisorSalesReportsIndexRoute
-  privatedashboardsupervisorTransactionsIndexRoute: typeof privatedashboardsupervisorTransactionsIndexRoute
-  privatedashboardsupervisorOrderHistoryOrderIdIndexRoute: typeof privatedashboardsupervisorOrderHistoryOrderIdIndexRoute
-  privatedashboardsupervisorTransactionsTransactionIdIndexRoute: typeof privatedashboardsupervisorTransactionsTransactionIdIndexRoute
-}
-
-const privatedashboardsupervisorRouteRouteChildren: privatedashboardsupervisorRouteRouteChildren =
-  {
-    privatedashboardsupervisorInventoryReportsIndexRoute:
-      privatedashboardsupervisorInventoryReportsIndexRoute,
-    privatedashboardsupervisorOrderHistoryIndexRoute:
-      privatedashboardsupervisorOrderHistoryIndexRoute,
-    privatedashboardsupervisorSalesReportsIndexRoute:
-      privatedashboardsupervisorSalesReportsIndexRoute,
-    privatedashboardsupervisorTransactionsIndexRoute:
-      privatedashboardsupervisorTransactionsIndexRoute,
-    privatedashboardsupervisorOrderHistoryOrderIdIndexRoute:
-      privatedashboardsupervisorOrderHistoryOrderIdIndexRoute,
-    privatedashboardsupervisorTransactionsTransactionIdIndexRoute:
-      privatedashboardsupervisorTransactionsTransactionIdIndexRoute,
-  }
-
-const privatedashboardsupervisorRouteRouteWithChildren =
-  privatedashboardsupervisorRouteRoute._addFileChildren(
-    privatedashboardsupervisorRouteRouteChildren,
-  )
+const hybridRouteRouteWithChildren = hybridRouteRoute._addFileChildren(
+  hybridRouteRouteChildren,
+)
 
 interface privatedashboardAccountRouteRouteChildren {
   privatedashboardAccountIndexRoute: typeof privatedashboardAccountIndexRoute
@@ -1681,7 +1584,6 @@ const privatedashboardAccountRouteRouteWithChildren =
 
 interface privatedashboardBillingRouteRouteChildren {
   privatedashboardBillingManualPaymentRoute: typeof privatedashboardBillingManualPaymentRoute
-  privatedashboardBillingPaymentMethodsRoute: typeof privatedashboardBillingPaymentMethodsRoute
   privatedashboardBillingIndexRoute: typeof privatedashboardBillingIndexRoute
 }
 
@@ -1689,8 +1591,6 @@ const privatedashboardBillingRouteRouteChildren: privatedashboardBillingRouteRou
   {
     privatedashboardBillingManualPaymentRoute:
       privatedashboardBillingManualPaymentRoute,
-    privatedashboardBillingPaymentMethodsRoute:
-      privatedashboardBillingPaymentMethodsRoute,
     privatedashboardBillingIndexRoute: privatedashboardBillingIndexRoute,
   }
 
@@ -1715,20 +1615,27 @@ const privatedashboardBusinessCustomersRouteRouteWithChildren =
   )
 
 interface privatedashboardBusinessSubscriptionRouteRouteChildren {
+  privatedashboardBusinessSubscriptionPaymentMethodsRoute: typeof privatedashboardBusinessSubscriptionPaymentMethodsRoute
   privatedashboardBusinessSubscriptionIndexRoute: typeof privatedashboardBusinessSubscriptionIndexRoute
+  privatedashboardBusinessSubscriptionCheckoutIndexRoute: typeof privatedashboardBusinessSubscriptionCheckoutIndexRoute
   privatedashboardBusinessSubscriptionCreditsIndexRoute: typeof privatedashboardBusinessSubscriptionCreditsIndexRoute
   privatedashboardBusinessSubscriptionInvoicesIndexRoute: typeof privatedashboardBusinessSubscriptionInvoicesIndexRoute
   privatedashboardBusinessSubscriptionPlansIndexRoute: typeof privatedashboardBusinessSubscriptionPlansIndexRoute
   privatedashboardBusinessSubscriptionPricingIndexRoute: typeof privatedashboardBusinessSubscriptionPricingIndexRoute
   privatedashboardBusinessSubscriptionQuotesIndexRoute: typeof privatedashboardBusinessSubscriptionQuotesIndexRoute
+  privatedashboardBusinessSubscriptionReactivateIndexRoute: typeof privatedashboardBusinessSubscriptionReactivateIndexRoute
   privatedashboardBusinessSubscriptionSuccessIndexRoute: typeof privatedashboardBusinessSubscriptionSuccessIndexRoute
   privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRoute: typeof privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRoute
 }
 
 const privatedashboardBusinessSubscriptionRouteRouteChildren: privatedashboardBusinessSubscriptionRouteRouteChildren =
   {
+    privatedashboardBusinessSubscriptionPaymentMethodsRoute:
+      privatedashboardBusinessSubscriptionPaymentMethodsRoute,
     privatedashboardBusinessSubscriptionIndexRoute:
       privatedashboardBusinessSubscriptionIndexRoute,
+    privatedashboardBusinessSubscriptionCheckoutIndexRoute:
+      privatedashboardBusinessSubscriptionCheckoutIndexRoute,
     privatedashboardBusinessSubscriptionCreditsIndexRoute:
       privatedashboardBusinessSubscriptionCreditsIndexRoute,
     privatedashboardBusinessSubscriptionInvoicesIndexRoute:
@@ -1739,6 +1646,8 @@ const privatedashboardBusinessSubscriptionRouteRouteChildren: privatedashboardBu
       privatedashboardBusinessSubscriptionPricingIndexRoute,
     privatedashboardBusinessSubscriptionQuotesIndexRoute:
       privatedashboardBusinessSubscriptionQuotesIndexRoute,
+    privatedashboardBusinessSubscriptionReactivateIndexRoute:
+      privatedashboardBusinessSubscriptionReactivateIndexRoute,
     privatedashboardBusinessSubscriptionSuccessIndexRoute:
       privatedashboardBusinessSubscriptionSuccessIndexRoute,
     privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRoute:
@@ -1803,6 +1712,24 @@ const privatedashboardBusinessRouteRouteWithChildren =
     privatedashboardBusinessRouteRouteChildren,
   )
 
+interface privatedashboardPreparationRouteRouteChildren {
+  privatedashboardPreparationHistoryRoute: typeof privatedashboardPreparationHistoryRoute
+  privatedashboardPreparationIndexRoute: typeof privatedashboardPreparationIndexRoute
+}
+
+const privatedashboardPreparationRouteRouteChildren: privatedashboardPreparationRouteRouteChildren =
+  {
+    privatedashboardPreparationHistoryRoute:
+      privatedashboardPreparationHistoryRoute,
+    privatedashboardPreparationIndexRoute:
+      privatedashboardPreparationIndexRoute,
+  }
+
+const privatedashboardPreparationRouteRouteWithChildren =
+  privatedashboardPreparationRouteRoute._addFileChildren(
+    privatedashboardPreparationRouteRouteChildren,
+  )
+
 interface privatedashboardSettingsRouteRouteChildren {
   privatedashboardSettingsComplianceRoute: typeof privatedashboardSettingsComplianceRoute
   privatedashboardSettingsIndexRoute: typeof privatedashboardSettingsIndexRoute
@@ -1821,32 +1748,77 @@ const privatedashboardSettingsRouteRouteWithChildren =
   )
 
 interface privatedashboardRouteRouteChildren {
-  privatedashboardadminRouteRoute: typeof privatedashboardadminRouteRouteWithChildren
-  privatedashboardsupervisorRouteRoute: typeof privatedashboardsupervisorRouteRouteWithChildren
   privatedashboardAccountRouteRoute: typeof privatedashboardAccountRouteRouteWithChildren
   privatedashboardBillingRouteRoute: typeof privatedashboardBillingRouteRouteWithChildren
   privatedashboardBusinessRouteRoute: typeof privatedashboardBusinessRouteRouteWithChildren
+  privatedashboardPreparationRouteRoute: typeof privatedashboardPreparationRouteRouteWithChildren
   privatedashboardSettingsRouteRoute: typeof privatedashboardSettingsRouteRouteWithChildren
   privatedashboardContactUsRoute: typeof privatedashboardContactUsRoute
   privatedashboardDashboardRoute: typeof privatedashboardDashboardRoute
   privatedashboardNotificationsRoute: typeof privatedashboardNotificationsRoute
+  privatedashboardEmployeesIndexRoute: typeof privatedashboardEmployeesIndexRoute
+  privatedashboardIngredientsIndexRoute: typeof privatedashboardIngredientsIndexRoute
+  privatedashboardInventoryReportsIndexRoute: typeof privatedashboardInventoryReportsIndexRoute
+  privatedashboardOrderHistoryIndexRoute: typeof privatedashboardOrderHistoryIndexRoute
+  privatedashboardProductsIndexRoute: typeof privatedashboardProductsIndexRoute
+  privatedashboardPurchasesIndexRoute: typeof privatedashboardPurchasesIndexRoute
+  privatedashboardSalesReportsIndexRoute: typeof privatedashboardSalesReportsIndexRoute
+  privatedashboardTransactionsIndexRoute: typeof privatedashboardTransactionsIndexRoute
+  privatedashboardEmployeesEmployeeIdIndexRoute: typeof privatedashboardEmployeesEmployeeIdIndexRoute
+  privatedashboardEmployeesCreateIndexRoute: typeof privatedashboardEmployeesCreateIndexRoute
+  privatedashboardIngredientsIngredientIdIndexRoute: typeof privatedashboardIngredientsIngredientIdIndexRoute
+  privatedashboardIngredientsCreateIndexRoute: typeof privatedashboardIngredientsCreateIndexRoute
+  privatedashboardOrderHistoryOrderIdIndexRoute: typeof privatedashboardOrderHistoryOrderIdIndexRoute
+  privatedashboardProductsProductIdIndexRoute: typeof privatedashboardProductsProductIdIndexRoute
+  privatedashboardProductsCreateIndexRoute: typeof privatedashboardProductsCreateIndexRoute
+  privatedashboardPurchasesPurchaseIdIndexRoute: typeof privatedashboardPurchasesPurchaseIdIndexRoute
+  privatedashboardTransactionsTransactionIdIndexRoute: typeof privatedashboardTransactionsTransactionIdIndexRoute
 }
 
 const privatedashboardRouteRouteChildren: privatedashboardRouteRouteChildren = {
-  privatedashboardadminRouteRoute: privatedashboardadminRouteRouteWithChildren,
-  privatedashboardsupervisorRouteRoute:
-    privatedashboardsupervisorRouteRouteWithChildren,
   privatedashboardAccountRouteRoute:
     privatedashboardAccountRouteRouteWithChildren,
   privatedashboardBillingRouteRoute:
     privatedashboardBillingRouteRouteWithChildren,
   privatedashboardBusinessRouteRoute:
     privatedashboardBusinessRouteRouteWithChildren,
+  privatedashboardPreparationRouteRoute:
+    privatedashboardPreparationRouteRouteWithChildren,
   privatedashboardSettingsRouteRoute:
     privatedashboardSettingsRouteRouteWithChildren,
   privatedashboardContactUsRoute: privatedashboardContactUsRoute,
   privatedashboardDashboardRoute: privatedashboardDashboardRoute,
   privatedashboardNotificationsRoute: privatedashboardNotificationsRoute,
+  privatedashboardEmployeesIndexRoute: privatedashboardEmployeesIndexRoute,
+  privatedashboardIngredientsIndexRoute: privatedashboardIngredientsIndexRoute,
+  privatedashboardInventoryReportsIndexRoute:
+    privatedashboardInventoryReportsIndexRoute,
+  privatedashboardOrderHistoryIndexRoute:
+    privatedashboardOrderHistoryIndexRoute,
+  privatedashboardProductsIndexRoute: privatedashboardProductsIndexRoute,
+  privatedashboardPurchasesIndexRoute: privatedashboardPurchasesIndexRoute,
+  privatedashboardSalesReportsIndexRoute:
+    privatedashboardSalesReportsIndexRoute,
+  privatedashboardTransactionsIndexRoute:
+    privatedashboardTransactionsIndexRoute,
+  privatedashboardEmployeesEmployeeIdIndexRoute:
+    privatedashboardEmployeesEmployeeIdIndexRoute,
+  privatedashboardEmployeesCreateIndexRoute:
+    privatedashboardEmployeesCreateIndexRoute,
+  privatedashboardIngredientsIngredientIdIndexRoute:
+    privatedashboardIngredientsIngredientIdIndexRoute,
+  privatedashboardIngredientsCreateIndexRoute:
+    privatedashboardIngredientsCreateIndexRoute,
+  privatedashboardOrderHistoryOrderIdIndexRoute:
+    privatedashboardOrderHistoryOrderIdIndexRoute,
+  privatedashboardProductsProductIdIndexRoute:
+    privatedashboardProductsProductIdIndexRoute,
+  privatedashboardProductsCreateIndexRoute:
+    privatedashboardProductsCreateIndexRoute,
+  privatedashboardPurchasesPurchaseIdIndexRoute:
+    privatedashboardPurchasesPurchaseIdIndexRoute,
+  privatedashboardTransactionsTransactionIdIndexRoute:
+    privatedashboardTransactionsTransactionIdIndexRoute,
 }
 
 const privatedashboardRouteRouteWithChildren =
@@ -1856,7 +1828,6 @@ const privatedashboardRouteRouteWithChildren =
 
 interface privateRouteRouteChildren {
   privatedashboardRouteRoute: typeof privatedashboardRouteRouteWithChildren
-  privateBillingRoute: typeof privateBillingRoute
   privateOrdersIndexRoute: typeof privateOrdersIndexRoute
   privatePosIndexRoute: typeof privatePosIndexRoute
   privateTasksIndexRoute: typeof privateTasksIndexRoute
@@ -1866,7 +1837,6 @@ interface privateRouteRouteChildren {
 
 const privateRouteRouteChildren: privateRouteRouteChildren = {
   privatedashboardRouteRoute: privatedashboardRouteRouteWithChildren,
-  privateBillingRoute: privateBillingRoute,
   privateOrdersIndexRoute: privateOrdersIndexRoute,
   privatePosIndexRoute: privatePosIndexRoute,
   privateTasksIndexRoute: privateTasksIndexRoute,
@@ -1878,30 +1848,20 @@ const privateRouteRouteWithChildren = privateRouteRoute._addFileChildren(
   privateRouteRouteChildren,
 )
 
-interface publicRegisterRouteChildren {
-  publicRegisterBusinessSetupRoute: typeof publicRegisterBusinessSetupRoute
-}
-
-const publicRegisterRouteChildren: publicRegisterRouteChildren = {
-  publicRegisterBusinessSetupRoute: publicRegisterBusinessSetupRoute,
-}
-
-const publicRegisterRouteWithChildren = publicRegisterRoute._addFileChildren(
-  publicRegisterRouteChildren,
-)
-
 interface publicRouteRouteChildren {
   publicForgotPasswordRoute: typeof publicForgotPasswordRoute
   publicLoginRoute: typeof publicLoginRoute
-  publicRegisterRoute: typeof publicRegisterRouteWithChildren
   publicIndexRoute: typeof publicIndexRoute
+  publicRegisterBusinessSetupRoute: typeof publicRegisterBusinessSetupRoute
+  publicRegisterIndexRoute: typeof publicRegisterIndexRoute
 }
 
 const publicRouteRouteChildren: publicRouteRouteChildren = {
   publicForgotPasswordRoute: publicForgotPasswordRoute,
   publicLoginRoute: publicLoginRoute,
-  publicRegisterRoute: publicRegisterRouteWithChildren,
   publicIndexRoute: publicIndexRoute,
+  publicRegisterBusinessSetupRoute: publicRegisterBusinessSetupRoute,
+  publicRegisterIndexRoute: publicRegisterIndexRoute,
 }
 
 const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(
@@ -1909,16 +1869,14 @@ const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  hybridRouteRoute: hybridRouteRouteWithChildren,
   privateRouteRoute: privateRouteRouteWithChildren,
   publicRouteRoute: publicRouteRouteWithChildren,
-  PrivacyRoute: PrivacyRoute,
-  TermsRoute: TermsRoute,
-  UnauthorizedRoute: UnauthorizedRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  SubscriptionReactivateIndexRoute: SubscriptionReactivateIndexRoute,
   ApiBillingWebhookStripeRoute: ApiBillingWebhookStripeRoute,
   ApiBillingWebhookIndexRoute: ApiBillingWebhookIndexRoute,
   ApiCronDailyIndexRoute: ApiCronDailyIndexRoute,
+  ApiCronHourlyIndexRoute: ApiCronHourlyIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

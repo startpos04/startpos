@@ -189,7 +189,7 @@ export class EmbeddedLicense {
 ### 2.4 Schema Protection Strategy
 
 #### A. Build-Time Stripping
-- Script that reads `prisma/base/*.prisma` files
+- Script that reads `prisma/models/base/*.prisma` files
 - Excludes entire `billing.prisma` file
 - Removes `Payment` model from `operations.prisma`
 - No license model added (license lives in Docker env vars only — see 2.3)
@@ -800,7 +800,7 @@ export async function licenseCheckMiddleware(event) {
 ```json
 {
   "scripts": {
-    "schema:saas": "tsx prisma/scripts/generate-schema.ts",
+    "schema:saas": "tsx prisma/models/generate-schema.ts",
     "schema:commercial": "tsx scripts/build-commercial-schema.ts",
     
     "build": "pnpm schema:saas && vite build",
@@ -823,7 +823,7 @@ export async function licenseCheckMiddleware(event) {
 // scripts/build-commercial-schema.ts
 
 async function buildCommercialSchema() {
-  const baseDir = 'prisma/base';
+  const baseDir = 'prisma/models/base';
   const files = await fs.readdir(baseDir);
   
   let commercialSchema = '';

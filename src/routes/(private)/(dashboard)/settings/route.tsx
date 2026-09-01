@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { Permissions } from '@/lib/authorization/permission-keys'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/settings')({
   component: () => <Outlet />,

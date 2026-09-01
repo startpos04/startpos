@@ -1,5 +1,5 @@
 import { SequenceType } from 'prisma/generated/prisma/browser'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import type { TenantPrismaClient } from '.'
 
 type ExtendedTransactionClient = Parameters<Parameters<TenantPrismaClient['$transaction']>[0]>[0]

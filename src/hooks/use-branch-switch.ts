@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { updateActiveBranch } from '@/lib/server-fn/update-active-branch'
-import { refreshAuthUser } from '@/store/auth-store'
+import { refreshAuthUser } from '@/lib/better-auth/auth-store'
 
 export function useBranchSwitch() {
   const navigate = useNavigate()

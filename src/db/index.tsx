@@ -12,7 +12,7 @@ import utc from 'dayjs/plugin/utc'
 import dayjs from '@/lib/dayjs'
 import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { getQueryClient } from '@/lib/query-client'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 dayjs.extend(utc)
 

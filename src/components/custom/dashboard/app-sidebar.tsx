@@ -41,7 +41,7 @@ import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
 import { isNotNullish } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 interface Items {
   title: string

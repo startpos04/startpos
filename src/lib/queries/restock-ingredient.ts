@@ -12,7 +12,7 @@ import { dbTransaction } from '@/db/local-db-transaction'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { fetchStructuredId } from './fetch-structured-id'
 
 export const restockSchema = z.object({

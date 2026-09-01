@@ -4,7 +4,7 @@ node_modules
 .next
 dist
 coverage
-test-results
+e2e-results
 playwright-report
 *.log
 .env

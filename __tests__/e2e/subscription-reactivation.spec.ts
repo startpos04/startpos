@@ -42,9 +42,9 @@ const REACTIVATION_CONFIG = {
   },
   billingIntervals: ['monthly', 'annual'],
   routes: {
-    billing: '/billing',
-    reactivation: '/subscription/reactivate',
-    success: '/billing/success',
+    billing: '/business/subscription',
+    reactivation: '/business/business/subscription/reactivate',
+    success: '/business/subscription',
   },
 }
 
@@ -64,7 +64,7 @@ test.describe('Subscription Reactivation Journey - Expired Business', () => {
     
     // Look for reactivation-related elements
     const reactivateButton = page.locator('button:has-text("Reactivate")')
-    const reactivateLink = page.locator('a[href*="/subscription/reactivate"]')
+    const reactivateLink = page.locator('a[href*="/business/business/subscription/reactivate"]')
     const expiredMessage = page.locator('text=/expired|inactive|cancelled/i')
     
     // At least one reactivation element should be present
@@ -81,7 +81,7 @@ test.describe('Subscription Reactivation Journey - Expired Business', () => {
     } else {
       // If no reactivation elements, this might mean the test account is not in reactivatable state
       // Still validate that billing page loads correctly
-      await expect(page).toHaveURL(REACTIVATION_CONFIG.routes.billing)
+      await expect(page).toHaveURL(/\/business\/subscription/)
       console.log('Note: No reactivation elements found - test account may not be in reactivatable status')
     }
   })
@@ -89,7 +89,7 @@ test.describe('Subscription Reactivation Journey - Expired Business', () => {
   test('user can navigate to reactivation flow from billing dashboard', async ({ page }) => {
     // Try to find and click reactivation elements to navigate to the reactivation page
     const reactivateButton = page.locator('button:has-text("Reactivate")')
-    const reactivateLink = page.locator('a[href*="/subscription/reactivate"]')
+    const reactivateLink = page.locator('a[href*="/business/business/subscription/reactivate"]')
     
     if (await reactivateButton.count() > 0) {
       await reactivateButton.first().click()
@@ -104,7 +104,7 @@ test.describe('Subscription Reactivation Journey - Expired Business', () => {
     
     // Should land on the reactivation page or be redirected appropriately
     const currentUrl = page.url()
-    if (currentUrl.includes('/subscription/reactivate')) {
+    if (currentUrl.includes('/business/business/subscription/reactivate')) {
       await expect(page).toHaveURL(/\/subscription\/reactivate/)
     } else {
       // If redirected elsewhere, that's acceptable behavior for some subscription statuses
@@ -126,7 +126,7 @@ test.describe('Reactivation Page Functionality', () => {
   test('reactivation page displays plan selection options', async ({ page }) => {
     const currentUrl = page.url()
     
-    if (currentUrl.includes('/subscription/reactivate')) {
+    if (currentUrl.includes('/business/business/subscription/reactivate')) {
       // Test that the reactivation page loads with plan selection
       await expect(page.locator('h1, h2, h3')).toContainText(/reactivat|plan|subscription/i)
       
@@ -144,9 +144,9 @@ test.describe('Reactivation Page Functionality', () => {
         // If no plan elements, check for any content indicating the page loaded
         await expect(page.locator('body')).not.toBeEmpty()
       }
-    } else if (currentUrl.includes('/billing')) {
+    } else if (currentUrl.includes('/business/subscription')) {
       // If redirected to billing, that could mean subscription is not reactivatable
-      await expect(page).toHaveURL(/\/billing/)
+      await expect(page).toHaveURL(/\/business\/subscription/)
       console.log('Note: Redirected to billing page - subscription may not be reactivatable')
     } else {
       // Other redirects are also acceptable for auth/authorization failures
@@ -158,7 +158,7 @@ test.describe('Reactivation Page Functionality', () => {
   test('plan selection enables billing interval choices', async ({ page }) => {
     const currentUrl = page.url()
     
-    if (!currentUrl.includes('/subscription/reactivate')) {
+    if (!currentUrl.includes('/business/business/subscription/reactivate')) {
       test.skip('Skipping - not on reactivation page')
     }
     
@@ -193,7 +193,7 @@ test.describe('Reactivation Page Functionality', () => {
   test('reactivation form validates required selections', async ({ page }) => {
     const currentUrl = page.url()
     
-    if (!currentUrl.includes('/subscription/reactivate')) {
+    if (!currentUrl.includes('/business/business/subscription/reactivate')) {
       test.skip('Skipping - not on reactivation page') 
     }
     
@@ -229,7 +229,7 @@ test.describe('Reactivation Success Flow', () => {
     await page.waitForLoadState('networkidle')
     
     const currentUrl = page.url()
-    if (!currentUrl.includes('/subscription/reactivate')) {
+    if (!currentUrl.includes('/business/business/subscription/reactivate')) {
       return false // Not on reactivation page, can't complete flow
     }
     
@@ -291,15 +291,15 @@ test.describe('Reactivation Success Flow', () => {
     // After successful reactivation, user should be redirected to success page or back to billing
     const finalUrl = page.url()
     
-    if (finalUrl.includes('/billing/success')) {
+    if (finalUrl.includes('/business/subscription')) {
       // Success page scenario
-      await expect(page).toHaveURL(/\/billing\/success/)
+      await expect(page).toHaveURL(/\/business\/subscription/)
       await expect(page.locator('text=/success|activated|reactivated|thank.*you/i')).toBeVisible()
-    } else if (finalUrl.includes('/billing')) {
+    } else if (finalUrl.includes('/business/subscription')) {
       // Billing dashboard scenario
-      await expect(page).toHaveURL(/\/billing/)
+      await expect(page).toHaveURL(/\/business\/subscription/)
       // Should no longer show reactivation CTA
-      const reactivateElements = page.locator('button:has-text("Reactivate"), a[href*="/subscription/reactivate"]')
+      const reactivateElements = page.locator('button:has-text("Reactivate"), a[href*="/business/business/subscription/reactivate"]')
       expect(await reactivateElements.count()).toBe(0)
     } else if (finalUrl.includes('stripe.com')) {
       // Redirected to Stripe checkout
@@ -320,7 +320,7 @@ test.describe('Reactivation Success Flow', () => {
     await page.waitForLoadState('networkidle')
     
     // Check that billing page loads and shows subscription status
-    await expect(page).toHaveURL(REACTIVATION_CONFIG.routes.billing)
+    await expect(page).toHaveURL(/\/business\/subscription/)
     
     // Look for subscription status indicators
     const statusElements = page.locator('text=/subscription|plan|status|active|expired|trial/i')
@@ -351,7 +351,7 @@ test.describe('Reactivation Authorization and Edge Cases', () => {
       await expect(page).toHaveURL(/\/unauthorized|\/403/)
     } else {
       // Some other auth redirect is acceptable
-      expect(currentUrl).not.toContain('/subscription/reactivate')
+      expect(currentUrl).not.toContain('/business/business/subscription/reactivate')
     }
   })
 
@@ -364,7 +364,7 @@ test.describe('Reactivation Authorization and Edge Cases', () => {
     
     const currentUrl = page.url()
     
-    if (currentUrl.includes('/subscription/reactivate')) {
+    if (currentUrl.includes('/business/business/subscription/reactivate')) {
       // If cashier can access reactivation, that's a design decision
       await expect(page).toHaveURL(/\/subscription\/reactivate/)
       console.log('Note: Cashier role has access to subscription reactivation')
@@ -380,8 +380,8 @@ test.describe('Reactivation Authorization and Edge Cases', () => {
     
     // Should either load billing page or redirect appropriately
     const billingUrl = page.url()
-    if (billingUrl.includes('/billing')) {
-      await expect(page).toHaveURL(/\/billing/)
+    if (billingUrl.includes('/business/subscription')) {
+      await expect(page).toHaveURL(/\/business\/subscription/)
     } else {
       // Redirect to unauthorized or other page is acceptable
       await expect(page.url()).toBeTruthy()
@@ -399,7 +399,7 @@ test.describe('Cross-browser Reactivation Compatibility', () => {
     await page.goto(REACTIVATION_CONFIG.routes.reactivation)
     await page.waitForLoadState('networkidle')
     
-    if (page.url().includes('/subscription/reactivate')) {
+    if (page.url().includes('/business/business/subscription/reactivate')) {
       // Should be responsive on mobile
       await expect(page.locator('body')).toBeVisible()
       
@@ -415,7 +415,7 @@ test.describe('Cross-browser Reactivation Compatibility', () => {
     await page.reload()
     await page.waitForLoadState('networkidle')
     
-    if (page.url().includes('/subscription/reactivate')) {
+    if (page.url().includes('/business/business/subscription/reactivate')) {
       await expect(page.locator('body')).toBeVisible()
     }
   })
@@ -432,7 +432,7 @@ test.describe('Cross-browser Reactivation Compatibility', () => {
     await page.waitForLoadState('domcontentloaded') // Don't wait for networkidle with JS disabled
     
     // Basic page structure should still load
-    if (page.url().includes('/subscription/reactivate')) {
+    if (page.url().includes('/business/business/subscription/reactivate')) {
       await expect(page.locator('body')).toBeVisible()
       
       // Forms should still be submittable via traditional HTTP POST

@@ -33,7 +33,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator'
 import { getAuthUser } from '@/lib/better-auth/auth-server'
 import { purchaseAddonSubscription } from '@/lib/server-fn/purchase-addon-subscription'
-import { authStore, refreshUser } from '@/store/auth-store'
+import { authStore, refreshUser } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/success/')({
   validateSearch: z.object({

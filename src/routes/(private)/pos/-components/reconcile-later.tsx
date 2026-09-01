@@ -20,7 +20,7 @@ import dayjs from '@/lib/dayjs'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import type { MountProps } from '@/lib/mount-manager'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const closeSessionFormOpts = formOptions({
   defaultValues: {

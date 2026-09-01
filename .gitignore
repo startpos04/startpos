@@ -17,7 +17,7 @@ todos.json
 /prisma/schema.prisma
 
 # Playwright
-/test-results/
+/e2e-results/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
@@ -27,4 +27,4 @@ todos.json
 .fallow/
 
 # Stripe CLI — generated env values (contains real secret keys)
-/stripe/env/
+/payment-stripe/env/

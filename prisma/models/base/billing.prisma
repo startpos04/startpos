@@ -1,0 +1,647 @@
+// =============================================================================
+// BILLING MODELS - BusinessSubscription, SubscriptionStatusHistory, Feature, SubscriptionPlan, PlanEntitlement, EntitlementOverride, UsageCounter, BillingInvoice, BillingInvoiceItem, CreditLedger
+// =============================================================================
+
+// --- ENTITLEMENT ENGINE — Phase 2 / Phase F ---
+
+// ---------------------------------------------------------------------------
+// BusinessSubscription — Phase 0 (expanded from F1 stub)
+// The active subscription record for a business.
+// One business has at most one active subscription at a time.
+//
+// Fields added in Phase 0:
+//   billingModel       — which billing strategy applies
+//   gracePeriodEndsAt  — when the grace window closes after a lapse
+//   longTermInactiveAt — when the account was downgraded to long-term inactive
+//   expiredAt          — when the subscription first lapsed (GRACE_PERIOD start)
+//   cancelReason       — free-text reason recorded at cancellation
+//   externalId         — payment provider subscription ID (Stripe etc.) — Phase 4
+//   statusHistory      — immutable audit log relation
+//
+// DEPRECATED fields (superseded in later phases but NOT removed yet):
+//   txUsedThisPeriod   → replaced by UsageCounter model in Phase 2
+//   creditBalance      → replaced by CreditLedger model in Phase 3
+// ---------------------------------------------------------------------------
+model BusinessSubscription {
+  id         String             @id @default(cuid())
+  businessId String             @unique // One active subscription per business (enforced via unique)
+  business   Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  planId     String
+  plan       SubscriptionPlan   @relation(fields: [planId], references: [id])
+  status     SubscriptionStatus @default(TRIAL)
+
+  // Phase 0 — Billing model strategy
+  billingModel BillingModel @default(MONTHLY_SUBSCRIPTION)
+
+  // Billing period dates
+  trialEndsAt        DateTime? // Set when status = TRIAL; null = no trial
+  currentPeriodStart DateTime? // Start of the current paid billing period
+  currentPeriodEnd   DateTime? // End of the current paid billing period; null = open-ended
+
+  // Phase 0 — Lifecycle tracking dates
+  gracePeriodEndsAt  DateTime? // When GRACE_PERIOD window closes; null = not in grace period
+  expiredAt          DateTime? // When the subscription first lapsed (transition to EXPIRED)
+  longTermInactiveAt DateTime? // When account was downgraded to LONG_TERM_INACTIVE
+
+  // DEPRECATED (Phase 0): txUsedThisPeriod — will be superseded by UsageCounter in Phase 2.
+  // Kept to avoid breaking getAuthUser entitlement assembly during Phase 0.
+  // DO NOT write to this field in new code after Phase 2 is merged.
+  txUsedThisPeriod Int @default(0)
+
+  // DEPRECATED (Phase 0): creditBalance — will be superseded by CreditLedger in Phase 3.
+  // Kept to avoid breaking getAuthUser entitlement assembly during Phase 0.
+  // DO NOT write to this field in new code after Phase 3 is merged.
+  creditBalance Int?
+
+  // Phase 0 — Cancellation audit
+  cancelReason String? // Free-text reason recorded at cancellation time
+
+  // Phase 4 — External billing provider reference (e.g. Stripe subscription ID)
+  externalId String? // Populated when payment provider subscription is created
+
+  // Advance payment credit tracking
+  advancePaymentCredits   Int       @default(0) // Number of billing periods paid in advance
+  advancePaymentExpiresAt DateTime? // When the last advance-paid period expires
+  lastAdvancePaymentId    String?   // Reference to most recent advance payment
+  lastAdvancePaymentAt    DateTime? // When last advance payment was made
+  
+  // Payment notification preferences
+  notifyBeforePayment      Boolean @default(true)  // Send payment reminder notifications
+  notificationLeadDays     Int     @default(7)     // Days before payment to send first notification
+  lastNotificationSentAt   DateTime? // Last notification sent timestamp
+  lastNotificationType     String?   // Type of last notification sent
+  
+  // Provider sync metadata
+  syncInProgress Boolean   @default(false) // Prevents race conditions during sync
+  lastSyncedAt   DateTime? // Last successful provider sync
+
+  // Timestamps (some pre-existed from F1, some added in Phase 0)
+  activatedAt DateTime? // When the subscription first became ACTIVE
+  cancelledAt DateTime? // When the subscription was cancelled (if applicable)
+  suspendedAt DateTime? // When the subscription was manually suspended
+
+  // Phase 0 — Status transition audit log
+  statusHistory SubscriptionStatusHistory[]
+  
+  // Payment notifications
+  notifications PaymentNotification[]
+
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  businessSubscriptionFeatures BusinessSubscriptionFeature[]
+  billingPayments              BillingPayment[]
+
+  @@index([businessId, status])
+  @@index([advancePaymentExpiresAt])
+  @@index([syncInProgress])
+  @@map("business_subscriptions")
+}
+
+// ---------------------------------------------------------------------------
+// SubscriptionStatusHistory — Phase 0
+// Immutable append-only audit log of every subscription status transition.
+// Written by SubscriptionEngine transition helpers and the lifecycle background job.
+// Never updated after creation.
+// ---------------------------------------------------------------------------
+model SubscriptionStatusHistory {
+  id             String               @id @default(cuid())
+  subscriptionId String
+  subscription   BusinessSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  fromStatus SubscriptionStatus? // null = initial record (subscription created)
+  toStatus   SubscriptionStatus
+
+  reason      String? // Human-readable reason for the transition
+  triggeredBy String? // userId of the actor, or "system" for automated job transitions
+
+  createdAt DateTime @default(now())
+
+  @@index([subscriptionId, createdAt])
+  @@map("subscription_status_history")
+}
+
+// ---------------------------------------------------------------------------
+// Feature
+// Registry of every capability the application can gate.
+// Decoupled from plan names — new features can be added without touching plans.
+// ---------------------------------------------------------------------------
+model Feature {
+  id          String  @id @default(cuid())
+  key         String  @unique // e.g. "COMPLETE_CHECKOUT", "CREATE_ORDER"
+  label       String // Human-readable label for admin UI
+  description String?
+
+  // true  = blocked when subscription lapses (operational)
+  // false = always accessible regardless of billing status (management)
+  isOperational Boolean @default(false)
+
+  // Phase 5b — Composable pricing fields
+  // isSelectableByCustomer: true = appears in the pricing calculator for COMPOSABLE_FEATURES subscriptions
+  isSelectableByCustomer Boolean          @default(false)
+  pricingCategory        PricingCategory?
+  sortOrder              Int              @default(0) // Display ordering within pricingCategory
+
+  entitlements PlanEntitlement[]
+  overrides    EntitlementOverride[]
+
+  // Phase 5 relations
+  prices                       FeaturePrice[]
+  bundleItems                  FeatureBundleItem[]
+  dependencies                 FeatureDependency[]           @relation("FeatureDependencies")
+  dependents                   FeatureDependency[]           @relation("FeatureDependents")
+  businessSubscriptionFeatures BusinessSubscriptionFeature[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("features")
+}
+
+// ---------------------------------------------------------------------------
+// SubscriptionPlan
+// Configurable tier registry. Names ("Starter", "Professional") are labels;
+// the engine never branches on plan name — only on entitlements.
+// ---------------------------------------------------------------------------
+model SubscriptionPlan {
+  id          String  @id @default(cuid())
+  name        String  @unique // "Starter", "Professional", "Enterprise", "Trial"
+  description String?
+  isActive    Boolean @default(true) // Soft-disable without deleting
+  sortOrder   Int     @default(0) // Display ordering
+
+  // Billing
+  monthlyPrice       Int // In cents. 0 = free trial base plan
+  annualPrice        Int? // In cents. null = use monthlyPrice × 12 (no annual discount configured)
+  includedTxPerMonth Int // Monthly transaction allowance. -1 = unlimited
+  overagePerTx       Int  @default(0) // Cents per tx over allowance. 0 = block instead of charge
+
+  entitlements PlanEntitlement[]
+
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  businessSubscriptions BusinessSubscription[]
+
+  @@map("subscription_plans")
+}
+
+// ---------------------------------------------------------------------------
+// PlanEntitlement
+// Join table between a plan and its features.
+// A plan "has" a feature if a record exists here.
+// ---------------------------------------------------------------------------
+model PlanEntitlement {
+  id         String           @id @default(cuid())
+  planId     String
+  plan       SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  featureKey String
+  feature    Feature          @relation(fields: [featureKey], references: [key], onDelete: Cascade)
+
+  // Optional per-entitlement usage cap (null = unlimited)
+  // e.g. max 5 employees for Starter, max 20 for Professional
+  usageLimit Int?
+
+  @@unique([planId, featureKey])
+  @@map("plan_entitlements")
+}
+
+// ---------------------------------------------------------------------------
+// EntitlementOverride
+// Per-business exceptions: promotional access, enterprise contracts,
+// temporary grants, or explicit revocations — without changing the plan.
+// ---------------------------------------------------------------------------
+model EntitlementOverride {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  featureKey String
+  feature    Feature  @relation(fields: [featureKey], references: [key], onDelete: Cascade)
+
+  // false = explicitly revoke a feature even if the plan includes it
+  granted   Boolean   @default(true)
+  expiresAt DateTime?
+  reason    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([businessId, featureKey])
+  @@map("entitlement_overrides")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 — Usage Tracking + Monthly Billing Foundation
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// UsageCounter — Phase 2
+// Tracks the number of POS transactions processed in a given billing period.
+// One row per (businessId, billingPeriodStart). The row is opened at the
+// start of each billing period and incremented synchronously on every checkout.
+//
+// Design decisions:
+//   - txCount is the source of truth for txRemaining in EntitlementEngine.
+//   - overageTxCount is the count of transactions beyond the plan's
+//     includedTxPerMonth allowance (only relevant when OVERAGE_BILLING_ENABLED).
+//   - The row is "closed" (isClosed = true) by the usage-counter-reset job
+//     at period end; it is never deleted.
+//   - businessId + billingPeriodStart is unique — reset job idempotency check.
+// ---------------------------------------------------------------------------
+model UsageCounter {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  // The billing period this counter tracks (mirrors BusinessSubscription.currentPeriodStart)
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+
+  // Transaction counts (per branch)
+  txCount        Int @default(0) // Total transactions processed at this branch in this period
+  overageTxCount Int @default(0) // Transactions beyond branch's allocated allowance
+
+  // isClosed = true once the period has ended and the reset job has run.
+  // A closed counter is never mutated. A new counter is opened for the next period.
+  isClosed Boolean @default(false)
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([businessId, branchId, billingPeriodStart])
+  @@index([businessId, isClosed])
+  @@index([branchId, isClosed])
+  @@map("usage_counters")
+}
+
+// ---------------------------------------------------------------------------
+// BillingInvoice — Phase 2
+// Represents a billing invoice generated at the end of a billing period.
+// One invoice per (businessId, billingPeriodStart) in the typical case.
+// Invoice line items are in BillingInvoiceItem.
+// ---------------------------------------------------------------------------
+model BillingInvoice {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // The billing period this invoice covers
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+
+  status InvoiceStatus @default(DRAFT)
+
+  // Totals (all values in cents)
+  subtotalAmount Int @default(0) // Sum of all line items before tax
+  taxAmount      Int @default(0) // Tax on this invoice
+  totalAmount    Int @default(0) // subtotal + tax
+
+  // Phase 4 — external billing provider reference
+  externalInvoiceId String? // e.g. Stripe invoice ID
+  
+  // Provider tracking for multi-provider support
+  providerName String? // "stripe", "manual", "paymongo", etc.
+
+  dueAt  DateTime? // Payment due date
+  paidAt DateTime? // When payment was confirmed
+
+  items           BillingInvoiceItem[]
+  billingPayments BillingPayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, billingPeriodStart])
+  @@index([status])
+  @@map("billing_invoices")
+}
+
+// ---------------------------------------------------------------------------
+// BillingInvoiceItem — Phase 2
+// A single line item on a BillingInvoice.
+// ---------------------------------------------------------------------------
+model BillingInvoiceItem {
+  id        String         @id @default(cuid())
+  invoiceId String
+  invoice   BillingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  type        InvoiceItemType
+  description String
+
+  // Quantity × unitAmount = lineAmount (all in cents)
+  quantity   Int // e.g. number of overage transactions, or 1 for subscription fee
+  unitAmount Int // Cents per unit
+  lineAmount Int // quantity × unitAmount (pre-computed, stored for audit stability)
+
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
+  @@map("billing_invoice_items")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3 — Prepaid Credits
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// CreditLedger — Phase 3 + Branch Billing
+// Append-only ledger of every credit event per branch.
+// Each branch has independent credit balance for P&L accounting.
+// The current balance for a branch is the `balanceAfter` of its most recent row.
+//
+// Design decisions:
+//   - Append-only: rows are never updated or deleted; every event adds a row.
+//   - Per-branch tracking: Each branch purchases and tracks credits independently
+//   - `balanceAfter` is a snapshot — O(1) balance read per branch (no SUM query needed).
+//   - `amount` is signed: positive = credit in, negative = credit out.
+//   - The `transactionId` FK is nullable — not all events come from a POS TX.
+//   - Business-level aggregation: Sum balanceAfter of latest row per branch for consolidated view
+//   - Race condition note (Phase 3 known limitation): two concurrent deductions
+//     may both read the same `balanceAfter` before either commits, allowing the
+//     balance to go temporarily negative. This is auditable via the ledger and
+//     will be hardened with an optimistic lock in a future phase.
+//   - stripeSessionId: Idempotency key for webhook handling (prevents duplicate credit grants)
+//
+// Branch Billing Usage:
+//   - Branches purchase credits when they need extra transaction capacity
+//   - Credits act as overflow when business quota is managed/limited by owner
+//   - Each transaction deducts 1 credit from branch balance
+// ---------------------------------------------------------------------------
+model CreditLedger {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  eventType CreditEventType
+
+  // Signed amount in credit units (positive = add, negative = deduct)
+  amount Int
+
+  // Running balance snapshot for this branch after this event is applied.
+  // The most recent row's balanceAfter for a branch is that branch's current balance.
+  balanceAfter Int
+
+  // Optional reference to the POS transaction that triggered this event.
+  // Null for PURCHASE, PROMOTIONAL, ADJUSTMENT, EXPIRED events.
+  transactionId String?
+
+  // Optional human-readable note (required for ADJUSTMENT events)
+  note String?
+
+  // The user (admin) who triggered this event; null = system / automated
+  actorId String?
+
+  // Idempotency key — prevents duplicate credit grants on Stripe webhook retry
+  stripeSessionId String? @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([businessId, branchId, createdAt])
+  @@index([branchId, createdAt])
+  @@index([transactionId])
+  @@map("credit_ledger")
+}
+
+
+// ---------------------------------------------------------------------------
+// BusinessSubscriptionAddon — Phase TX-Addon
+// Records a purchased add-on that augments the base plan for a business.
+// Currently supports:
+//   - TX_TOPUP: one-time extra transaction quota for the current billing period (legacy)
+//   - TX_RECURRING: monthly recurring TX top-up subscription
+//   - ANALYTICS, API_ACCESS, BRANCH, EMPLOYEE: monthly recurring capability addons
+//
+// expiresAt = billingPeriodEnd of the period it was purchased for, set by
+// the webhook handler. Expired addons are excluded from the txRemaining
+// calculation in auth-server.ts and entitlement-middleware.ts.
+// ---------------------------------------------------------------------------
+model BusinessSubscriptionAddon {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  addonType AddonType
+
+  // TX_TOPUP: number of extra transactions granted by this addon
+  quantity Int
+
+  // Stripe session that triggered this addon grant (idempotency key for one-time payments)
+  externalSessionId String? @unique
+
+  // Stripe subscription ID for recurring addons (TX_RECURRING, ANALYTICS, API_ACCESS, BRANCH, EMPLOYEE)
+  // Null for one-time TX_TOPUP addons.
+  externalSubscriptionId String? @unique
+
+  // When this addon expires (set to currentPeriodEnd of the billing period
+  // it was purchased for). Null = never expires (perpetual top-up).
+  expiresAt DateTime?
+
+  // The user who triggered the purchase (from Stripe session metadata)
+  actorId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, addonType])
+  @@index([businessId, expiresAt])
+  @@map("business_subscription_addons")
+}
+
+// ---------------------------------------------------------------------------
+// BusinessSubscriptionFeature — Phase 5 (Composable Pricing)
+// Tracks individually selected features in a composable subscription.
+//
+// EntitlementEngine resolves capabilities from these records when
+// billingModel = COMPOSABLE_FEATURES (instead of PlanEntitlement).
+// ---------------------------------------------------------------------------
+model BusinessSubscriptionFeature {
+  id             String               @id @default(cuid())
+  subscriptionId String
+  subscription   BusinessSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  featureKey String
+  feature    Feature @relation(fields: [featureKey], references: [key], onDelete: Cascade)
+
+  // Price snapshot at the time of quote conversion (in cents/month).
+  // Preserved for grandfathered-price detection on renewal.
+  snapshotPrice Int
+
+  // The catalog version active when this feature was added.
+  catalogVersion Int
+
+  activatedAt DateTime @default(now())
+
+  @@unique([subscriptionId, featureKey])
+  @@index([subscriptionId])
+  @@map("business_subscription_features")
+}
+
+// ---------------------------------------------------------------------------
+// PAYMENT ADAPTER ARCHITECTURE - Provider-Agnostic Payment System
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// BillingPayment — Universal payment record for billing/subscription payments
+// Tracks all billing payments regardless of provider (Stripe, Manual, PayMongo, etc.)
+// SEPARATE from POS Payment model which handles in-store transactions
+// ---------------------------------------------------------------------------
+model BillingPayment {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Provider identification (permanent, immutable)
+  provider      PaymentProvider // STRIPE, MANUAL, PAYMONGO, etc.
+  paymentMethod PaymentMethod2  // CARD, GCASH, MAYA, BANK_TRANSFER, etc.
+
+  // Payment details
+  amount   Int    // cents
+  currency String @default("PHP")
+  status   PaymentStatus
+
+  // Provider references
+  providerTransactionId String? // Stripe: pi_xxx, Manual: null
+  providerReference     String? // User-provided reference number for manual payments
+  providerMetadata      Json?   // Provider-specific data
+
+  // Advance payment tracking
+  isAdvancePayment        Boolean   @default(false) // Indicates multi-period payment
+  periodsAdvancePaid      Int       @default(1)     // Number of billing periods covered
+  advancePaymentAppliedAt DateTime? // When advance payment was applied to subscription
+  advancePaymentExpiresAt DateTime? // When last period covered by this payment expires
+  coversPeriodStart       DateTime? // Period range this payment covers
+  coversPeriodEnd         DateTime? // Period range end
+  
+  // Provider synchronization
+  syncedToProvider      Boolean          @default(false) // Synced to external provider
+  syncedProviderId      PaymentProvider? // Which provider synced to
+  syncedAt              DateTime?        // When sync occurred
+  syncTransactionId     String?          // Provider transaction ID from sync
+  syncStatus            PaymentSyncStatus @default(NOT_REQUIRED) // Sync status
+  syncAttempts          Int              @default(0)    // Retry counter
+  lastSyncAttemptAt     DateTime?        // Last sync attempt timestamp
+  syncErrorMessage      String?          // Error message from failed sync
+
+  // Relationships
+  subscriptionId String?
+  subscription   BusinessSubscription? @relation(fields: [subscriptionId], references: [id])
+  invoiceId      String?
+  invoice        BillingInvoice?       @relation(fields: [invoiceId], references: [id])
+
+  // Manual payment approval (if applicable)
+  requiresApproval Boolean   @default(false)
+  approvedAt       DateTime?
+  approvedById     String?
+  approvedBy       User?     @relation(fields: [approvedById], references: [id])
+  rejectedAt       DateTime?
+  rejectionReason  String?
+
+  // Audit
+  proofImageUrl String? @db.Text // For manual payments
+  notes         String? @db.Text
+  actorId       String? // User who initiated payment
+
+  // Payment attempts
+  attempts BillingPaymentAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, createdAt])
+  @@index([provider, status])
+  @@index([subscriptionId])
+  @@index([status, syncStatus])
+  @@index([isAdvancePayment, advancePaymentExpiresAt])
+  @@map("billing_payments")
+}
+
+// ---------------------------------------------------------------------------
+// BillingPaymentAttempt — Retry tracking for billing payments
+// ---------------------------------------------------------------------------
+model BillingPaymentAttempt {
+  id        String         @id @default(cuid())
+  paymentId String
+  payment   BillingPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  attemptNumber  Int       @default(1)
+  status         String    // PENDING, SUCCEEDED, FAILED
+  failureCode    String?
+  failureMessage String?
+
+  createdAt DateTime @default(now())
+
+  @@index([paymentId])
+  @@map("billing_payment_attempts")
+}
+
+// ---------------------------------------------------------------------------
+// WebhookEvent — Provider-agnostic webhook event tracking for idempotency
+// ---------------------------------------------------------------------------
+model WebhookEvent {
+  id         String          @id @default(cuid())
+  provider   PaymentProvider
+  externalId String          // Provider event ID
+  eventType  String          // Normalized event type
+  status     String          @default("RECEIVED") // RECEIVED, PROCESSED, SKIPPED, ERROR
+  rawPayload Json            // Full provider payload for replay
+  errorMessage String?
+  processedAt  DateTime?
+
+  businessId String? // Resolved after processing
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, externalId]) // Idempotency constraint
+  @@index([provider, status])
+  @@map("webhook_events")
+}
+
+// ---------------------------------------------------------------------------
+// PaymentNotification — Scheduled payment reminders and notifications
+// ---------------------------------------------------------------------------
+model PaymentNotification {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  subscriptionId String
+  subscription   BusinessSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  // Notification details
+  notificationType PaymentNotificationType
+  scheduledFor     DateTime // When this notification should be sent
+  sentAt           DateTime? // When it was actually sent (null = not sent yet)
+  
+  // Payment details snapshot
+  dueDate       DateTime
+  amount        Int    // cents
+  billingPeriod String // e.g., "Sep 1 - Sep 30, 2026"
+  planName      String? // e.g., "Premium"
+  
+  // Notification content
+  title   String
+  message String @db.Text
+  
+  // Delivery tracking
+  status        PaymentNotificationStatus @default(SCHEDULED)
+  failureReason String?
+  retryCount    Int                       @default(0)
+  maxRetries    Int                       @default(3)
+  
+  // Provider context (for provider-specific messaging)
+  providerContext Json? // { provider: 'stripe', isAutomatic: true, etc. }
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, scheduledFor])
+  @@index([subscriptionId, scheduledFor])
+  @@index([status, scheduledFor])
+  @@index([notificationType, status])
+  @@map("payment_notifications")
+}

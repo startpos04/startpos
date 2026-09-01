@@ -14,7 +14,7 @@ import { isUnlimitedStock, PosStockEngine, stockResultToNumber } from '@/lib/con
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { TaxEngine, type TaxEngineConfig } from '@/lib/conversion/tax-engine'
 import MountManager from '@/lib/mount-manager'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { posFormOpts } from '..'
 import { PaymentDialog } from './payment-dialog'
 import { ProductItemsModal } from './product-items'

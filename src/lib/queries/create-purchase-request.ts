@@ -25,7 +25,7 @@ import { dbTransaction } from '@/db/local-db-transaction'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
 import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { type CreatePurchaseInput, createPurchaseSchema } from './create-purchase'
 import { fetchStructuredId } from './fetch-structured-id'
 

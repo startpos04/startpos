@@ -23,7 +23,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./prisma/ensure-database.sh:/ensure-database.sh:ro
+      - ./prisma/models/ensure-database.sh:/ensure-database.sh:ro
     entrypoint: ['/bin/sh', '/ensure-database.sh']
     depends_on:
       db:
@@ -68,7 +68,7 @@ services:
 
   stripe-setup:
     build:
-      context: ./stripe
+      context: ./payment-stripe
       dockerfile: Dockerfile
     profiles:
       - stripe
@@ -80,8 +80,8 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
     volumes:
       - stripe_config:/root/.config/stripe
-      # Generated env file — lands at ./stripe/env/stripe.env on the host.
-      - ./stripe/env:/stripe-env
+      # Generated env file — lands at ./payment-stripe/env/stripe.env on the host.
+      - ./payment-stripe/env:/stripe-env
       # Workspace root — gives the script direct write access to .env.
       - .:/host-env
     networks:
@@ -89,7 +89,7 @@ services:
 
   stripe-webhook:
     build:
-      context: ./stripe
+      context: ./payment-stripe
       dockerfile: Dockerfile
     profiles:
       - stripe
@@ -107,7 +107,7 @@ services:
     volumes:
       - stripe_config:/root/.config/stripe
       # Shared with stripe-setup so the webhook service can read the API key.
-      - ./stripe/env:/stripe-env
+      - ./payment-stripe/env:/stripe-env
       # Workspace root — gives the script direct write access to .env.
       - .:/host-env
     networks:

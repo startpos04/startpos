@@ -4,11 +4,17 @@
  * Stripe-specific webhook event handlers.
  * Moved from the main webhook route to support multi-provider architecture.
  * 
+ * Enhanced for advance payments:
+ * - Recognizes manual advance payments synced to Stripe
+ * - Skips billing for periods covered by advance credits
+ * - Consumes advance credits on successful charges
+ * - Checks subscription metadata for advance payment info
+ * 
  * Handles:
- * - invoice.paid → mark BillingInvoice as PAID; transition subscription to ACTIVE
- * - invoice.payment_failed → transition subscription to GRACE_PERIOD  
+ * - invoice.paid → mark BillingInvoice as PAID; transition subscription to ACTIVE; consume advance credit
+ * - invoice.payment_failed → transition subscription to GRACE_PERIOD (unless covered by advance)
  * - customer.subscription.deleted → transition subscription to CANCELLED
- * - customer.subscription.updated → sync period dates; handle plan changes
+ * - customer.subscription.updated → sync period dates; handle plan changes; respect advance payments
  * - checkout.session.completed → insert CreditLedger PURCHASE entry
  */
 
@@ -18,11 +24,13 @@ import { WebhookOutcome, TransitionTrigger } from '@/lib/billing/types'
 import { SubscriptionStatus } from '@/lib/entitlement/entitlement-types'
 import { SubscriptionEngine } from '@/lib/billing/subscription-engine'
 import { CreditEngine, CreditEventType } from '@/lib/billing/credit-engine'
+import { advancePaymentService } from '@/lib/billing/advance-payment-service'
 import { prisma } from '@/lib/prisma-client'
 import type { WebhookEventHandler } from './shared-handlers'
 
 // ---------------------------------------------------------------------------
 // Invoice Paid Handler
+// Enhanced to handle advance payment credit consumption
 // ---------------------------------------------------------------------------
 export const handleInvoicePaid: WebhookEventHandler = async (event: WebhookEvent) => {
   const inv = event.invoice
@@ -42,7 +50,13 @@ export const handleInvoicePaid: WebhookEventHandler = async (event: WebhookEvent
   const subscription = inv.externalSubscriptionId
     ? await prisma.businessSubscription.findFirst({
         where: { externalId: inv.externalSubscriptionId },
-        select: { id: true, status: true, businessId: true },
+        select: { 
+          id: true, 
+          status: true, 
+          businessId: true,
+          advancePaymentCredits: true,
+          advancePaymentExpiresAt: true,
+        },
       })
     : null
 
@@ -54,7 +68,13 @@ export const handleInvoicePaid: WebhookEventHandler = async (event: WebhookEvent
     (inv.metadata?.['businessId']
       ? await prisma.businessSubscription.findFirst({
           where: { businessId: inv.metadata['businessId'] },
-          select: { id: true, status: true, businessId: true },
+          select: { 
+            id: true, 
+            status: true, 
+            businessId: true,
+            advancePaymentCredits: true,
+            advancePaymentExpiresAt: true,
+          },
         })
       : null)
 
@@ -72,33 +92,59 @@ export const handleInvoicePaid: WebhookEventHandler = async (event: WebhookEvent
       })
     }
 
-    if (resolvedSubscription && resolvedSubscription.status !== SubscriptionStatus.ACTIVE) {
-      const canTransition = SubscriptionEngine.canTransition(
-        resolvedSubscription.status as (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus],
-        SubscriptionStatus.ACTIVE,
-      )
-      if (canTransition.ok) {
-        await tx.businessSubscription.update({
-          where: { id: resolvedSubscription.id },
-          data: {
-            status: SubscriptionStatus.ACTIVE as SubscriptionStatusEnum,
-            // Write externalId now if it wasn't set yet
-            ...(inv.externalSubscriptionId ? { externalId: inv.externalSubscriptionId } : {}),
-            activatedAt: now,
-            gracePeriodEndsAt: null,
-            expiredAt: null,
-            updatedAt: now,
-          },
-        })
-        await tx.subscriptionStatusHistory.create({
-          data: {
-            subscriptionId: resolvedSubscription.id,
-            fromStatus: resolvedSubscription.status as SubscriptionStatusEnum,
-            toStatus: SubscriptionStatus.ACTIVE as SubscriptionStatusEnum,
-            reason: `Payment confirmed via invoice ${inv.externalInvoiceId}.`,
-            triggeredBy: TransitionTrigger.PAYMENT,
-          },
-        })
+    // Check if this charge should consume an advance credit
+    if (resolvedSubscription) {
+      const hasAdvanceCredits = resolvedSubscription.advancePaymentCredits > 0 && 
+                               resolvedSubscription.advancePaymentExpiresAt &&
+                               now < resolvedSubscription.advancePaymentExpiresAt
+
+      if (hasAdvanceCredits) {
+        // Consume one advance credit for this billing period
+        try {
+          const consumeResult = await advancePaymentService.consumeAdvanceCredit(
+            resolvedSubscription.businessId,
+            resolvedSubscription.id,
+            tx
+          )
+
+          if (consumeResult.success) {
+            console.log(`[webhook/stripe] Consumed advance credit for business ${resolvedSubscription.businessId}`)
+          }
+        } catch (error) {
+          console.error('[webhook/stripe] Failed to consume advance credit:', error)
+          // Don't fail the webhook - credit consumption is secondary to payment processing
+        }
+      }
+
+      // Transition subscription to ACTIVE if needed
+      if (resolvedSubscription.status !== SubscriptionStatus.ACTIVE) {
+        const canTransition = SubscriptionEngine.canTransition(
+          resolvedSubscription.status as (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus],
+          SubscriptionStatus.ACTIVE,
+        )
+        if (canTransition.ok) {
+          await tx.businessSubscription.update({
+            where: { id: resolvedSubscription.id },
+            data: {
+              status: SubscriptionStatus.ACTIVE as SubscriptionStatusEnum,
+              // Write externalId now if it wasn't set yet
+              ...(inv.externalSubscriptionId ? { externalId: inv.externalSubscriptionId } : {}),
+              activatedAt: now,
+              gracePeriodEndsAt: null,
+              expiredAt: null,
+              updatedAt: now,
+            },
+          })
+          await tx.subscriptionStatusHistory.create({
+            data: {
+              subscriptionId: resolvedSubscription.id,
+              fromStatus: resolvedSubscription.status as SubscriptionStatusEnum,
+              toStatus: SubscriptionStatus.ACTIVE as SubscriptionStatusEnum,
+              reason: `Payment confirmed via invoice ${inv.externalInvoiceId}.`,
+              triggeredBy: TransitionTrigger.PAYMENT,
+            },
+          })
+        }
       }
     }
   })
@@ -108,6 +154,7 @@ export const handleInvoicePaid: WebhookEventHandler = async (event: WebhookEvent
 
 // ---------------------------------------------------------------------------
 // Invoice Payment Failed Handler
+// Enhanced to skip grace period if advance credits are active
 // ---------------------------------------------------------------------------
 export const handleInvoicePaymentFailed: WebhookEventHandler = async (event: WebhookEvent) => {
   const inv = event.invoice
@@ -121,11 +168,32 @@ export const handleInvoicePaymentFailed: WebhookEventHandler = async (event: Web
 
   const subscription = await prisma.businessSubscription.findFirst({
     where: { externalId: inv.externalSubscriptionId },
-    select: { id: true, status: true, businessId: true },
+    select: { 
+      id: true, 
+      status: true, 
+      businessId: true,
+      advancePaymentCredits: true,
+      advancePaymentExpiresAt: true,
+    },
   })
 
   if (!subscription) {
     return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: 'Subscription not found' }
+  }
+
+  // Check if subscription is covered by advance credits
+  const now = new Date()
+  const hasAdvanceCredits = subscription.advancePaymentCredits > 0 && 
+                           subscription.advancePaymentExpiresAt &&
+                           now < subscription.advancePaymentExpiresAt
+
+  if (hasAdvanceCredits) {
+    return {
+      eventId: event.id,
+      eventType: event.type,
+      outcome: WebhookOutcome.SKIPPED,
+      message: `Subscription covered by advance credits (${subscription.advancePaymentCredits} periods remaining). Payment failure ignored.`,
+    }
   }
 
   if (subscription.status !== SubscriptionStatus.ACTIVE) {
@@ -142,7 +210,6 @@ export const handleInvoicePaymentFailed: WebhookEventHandler = async (event: Web
     return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: canTransition.reason }
   }
 
-  const now = new Date()
   const gracePeriodEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
   await prisma.$transaction([

@@ -42,7 +42,7 @@
 import { useStore } from '@tanstack/react-store'
 import type { Role } from 'prisma/generated/prisma/enums'
 import type { PermissionKey } from '@/lib/authorization/permission-keys'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 // ---------------------------------------------------------------------------
 // Single permission check

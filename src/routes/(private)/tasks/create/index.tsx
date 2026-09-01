@@ -3,7 +3,7 @@ import { useStore } from '@tanstack/react-store'
 import { TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
 import { operationalTaskCollection } from '@/db/collections'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { closeTaskSidebar } from '../-components/task-sidebar'
 import { CreateTask, type CreateTaskFormData } from './-create-task'
 

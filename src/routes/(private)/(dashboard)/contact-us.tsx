@@ -11,7 +11,7 @@ import { BuildingIcon, ExternalLinkIcon, KeyRoundIcon, LifeBuoyIcon, LightbulbIc
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/contact-us')({
   component: ContactUsPage,

@@ -33,7 +33,7 @@ import { categoryCollection, productCollection, productVariantCollection, unitCo
 import { dbTransaction } from '@/db/local-db-transaction'
 import type { posItem } from '@/lib/conversion/pos-stock-engine'
 import type { MountProps } from '@/lib/mount-manager'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 // ---------------------------------------------------------------------------
 // Types

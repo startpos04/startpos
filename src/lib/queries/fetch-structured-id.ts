@@ -1,7 +1,7 @@
 import { SequenceType } from 'prisma/generated/prisma/enums'
 import { sequenceCounterCollection } from '@/db/collections'
 import dayjs from '@/lib/dayjs'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export function fetchStructuredId(type: SequenceType) {
   const { user } = authStore.state

@@ -19,7 +19,7 @@
 import { render, screen, cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Role } from 'prisma/generated/prisma/enums'
-import { RequirePermission } from '@/components/require-permission'
+import { RequirePermission } from '@/components/custom/guards/require-permission'
 import { authStore } from '@/store/auth-store'
 import { PermissionKeys } from '@/lib/authorization/permission-keys'
 import type { AuthorizationSummary } from '@/store/auth-store'

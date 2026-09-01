@@ -310,8 +310,11 @@ web/prisma/
 │   ├── singapore.prisma        # SG field injections + standalone models
 │   └── usa.prisma              # US field injections + standalone models
 ├── migrations/                  # ⚠️ See Migration Isolation Strategy below
-└── scripts/
-    └── generate-schema.ts      # Schema composer with field injection
+└── models/
+    ├── base/                    # Base models (all countries)
+    ├── countries/               # Country-specific fields
+    ├── generate-schema.ts       # Schema composer with field injection
+    └── ensure-database.sh       # Docker DB init script
 ```
 
 **Note on migrations/:** Prisma does not natively support separate migration directories per country. See "Migration Isolation Strategy" section below for the chosen approach.
@@ -679,7 +682,7 @@ model UsaBranchCompliance {
 ## Schema Generator Script
 
 ```typescript
-// prisma/scripts/generate-schema.ts
+// prisma/models/generate-schema.ts
 
 import fs from 'fs';
 import path from 'path';
@@ -908,9 +911,9 @@ Monorepo Structure:
 ```json
 {
   "scripts": {
-    "prisma:generate:ph": "cross-env DEPLOYMENT_COUNTRY=PH tsx prisma/scripts/generate-schema.ts && prisma generate",
-    "prisma:generate:sg": "cross-env DEPLOYMENT_COUNTRY=SG tsx prisma/scripts/generate-schema.ts && prisma generate",
-    "prisma:generate:us": "cross-env DEPLOYMENT_COUNTRY=US tsx prisma/scripts/generate-schema.ts && prisma generate",
+    "prisma:generate:ph": "cross-env DEPLOYMENT_COUNTRY=PH tsx prisma/models/generate-schema.ts && prisma generate",
+    "prisma:generate:sg": "cross-env DEPLOYMENT_COUNTRY=SG tsx prisma/models/generate-schema.ts && prisma generate",
+    "prisma:generate:us": "cross-env DEPLOYMENT_COUNTRY=US tsx prisma/models/generate-schema.ts && prisma generate",
     
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",

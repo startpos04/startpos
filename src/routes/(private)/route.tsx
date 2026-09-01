@@ -2,14 +2,14 @@ import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { AppWrapper } from '@/components/custom/app-wrapper'
-import { TermsUpdateModal } from '@/components/custom/legal/terms-update-modal'
+import { TermsUpdateModal } from './-components/terms-update-modal'
 import Loading from '@/components/custom/loading'
-import { WelcomeModal } from '@/components/custom/onboarding/welcome-modal'
+import { WelcomeModal } from './-components/welcome-modal'
 import { localAuthCollection } from '@/db/local-auth'
 import { useIsOnline } from '@/hooks/use-is-online'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import MountManager from '@/lib/mount-manager'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)')({
   component: () => (

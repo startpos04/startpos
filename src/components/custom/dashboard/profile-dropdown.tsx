@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useIsOnline } from '@/hooks/use-is-online'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import { cn } from '@/lib/utils'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const ProfileDropdown = ({ children }: { children?: ReactNode }) => {
   const user = useStore(authStore, state => state.user)

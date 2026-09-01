@@ -10,7 +10,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import Tab from '@/components/custom/tab'
-import { RequirePermission } from '@/components/require-permission'
+import { RequirePermission } from '@/components/custom/guards/require-permission'
 import { Permissions } from '@/lib/authorization/permission-keys'
 import { PermissionsTab } from './-permissions-tab'
 import { AuditLogTab } from './-audit-log-tab'

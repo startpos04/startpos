@@ -18,7 +18,7 @@ import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import MountManager, { type MountProps } from '@/lib/mount-manager'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const closeSessionFormOpts = formOptions({
   defaultValues: {

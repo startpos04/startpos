@@ -5,7 +5,7 @@ import { Role } from 'prisma/generated/prisma/enums'
 import * as React from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 /**
  * RegistrationStatusIndicator

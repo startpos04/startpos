@@ -19,16 +19,19 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getColumns } from '@/components/custom/data-view'
 import { TableView } from '@/components/custom/data-view/table-view'
-import { GCashPaymentGuide } from '@/components/custom/gcash-payment-guide'
+import { GCashPaymentGuide } from '../-components/gcash-payment-guide'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { creditCols } from '@/lib/columns/credit-columns'
 import dayjs from '@/lib/dayjs'
+import type { MountProps } from '@/lib/mount-manager'
+import MountManager from '@/lib/mount-manager'
 import { type CreditLedgerEntry, fetchCreditLedger } from '@/lib/server-fn/fetch-credit-ledger'
 import { type CreditPackageOption, fetchCreditPackages, purchaseCreditPackage } from '@/lib/server-fn/purchase-credit-package'
 import { cn } from '@/lib/utils'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 // ---------------------------------------------------------------------------
 // Route
@@ -50,38 +53,10 @@ export const Route = createFileRoute('/(private)/(dashboard)/business/subscripti
 const LOW_BALANCE_DEFAULT_THRESHOLD = 10
 
 // ---------------------------------------------------------------------------
-// Event type display config
-// ---------------------------------------------------------------------------
-
-type EventConfig = { label: string; badgeClass: string }
-
-function getEventConfig(eventType: string): EventConfig {
-  switch (eventType) {
-    case 'CONSUMED':
-      return { label: 'Checkout', badgeClass: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300' }
-    case 'REFUNDED':
-      return { label: 'Refund', badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' }
-    case 'PURCHASE':
-      return { label: 'Purchase', badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300' }
-    case 'PROMOTIONAL':
-      return { label: 'Promotional', badgeClass: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300' }
-    case 'ADJUSTMENT':
-      return { label: 'Adjustment', badgeClass: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300' }
-    case 'EXPIRED':
-      return { label: 'Expired', badgeClass: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400' }
-    default:
-      return { label: eventType, badgeClass: '' }
-  }
-}
-
-// ---------------------------------------------------------------------------
 // BuyCreditsDialog
 // ---------------------------------------------------------------------------
 
-interface BuyCreditsDialogProps {
-  open: boolean
-  onClose: () => void
-}
+interface BuyCreditsDialogProps extends MountProps {}
 
 function BuyCreditsDialog({ open, onClose }: BuyCreditsDialogProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -192,7 +167,6 @@ function CreditsPage() {
   const entitlement = user?.entitlement
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, pageSize, purchase } = useSearch({ from: '/(private)/(dashboard)/billing/credits/' })
-  const [dialogOpen, setDialogOpen] = useState(false)
 
   const isPrepaid = entitlement?.creditBalance !== null && entitlement?.creditBalance !== undefined
 
@@ -220,58 +194,12 @@ function CreditsPage() {
   const columns = useMemo(
     () =>
       getColumns<CreditLedgerEntry>(h => [
-        h.accessor('eventType', {
-          header: 'Event',
-          cell: info => {
-            const config = getEventConfig(info.getValue())
-            return (
-              <Badge variant='outline' className={cn('text-xs', config.badgeClass)}>
-                {config.label}
-              </Badge>
-            )
-          },
-        }),
-        h.accessor('amount', {
-          header: 'Amount',
-          maxSize: 100,
-          cell: info => {
-            const v = info.getValue()
-            const sign = v >= 0 ? '+' : ''
-            return (
-              <span className={cn('font-mono font-semibold text-sm tabular-nums', v >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
-                {sign}
-                {v} cr
-              </span>
-            )
-          },
-        }),
-        h.accessor('balanceAfter', {
-          header: 'Balance after',
-          maxSize: 120,
-          cell: info => <span className='font-mono text-sm tabular-nums text-muted-foreground'>{info.getValue()} cr</span>,
-        }),
-        h.accessor('transactionId', {
-          header: 'Transaction',
-          cell: info => {
-            const id = info.getValue()
-            return id ? (
-              <span className='font-mono text-xs text-primary truncate max-w-30 block' title={id}>
-                {id.slice(0, 8)}…
-              </span>
-            ) : (
-              <span className='text-muted-foreground text-xs'>—</span>
-            )
-          },
-        }),
-        h.display({
-          id: 'cashier',
-          header: 'Cashier',
-          cell: ({ row }) => <span className='text-sm'>{row.original.actorName ?? '—'}</span>,
-        }),
-        h.accessor('createdAt', {
-          header: 'Date',
-          cell: info => <span className='text-xs text-muted-foreground'>{dayjs(info.getValue()).format('MMM DD, YYYY HH:mm')}</span>,
-        }),
+        creditCols.eventType(h),
+        creditCols.amount(h),
+        creditCols.balanceAfter(h),
+        creditCols.transactionId(h),
+        creditCols.actorName(h),
+        creditCols.date(h),
       ]),
     [],
   )
@@ -279,9 +207,9 @@ function CreditsPage() {
   // If not a prepaid plan, show a plain placeholder
   if (!isPrepaid) {
     return (
-      <div className='flex flex-col gap-6 px-4 py-6 max-w-4xl'>
+      <div className='flex flex-col gap-6 px-4 pb-6 max-w-4xl'>
         <div>
-          <h1 className='text-3xl font-bold tracking-tight'>Credits</h1>
+          <h1 className='text-2xl font-bold tracking-tight'>Credits</h1>
           <p className='text-muted-foreground text-sm mt-1'>Prepaid credit balance and history.</p>
         </div>
         <Card className='border-dashed'>
@@ -296,7 +224,7 @@ function CreditsPage() {
   }
 
   return (
-    <div className='flex flex-col gap-6 px-4 py-6 max-w-4xl h-full'>
+    <div className='flex flex-col gap-6 px-4 pb-6 max-w-4xl h-full'>
       {/* Purchase result banners — shown after Stripe redirects back */}
       {purchase === 'success' && (
         <div
@@ -336,10 +264,10 @@ function CreditsPage() {
       {/* Header */}
       <div className='flex items-start justify-between gap-4'>
         <div>
-          <h1 className='text-3xl font-bold tracking-tight'>Credits</h1>
+          <h1 className='text-2xl font-bold tracking-tight'>Credits</h1>
           <p className='text-muted-foreground text-sm mt-1'>Prepaid credit balance and transaction history.</p>
         </div>
-        <Button size='sm' className='gap-1.5 shrink-0' onClick={() => setDialogOpen(true)}>
+        <Button size='sm' className='gap-1.5 shrink-0' onClick={() => MountManager.show(BuyCreditsDialog, {})}>
           <ShoppingCartIcon className='h-4 w-4' />
           Buy Credits
         </Button>
@@ -428,8 +356,6 @@ function CreditsPage() {
           )}
         </CardContent>
       </Card>
-
-      <BuyCreditsDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </div>
   )
 }

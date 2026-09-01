@@ -16,6 +16,8 @@ import { useStore } from '@tanstack/react-store'
 import { ArrowLeftIcon, CreditCardIcon, InfoIcon, UploadIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import MountManager from '@/lib/mount-manager'
+import { AlertPrompt } from '@/components/custom/prompt/alert-prompt'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,19 +26,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { submitManualPayment } from '@/lib/server-fn/submit-manual-payment'
 import { paymentProviderRegistry } from '@/lib/billing/payment-provider-registry'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing/manual-payment')({
   validateSearch: (search: Record<string, unknown>) => ({
     planId: (search['planId'] as string) || '',
     amount: search['amount'] ? parseInt(search['amount'] as string) : 0,
+    periodsAdvancePaid: search['periodsAdvancePaid'] ? Math.min(3, Math.max(1, parseInt(search['periodsAdvancePaid'] as string))) : 1,
   }),
   component: ManualPaymentPage,
 })
 
 function ManualPaymentPage() {
   const navigate = useNavigate()
-  const { planId, amount } = useSearch({ from: Route.fullPath })
+  const { planId, amount, periodsAdvancePaid: initialPeriods } = useSearch({ from: Route.fullPath })
   const user = useStore(authStore, s=>s.user)
 
   // Form state
@@ -45,12 +48,22 @@ function ManualPaymentPage() {
   const [notes, setNotes] = useState('')
   const [proofImage, setProofImage] = useState<string>('')
   const [imageFile, setImageFile] = useState<File | null>(null)
+  
+  // Advance payment state
+  const [periodsAdvancePaid, setPeriodsAdvancePaid] = useState<number>(initialPeriods || 1)
+  const [calculatedAmount, setCalculatedAmount] = useState<number>(amount * (initialPeriods || 1))
 
   // Get manual provider config
   const manualConfig = paymentProviderRegistry.getConfig('manual')
+  
+  // Calculate amount based on periods
+  const handlePeriodsChange = (periods: number) => {
+    setPeriodsAdvancePaid(periods)
+    setCalculatedAmount(amount * periods)
+  }
 
   // Form validation
-  const canSubmit = proofImage && amount > 0 && planId
+  const canSubmit = proofImage && calculatedAmount > 0 && planId && periodsAdvancePaid >= 1 && periodsAdvancePaid <= 3
 
   // Mutation for submitting payment
   const submitMutation = useMutation({
@@ -62,14 +75,18 @@ function ManualPaymentPage() {
         })
         navigate({ to: '/billing?tab=payments' })
       } else {
-        toast.error('Failed to submit payment', {
-          description: result.error,
+        MountManager.show(AlertPrompt, {
+          title: 'Payment Submission Failed',
+          description: result.error || 'Unable to submit payment. Please try again.',
+          btnText: 'OK'
         })
       }
     },
     onError: (error: Error) => {
-      toast.error('Payment submission failed', {
-        description: error.message,
+      MountManager.show(AlertPrompt, {
+        title: 'Payment Submission Failed',
+        description: error.message || 'An unexpected error occurred. Please try again.',
+        btnText: 'OK'
       })
     },
   })
@@ -112,8 +129,9 @@ function ManualPaymentPage() {
     submitMutation.mutate({
       data: {
         planId,
-        amount,
+        amount: calculatedAmount,
         paymentMethod,
+        periodsAdvancePaid,
         referenceNo: referenceNo.trim() || undefined,
         notes: notes.trim() || undefined,
         proofImageUrl: proofImage,
@@ -158,14 +176,94 @@ function ManualPaymentPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Advance Payment Period Selector */}
+          <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200 dark:from-blue-950/20 dark:to-indigo-950/20 dark:border-blue-800">
+            <div className="flex items-start gap-3 mb-3">
+              <InfoIcon className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-blue-900 dark:text-blue-100">
+                  Pay in Advance & Save Time
+                </h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  Pay for multiple billing periods upfront. Your subscription will remain active without requiring monthly payments.
+                </p>
+              </div>
+            </div>
+            
+            <div className="space-y-3 mt-4">
+              <Label htmlFor="periods" className="text-blue-900 dark:text-blue-100">
+                Number of Billing Periods (Max 3 months for manual payments)
+              </Label>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <input
+                    id="periods"
+                    type="range"
+                    min="1"
+                    max="3"
+                    value={periodsAdvancePaid}
+                    onChange={(e) => handlePeriodsChange(Number.parseInt(e.target.value))}
+                    className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer dark:bg-blue-700"
+                  />
+                </div>
+                <div className="flex items-baseline gap-1 min-w-[80px]">
+                  <span className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                    {periodsAdvancePaid}
+                  </span>
+                  <span className="text-sm text-blue-600 dark:text-blue-300">
+                    {periodsAdvancePaid === 1 ? 'month' : 'months'}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Quick select buttons */}
+              <div className="flex gap-2 flex-wrap">
+                {[1, 2, 3].map((period) => (
+                  <Button
+                    key={period}
+                    type="button"
+                    variant={periodsAdvancePaid === period ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePeriodsChange(period)}
+                    className={periodsAdvancePaid === period ? "bg-blue-600 hover:bg-blue-700" : "border-blue-300 text-blue-700 hover:bg-blue-100"}
+                  >
+                    {period} {period === 1 ? 'month' : 'months'}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Amount Breakdown */}
           <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Amount</p>
-              <p className="text-2xl font-bold">₱{(amount / 100).toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">Monthly Rate</p>
+              <p className="text-lg font-semibold">₱{(amount / 100).toFixed(2)}</p>
             </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Periods Selected</p>
+              <p className="text-lg font-semibold">{periodsAdvancePaid} {periodsAdvancePaid === 1 ? 'month' : 'months'}</p>
+            </div>
+            <div className="col-span-2 pt-3 border-t">
+              <p className="text-sm text-muted-foreground mb-1">Total Amount to Pay</p>
+              <p className="text-3xl font-bold text-primary">₱{(calculatedAmount / 100).toFixed(2)}</p>
+              {periodsAdvancePaid > 1 && (
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  ✓ Covers {periodsAdvancePaid} billing periods • No payments needed until {new Date(Date.now() + periodsAdvancePaid * 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Original payment info */}
+          <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg border">
             <div>
               <p className="text-sm text-muted-foreground">Plan</p>
               <p className="font-medium">{planId}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Billing Cycle</p>
+              <p className="font-medium">Monthly</p>
             </div>
           </div>
 
@@ -176,6 +274,14 @@ function ManualPaymentPage() {
                 <p><strong>Account Name:</strong> {manualConfig.config.accountName}</p>
                 <p><strong>Account Number:</strong> {manualConfig.config.accountNumber}</p>
                 <p className="mt-3">{manualConfig.config.paymentInstructions}</p>
+                {periodsAdvancePaid > 1 && (
+                  <div className="mt-3 pt-3 border-t border-blue-300 dark:border-blue-700">
+                    <p className="text-blue-800 dark:text-blue-200">
+                      <strong>💡 Advance Payment:</strong> You're paying for {periodsAdvancePaid} months. 
+                      Make sure to transfer the full amount of ₱{(calculatedAmount / 100).toFixed(2)}.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -277,8 +383,18 @@ function ManualPaymentPage() {
                 <p className="font-medium mb-1">Payment Review Process</p>
                 <p>
                   ⏱️ Your payment will be reviewed by our admin team within 24 hours. 
-                  You'll be notified once approved.
+                  {periodsAdvancePaid > 1 && (
+                    <> Once approved, your subscription will be active for <strong>{periodsAdvancePaid} months</strong> without requiring additional payments.</>
+                  )}
+                  {periodsAdvancePaid === 1 && (
+                    <> Once approved, your subscription will be activated.</>
+                  )}
                 </p>
+                {user?.business?.preferredPaymentProvider === 'stripe' && periodsAdvancePaid > 1 && (
+                  <p className="mt-2 text-blue-700 dark:text-blue-300">
+                    🔄 <strong>Auto-sync enabled:</strong> Your advance payment will be synced to Stripe to prevent duplicate charges during the advance period.
+                  </p>
+                )}
               </div>
             </div>
 

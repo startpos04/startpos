@@ -1,5 +1,5 @@
 import type { Unit } from 'prisma/generated/prisma/browser'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { UnitEngine } from './unit-engine'
 
 export const PriceEngine = {

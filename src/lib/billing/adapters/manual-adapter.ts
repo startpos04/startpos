@@ -97,6 +97,7 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
     const businessId = params.externalCustomerId // For manual, customerId = businessId
     const planId = params.metadata.planId
     const amount = parseInt(params.metadata.amount || '0')
+    const periodsAdvancePaid = parseInt(params.metadata.periodsAdvancePaid || '1')
     const referenceNo = params.metadata.referenceNo
     const proofImageUrl = params.metadata.proofImageUrl
     const notes = params.metadata.notes
@@ -105,6 +106,12 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
     if (!planId || !amount) {
       throw new Error('[ManualAdapter] planId and amount are required in metadata')
     }
+
+    // Calculate period coverage for advance payments
+    const now = dayjs()
+    const coversPeriodStart = now.toDate()
+    const coversPeriodEnd = now.add(periodsAdvancePaid, 'month').toDate()
+    const advancePaymentExpiresAt = periodsAdvancePaid > 1 ? coversPeriodEnd : null
 
     const payment = await prisma.billingPayment.create({
       data: {
@@ -119,9 +126,18 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
         proofImageUrl,
         notes,
         actorId,
+        // Advance payment fields
+        isAdvancePayment: periodsAdvancePaid > 1,
+        periodsAdvancePaid,
+        coversPeriodStart,
+        coversPeriodEnd,
+        advancePaymentExpiresAt,
+        syncStatus: 'NOT_REQUIRED', // Will be updated to PENDING if provider enabled
         providerMetadata: {
           planId,
           paymentMethod: this.config.paymentMethod,
+          periodsAdvancePaid,
+          isAdvancePayment: periodsAdvancePaid > 1,
           originalMetadata: params.metadata,
         },
       },
@@ -130,8 +146,8 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
     return {
       externalSubscriptionId: payment.id,  // Use payment ID as synthetic subscription ID
       checkoutUrl: null,  // No external checkout for manual payments
-      currentPeriodStart: dayjs().toDate(),
-      currentPeriodEnd: dayjs().add(1, 'month').toDate(),
+      currentPeriodStart: coversPeriodStart,
+      currentPeriodEnd: coversPeriodEnd,
     }
   }
 
@@ -173,10 +189,16 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
     
     const businessId = params.externalCustomerId
     const amount = parseInt(params.metadata.amount || '0')
+    const periodsAdvancePaid = parseInt(params.metadata.periodsAdvancePaid || '1')
 
     if (!amount) {
       throw new Error('[ManualAdapter] amount is required in metadata for credit purchase')
     }
+
+    // Calculate period coverage
+    const now = dayjs()
+    const coversPeriodStart = now.toDate()
+    const coversPeriodEnd = now.add(periodsAdvancePaid, 'month').toDate()
 
     const payment = await prisma.billingPayment.create({
       data: {
@@ -188,9 +210,16 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
         status: 'PENDING_APPROVAL',
         requiresApproval: true,
         actorId: params.metadata.userId,
+        isAdvancePayment: periodsAdvancePaid > 1,
+        periodsAdvancePaid,
+        coversPeriodStart,
+        coversPeriodEnd,
+        advancePaymentExpiresAt: periodsAdvancePaid > 1 ? coversPeriodEnd : null,
+        syncStatus: 'NOT_REQUIRED',
         providerMetadata: {
           type: 'credit_purchase',
           creditAmount: params.creditAmount,
+          periodsAdvancePaid,
           originalMetadata: params.metadata,
         },
       },
@@ -214,10 +243,16 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
     // Similar to credit purchase but for addon subscriptions
     const businessId = params.externalCustomerId
     const amount = parseInt(params.metadata.amount || '0')
+    const periodsAdvancePaid = parseInt(params.metadata.periodsAdvancePaid || '1')
 
     if (!amount) {
       throw new Error('[ManualAdapter] amount is required in metadata for addon subscription')
     }
+
+    // Calculate period coverage
+    const now = dayjs()
+    const coversPeriodStart = now.toDate()
+    const coversPeriodEnd = now.add(periodsAdvancePaid, 'month').toDate()
 
     const payment = await prisma.billingPayment.create({
       data: {
@@ -229,10 +264,17 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
         status: 'PENDING_APPROVAL',
         requiresApproval: true,
         actorId: params.metadata.userId,
+        isAdvancePayment: periodsAdvancePaid > 1,
+        periodsAdvancePaid,
+        coversPeriodStart,
+        coversPeriodEnd,
+        advancePaymentExpiresAt: periodsAdvancePaid > 1 ? coversPeriodEnd : null,
+        syncStatus: 'NOT_REQUIRED',
         providerMetadata: {
           type: 'addon_subscription',
           quantity: params.quantity,
           addonType: params.metadata.addonType,
+          periodsAdvancePaid,
           originalMetadata: params.metadata,
         },
       },

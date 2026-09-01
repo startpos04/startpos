@@ -142,14 +142,22 @@ export const createSubscription = createServerFn({ method: 'POST' })
     }
 
     // Resolve the price ID for this plan and provider
+    // NOTE: For Stripe with dynamic pricing, we skip Price ID requirement
+    // The actual price creation happens in the Stripe adapter dynamically
     const priceInterval = data.billingModel === 'PREPAID_CREDITS' ? 'credits' : data.billingInterval
     const providerPriceId = getProviderPriceId(data.providerId, targetPlan.name, priceInterval)
-    if (!providerPriceId) {
+    
+    // Skip Price ID check for Stripe when using embedded payment form
+    // Dynamic pricing is handled by StripePaymentForm component
+    if (!providerPriceId && data.providerId !== 'stripe') {
       return {
         success: false as const,
         error: `Price ID not configured for plan "${targetPlan.name}" on provider "${data.providerId}" (${priceInterval}).`,
       }
     }
+    
+    // Use a placeholder for Stripe dynamic pricing
+    const effectivePriceId = providerPriceId || 'dynamic-pricing'
 
     // Create a Stripe customer for this business (required before creating subscription)
     const userEmail = context.user.email ?? `billing+${businessId}@startpos.app`
@@ -171,7 +179,7 @@ export const createSubscription = createServerFn({ method: 'POST' })
 
     const providerResult = await adapter.createSubscription({
       externalCustomerId: customer.externalCustomerId,
-      externalPriceId: providerPriceId,
+      externalPriceId: effectivePriceId,
       metadata: {
         businessId,
         planId: data.planId,

@@ -24,7 +24,7 @@ import { Separator } from '@/components/ui/separator'
 import dayjs from '@/lib/dayjs'
 import MountManager from '@/lib/mount-manager'
 import { requestAccountDeletion } from '@/lib/server-fn/request-account-deletion'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export function AccountPage() {
   const { user } = authStore.state

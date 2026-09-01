@@ -14,7 +14,7 @@ import { useStore } from '@tanstack/react-store'
 import { useEffect, useState } from 'react'
 import type { HintDTO } from '@/lib/hint/hint-types'
 import { fetchEligibleHint } from '@/lib/server-fn/fetch-eligible-hint'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 const DEFAULT_DISPLAY_SECONDS = 6
 

@@ -1,383 +1,112 @@
 /**
- * billing/plans/index.tsx
- *
  * /business/subscription/plans — Plan selection page.
  *
- * Handles two modes:
- *   - New subscriber (no active subscription): shows provider selection then calls createSubscription.
- *   - Existing subscriber (active plan): shows a change dialog with billing
- *     model selector, then calls changeSubscription.
- *
- * Architecture:
- *   - No price calculations in the component — prices come from DB via fetchPlans.
- *   - Provider selection uses PaymentProviderService for business-level routing.
- *   - createSubscription handles first-time activation with provider context.
- *   - changeSubscription handles all plan/model switching (immediate).
- *   - isCurrent is derived from authStore.entitlement.planId.
+ * Clicking a plan card navigates to /business/subscription/checkout?planId=...
+ * The checkout page handles billing interval, payment method, and form.
  */
 
-import { GCashPaymentGuide } from '@/components/custom/gcash-payment-guide'
+import { GCashPaymentGuide } from '../-components/gcash-payment-guide'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
-import { paymentProviderRegistry } from '@/lib/billing/payment-provider-registry'
-import { getEnabledProviderConfigs } from '@/lib/billing/provider-config'
-import { BillingModel } from '@/lib/billing/types'
-import { changeSubscription } from '@/lib/server-fn/change-subscription'
-import { createSubscription } from '@/lib/server-fn/create-subscription'
+import { getPendingManualPayment } from '@/lib/server-fn/get-pending-manual-payment'
 import { fetchPlans, type PlanWithEntitlements } from '@/lib/server-fn/fetch-plans'
 import { cn } from '@/lib/utils'
-import { authStore } from '@/store/auth-store'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { authStore } from '@/lib/better-auth/auth-store'
+import { useQuery } from '@tanstack/react-query'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import {
-  AlertTriangleIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
-  Banknote,
   CheckIcon,
-  CoinsIcon,
-  CreditCardIcon,
+  ClockIcon,
   LayersIcon,
   ServerIcon,
   SparklesIcon,
-  ZapIcon
+  ZapIcon,
 } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/plans/')({
   component: PlansPage,
 })
 
 // ---------------------------------------------------------------------------
-// Billing method toggle
+// Types / constants
 // ---------------------------------------------------------------------------
 
-type BillingMethod = 'monthly' | 'annual' | 'credits'
+type BillingInterval = 'monthly' | 'annual'
 
-const BILLING_METHODS: Array<{ value: BillingMethod; label: string; badge?: string }> = [
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'annual', label: 'Annual' },
-  { value: 'credits', label: 'Pay as you go' },
-]
-
-// ---------------------------------------------------------------------------
-// Per-plan feature highlights
-// ---------------------------------------------------------------------------
-
-type PlanHighlight = { text: string }
-type PlanDetails = { tagline: string; features: PlanHighlight[] }
-
-const PLAN_DETAILS: Record<string, PlanDetails> = {
+const PLAN_DETAILS: Record<string, { tagline: string; features: string[] }> = {
   Basic: {
     tagline: 'Everything a solo operator needs to run a single location.',
     features: [
-      { text: '1,000 transactions / month' },
-      { text: '1 employee account' },
-      { text: '1 branch' },
-      { text: 'POS checkout, payments & refunds' },
-      { text: 'Customer orders & order management' },
-      { text: 'Product catalogue & variants' },
-      { text: 'Customer directory' },
-      { text: 'Full transaction & order history' },
-      { text: 'Receipt printing & download' },
+      '1,000 transactions / month',
+      '1 employee account',
+      '1 branch',
+      'POS checkout, payments & refunds',
+      'Customer orders & order management',
+      'Product catalogue & variants',
+      'Customer directory',
     ],
   },
   Premium: {
     tagline: 'For growing teams that need inventory control.',
     features: [
-      { text: 'Everything in Basic' },
-      { text: '5,000 transactions / month' },
-      { text: 'Up to 3 branches' },
-      { text: 'Inventory adjustments & transfers' },
-      { text: 'Vendor cash sessions & reconciliation' },
-      { text: 'Sales & inventory reports' },
-      { text: 'CSV data export' },
+      'Everything in Basic',
+      '5,000 transactions / month',
+      'Up to 3 branches',
+      'Inventory adjustments & transfers',
+      'Vendor cash sessions & reconciliation',
+      'Sales & inventory reports',
+      'CSV data export',
     ],
   },
   Enterprise: {
     tagline: 'For multi-location operations running at scale.',
     features: [
-      { text: 'Everything in Premium' },
-      { text: '10,000 transactions / month' },
-      { text: 'Up to 5 branches' },
-      { text: 'Supplier records & management' },
-      { text: 'Purchase orders & stock receiving' },
-      { text: 'Restocking tasks' },
-      { text: 'Priority support' },
+      'Everything in Premium',
+      '10,000 transactions / month',
+      'Up to 5 branches',
+      'Supplier records & management',
+      'Purchase orders & stock receiving',
+      'Restocking tasks',
+      'Priority support',
     ],
   },
 }
 
 // ---------------------------------------------------------------------------
-// Price calculation helpers
+// Price helpers
 // ---------------------------------------------------------------------------
 
-function getDisplayPrice(plan: PlanWithEntitlements, method: BillingMethod): string {
+function getAnnualTotal(plan: PlanWithEntitlements): number {
+  return plan.annualPrice ?? Math.round(plan.monthlyPrice * 0.8 * 12)
+}
+
+function getDisplayPrice(plan: PlanWithEntitlements, interval: BillingInterval): string {
   if (plan.monthlyPrice === 0) return 'Free'
-  if (method === 'credits') return 'Pay per TX'
-  if (method === 'annual') {
-    // Use DB annualPrice ÷ 12 as the monthly-equivalent display price.
-    // Falls back to monthlyPrice × 0.8 when annualPrice is not yet seeded.
-    const annual = plan.annualPrice ?? Math.round(plan.monthlyPrice * 0.8 * 12)
-    const perMonth = Math.round(annual / 12)
+  if (interval === 'annual') {
+    const perMonth = Math.round(getAnnualTotal(plan) / 12)
     return `₱${(perMonth / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
   }
   return `₱${(plan.monthlyPrice / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
 }
 
-function getAnnualTotal(plan: PlanWithEntitlements): string {
-  if (plan.monthlyPrice === 0) return ''
-  const annual = plan.annualPrice ?? Math.round(plan.monthlyPrice * 0.8 * 12)
+function getAnnualSubtext(plan: PlanWithEntitlements): string {
+  const annual = getAnnualTotal(plan)
   return `₱${(annual / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })} billed annually`
 }
 
-function getAnnualSavingsLabel(plan: PlanWithEntitlements): string {
-  if (plan.monthlyPrice === 0) return ''
-  const monthlyTotal = plan.monthlyPrice * 12
-  const annual = plan.annualPrice ?? Math.round(plan.monthlyPrice * 0.8 * 12)
-  const savingsCents = monthlyTotal - annual
-  if (savingsCents <= 0) return ''
-  const pct = Math.round((savingsCents / monthlyTotal) * 100)
-  return `Save ${pct}%`
-}
-
-// ---------------------------------------------------------------------------
-// Change plan dialog
-// Shown when the user already has an active subscription and selects a plan.
-// ---------------------------------------------------------------------------
-
-interface ChangePlanDialogProps {
-  open: boolean
-  onOpenChange: (v: boolean) => void
-  plan: PlanWithEntitlements
-  billingMethod: BillingMethod
-  currentBillingModel: string | null
-  creditBalance: number | null
-  isPending: boolean
-  onConfirm: (method: BillingMethod) => void
-}
-
-function ChangePlanDialog({ open, onOpenChange, plan, billingMethod, currentBillingModel, creditBalance, isPending, onConfirm }: ChangePlanDialogProps) {
-  const [selectedMethod, setSelectedMethod] = useState<BillingMethod>(billingMethod)
-
-  const isFromCredits = currentBillingModel === BillingModel.PREPAID_CREDITS
-  const toCredits = selectedMethod === 'credits'
-  const hasCredits = (creditBalance ?? 0) > 0
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='max-w-sm'>
-        <DialogHeader>
-          <DialogTitle>Switch to {plan.name}</DialogTitle>
-          <DialogDescription>This change takes effect immediately. Choose how you want to be billed.</DialogDescription>
-        </DialogHeader>
-
-        {/* Billing method selector */}
-        <div className='space-y-1.5'>
-          {BILLING_METHODS.map(m => {
-            const price = getDisplayPrice(plan, m.value)
-            return (
-              <button
-                key={m.value}
-                type='button'
-                onClick={() => setSelectedMethod(m.value)}
-                className={cn(
-                  'w-full flex items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-all',
-                  'hover:border-primary/60 hover:bg-primary/5',
-                  selectedMethod === m.value ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card',
-                )}
-              >
-                <div>
-                  <p className='text-sm font-medium'>{m.label}</p>
-                  {m.value === 'annual' && plan.monthlyPrice > 0 && <p className='text-xs text-muted-foreground mt-0.5'>{getAnnualTotal(plan)}</p>}
-                  {m.value === 'credits' && <p className='text-xs text-muted-foreground mt-0.5'>1 credit = 1 transaction</p>}
-                  {m.value === 'monthly' && plan.monthlyPrice > 0 && <p className='text-xs text-muted-foreground mt-0.5'>billed monthly</p>}
-                </div>
-                <span className='font-bold text-sm tabular-nums text-primary shrink-0 ml-3'>{price}</span>
-              </button>
-            )
-          })}
-        </div>
-
-        <Separator />
-
-        {/* Contextual info depending on switching direction */}
-        {toCredits && (
-          <div className='flex items-start gap-2 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/60 px-3 py-2.5'>
-            <AlertTriangleIcon className='h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5' />
-            <p className='text-xs text-blue-800 dark:text-blue-300 leading-relaxed'>
-              Your current subscription will be cancelled immediately. You&apos;ll switch to pay-per-transaction billing — buy credits from the credits page.
-              {hasCredits && (
-                <>
-                  {' '}
-                  Your existing {creditBalance} credit{creditBalance === 1 ? '' : 's'} will remain available.
-                </>
-              )}
-            </p>
-          </div>
-        )}
-
-        {isFromCredits && !toCredits && (
-          <div className='flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 px-3 py-2.5'>
-            <AlertTriangleIcon className='h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5' />
-            <p className='text-xs text-amber-800 dark:text-amber-300 leading-relaxed'>
-              You&apos;ll be redirected to complete payment.
-              {hasCredits && (
-                <>
-                  {' '}
-                  Your {creditBalance} remaining credit{creditBalance === 1 ? '' : 's'} will stay as a buffer for extra transactions.
-                </>
-              )}
-            </p>
-          </div>
-        )}
-
-        {!isFromCredits && !toCredits && (
-          <div className='rounded-lg bg-muted/40 px-3 py-2'>
-            <p className='text-xs text-muted-foreground leading-relaxed'>The prorated difference will be charged or credited to your card immediately.</p>
-          </div>
-        )}
-
-        <DialogFooter className='gap-2 sm:gap-0'>
-          <Button variant='outline' onClick={() => onOpenChange(false)} disabled={isPending}>
-            Cancel
-          </Button>
-          <Button onClick={() => onConfirm(selectedMethod)} disabled={isPending}>
-            {isPending ? 'Processing…' : toCredits ? 'Switch to Credits' : 'Proceed to payment'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Provider selection dialog
-// Shown when new subscribers need to choose a payment method
-// ---------------------------------------------------------------------------
-
-interface ProviderSelectionDialogProps {
-  open: boolean
-  onOpenChange: (v: boolean) => void
-  plan: PlanWithEntitlements
-  billingMethod: BillingMethod
-  onConfirm: (providerId: string) => void
-  isPending: boolean
-}
-
-function ProviderSelectionDialog({ 
-  open, 
-  onOpenChange, 
-  plan, 
-  billingMethod, 
-  onConfirm, 
-  isPending 
-}: ProviderSelectionDialogProps) {
-  const [selectedProvider, setSelectedProvider] = useState<string>('stripe')
-  const enabledProviders = getEnabledProviderConfigs()
-
-  const getProviderIcon = (providerId: string) => {
-    switch (providerId) {
-      case 'stripe':
-        return <CreditCardIcon className="h-5 w-5 text-blue-600" />
-      case 'manual':
-        return <Banknote className="h-5 w-5 text-green-600" />
-      default:
-        return <ZapIcon className="h-5 w-5 text-primary" />
-    }
-  }
-
-  const getProviderDescription = (providerId: string, config: any) => {
-    switch (providerId) {
-      case 'stripe':
-        return 'Credit/debit cards • Instant activation • Automatic billing'
-      case 'manual':
-        return `${config.paymentMethod} transfer • Admin approval within 24h • Manual billing`
-      default:
-        return 'Payment provider'
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Choose Payment Method</DialogTitle>
-          <DialogDescription>
-            Select how you'd like to pay for your {plan.name} plan
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          {enabledProviders.map(({ providerId, config }) => {
-            const registry = paymentProviderRegistry.getConfig(providerId)
-            const isSelected = selectedProvider === providerId
-
-            return (
-              <button
-                key={providerId}
-                type="button"
-                onClick={() => setSelectedProvider(providerId)}
-                className={cn(
-                  'w-full flex items-center justify-between rounded-lg border p-4 text-left transition-all',
-                  'hover:border-primary/60 hover:bg-primary/5',
-                  isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card',
-                )}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  {getProviderIcon(providerId)}
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm">
-                      {registry?.displayName || providerId}
-                    </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {getProviderDescription(providerId, config)}
-                    </p>
-                    {registry?.badges?.map((badge) => (
-                      <Badge key={badge} variant="secondary" className="text-xs mt-1 mr-1">
-                        {badge}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <div className={cn(
-                    "w-4 h-4 rounded-full border-2 transition-colors",
-                    isSelected 
-                      ? "border-primary bg-primary" 
-                      : "border-muted-foreground"
-                  )}>
-                    {isSelected && (
-                      <CheckIcon className="w-2.5 h-2.5 text-primary-foreground m-0.5" />
-                    )}
-                  </div>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-          <p className="font-medium mb-1">💡 Payment Security</p>
-          <p>All payment methods use bank-level encryption. Your payment details are never stored on our servers.</p>
-        </div>
-
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
-            Cancel
-          </Button>
-          <Button onClick={() => onConfirm(selectedProvider)} disabled={isPending}>
-            {isPending ? 'Processing…' : 'Continue to Payment'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
+function getSavingsPct(plan: PlanWithEntitlements): number | null {
+  if (plan.monthlyPrice === 0) return null
+  const fullYear = plan.monthlyPrice * 12
+  const annual = getAnnualTotal(plan)
+  const saved = fullYear - annual
+  if (saved <= 0) return null
+  return Math.round((saved / fullYear) * 100)
 }
 
 // ---------------------------------------------------------------------------
@@ -385,112 +114,39 @@ function ProviderSelectionDialog({
 // ---------------------------------------------------------------------------
 
 function PlansPage() {
-  const [billingMethod, setBillingMethod] = useState<BillingMethod>('monthly')
-  const [selectingPlan, setSelectingPlan] = useState<PlanWithEntitlements | null>(null)
-  const [selectingProvider, setSelectingProvider] = useState<PlanWithEntitlements | null>(null)
-  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const [interval, setInterval] = useState<BillingInterval>('monthly')
 
-  const { user } = useStore(authStore, state => state)
+  const { user } = useStore(authStore, s => s)
   const activePlanId = user?.entitlement?.planId ?? null
-  const activeBillingModel = user?.entitlement?.billingModel ?? null
-  const creditBalance = user?.entitlement?.creditBalance ?? null
-  const hasActiveSubscription = !!activePlanId
-
-  const queryClient = useQueryClient()
+  const hasActiveSub = !!activePlanId
 
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ['plans'],
-    queryFn: () => fetchPlans(),
+    queryFn: fetchPlans,
   })
 
-  // First-time subscription (no active plan)
-  const createMutation = useMutation({
-    mutationFn: ({ planId, providerId }: { planId: string; providerId: string }) =>
-      createSubscription({
-        data: {
-          planId,
-          providerId, // Pass the selected provider
-          billingInterval: billingMethod === 'annual' ? 'annual' : 'monthly',
-          billingModel: billingMethod === 'credits' ? 'PREPAID_CREDITS' : undefined,
-        },
-      }),
-    onSuccess: result => {
-      if (!result.success) {
-        toast.error(result.error)
-        return
-      }
-      if (result.checkoutUrl) {
-        window.location.href = result.checkoutUrl
-        return
-      }
-      toast.success('Subscription activated!')
-      queryClient.invalidateQueries({ queryKey: ['plans'] })
-    },
-    onError: () => toast.error('Something went wrong. Please try again.'),
-    onSettled: () => setPendingPlanId(null),
+  const { data: pendingData } = useQuery({
+    queryKey: ['pending-manual-payment'],
+    queryFn: () => getPendingManualPayment(),
   })
 
-  // Plan / billing model change (already has active subscription)
-  const changeMutation = useMutation({
-    mutationFn: ({ planId, method }: { planId: string; method: BillingMethod }) =>
-      changeSubscription({
-        data: {
-          planId,
-          billingModel: method === 'credits' ? 'PREPAID_CREDITS' : method === 'annual' ? 'YEARLY_SUBSCRIPTION' : 'MONTHLY_SUBSCRIPTION',
-          billingInterval: method === 'annual' ? 'annual' : 'monthly',
-        },
-      }),
-    onSuccess: result => {
-      if (!result.success) {
-        toast.error(result.error)
-        return
-      }
-      if (result.checkoutUrl) {
-        window.location.href = result.checkoutUrl
-        return
-      }
-      toast.success(result.message ?? 'Plan updated successfully.')
-      queryClient.invalidateQueries({ queryKey: ['plans'] })
-    },
-    onError: () => toast.error('Something went wrong. Please try again.'),
-    onSettled: () => {
-      setPendingPlanId(null)
-      setSelectingPlan(null)
-    },
-  })
+  const hasPending = pendingData?.hasPending ?? false
+  const pendingPayment = pendingData?.payment ?? null
 
-  const isPending = createMutation.isPending || changeMutation.isPending
-
-  const handleSelectPlan = (plan: PlanWithEntitlements) => {
-    if (hasActiveSubscription) {
-      // Open the change dialog so user can pick billing method
-      setSelectingPlan(plan)
-    } else {
-      // First-time subscriber — show provider selection first
-      setSelectingProvider(plan)
-    }
-  }
-
-  const handleProviderSelect = (providerId: string) => {
-    if (!selectingProvider) return
-    
-    setPendingPlanId(selectingProvider.id)
-    setSelectingProvider(null)
-    
-    createMutation.mutate({ 
-      planId: selectingProvider.id, 
-      providerId 
+  const handleSelect = (plan: PlanWithEntitlements) => {
+    if (hasPending) return // blocked — pending banner handles the UX
+    navigate({
+      to: '/business/subscription/checkout' as never,
+      search: { planId: plan.id, interval } as never,
     })
   }
 
-  const handleConfirmChange = (method: BillingMethod) => {
-    if (!selectingPlan) return
-    setPendingPlanId(selectingPlan.id)
-    changeMutation.mutate({ planId: selectingPlan.id, method })
-  }
+  const firstPaid = plans.find(p => p.monthlyPrice > 0)
+  const savingsPct = firstPaid ? getSavingsPct(firstPaid) : null
 
   return (
-    <div className='flex flex-col gap-6 px-4 max-w-5xl'>
+    <div className='flex flex-col gap-6 px-4 pb-6 max-w-5xl'>
       {/* Header */}
       <div className='flex items-center gap-3'>
         <Button variant='ghost' size='icon' asChild className='shrink-0'>
@@ -499,60 +155,77 @@ function PlansPage() {
           </Link>
         </Button>
         <div>
-          <h1 className='text-2xl font-bold tracking-tight'>{hasActiveSubscription ? 'Change your plan' : 'Choose a plan'}</h1>
+          <h1 className='text-2xl font-bold tracking-tight'>
+            {hasActiveSub ? 'Change your plan' : 'Choose a plan'}
+          </h1>
           <p className='text-sm text-muted-foreground mt-0.5'>
-            {hasActiveSubscription
-              ? 'Switch plans or billing models instantly. Changes take effect immediately.'
+            {hasActiveSub
+              ? 'Select a plan to go to checkout.'
               : 'Pick the tier that fits your business. Change or cancel any time.'}
           </p>
         </div>
       </div>
 
-      {/* Billing method toggle — only shown for new subscribers since existing
-          subscribers pick billing method inside the change dialog */}
-      {!hasActiveSubscription && (
-        <div className='flex flex-col gap-2'>
-          <div className='flex items-center gap-1 p-1 bg-muted rounded-lg w-fit'>
-            {BILLING_METHODS.map(method => {
-              // Compute a representative savings label for the annual toggle badge
-              // using the first paid plan returned (lowest sort order).
-              const firstPaidPlan = plans.find(p => p.monthlyPrice > 0 && p.name !== 'Trial')
-              const savingsLabel = method.value === 'annual' && firstPaidPlan ? getAnnualSavingsLabel(firstPaidPlan) : ''
-              return (
-                <button
-                  key={method.value}
-                  type='button'
-                  onClick={() => setBillingMethod(method.value)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
-                    billingMethod === method.value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {method.value === 'monthly' && <ZapIcon className='h-3.5 w-3.5' />}
-                  {method.value === 'annual' && <SparklesIcon className='h-3.5 w-3.5' />}
-                  {method.value === 'credits' && <CoinsIcon className='h-3.5 w-3.5' />}
-                  {method.label}
-                  {savingsLabel && (
-                    <Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-4 font-semibold text-emerald-700 bg-emerald-100'>
-                      {savingsLabel}
-                    </Badge>
-                  )}
-                </button>
-              )
-            })}
+      {/* GCash guide — 2nd element */}
+      <GCashPaymentGuide />
+
+      {/* Pending payment banner */}
+      {hasPending && pendingPayment && (
+        <div className='flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700 px-4 py-3'>
+          <ClockIcon className='h-5 w-5 text-amber-600 shrink-0 mt-0.5' />
+          <div className='flex-1 min-w-0'>
+            <p className='text-sm font-semibold text-amber-900 dark:text-amber-300'>
+              Payment under review
+            </p>
+            <p className='text-xs text-amber-800 dark:text-amber-400 mt-0.5 leading-relaxed'>
+              You have a manual payment of ₱{((pendingPayment.amount ?? 0) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2 })} submitted on{' '}
+              {new Date(pendingPayment.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}.
+              Plan selection is locked until it is approved or rejected.
+            </p>
           </div>
-          {billingMethod === 'annual' && (
-            <p className='text-xs text-muted-foreground'>Annual pricing requires separate Stripe price IDs. Contact your admin if checkout fails.</p>
-          )}
         </div>
       )}
 
-      {/* GCash payment guide */}
-      <GCashPaymentGuide />
+      {/* Billing interval toggle — centered */}
+      <div className='flex justify-center'>
+        <div className='flex items-center gap-1 p-1 bg-muted rounded-lg'>
+          <button
+            type='button'
+            onClick={() => setInterval('monthly')}
+            className={cn(
+              'flex items-center gap-1.5 px-5 py-1.5 rounded-md text-sm font-medium transition-colors',
+              interval === 'monthly'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <ZapIcon className='h-3.5 w-3.5' />
+            Monthly
+          </button>
+          <button
+            type='button'
+            onClick={() => setInterval('annual')}
+            className={cn(
+              'flex items-center gap-1.5 px-5 py-1.5 rounded-md text-sm font-medium transition-colors',
+              interval === 'annual'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <SparklesIcon className='h-3.5 w-3.5' />
+            Annual
+            {savingsPct && (
+              <Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-4 font-semibold text-emerald-700 bg-emerald-100'>
+                Save {savingsPct}%
+              </Badge>
+            )}
+          </button>
+        </div>
+      </div>
 
-      {/* Plan cards */}
+      {/* Plan cards — mt-6 gives room for the absolute badge above cards */}
       {isLoading ? (
-        <div className='grid gap-4 sm:grid-cols-3'>
+        <div className='grid gap-4 sm:grid-cols-3 mt-2'>
           {[1, 2, 3].map(i => (
             <Card key={i} className='animate-pulse'>
               <CardHeader className='h-32 bg-muted/50 rounded-t-lg' />
@@ -561,80 +234,103 @@ function PlansPage() {
           ))}
         </div>
       ) : (
-        <div className='grid gap-4 sm:grid-cols-3'>
+        <div className='grid gap-4 sm:grid-cols-3 mt-2'>
           {plans
             .filter(p => p.name !== 'Perpetual License' && p.name !== 'Trial')
             .map(plan => {
               const isPopular = plan.name === 'Premium'
               const isCurrent = plan.id === activePlanId
               const details = PLAN_DETAILS[plan.name]
-              const isProcessing = pendingPlanId === plan.id && isPending
 
               return (
-                <Card
-                  key={plan.id}
-                  className={cn(
-                    'relative flex flex-col transition-shadow',
-                    isCurrent && 'border-primary shadow-md shadow-primary/10',
-                    isPopular && !isCurrent && 'border-muted-foreground/40',
-                  )}
-                >
+                <div key={plan.id} className='relative'>
+                  {/* Badges sit outside Card to avoid overflow-hidden clipping */}
                   {isCurrent && (
-                    <div className='absolute -top-3 left-1/2 -translate-x-1/2'>
-                      <Badge className='bg-primary text-primary-foreground text-[10px] px-2.5 py-0.5'>Current plan</Badge>
+                    <div className='absolute -top-3 left-1/2 -translate-x-1/2 z-10'>
+                      <Badge className='bg-primary text-primary-foreground text-[10px] px-2.5 py-0.5'>
+                        Current plan
+                      </Badge>
                     </div>
                   )}
                   {isPopular && !isCurrent && (
-                    <div className='absolute -top-3 left-1/2 -translate-x-1/2'>
+                    <div className='absolute -top-3 left-1/2 -translate-x-1/2 z-10'>
                       <Badge variant='secondary' className='text-[10px] px-2.5 py-0.5'>
                         Most popular
                       </Badge>
                     </div>
                   )}
 
-                  <CardHeader className='pb-3'>
-                    <CardTitle className='text-lg'>{plan.name}</CardTitle>
-                    {details && <p className='text-xs text-muted-foreground leading-relaxed'>{details.tagline}</p>}
-                  </CardHeader>
+                  <Card
+                    className={cn(
+                      'flex flex-col h-full transition-shadow',
+                      isCurrent && 'border-primary shadow-md shadow-primary/10',
+                      isPopular && !isCurrent && 'border-muted-foreground/40',
+                    )}
+                  >
+                    {/* Plan name + tagline */}
+                    <CardHeader className='pb-3'>
+                      <CardTitle className='text-lg'>{plan.name}</CardTitle>
+                      {details && (
+                        <p className='text-xs text-muted-foreground leading-relaxed min-h-[2.5rem]'>{details.tagline}</p>
+                      )}
+                    </CardHeader>
 
-                  <CardContent className='flex-1 space-y-4'>
-                    <div>
-                      <p className='text-3xl font-bold tracking-tight tabular-nums'>{getDisplayPrice(plan, billingMethod)}</p>
-                      <p className='text-xs text-muted-foreground mt-0.5'>
-                        {billingMethod === 'annual' && plan.monthlyPrice > 0
-                          ? getAnnualTotal(plan)
-                          : billingMethod === 'credits'
-                            ? '1 credit = 1 transaction'
+                    <CardContent className='flex-1 flex flex-col gap-4'>
+                      {/* Price — fixed height so all cards align */}
+                      <div className='min-h-[3.5rem]'>
+                        <p className='text-3xl font-bold tracking-tight tabular-nums'>
+                          {getDisplayPrice(plan, interval)}
+                          {plan.monthlyPrice > 0 && (
+                            <span className='text-sm font-normal text-muted-foreground'>/mo</span>
+                          )}
+                        </p>
+                        <p className='text-xs text-muted-foreground mt-0.5'>
+                          {interval === 'annual' && plan.monthlyPrice > 0
+                            ? getAnnualSubtext(plan)
                             : plan.monthlyPrice > 0
-                              ? 'per month, billed monthly'
+                              ? 'billed monthly'
                               : '\u00a0'}
-                      </p>
-                    </div>
+                        </p>
+                      </div>
 
-                    {details && (
-                      <ul className='space-y-1.5'>
-                        {details.features.map(f => (
-                          <li key={f.text} className='flex items-start gap-2 text-xs'>
-                            <CheckIcon className='h-3.5 w-3.5 text-primary shrink-0 mt-px' />
-                            <span className='leading-snug text-muted-foreground'>{f.text}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </CardContent>
+                      <Separator />
 
-                  <CardFooter className='pt-4'>
-                    {isCurrent ? (
-                      <Button className='w-full' variant='outline' disabled>
-                        Current plan
-                      </Button>
-                    ) : (
-                      <Button className='w-full' variant={isPopular ? 'default' : 'outline'} disabled={isPending} onClick={() => handleSelectPlan(plan)}>
-                        {isProcessing ? 'Processing…' : hasActiveSubscription ? `Switch to ${plan.name}` : `Get ${plan.name}`}
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
+                      {/* Features */}
+                      {details && (
+                        <ul className='flex-1 space-y-1.5'>
+                          {details.features.map(f => (
+                            <li key={f} className='flex items-start gap-2 text-xs'>
+                              <CheckIcon className='h-3.5 w-3.5 text-primary shrink-0 mt-px' />
+                              <span className='leading-snug text-muted-foreground'>{f}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </CardContent>
+
+                    <CardFooter className='pt-4'>
+                      {isCurrent ? (
+                        <Button className='w-full' variant='outline' disabled>
+                          Current plan
+                        </Button>
+                      ) : hasPending ? (
+                        <Button className='w-full' variant='outline' disabled>
+                          <ClockIcon className='mr-2 h-3.5 w-3.5' />
+                          Payment pending review
+                        </Button>
+                      ) : (
+                        <Button
+                          className='w-full'
+                          variant={isPopular ? 'default' : 'outline'}
+                          onClick={() => handleSelect(plan)}
+                        >
+                          {hasActiveSub ? `Switch to ${plan.name}` : `Get ${plan.name}`}
+                          <ArrowRightIcon className='ml-2 h-3.5 w-3.5' />
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
+                </div>
               )
             })}
         </div>
@@ -649,14 +345,23 @@ function PlansPage() {
             </div>
             <div>
               <p className='text-sm font-medium'>Need something custom?</p>
-              <p className='text-xs text-muted-foreground'>Build your own plan — pick only the features you need and pay accordingly.</p>
+              <p className='text-xs text-muted-foreground'>
+                Build your own plan — pick only the features you need.
+              </p>
             </div>
           </div>
-          <Button variant='ghost' size='sm' asChild className='shrink-0 gap-1'>
-            <Link to='/business/subscription/pricing'>
-              Build custom plan <ArrowRightIcon className='h-3.5 w-3.5' />
-            </Link>
-          </Button>
+          {hasPending ? (
+            <Button variant='ghost' size='sm' disabled className='shrink-0 gap-1'>
+              <ClockIcon className='h-3.5 w-3.5' />
+              Payment pending
+            </Button>
+          ) : (
+            <Button variant='ghost' size='sm' asChild className='shrink-0 gap-1'>
+              <Link to='/business/subscription/pricing'>
+                Build custom plan <ArrowRightIcon className='h-3.5 w-3.5' />
+              </Link>
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -669,7 +374,9 @@ function PlansPage() {
               </div>
               <div>
                 <p className='text-sm font-medium'>Self-host with a perpetual license</p>
-                <p className='text-xs text-muted-foreground'>Own the software outright. Full Enterprise features, unlimited transactions, one-time fee.</p>
+                <p className='text-xs text-muted-foreground'>
+                  Own the software outright. Full Enterprise features, unlimited transactions, one-time fee.
+                </p>
               </div>
             </div>
             <Button variant='ghost' size='sm' asChild className='shrink-0 gap-1'>
@@ -681,40 +388,10 @@ function PlansPage() {
         </Card>
       )}
 
-      {billingMethod === 'annual' && !hasActiveSubscription && (
+      {interval === 'annual' && (
         <p className='text-xs text-muted-foreground text-center'>
-          Annual billing locks in 20% savings. Billed as a single upfront payment. Cancel before renewal for a prorated refund.
+          Annual billing locks in savings. Billed as a single upfront payment. Cancel before renewal for a prorated refund.
         </p>
-      )}
-
-      {/* Change plan dialog — only shown for existing subscribers */}
-      {selectingPlan && (
-        <ChangePlanDialog
-          open={!!selectingPlan}
-          onOpenChange={v => {
-            if (!v) setSelectingPlan(null)
-          }}
-          plan={selectingPlan}
-          billingMethod={billingMethod}
-          currentBillingModel={activeBillingModel}
-          creditBalance={creditBalance}
-          isPending={isPending}
-          onConfirm={handleConfirmChange}
-        />
-      )}
-
-      {/* Provider selection dialog — only shown for new subscribers */}
-      {selectingProvider && (
-        <ProviderSelectionDialog
-          open={!!selectingProvider}
-          onOpenChange={v => {
-            if (!v) setSelectingProvider(null)
-          }}
-          plan={selectingProvider}
-          billingMethod={billingMethod}
-          onConfirm={handleProviderSelect}
-          isPending={isPending}
-        />
       )}
     </div>
   )

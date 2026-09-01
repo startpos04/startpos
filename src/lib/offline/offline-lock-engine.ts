@@ -12,7 +12,7 @@
 
 import type { SequenceType } from 'prisma/generated/prisma/enums'
 import { sequenceCounterCollection } from '@/db/collections'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { DeviceIdentifier } from '../device/device-identifier'
 
 export interface OfflineLockStatus {

@@ -1,7 +1,7 @@
 import { OrderStatus, OrderType, SequenceType } from 'prisma/generated/prisma/enums'
 import { auditLogCollection, orderCollection, orderItemAddonCollection, orderItemCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { AuditAction, AuditTargetType } from '../audit/types'
 import { sequenceAPI } from '../prisma-client/sequence-api'
 import type { CreateSaleInput } from './create-pos-transaction'

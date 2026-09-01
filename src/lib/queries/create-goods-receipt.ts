@@ -26,7 +26,7 @@
 import { GoodsReceiptStatus, PurchaseStatus } from 'prisma/generated/prisma/enums'
 import { goodsReceiptCollection, goodsReceiptItemCollection, purchaseCollection, purchaseItemCollection } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export interface CreateGoodsReceiptInput {
   /** The purchase (PO) this receipt is for. Must be in APPROVED status. */

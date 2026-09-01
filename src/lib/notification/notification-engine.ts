@@ -10,7 +10,7 @@ import {
 import { dbTransaction } from '@/db/local-db-transaction'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import { safeJsonStringify } from '@/lib/json-utils'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { type NotificationMetadata, NotificationMetadataSchema } from './notification-types'
 import type { ThresholdSeverity, UsageNotificationResult } from './usage-notification-types'
 

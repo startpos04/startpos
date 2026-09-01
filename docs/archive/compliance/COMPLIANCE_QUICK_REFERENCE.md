@@ -12,7 +12,7 @@
 pnpm prisma:generate
 
 # Generate schema for Philippines (CI mode)
-DEPLOYMENT_COUNTRY=PH SCHEMA_AUTO_CONFIRM=yes pnpm exec tsx prisma/scripts/generate-schema.ts
+DEPLOYMENT_COUNTRY=PH SCHEMA_AUTO_CONFIRM=yes pnpm exec tsx prisma/models/generate-schema.ts
 
 # Validate generated schema
 pnpm exec prisma validate
@@ -31,18 +31,19 @@ pnpm exec prisma studio
 ```
 web/prisma/
 ├── schema.prisma          # ❌ GENERATED - Don't edit!
-├── base/                  # ✅ Base models (all countries)
-│   ├── _generator.prisma
-│   ├── _enums.prisma
-│   ├── core.prisma        # Business, Branch
-│   ├── transaction.prisma # Transaction
-│   └── ...                # 17 total files
-├── countries/             # ✅ Country-specific fields
-│   ├── philippines.prisma # PH compliance
-│   ├── singapore.prisma   # SG compliance (unused)
-│   └── usa.prisma         # US compliance (unused)
-└── scripts/
-    └── generate-schema.ts # Schema generator
+├── models/                # ✅ Schema source files
+│   ├── base/              # ✅ Base models (all countries)
+│   │   ├── _generator.prisma
+│   │   ├── _enums.prisma
+│   │   ├── core.prisma        # Business, Branch
+│   │   ├── transaction.prisma # Transaction
+│   │   └── ...                # 17 total files
+│   ├── countries/         # ✅ Country-specific fields
+│   │   ├── philippines.prisma # PH compliance
+│   │   ├── singapore.prisma   # SG compliance (unused)
+│   │   └── usa.prisma         # US compliance (unused)
+│   ├── generate-schema.ts # Schema generator
+│   └── ensure-database.sh # Docker DB init script
 ```
 
 ---
@@ -382,7 +383,7 @@ env:
 
 When adding a new Philippines compliance field:
 
-- [ ] Add field to `prisma/countries/philippines.prisma`
+- [ ] Add field to `prisma/models/countries/philippines.prisma`
 - [ ] Regenerate schema: `DEPLOYMENT_COUNTRY=PH pnpm prisma:generate`
 - [ ] Validate: `pnpm exec prisma validate`
 - [ ] Update code to populate the field
@@ -398,9 +399,9 @@ When adding a new Philippines compliance field:
 ## Need Help?
 
 - **Full Documentation:** `docs/COMPLIANCE_SCHEMA_ARCHITECTURE.md`
-- **Schema Generator:** `prisma/scripts/generate-schema.ts`
-- **Country Files:** `prisma/countries/philippines.prisma`
-- **Base Models:** `prisma/base/transaction.prisma`, `prisma/base/core.prisma`
+- **Schema Generator:** `prisma/models/generate-schema.ts`
+- **Country Files:** `prisma/models/countries/philippines.prisma`
+- **Base Models:** `prisma/models/base/transaction.prisma`, `prisma/models/base/core.prisma`
 
 ---
 

@@ -1,0 +1,325 @@
+// =============================================================================
+// CORE MODELS - Business, Branch, Membership, User, AuditLog
+// =============================================================================
+
+// --- MULTI TENANCY ---
+model Business {
+  id           String       @id @default(cuid())
+  name         String
+  slug         String       @unique
+  logo         String?
+  // DEPRECATED (Phase 6 — ADR-004): businessType was used by the v1 onboarding
+  // path (BUSINESS_TYPE_CONFIGS). The v2 adaptive survey path is now the only
+  // registration path. This column is kept for query compatibility and will be
+  // dropped in a future migration after all consumers are confirmed to use
+  // onboardingProfile / currentProfile instead. Do not use for new logic.
+  businessType BusinessType
+  
+  // Country & Compliance (Phase 2)
+  countryCode  String  @default("PH") // Derived from LOCALE configuration
+  complianceId String? @unique        // Polymorphic ID (PH_xxx, SG_xxx, US_xxx)
+
+  // Registration Status Tracking (Compliance UX Improvement)
+  registrationStatus      BusinessRegistrationStatus @default(UNREGISTERED)
+  registrationCompletedAt DateTime? // Timestamp when status changed to REGISTERED
+
+  // COUNTRY_FIELDS_HERE
+
+  members              Membership[]
+  branches             Branch[]
+  products             Product[]
+  categories           Category[]
+  units                Unit[]
+  customers            Customer[]
+  productComponents    ProductComponent[]
+  productUnits         ProductUnit[]
+  purchaseItems        PurchaseItem[]
+  inventory            Inventory[]
+  inventoryMovements   InventoryMovement[]
+  transactions         Transaction[]
+  orders               Order[]
+  orderItems           OrderItem[]
+  orderItemAddons      OrderItemAddon[]
+  vendorSessions       VendorSession[]
+  payments             Payment[]
+  variants             ProductVariant[]
+  notifications        Notification[]
+  sequenceCounters     SequenceCounter[]
+  sequenceAudits       SequenceAudit[]
+  purchases            Purchase[]
+  operationalTasks     OperationalTask[]
+  configurations       Configuration[] // Multi-scope configuration system
+  locations            Location[]
+  suppliers            Supplier[]
+  entitlementOverrides EntitlementOverride[] // Per-business feature exceptions
+  goodsReceipts        GoodsReceipt[]
+  goodsReceiptItems    GoodsReceiptItem[]
+  subscription         BusinessSubscription? // F1: Active subscription record (nullable = no plan assigned yet)
+
+  // Production Module relations
+  productionOrders     ProductionOrder[]
+  productionOrderItems ProductionOrderItem[]
+
+  usageCounters      UsageCounter[]
+  billingInvoices    BillingInvoice[]
+  creditLedger       CreditLedger[]
+  subscriptionAddons BusinessSubscriptionAddon[]
+
+  // ---------------------------------------------------------------------------
+  // PAYMENT ADAPTER ARCHITECTURE - Provider tracking
+  // ---------------------------------------------------------------------------
+  
+  // Provider customer ID (Stripe: cus_xxx, Manual: businessId, PayMongo: customer_xxx)
+  externalCustomerId String?
+  
+  // User's preferred payment provider for billing/subscriptions
+  preferredPaymentProvider PaymentProvider?
+  
+  // Billing payment relations
+  billingPayments      BillingPayment[]
+  
+  // Payment notification relations
+  paymentNotifications PaymentNotification[]
+
+  // ---------------------------------------------------------------------------
+  // BOS (Business Operating System) — Phase 1 onboarding fields
+  // All columns are nullable and additive — existing businesses are unaffected.
+  // ---------------------------------------------------------------------------
+
+  // Survey answers persisted as JSON for analytics and shadow-running comparison
+  onboardingSurveyAnswers Json?
+  // Profile assigned at registration (never changes — for analytics comparison)
+  onboardingProfile       String?
+  // ISO timestamp of when the onboarding survey was completed
+  onboardingCompletedAt   DateTime?
+  // A/B test variant ID (for future survey experiment tracking)
+  onboardingVariantId     String?
+  // Current operational profile (updated on every recalculation in Phase 2+)
+  currentProfile          String?
+
+  // Living characteristics (Phase 2+) — JSON blob of SourcedValue<T> fields
+  livingCharacteristics     Json?
+  // Monotonically increasing version counter; bumped on each recalculation
+  characteristicsVersion    Int       @default(0)
+  // Timestamp of the most recent characteristics recalculation
+  characteristicsComputedAt DateTime?
+  // Business health stage (Phase 4+)
+  healthStage               String?
+  // Timestamp of the last event that triggered a recalculation
+  lastCharacteristicsEvent  DateTime?
+  // IDs of capabilities in the DEFERRED state waiting for progressive activation
+  deferredCapabilities      String[]  @default([])
+
+  // Relations added in Phase 1
+  capabilityStates   BusinessCapabilityState[]
+  eventLog           BusinessEventLog[]
+  recalculationQueue CharacteristicsRecalculationQueue[]
+
+  // Relations added in Phase 2
+  usageSummaries           BusinessUsageSummary[]
+  auditLogs                AuditLog[]
+  capabilityConfigurations CapabilityConfiguration[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt])
+  @@map("businesses")
+}
+
+model Branch {
+  id      String  @id @default(cuid())
+  name    String
+  address String?
+  country String  @default("PH")
+
+  // COUNTRY_FIELDS_HERE
+
+  serialNumber String // SN (printed receipts requirement)
+  minInvoiceNo Int // for OR range tracking
+  maxInvoiceNo Int
+
+  branchCode String @default("00001") // The "00001" or "000" suffix for the TIN
+
+  // ---------------------------------------------------------------------------
+  // PHASE 2: Offline Mode Restriction
+  // ---------------------------------------------------------------------------
+  // offlineTerminalId designates which user is allowed to perform checkouts
+  // while this branch is offline. Only one user can be designated at a time.
+  //
+  // - null = no offline terminal designated (offline checkout blocked)
+  // - userId = only this user can checkout offline for this branch
+  //
+  // Admin can assign this via Settings → Branch → Offline Mode
+  // ---------------------------------------------------------------------------
+  offlineTerminalId String? // User ID of designated offline terminal (nullable)
+
+  // ---------------------------------------------------------------------------
+  // Branch Billing — Transaction Quota Limit
+  // ---------------------------------------------------------------------------
+  // txQuotaLimit sets the maximum transactions this branch can process per
+  // billing period. Set by business owner on /business/branches page.
+  //
+  // - null = no limit configured (unlimited within business quota)
+  // - When limit is reached, branch can purchase credits for overflow capacity
+  //
+  // Usage:
+  // - Business owner allocates transaction limits per branch
+  // - Branch managers see their limit and usage on /billing dashboard
+  // - When branch hits limit, they can purchase credits to continue
+  // ---------------------------------------------------------------------------
+  txQuotaLimit Int? // Branch transaction limit per month (nullable)
+
+  members            Membership[]
+  inventory          Inventory[]
+  transactions       Transaction[]
+  orders             Order[] // Added for Branch-level orders
+  movements          InventoryMovement[]  @relation("SourceBranch")
+  receivedTransfers  InventoryMovement[]  @relation("DestinationBranch")
+  purchases          Purchase[]
+  vendorSessions     VendorSession[]
+  purchaseItems      PurchaseItem[]
+  orderItems         OrderItem[]
+  orderItemAddons    OrderItemAddon[]
+  payments           Payment[]
+  notifications      Notification[]
+  sequenceCounters   SequenceCounter[]
+  sequenceAudits     SequenceAudit[]
+  operationalTasks   OperationalTask[]
+  configurations     Configuration[] // Multi-scope configuration system
+  locations          Location[]
+  goodsReceipts      GoodsReceipt[]
+  goodsReceiptItems  GoodsReceiptItem[]
+
+  // Production Module relations
+  productionOrders ProductionOrder[]
+
+  // Branch-level capability toggles (Phase 2 - Entitlements)
+  capabilityConfigs        BranchCapabilityConfig[]
+  capabilityConfigurations CapabilityConfiguration[]
+  
+  // Branch-level accounting (Phase 3 - Per-branch P&L)
+  usageCounters UsageCounter[]
+  creditLedger  CreditLedger[]
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt])
+  @@index([offlineTerminalId]) // Index for quick lookups by designated terminal
+  @@map("branches")
+}
+
+model Membership {
+  id   String @id @default(cuid())
+  role Role   @default(CASHIER)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String?
+  branch     Branch?  @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([userId, businessId])
+  @@index([deletedAt])
+  @@map("memberships")
+}
+
+model User {
+  id            String  @id @default(cuid())
+  name          String
+  email         String  @unique
+  emailVerified Boolean
+  image         String?
+  contactNumber String?
+  role          Role    @default(CASHIER)
+
+  sessions           Session[]
+  accounts           Account[]
+  processedSales     Transaction[]       @relation("CashierRelation")
+  performedServices  Transaction[]       @relation("ServiceProvider")
+  inventoryMovements InventoryMovement[]
+  memberships        Membership[]
+  vendorSessions     VendorSession[]
+  notifications      Notification[]
+  createdTasks       OperationalTask[]   @relation("TaskCreator")
+  approvedTasks      OperationalTask[]   @relation("TaskApprover")
+  fulfilledTasks     OperationalTask[]   @relation("TaskClerk")
+  reviewedTasks      OperationalTask[]   @relation("TaskReviewer")
+  canceledTasks      OperationalTask[]   @relation("TaskCanceler")
+  receivedGoods      GoodsReceipt[]      @relation("GoodsReceiptReceiver")
+  configurations     Configuration[] // Multi-scope configuration system
+
+  // Production Module relations
+  productionOrders ProductionOrder[] @relation("ProductionProducer")
+
+  // Legal consent recording — Phase 0
+  // Stores the exact version and timestamp when the user accepted the ToS/Privacy Policy.
+  // Required for enforcement and audit under RA 10173 and standard SaaS contract law.
+  termsAcceptedAt   DateTime?
+  termsVersion      String? // e.g. "2026-08-01"
+  privacyAcceptedAt DateTime?
+  privacyVersion    String? // e.g. "2026-08-01"
+
+  // Authorization System — Phase 0
+  // User-specific permission grants and revokes
+  userPermissions    UserPermission[]
+  permissionsGranted UserPermission[] @relation("PermissionGrantor")
+
+  // Sequence generation audit trail
+  sequenceAudits SequenceAudit[]
+  
+  // Billing payment approvals
+  approvedPayments BillingPayment[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+  goodsReceipts GoodsReceipt[]
+
+  @@index([deletedAt])
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// AuditLog — immutable append-only record of destructive and privilege-
+// elevating admin actions. Phase 1 of the Legal Compliance Master Plan.
+//
+// Design decisions:
+//   - businessId is the primary partition key (all tenant queries scoped to it).
+//   - actorId is the userId who performed the action (not cascade-deleted on
+//     user removal — intentionally kept for forensic purposes).
+//   - before/after are nullable JSON snapshots. Sensitive fields (passwords,
+//     tokens) are stripped by AuditEngine.stripSensitive() before storage.
+//   - No onDelete: Cascade — audit records must outlive the entities they
+//     describe. BIR 10-year retention applies to financial audit rows.
+// ---------------------------------------------------------------------------
+model AuditLog {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  actorId    String
+  action     String // AuditAction constant — e.g. "EMPLOYEE_DISABLED"
+  targetType String // AuditTargetType constant — e.g. "User"
+  targetId   String
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([businessId, createdAt])
+  @@index([actorId])
+  @@index([action, businessId])
+  @@map("audit_logs")
+}

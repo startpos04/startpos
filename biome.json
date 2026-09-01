@@ -10,7 +10,7 @@
       "!src/components/ui",
       "!!public",
       "!!coverage",
-      "!!test-results",
+      "!!e2e-results",
       "!!cspell.json",
       "!!src/routeTree.gen.ts",
       "!!**/*.test.*",

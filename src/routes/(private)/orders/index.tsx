@@ -3,8 +3,9 @@ import { Ban, CheckCheck, ChevronDown, Clock, CreditCard, DollarSign, Play, Squa
 import { OrderStatus } from 'prisma/generated/prisma/browser'
 import { toast } from 'sonner'
 import { GridView } from '@/components/custom/data-view/grid-view'
+import { AlertPrompt } from '@/components/custom/prompt/alert-prompt'
 import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
-import { useSubscriptionGate } from '@/components/feature-disabled'
+import { useSubscriptionGate } from '@/components/custom/guards/feature-disabled'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,7 +26,7 @@ import MountManager, { type MountProps } from '@/lib/mount-manager'
 import { createPosRefund } from '@/lib/queries/create-pos-refund'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
 import { cn } from '@/lib/utils'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { ActiveOrdersHeader } from './-components/header'
 
 const statusVariants: Record<OrderStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -207,7 +208,11 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
                 })
 
                 if (result.error) {
-                  toast.error('Failed to process refund. Please try again.')
+                  MountManager.show(AlertPrompt, {
+                    title: 'Refund Failed',
+                    description: result.error.message || 'Unable to process refund. Please try again.',
+                    btnText: 'OK'
+                  })
                   return false
                 }
 

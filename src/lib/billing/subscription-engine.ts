@@ -157,10 +157,18 @@ export const SubscriptionEngine = {
   // evaluateGracePeriodExpiry
   // Returns a transition record if the grace period has ended and the
   // subscription should move from GRACE_PERIOD → EXPIRED.
+  // 
+  // Updated for advance payments: If subscription has advance credits that
+  // cover the current period, skip grace period expiry.
   // -------------------------------------------------------------------------
   evaluateGracePeriodExpiry(snapshot: SubscriptionSnapshot, now: Date): OperationResult<StatusTransitionRecord | null> {
     if (snapshot.status !== SubscriptionStatus.GRACE_PERIOD) {
       return opOk(null)
+    }
+
+    // Check if advance payment credits cover this period
+    if (SubscriptionEngine.hasActiveAdvanceCredits(snapshot, now)) {
+      return opOk(null) // Subscription covered by advance payment, don't expire
     }
 
     if (!SubscriptionPolicy.isGracePeriodEnded(snapshot.gracePeriodEndsAt, now)) {
@@ -253,5 +261,102 @@ export const SubscriptionEngine = {
   // -------------------------------------------------------------------------
   getValidNextStates(fromStatus: SubscriptionStatus): SubscriptionStatus[] {
     return [...VALID_TRANSITIONS[fromStatus]]
+  },
+
+  // -------------------------------------------------------------------------
+  // NEW: Advance Payment Helpers
+  // -------------------------------------------------------------------------
+
+  /**
+   * Check if subscription has active advance payment credits
+   * that cover the current billing period
+   */
+  hasActiveAdvanceCredits(snapshot: SubscriptionSnapshot, now: Date): boolean {
+    // No credits available
+    if (snapshot.advancePaymentCredits <= 0) {
+      return false
+    }
+
+    // Credits exist but expired
+    if (!snapshot.advancePaymentExpiresAt) {
+      return false
+    }
+
+    // Check if current date is within advance payment period
+    return now < snapshot.advancePaymentExpiresAt
+  },
+
+  /**
+   * Determine if a billing period should be skipped due to advance credits
+   * 
+   * Called by billing jobs and webhook handlers to check if a charge
+   * should be processed
+   */
+  shouldSkipBillingPeriod(
+    snapshot: SubscriptionSnapshot,
+    periodStart: Date
+  ): boolean {
+    if (snapshot.advancePaymentCredits <= 0) {
+      return false
+    }
+
+    if (!snapshot.advancePaymentExpiresAt) {
+      return false
+    }
+
+    // Skip billing if period starts before advance payment expires
+    return periodStart < snapshot.advancePaymentExpiresAt
+  },
+
+  /**
+   * Calculate effective expiration date considering advance credits
+   * 
+   * Used for UI display and notification scheduling
+   */
+  getEffectiveExpirationDate(snapshot: SubscriptionSnapshot): Date | null {
+    // If advance credits exist and haven't expired, use that date
+    if (snapshot.advancePaymentCredits > 0 && snapshot.advancePaymentExpiresAt) {
+      return snapshot.advancePaymentExpiresAt
+    }
+
+    // Otherwise use current period end
+    return snapshot.currentPeriodEnd
+  },
+
+  /**
+   * Evaluate if advance credits are about to expire
+   * 
+   * Returns notification record if credits expire soon
+   * Called by notification scheduling job
+   */
+  evaluateAdvancePaymentExpiring(
+    snapshot: SubscriptionSnapshot,
+    thresholds: LifecycleThresholds,
+    now: Date
+  ): {
+    shouldNotify: boolean
+    daysRemaining: number
+    expiresAt: Date | null
+  } {
+    if (snapshot.advancePaymentCredits <= 0 || !snapshot.advancePaymentExpiresAt) {
+      return {
+        shouldNotify: false,
+        daysRemaining: 0,
+        expiresAt: null,
+      }
+    }
+
+    const expiresAt = snapshot.advancePaymentExpiresAt
+    const msUntilExpiry = expiresAt.getTime() - now.getTime()
+    const daysRemaining = Math.ceil(msUntilExpiry / (1000 * 60 * 60 * 24))
+
+    // Notify if expiring within notification lead time
+    const shouldNotify = daysRemaining > 0 && daysRemaining <= thresholds.gracePeriodDays
+
+    return {
+      shouldNotify,
+      daysRemaining,
+      expiresAt,
+    }
   },
 }

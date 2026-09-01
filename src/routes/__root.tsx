@@ -8,7 +8,7 @@ import { getAuthUser } from '@/lib/better-auth/auth-server' // Import your serve
 import { APP_NAME } from '@/lib/constants'
 import MountManager from '@/lib/mount-manager'
 import type { MyRouterContext } from '@/router'
-import { setUser } from '@/store/auth-store'
+import { setUser } from '@/lib/better-auth/auth-store'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({

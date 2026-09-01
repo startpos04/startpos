@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import Tab from '@/components/custom/tab'
-import { RequireCapability } from '@/components/require-capability'
+import { RequireCapability } from '@/components/custom/guards/require-capability'
 import { useCapability } from '@/hooks/use-capability'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { CategoriesPage } from './-categories'

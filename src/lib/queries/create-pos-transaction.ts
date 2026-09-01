@@ -17,7 +17,7 @@ import {
 } from '@/db/collections'
 import { dbTransaction } from '@/db/local-db-transaction'
 import type { PaymentLine } from '@/routes/(private)/pos/-components/payment-dialog'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { AuditAction, AuditTargetType } from '../audit/types'
 import { BranchValidationEngine } from '../billing/branch-validation-engine'
 import { CreditEngine } from '../billing/credit-engine'

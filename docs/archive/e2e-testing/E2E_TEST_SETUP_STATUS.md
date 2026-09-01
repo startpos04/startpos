@@ -125,5 +125,5 @@ pnpm test:e2e billing-success-addons.spec.ts --project=admin
 
 - Use `--headed` to see browser: `pnpm test:e2e:headed`
 - Use `--debug` to pause: `pnpm test:e2e --debug`  
-- Screenshots on failure go to `test-results/`
+- Screenshots on failure go to `e2e-results/`
 - Auth state files in `__tests__/e2e/fixtures/.auth/`

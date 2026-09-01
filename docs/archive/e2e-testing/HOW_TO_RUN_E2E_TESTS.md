@@ -108,7 +108,7 @@ pnpm test:e2e --debug
 ```
 
 ### View Screenshots:
-Failed tests save screenshots to `test-results/`
+Failed tests save screenshots to `e2e-results/`
 
 ### Check Auth State:
 ```powershell
@@ -122,7 +122,7 @@ Should contain session token cookie.
 - **Keep server running** between test runs for faster execution
 - **Use Playwright UI** (`pnpm test:e2e:ui`) for interactive debugging
 - **Run specific tests** to iterate faster when adding test IDs
-- **Check screenshots** in `test-results/` when tests fail
+- **Check screenshots** in `e2e-results/` when tests fail
 
 ## 🔧 Alternative: Auto-Start (Slower)
 

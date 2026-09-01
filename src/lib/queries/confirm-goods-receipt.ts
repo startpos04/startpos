@@ -32,7 +32,7 @@ import {
 import { dbTransaction } from '@/db/local-db-transaction'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import { receiptWorkflow } from '@/lib/server-fn/receipt-workflow'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const confirmGoodsReceipt = async (receiptId: string) => {
   const { user } = authStore.state

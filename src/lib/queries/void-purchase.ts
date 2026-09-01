@@ -3,7 +3,7 @@ import { inventoryCollection, inventoryMovementCollection, purchaseCollection, p
 import { dbTransaction } from '@/db/local-db-transaction'
 import { getInventoryMode } from '@/lib/inventory'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 /**
  * Voids a purchase order — mirrors the refund pattern from createPosRefund.

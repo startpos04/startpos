@@ -5,7 +5,7 @@ import { AppWrapper } from '@/components/custom/app-wrapper'
 import { LegalFooter } from '@/components/custom/legal-footer'
 import { localAuthCollection } from '@/db/local-auth'
 import { useIsOnline } from '@/hooks/use-is-online'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(public)')({
   component: () => (

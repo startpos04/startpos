@@ -26,7 +26,7 @@ import { Separator } from '@/components/ui/separator'
 import dayjs from '@/lib/dayjs'
 import MountManager from '@/lib/mount-manager'
 import { requestAccountDeletion } from '@/lib/server-fn/request-account-deletion'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/account/')({
   component: AccountPage,
@@ -81,16 +81,14 @@ function AccountPage() {
   }
 
   return (
-    <div className='space-y-6 flex flex-col grow h-1'>
+    <div className='flex flex-col gap-6 px-4 pb-6 max-w-4xl'>
       {/* Header */}
-      <div className='max-w-4xl w-full mx-auto px-4'>
-        <h1 className='text-3xl font-bold tracking-tight'>My Account</h1>
-        <p className='text-muted-foreground'>Manage your profile, legal consent, and account settings.</p>
+      <div>
+        <h1 className='text-2xl font-bold tracking-tight'>My Account</h1>
+        <p className='text-muted-foreground text-sm mt-0.5'>Manage your profile, legal consent, and account settings.</p>
       </div>
 
-      {/* Content */}
-      <div className='max-w-4xl w-full mx-auto px-4 space-y-6'>
-        {/* Profile info */}
+      {/* Profile info */}
         <Card>
           <CardHeader className='pb-2 pt-3 px-4'>
             <CardTitle className='text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5'>
@@ -207,7 +205,6 @@ function AccountPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
     </div>
   )
 }

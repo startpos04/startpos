@@ -143,7 +143,7 @@ function InvoicesPage() {
   const hasPrev = page > 1
 
   return (
-    <div className='flex flex-col gap-6 px-4 py-6 max-w-4xl'>
+    <div className='flex flex-col gap-6 px-4 pb-6 max-w-4xl'>
       {/* Header */}
       <div className='flex items-center gap-3'>
         <Button variant='ghost' size='icon' asChild>
@@ -152,7 +152,7 @@ function InvoicesPage() {
           </Link>
         </Button>
         <div>
-          <h1 className='text-3xl font-bold tracking-tight text-foreground'>Invoices</h1>
+          <h1 className='text-2xl font-bold tracking-tight text-foreground'>Invoices</h1>
           <p className='text-muted-foreground text-sm mt-0.5'>Billing history for your subscription.</p>
         </div>
       </div>

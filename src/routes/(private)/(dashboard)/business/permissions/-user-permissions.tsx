@@ -7,12 +7,12 @@
 
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Crown, Plus, Shield, ShieldCheck, ShieldX, User } from 'lucide-react'
-import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import MountManager from '@/lib/mount-manager'
 import { fetchUsersWithPermissions, type UserWithPermissions } from '@/lib/queries/permission-management'
 import { PermissionAssignmentDialog } from './-permission-assignment-dialog'
 
@@ -22,12 +22,10 @@ export function UserPermissionsTab() {
     queryFn: () => fetchUsersWithPermissions(),
   })
 
-  const [selectedUser, setSelectedUser] = useState<UserWithPermissions | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
-
   const handleManagePermissions = (user: UserWithPermissions) => {
-    setSelectedUser(user)
-    setDialogOpen(true)
+    MountManager.show(PermissionAssignmentDialog, {
+      user,
+    })
   }
 
   return (
@@ -57,9 +55,6 @@ export function UserPermissionsTab() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Permission Assignment Dialog */}
-      {selectedUser && <PermissionAssignmentDialog user={selectedUser} open={dialogOpen} onOpenChange={setDialogOpen} />}
     </div>
   )
 }

@@ -3,10 +3,16 @@
  * 
  * Server function for admin review and approval/rejection of manual payments.
  * 
+ * Enhanced for advance payments:
+ * - Applies advance payment credits to subscription
+ * - Triggers provider synchronization (Stripe, PayMongo)
+ * - Sends approval/rejection notifications
+ * - Schedules advance payment expiration warnings
+ * - Records comprehensive audit trail
+ * 
  * Follows project patterns:
  * - Uses authMiddleware and permission middleware
  * - Activates subscription on approval using SubscriptionEngine
- * - Creates audit trail of approval decisions
  * - Handles payment status transitions atomically
  */
 
@@ -16,8 +22,8 @@ import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 import { requirePermission } from '@/lib/better-auth/permission-middleware'
 import { prisma } from '@/lib/prisma-client'
 import { Permissions } from '@/lib/authorization/permission-keys'
-// We'll need to import SubscriptionEngine when implementing subscription activation
-// import { SubscriptionEngine } from '@/lib/billing/subscription-engine'
+import { advancePaymentService } from '@/lib/billing/advance-payment-service'
+import { paymentNotificationService } from '@/lib/services/payment-notification-service'
 
 const reviewManualPaymentSchema = z.object({
   paymentId: z.string(),
@@ -62,10 +68,10 @@ export const reviewManualPayment = createServerFn({ method: 'POST' })
       }
 
       if (data.approved) {
-        // APPROVE: Update payment status and activate subscription
-        await prisma.$transaction(async (tx) => {
+        // APPROVE: Update payment status and apply advance payment
+        const result = await prisma.$transaction(async (tx) => {
           // Update payment status
-          await tx.billingPayment.update({
+          const updatedPayment = await tx.billingPayment.update({
             where: { id: payment.id },
             data: {
               status: 'SUCCEEDED',
@@ -74,37 +80,66 @@ export const reviewManualPayment = createServerFn({ method: 'POST' })
             },
           })
 
-          // TODO: Activate subscription using SubscriptionEngine
-          // This would involve:
-          // 1. Finding the target plan from metadata
-          // 2. Creating or updating BusinessSubscription
-          // 3. Recording subscription status history
-          // 4. Applying entitlements
-          
-          // For now, we'll add a simple comment that this needs to be implemented
-          // when we have access to the SubscriptionEngine
-          
-          // Example of what this would look like:
-          /*
-          const planId = payment.providerMetadata.planId
-          const subscription = payment.business.subscription
-          
-          if (subscription) {
-            const transition = SubscriptionEngine.buildTransitionRecord(
-              subscription,
-              SubscriptionStatus.ACTIVE,
-              `Manual payment approved by ${user.name}`,
-              user.id
-            )
-            
-            await SubscriptionEngine.applyTransition(tx, subscription, transition)
+          // Apply advance payment credits and trigger provider sync
+          const advanceResult = await advancePaymentService.applyAdvancePayment(
+            payment.id,
+            payment.businessId,
+            tx
+          )
+
+          if (!advanceResult.success) {
+            throw new Error(`Failed to apply advance payment: ${advanceResult.error}`)
           }
-          */
+
+          return {
+            payment: updatedPayment,
+            advanceResult: advanceResult.data,
+          }
         })
+
+        // Send approval notification (outside transaction)
+        try {
+          await paymentNotificationService.sendApprovalNotification(payment.id)
+        } catch (notifyError) {
+          console.error('[reviewManualPayment] Failed to send approval notification:', notifyError)
+          // Don't fail the approval if notification fails
+        }
+
+        // Schedule advance expiration warning if applicable (outside transaction)
+        if (payment.isAdvancePayment && payment.periodsAdvancePaid > 1) {
+          try {
+            const subscription = await prisma.businessSubscription.findUnique({
+              where: { businessId: payment.businessId },
+            })
+            
+            if (subscription) {
+              await paymentNotificationService.scheduleAdvanceExpirationWarning(subscription)
+            }
+          } catch (scheduleError) {
+            console.error('[reviewManualPayment] Failed to schedule expiration warning:', scheduleError)
+            // Don't fail the approval if scheduling fails
+          }
+        }
+
+        // Build success message
+        const periodsText = payment.periodsAdvancePaid > 1 
+          ? ` for ${payment.periodsAdvancePaid} billing periods` 
+          : ''
+        
+        const syncText = result.advanceResult?.syncStatus === 'COMPLETED'
+          ? ' Payment synced to provider.'
+          : result.advanceResult?.syncStatus === 'PENDING'
+          ? ' Provider sync in progress.'
+          : ''
 
         return { 
           success: true, 
-          message: `Payment approved. Subscription activated for ${payment.business.name}.`
+          message: `Payment approved${periodsText}. Subscription activated for ${payment.business.name}.${syncText}`,
+          data: {
+            periodsGranted: payment.periodsAdvancePaid,
+            syncStatus: result.advanceResult?.syncStatus,
+            creditsApplied: result.advanceResult?.creditsApplied,
+          }
         }
         
       } else {
@@ -117,6 +152,17 @@ export const reviewManualPayment = createServerFn({ method: 'POST' })
             rejectionReason: data.rejectionReason || 'Payment rejected by admin',
           },
         })
+
+        // Send rejection notification (outside transaction)
+        try {
+          await paymentNotificationService.sendRejectionNotification(
+            payment.id,
+            data.rejectionReason || 'Payment rejected by admin'
+          )
+        } catch (notifyError) {
+          console.error('[reviewManualPayment] Failed to send rejection notification:', notifyError)
+          // Don't fail the rejection if notification fails
+        }
 
         return { 
           success: true, 

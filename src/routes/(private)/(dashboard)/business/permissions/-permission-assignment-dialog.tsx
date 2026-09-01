@@ -20,6 +20,7 @@ import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import type { PermissionKey } from '@/lib/authorization/permission-keys'
 import { getDefaultPermissionsForRole } from '@/lib/authorization/role-permissions'
+import type { MountProps } from '@/lib/mount-manager'
 import {
   fetchAllPermissions,
   grantPermissionToUser,
@@ -29,15 +30,13 @@ import {
   type UserWithPermissions,
 } from '@/lib/queries/permission-management'
 
-interface PermissionAssignmentDialogProps {
+interface PermissionAssignmentDialogProps extends MountProps {
   user: UserWithPermissions
-  open: boolean
-  onOpenChange: (open: boolean) => void
 }
 
 type PermissionStatus = 'role-default' | 'custom-granted' | 'custom-revoked'
 
-export function PermissionAssignmentDialog({ user, open, onOpenChange }: PermissionAssignmentDialogProps) {
+export function PermissionAssignmentDialog({ user, open, onClose }: PermissionAssignmentDialogProps) {
   const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPermission, setSelectedPermission] = useState<PermissionDefinition | null>(null)
@@ -188,7 +187,7 @@ export function PermissionAssignmentDialog({ user, open, onOpenChange }: Permiss
   const isLoading = grantMutation.isPending || revokeMutation.isPending || removeMutation.isPending
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className='max-w-4xl h-[85vh] max-h-[85vh] flex flex-col'>
         <DialogHeader>
           <DialogTitle>Manage Permissions: {user.name || user.email}</DialogTitle>

@@ -21,10 +21,11 @@ import { paymentProviderRegistry } from '@/lib/billing/payment-provider-registry
 const submitManualPaymentSchema = z.object({
   planId: z.string(),
   amount: z.number().positive(),
+  periodsAdvancePaid: z.number().int().min(1).max(3).default(1), // Support 1-3 months advance
   paymentMethod: z.enum(['GCASH', 'BANK_TRANSFER', 'MAYA']),
   referenceNo: z.string().optional(),
   notes: z.string().optional(),
-  proofImageUrl: z.string().url(), // Base64 or uploaded image URL
+  proofImageUrl: z.string().min(1), // Base64 data URL or uploaded image URL
 })
 
 export type SubmitManualPaymentInput = z.infer<typeof submitManualPaymentSchema>
@@ -57,6 +58,7 @@ export const submitManualPayment = createServerFn({ method: 'POST' })
         metadata: {
           planId: data.planId,
           amount: data.amount.toString(),
+          periodsAdvancePaid: data.periodsAdvancePaid.toString(),
           referenceNo: data.referenceNo || '',
           proofImageUrl: data.proofImageUrl,
           notes: data.notes || '',
@@ -69,10 +71,15 @@ export const submitManualPayment = createServerFn({ method: 'POST' })
       // The externalSubscriptionId is actually the payment ID for manual payments
       const paymentId = result.externalSubscriptionId
 
+      const periodsLabel = data.periodsAdvancePaid === 1 
+        ? '1 month' 
+        : `${data.periodsAdvancePaid} months`
+
       return { 
         success: true, 
         paymentId,
-        message: 'Payment submitted successfully. Admin will review within 24 hours.'
+        periodsGranted: data.periodsAdvancePaid,
+        message: `Payment submitted for ${periodsLabel}. Admin will review within 24 hours.`
       }
 
     } catch (error) {

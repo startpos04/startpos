@@ -17,7 +17,7 @@ import { getInventoryMode } from '@/lib/inventory'
 import type { MountProps } from '@/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { cn } from '@/lib/utils'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 interface ProductDialogProps extends MountProps {
   product: posProduct

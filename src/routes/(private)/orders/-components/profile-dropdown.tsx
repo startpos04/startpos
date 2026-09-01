@@ -6,7 +6,7 @@ import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { useCapabilities } from '@/hooks/use-capability'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import MountManager from '@/lib/mount-manager'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { ProfileDropdown as BaseProfileDropdown } from '../../../../components/custom/dashboard/profile-dropdown'
 import { CloseSessionDialog } from '../../pos/-components/close-session-dialog'
 

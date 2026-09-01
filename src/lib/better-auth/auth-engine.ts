@@ -6,7 +6,7 @@ import { clearLocalDatabase } from '@/db'
 import { localAuthCollection } from '@/db/local-auth'
 import MountManager from '@/lib/mount-manager'
 import { getQueryClient } from '@/lib/query-client'
-import { authStore, resetAuth } from '@/store/auth-store'
+import { authStore, resetAuth } from '@/lib/better-auth/auth-store'
 import { authClient } from './auth-client'
 import { getAuthUser, type ServerUser, verifyAuth } from './auth-server'
 

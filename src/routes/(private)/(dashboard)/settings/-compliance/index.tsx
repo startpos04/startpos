@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { extractComplianceFromForm, getComplianceErrorMessage, validateComplianceData } from '@/lib/compliance'
 import { fetchComplianceData } from '@/lib/server-fn/fetch-compliance-data'
 import { saveComplianceData } from '@/lib/server-fn/save-compliance-data'
-import { authStore, refreshAuthUser } from '@/store/auth-store'
+import { authStore, refreshAuthUser } from '@/lib/better-auth/auth-store'
 
 /**
  * CompliancePage

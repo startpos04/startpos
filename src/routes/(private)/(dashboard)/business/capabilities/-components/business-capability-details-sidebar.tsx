@@ -16,7 +16,7 @@ import { getCapabilityBenefits, getCapabilitySteps } from '@/lib/capabilities/ca
 import type { CapabilityStateRow } from '@/lib/server-fn/fetch-capability-states'
 import { acceptCapability, dismissCapability, enableCapability, pauseCapability, restoreCapability } from '@/lib/server-fn/capability-actions'
 import { cn } from '@/lib/utils'
-import { refreshAuthUser } from '@/store/auth-store'
+import { refreshAuthUser } from '@/lib/better-auth/auth-store'
 import { closeBusinessCapabilitySidebar } from './business-capability-sidebar'
 
 interface BusinessCapabilityDetailsSidebarProps {

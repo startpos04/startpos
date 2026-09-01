@@ -7,7 +7,7 @@ import { useCapability } from '@/hooks/use-capability'
 import { usePermission } from '@/hooks/use-permission'
 import { Permissions } from '@/lib/authorization/permission-keys'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { ContextSwitcherItem } from './context-switcher-item'
 
 /**

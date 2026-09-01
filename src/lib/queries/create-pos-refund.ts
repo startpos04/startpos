@@ -14,7 +14,7 @@ import { Capabilities } from '@/lib/entitlement/capability-keys'
 import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
 import { writeAudit } from '@/lib/server-fn/write-audit'
 import type { TransactionComplianceData } from '@/lib/types'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { fetchStructuredId } from './fetch-structured-id'
 
 // ---------------------------------------------------------------------------

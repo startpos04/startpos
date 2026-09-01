@@ -13,7 +13,7 @@ import { operationalTaskCollection, vendorSessionCollection } from '@/db/collect
 import { dbTransaction } from '@/db/local-db-transaction'
 import { AuthEngine } from '@/lib/better-auth/auth-engine'
 import type { MountProps } from '@/lib/mount-manager'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const createSessionSchema = z
   .object({

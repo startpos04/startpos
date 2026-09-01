@@ -25,7 +25,7 @@
 
 import { useStore } from '@tanstack/react-store'
 import type { CapabilityKey } from '@/lib/entitlement/capability-keys'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 // ---------------------------------------------------------------------------
 // Single capability check

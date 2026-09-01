@@ -6,7 +6,7 @@ import { PriceEngine } from '@/lib/conversion/price-engine'
 import dayjs from '@/lib/dayjs'
 import { Capabilities } from '@/lib/entitlement/capability-keys'
 import type { CreatePosTransactionResponse } from '@/lib/queries/create-pos-transaction'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import type { posFormOpts } from '..'
 
 // Constants for predictable math

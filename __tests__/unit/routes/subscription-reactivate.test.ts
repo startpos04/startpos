@@ -71,7 +71,7 @@ async function simulateBeforeLoad(context: RouteContext) {
   if (!context.user?.id) {
     const redirectCall = { 
       to: '/login',
-      search: { redirect: '/subscription/reactivate' }
+      search: { redirect: '/business/business/subscription/reactivate' }
     }
     mockRedirect(redirectCall)
     throw redirectCall
@@ -82,7 +82,7 @@ async function simulateBeforeLoad(context: RouteContext) {
     const redirectCall = { 
       to: '/register/business-setup',
       search: { 
-        redirect: '/subscription/reactivate',
+        redirect: '/business/business/subscription/reactivate',
         error: 'Business setup required before reactivation'
       }
     }
@@ -94,7 +94,7 @@ async function simulateBeforeLoad(context: RouteContext) {
   const status = context.user.entitlement?.status
   if (!status) {
     const redirectCall = { 
-      to: '/billing',
+      to: '/business/subscription',
       search: { 
         error: 'Unable to determine subscription status. Please contact support.'
       }
@@ -108,7 +108,7 @@ async function simulateBeforeLoad(context: RouteContext) {
     // Handle different non-reactivatable cases with appropriate redirects
     if (status === SubscriptionStatus.SUSPENDED) {
       const redirectCall = { 
-        to: '/billing',
+        to: '/business/subscription',
         search: { 
           error: 'Your account is suspended. Please contact support to resolve this issue.'
         }
@@ -120,7 +120,7 @@ async function simulateBeforeLoad(context: RouteContext) {
     // Already active statuses should go to billing dashboard
     if (mockSubscriptionStatusVO.isOperationallyActive(status)) {
       const redirectCall = { 
-        to: '/billing',
+        to: '/business/subscription',
         search: { 
           info: 'Your subscription is already active. Use the billing dashboard to make changes.'
         }
@@ -131,7 +131,7 @@ async function simulateBeforeLoad(context: RouteContext) {
 
     // Fallback for any other non-reactivatable status
     const redirectCall = { 
-      to: '/billing',
+      to: '/business/subscription',
       search: { 
         error: 'Reactivation is not available for your current subscription status.'
       }
@@ -156,13 +156,13 @@ describe('Reactivation route beforeLoad — Authentication validation', () => {
     await expect(simulateBeforeLoad({ user: undefined })).rejects.toEqual(
       expect.objectContaining({
         to: '/login',
-        search: { redirect: '/subscription/reactivate' }
+        search: { redirect: '/business/business/subscription/reactivate' }
       })
     )
     
     expect(mockRedirect).toHaveBeenCalledWith({
       to: '/login',
-      search: { redirect: '/subscription/reactivate' }
+      search: { redirect: '/business/business/subscription/reactivate' }
     })
   })
 
@@ -170,7 +170,7 @@ describe('Reactivation route beforeLoad — Authentication validation', () => {
     await expect(simulateBeforeLoad({ user: {} })).rejects.toEqual(
       expect.objectContaining({
         to: '/login',
-        search: { redirect: '/subscription/reactivate' }
+        search: { redirect: '/business/business/subscription/reactivate' }
       })
     )
   })
@@ -179,7 +179,7 @@ describe('Reactivation route beforeLoad — Authentication validation', () => {
     await expect(simulateBeforeLoad({ user: { id: '' } })).rejects.toEqual(
       expect.objectContaining({
         to: '/login',
-        search: { redirect: '/subscription/reactivate' }
+        search: { redirect: '/business/business/subscription/reactivate' }
       })
     )
   })
@@ -200,7 +200,7 @@ describe('Reactivation route beforeLoad — Business context validation', () => 
       expect.objectContaining({
         to: '/register/business-setup',
         search: { 
-          redirect: '/subscription/reactivate',
+          redirect: '/business/business/subscription/reactivate',
           error: 'Business setup required before reactivation'
         }
       })
@@ -248,7 +248,7 @@ describe('Reactivation route beforeLoad — Subscription status validation', () 
       } 
     })).rejects.toEqual(
       expect.objectContaining({
-        to: '/billing',
+        to: '/business/subscription',
         search: { 
           error: 'Unable to determine subscription status. Please contact support.'
         }
@@ -265,7 +265,7 @@ describe('Reactivation route beforeLoad — Subscription status validation', () 
       } 
     })).rejects.toEqual(
       expect.objectContaining({
-        to: '/billing',
+        to: '/business/subscription',
         search: { 
           error: 'Unable to determine subscription status. Please contact support.'
         }
@@ -300,7 +300,7 @@ describe('Reactivation route beforeLoad — Reactivation eligibility', () => {
 
     await expect(simulateBeforeLoad(context)).rejects.toEqual(
       expect.objectContaining({
-        to: '/billing',
+        to: '/business/subscription',
         search: { 
           error: 'Your account is suspended. Please contact support to resolve this issue.'
         }
@@ -322,7 +322,7 @@ describe('Reactivation route beforeLoad — Reactivation eligibility', () => {
 
     await expect(simulateBeforeLoad(context)).rejects.toEqual(
       expect.objectContaining({
-        to: '/billing',
+        to: '/business/subscription',
         search: { 
           info: 'Your subscription is already active. Use the billing dashboard to make changes.'
         }
@@ -344,7 +344,7 @@ describe('Reactivation route beforeLoad — Reactivation eligibility', () => {
 
     await expect(simulateBeforeLoad(context)).rejects.toEqual(
       expect.objectContaining({
-        to: '/billing',
+        to: '/business/subscription',
         search: { 
           info: 'Your subscription is already active. Use the billing dashboard to make changes.'
         }
@@ -361,7 +361,7 @@ describe('Reactivation route beforeLoad — Reactivation eligibility', () => {
 
     await expect(simulateBeforeLoad(context)).rejects.toEqual(
       expect.objectContaining({
-        to: '/billing',
+        to: '/business/subscription',
         search: { 
           error: 'Reactivation is not available for your current subscription status.'
         }

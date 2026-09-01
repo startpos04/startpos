@@ -18,7 +18,7 @@ import { Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { SurveyWizard } from '@/components/custom/onboarding/survey-wizard'
+import { SurveyWizard } from './-components/survey-wizard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -26,7 +26,7 @@ import { Label } from '@/components/ui/label'
 import type { SurveyAnswers } from '@/lib/onboarding/types'
 import { completeRegistration } from '@/lib/server-fn/complete-registration'
 import { refreshSession } from '@/lib/server-fn/refresh-session'
-import { authStore, setUser } from '@/store/auth-store'
+import { authStore, setUser } from '@/lib/better-auth/auth-store'
 
 const businessNameSchema = z.string().min(1).max(100)
 

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { unitCollection } from '@/db/collections'
-import { authStore } from '@/store/auth-store'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { closeUnitSidebar } from './unit-sidebar'
 
 const defaultForm: { name: string; abbreviation: string; type: UnitType; conversionFactor: number; isBaseUnit: boolean } = {

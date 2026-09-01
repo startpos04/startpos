@@ -84,7 +84,7 @@ For each failing test:
 - ✅ `page.locator('text=/regex/') or page.locator('[role="button"]')`
 
 ### Missing Test IDs
-- Check screenshot in test-results folder
+- Check screenshot in e2e-results folder
 - Add data-testid to the component
 - Re-run test
 

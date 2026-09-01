@@ -58,6 +58,9 @@ export type SubscriptionSnapshot = {
   activatedAt: Date | null
   cancelledAt: Date | null
   suspendedAt: Date | null
+  // Advance payment fields
+  advancePaymentCredits: number
+  advancePaymentExpiresAt: Date | null
 }
 
 // ---------------------------------------------------------------------------
