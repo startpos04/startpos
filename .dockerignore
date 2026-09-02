@@ -1,15 +1,41 @@
-node_modules
-.output
+# Dependencies
+**/node_modules
+
+# Build outputs
+**/.output
+**/dist
+**/coverage
+
+# Git
 .git
-.next
-dist
-coverage
-e2e-results
-playwright-report
-*.log
-.env
-.env.*
-!.env.example
+.gitattributes
+.gitignore
+.github
+
+# Test artifacts
+**/e2e-results
+**/playwright-report
+**/__tests__
+**/*.test.*
+**/*.spec.*
+
+# Env files (injected at runtime via docker-compose env_file / volumes)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Editor / IDE
 .vscode
-.cursor
-agent-transcripts
+.kiro
+
+# Logs
+*.log
+
+# Misc app artifacts
+apps/web/src/routeTree.gen.ts
+apps/web/.output
+apps/web/.tanstack
+apps/web/prisma/generated
+
+# Stripe env output (generated at runtime by stripe-setup)
+apps/stripe/env

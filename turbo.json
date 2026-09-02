@@ -1,0 +1,40 @@
+{
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".output/**", "dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "generate": {
+      "dependsOn": ["^generate"],
+      "inputs": ["prisma/**", "../../packages/platform/prisma/**"],
+      "outputs": ["prisma/generated/**"]
+    },
+    "lint": {
+      "inputs": ["**/*.{ts,tsx,js,jsx,json,css}"]
+    },
+    "check": {
+      "inputs": ["**/*.{ts,tsx,js,jsx,json,css}"]
+    },
+    "format": {
+      "cache": false
+    },
+    "test": {
+      "inputs": ["$TURBO_DEFAULT$", "__tests__/unit/**"],
+      "outputs": ["coverage/**"]
+    },
+    "test:integration": {
+      "dependsOn": ["generate"],
+      "inputs": ["$TURBO_DEFAULT$", "__tests__/integration/**"],
+      "outputs": ["coverage/**"]
+    },
+    "type-check": {
+      "dependsOn": ["^type-check"]
+    }
+  }
+}

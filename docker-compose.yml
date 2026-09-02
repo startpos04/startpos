@@ -2,6 +2,8 @@ services:
   db:
     image: postgres:15-alpine
     restart: unless-stopped
+    env_file:
+      - apps/web/.env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -21,9 +23,11 @@ services:
   db-init:
     image: postgres:15-alpine
     env_file:
-      - .env
+      - apps/web/.env
+    environment:
+      POSTGRES_HOST: db
     volumes:
-      - ./startpos-core/prisma/models/ensure-database.sh:/ensure-database.sh:ro
+      - ./packages/platform/prisma/models/ensure-database.sh:/ensure-database.sh:ro
     entrypoint: ['/bin/sh', '/ensure-database.sh']
     depends_on:
       db:
@@ -43,57 +47,60 @@ services:
     ports:
       - '${PUBLIC_PORT:-3200}:${PORT:-3000}'
     env_file:
-      - .env
+      - apps/web/.env
+    environment:
+      POSTGRES_HOST: db
+      DOCKER_DEV: "true"
     shm_size: '1gb'
     volumes:
-      - app_output:/app/.output
-      - ./.env:/app/.env:ro
-    command: ['pnpm', 'run', 'dev:docker']
+      - app_output:/app/apps/web/.output
+      - ./apps/web/.env:/app/apps/web/.env:ro
+    command: ['pnpm', '--filter', '@startpos/web', 'run', 'dev:docker']
     networks:
       - app-network
     develop:
       watch:
         - action: sync
-          path: .
-          target: /app
+          path: ./apps/web
+          target: /app/apps/web
           ignore:
             - node_modules/
             - .output/
-            - .git/
+        - action: sync
+          path: ./packages/platform
+          target: /app/packages/platform
+          ignore:
+            - node_modules/
         - action: rebuild
-          path: package.json
+          path: apps/web/package.json
+        - action: rebuild
+          path: packages/platform/package.json
         - action: rebuild
           path: pnpm-lock.yaml
 
   stripe-setup:
     build:
-      context: ./payment-stripe
+      context: ./apps/stripe
       dockerfile: Dockerfile
     profiles:
       - stripe
-    # One-shot: exits after creating/reconciling all Stripe products and prices.
-    # docker-compose will not restart it once it finishes successfully.
     command: ["/scripts/setup.sh"]
     restart: "no"
     environment:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
     volumes:
       - stripe_config:/root/.config/stripe
-      # Generated env file — lands at ./payment-stripe/env/stripe.env on the host.
-      - ./payment-stripe/env:/stripe-env
-      # Workspace root — gives the script direct write access to .env.
-      - .:/host-env
+      - ./apps/stripe/env:/stripe-env
+      - ./apps/web:/host-env
     networks:
       - app-network
 
   stripe-webhook:
     build:
-      context: ./payment-stripe
+      context: ./apps/stripe
       dockerfile: Dockerfile
     profiles:
       - stripe
-    # Long-running: stays up forwarding events to the app container.
-    # Restarts automatically if the CLI disconnects.
     command: ["/scripts/webhook.sh"]
     restart: unless-stopped
     depends_on:
@@ -101,14 +108,11 @@ services:
         condition: service_completed_successfully
     environment:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
-      # Override if your webhook route differs from the default below.
       STRIPE_WEBHOOK_FORWARD_URL: ${STRIPE_WEBHOOK_FORWARD_URL:-http://app:3000/api/stripe/webhook}
     volumes:
       - stripe_config:/root/.config/stripe
-      # Shared with stripe-setup so the webhook service can read the API key.
-      - ./payment-stripe/env:/stripe-env
-      # Workspace root — gives the script direct write access to .env.
-      - .:/host-env
+      - ./apps/stripe/env:/stripe-env
+      - ./apps/web:/host-env
     networks:
       - app-network
 

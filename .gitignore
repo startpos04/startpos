@@ -2,29 +2,45 @@ node_modules
 .DS_Store
 dist
 dist-ssr
-*.local
 count.txt
-.env
+
+# ─── Env files ────────────────────────────────────────────────────────────────
+# Root shared overrides
+.env.local
+
+# App-specific generated output and local overrides
+apps/**/.env
+apps/**/.env.local
+# .env.example is committed — do not ignore it
+
+# CI/automation config (script behavior flags — not injected into app)
 .env.config
+
+# Stripe CLI generated env (contains real secret keys)
+apps/stripe/env/
+
+# ─── Build outputs ────────────────────────────────────────────────────────────
 .nitro
 .tanstack
 .wrangler
 .output
 .vinxi
-todos.json
-
-/prisma/generated
-/prisma/schema.prisma
-
-# Playwright
-/e2e-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/
-
-/coverage/
 .fallow/
 
-# Stripe CLI — generated env values (contains real secret keys)
-/payment-stripe/env/
+# ─── Prisma generated (app-specific) ─────────────────────────────────────────
+apps/web/prisma/generated
+apps/web/prisma/schema.prisma
+
+# ─── Test artifacts ───────────────────────────────────────────────────────────
+coverage/
+apps/**/coverage/
+e2e-results/
+apps/**/e2e-results/
+playwright-report/
+apps/**/playwright-report/
+blob-report/
+apps/**/.auth/
+apps/**/playwright/.cache/
+
+# ─── Misc ─────────────────────────────────────────────────────────────────────
+todos.json

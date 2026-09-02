@@ -1,22 +1,21 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
   "files": {
     "includes": [
-      "**",
-      "!!node_modules",
-      "!!.output",
-      "!!dist",
-      "!prisma/generated",
-      "!src/components/ui",
-      "!!public",
-      "!!coverage",
-      "!!e2e-results",
-      "!!cspell.json",
-      "!!src/routeTree.gen.ts",
+      "apps/**",
+      "packages/**",
+      "scripts/**",
+      "!!**/node_modules",
+      "!!**/.output",
+      "!!**/dist",
+      "!!**/prisma/generated",
+      "!!**/public",
+      "!!**/coverage",
+      "!!**/e2e-results",
+      "!!**/playwright-report",
+      "!!**/src/routeTree.gen.ts",
       "!!**/*.test.*",
       "!!**/*.spec.*",
-      "!!**/__tests__",
-      "!!**/playwright-report"
+      "!!**/__tests__"
     ]
   },
   "javascript": {
@@ -79,7 +78,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/styles.css"],
+      "includes": ["apps/web/src/styles.css"],
       "linter": { "enabled": false },
       "formatter": { "enabled": false }
     }

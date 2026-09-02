@@ -1,0 +1,187 @@
+/**
+ * api/cron/daily/index.ts
+ *
+ * Daily cron entry point â€” runs all background jobs in dependency order.
+ *
+ * Security:
+ *   Every request must supply the Authorization header:
+ *     Authorization: Bearer <CRON_SECRET>
+ *   Requests without a valid secret receive 401. This prevents accidental or
+ *   malicious triggering from the public internet.
+ *
+ *   On Vercel, set CRON_SECRET in project environment variables and add
+ *   CRON_SECRET to the Authorization header in vercel.json:
+ *     { "authorization": "Bearer $CRON_SECRET" }
+ *   Vercel injects the secret automatically on each scheduled invocation.
+ *
+ * Job execution order (dependency-driven):
+ *   1. subscription-lifecycle      â€” TRIAL/GRACE_PERIOD/EXPIRED transitions
+ *   2. usage-counter-reset         â€” close open counters; open next period
+ *   3. billing-invoice-generation  â€” must run AFTER usage-counter-reset
+ *   4. pricing-quote-expiry        â€” independent; no ordering requirement
+ *   5. composable-renewal-preview  â€” must run AFTER pricing-quote-expiry
+ *   6. subscription-renewal-reminders â€” provider-agnostic renewal reminders
+ *
+ *   Jobs 1â€“3 are sequential (3 depends on 2's output).
+ *   Jobs 4â€“6 run after 1â€“3 but are independent of each other.
+ *   The overall run is fail-fast per job: if a job returns outcome='error'
+ *   it is recorded but subsequent jobs still run (non-fatal isolation).
+ *
+ * OveragePolicy is read from configuration global defaults.
+ * LifecycleThresholds are read from configuration global defaults.
+ * Both fall back to the documented defaults when not configured.
+ *
+ * The Stripe adapter is constructed only when STRIPE_SECRET_KEY is present â€”
+ * if it is absent (local dev / CI), invoice generation still runs but skips
+ * the Stripe provider push (adapter = null).
+ *
+ * Trigger: Vercel Cron â€” daily at 00:05 UTC (vercel.json)
+ * Method: POST (Vercel cron invocations use POST)
+ * Timeout: 60 s (Vercel hobby) / 300 s (pro) â€” adjust maxDuration in vercel.json
+ */
+
+import { ConfigurationEngine } from '@platform/lib/configuration/configuration-engine'
+import { createFileRoute } from '@tanstack/react-router'
+import type { BillingProviderAdapter } from '@/lib/billing/billing-provider'
+import type { JobResult } from '@/lib/jobs'
+import { runBillingInvoiceGenerationJob } from '@/lib/jobs/billing-invoice-generation'
+import { runComposableRenewalPreviewJob } from '@/lib/jobs/composable-renewal-preview'
+import { runPricingQuoteExpiryJob } from '@/lib/jobs/pricing-quote-expiry'
+import { runSubscriptionLifecycleJob } from '@/lib/jobs/subscription-lifecycle'
+import { runSubscriptionRenewalRemindersJob } from '@/lib/jobs/subscription-renewal-reminders'
+import { runUsageCounterResetJob } from '@/lib/jobs/usage-counter-reset'
+import '@/lib/billing/init-providers' // Ensure providers are registered
+import { prisma as rootPrisma } from '@platform/lib/prisma-client'
+
+// ---------------------------------------------------------------------------
+// Route registration (TanStack Start file-based routing)
+// The route path below must match the file path exactly.
+// FileRoutesByPath is auto-generated â€” this entry will appear after the next
+// `pnpm dev` or `pnpm build` run that triggers routeTree.gen.ts regeneration.
+// ---------------------------------------------------------------------------
+
+export const Route = createFileRoute('/api/cron/daily/' as never)({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        // -------------------------------------------------------------------
+        // 1. Authentication â€” shared secret check
+        // -------------------------------------------------------------------
+        const cronSecret = process.env['CRON_SECRET']
+
+        if (!cronSecret) {
+          // CRON_SECRET not configured â€” reject to prevent accidental open access
+          console.error('[cron/daily] CRON_SECRET is not set. Rejecting request.')
+          return new Response(JSON.stringify({ error: 'Cron endpoint not configured' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+
+        const authHeader = request.headers.get('Authorization')
+        const providedSecret = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+
+        if (!providedSecret || providedSecret !== cronSecret) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+
+        // -------------------------------------------------------------------
+        // 2. Load policy configuration from platform-level configuration
+        //    Fall back to documented defaults when keys are not seeded.
+        // -------------------------------------------------------------------
+
+        // Read platform-level configuration (no businessId context)
+        const overageValue = await ConfigurationEngine.get('OVERAGE_BILLING_ENABLED', {})
+        const vatValue = await ConfigurationEngine.get('COMPOSABLE_TAX_RATE', {})
+
+        const overagePolicy = {
+          overageBillingEnabled: overageValue === 'true',
+          overageRatePerTx: 0, // Per-plan rate â€” InvoiceEngine reads from plan directly
+          vatRate: vatValue ? Number(vatValue) / 10000 : 0.12,
+        }
+
+        const thresholds = {
+          trialDurationDays: 30,
+          gracePeriodDays: 7,
+          longTermInactiveDays: 90,
+        }
+
+        // -------------------------------------------------------------------
+        // 3. Build Stripe adapter (optional â€” null disables provider push)
+        // -------------------------------------------------------------------
+        let stripeAdapter: BillingProviderAdapter | null = null
+        const stripeKey = process.env['STRIPE_SECRET_KEY']
+
+        if (stripeKey) {
+          try {
+            const { createStripeAdapter } = await import('@/lib/billing/adapters/stripe-adapter')
+            stripeAdapter = createStripeAdapter()
+          } catch (err) {
+            console.warn('[cron/daily] Failed to initialise Stripe adapter â€” invoice sync disabled:', err)
+          }
+        }
+
+        // -------------------------------------------------------------------
+        // 4. Run all jobs in dependency order
+        //    Each job is isolated: a fatal error in one does not abort the rest.
+        // -------------------------------------------------------------------
+        const now = new Date()
+        const results: JobResult[] = []
+
+        // Job 1 â€” subscription lifecycle transitions
+        results.push(await runSubscriptionLifecycleJob(rootPrisma, thresholds, now))
+
+        // Job 2 â€” close expired billing periods and open the next ones
+        results.push(await runUsageCounterResetJob(rootPrisma, now))
+
+        // Job 3 â€” generate invoices for closed periods (depends on job 2)
+        results.push(await runBillingInvoiceGenerationJob(rootPrisma, overagePolicy, stripeAdapter, now))
+
+        // Job 4 â€” expire stale pricing quotes
+        results.push(await runPricingQuoteExpiryJob(rootPrisma))
+
+        // Job 5 â€” notify businesses about upcoming composable price changes
+        results.push(await runComposableRenewalPreviewJob(rootPrisma, { previewWindowDays: 7 }))
+
+        // Job 6 â€” send general subscription renewal reminders
+        results.push(await runSubscriptionRenewalRemindersJob(rootPrisma, { reminderWindowDays: [7, 3, 1] }))
+
+        // -------------------------------------------------------------------
+        // 5. Summarise and respond
+        // -------------------------------------------------------------------
+        const hasError = results.some(r => r.outcome === 'error')
+        const summary = {
+          ranAt: now.toISOString(),
+          status: hasError ? 'partial' : 'ok',
+          jobs: results.map(r => ({
+            job: r.job,
+            outcome: r.outcome,
+            processed: r.processed,
+            skipped: r.skipped,
+            warnings: r.warnings.length > 0 ? r.warnings : undefined,
+            error: r.error,
+          })),
+        }
+
+        if (hasError) {
+          // Log individual job errors for observability (Vercel, Datadog, etc.)
+          for (const r of results) {
+            if (r.outcome === 'error') {
+              console.error(`[cron/daily] Job "${r.job}" failed:`, r.error)
+            }
+          }
+        }
+
+        console.info('[cron/daily] Run complete:', JSON.stringify(summary))
+
+        return new Response(JSON.stringify(summary), {
+          status: hasError ? 207 : 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      },
+    },
+  },
+})

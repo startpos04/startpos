@@ -1,0 +1,31 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx",
+    "src/test-setup.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "prisma/generated",
+    "coverage",
+    "playwright-report"
+  ],
+  "compilerOptions": {
+    /* Override strict rules that are impractical in test code */
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
+    /* Vitest global types (describe, it, expect, vi, etc.) */
+    "types": ["vitest/globals", "vite/client", "@testing-library/jest-dom"],
+
+    /* Path aliases for test files */
+    "paths": {
+      "prisma/*": ["./prisma/*"],
+      "@/*": ["./src/*"],
+      "@platform/*": ["../../packages/platform/*"],
+      "#tests/*": ["./__tests__/*"]
+    }
+  }
+}

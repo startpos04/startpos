@@ -1,0 +1,188 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/inter';
+
+/* Tell Tailwind v4 to also scan the shared package for class usage */
+@source "../../../packages/platform/**/*.{ts,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+
+  /* Primary: Emerald 600 */
+  --primary: oklch(0.64 0.16 168.25);
+  --primary-foreground: oklch(0.985 0 0);
+
+  /* Secondary: Soft Indigo-Slate */
+  --secondary: oklch(0.96 0.013 255);
+  --secondary-foreground: oklch(0.35 0.06 255);
+
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.94 0.03 168.25);
+  --accent-foreground: oklch(0.25 0.1 168.25);
+
+  --destructive: oklch(0.58 0.22 27);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.64 0.16 168.25);
+
+  --chart-1: oklch(0.64 0.16 168.25);
+  --chart-2: oklch(0.45 0.12 168.25);
+  --chart-3: oklch(0.85 0.1 168.25);
+  --chart-4: oklch(0.75 0.15 200);
+  --chart-5: oklch(0.65 0.12 220);
+
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: var(--ring);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.18 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.18 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+
+  /* Primary: Emerald 500 (lightened for dark mode) */
+  --primary: oklch(0.72 0.16 168.25);
+  --primary-foreground: oklch(0.15 0.05 168.25);
+
+  --secondary: oklch(0.25 0.03 255);
+  --secondary-foreground: oklch(0.95 0.02 255);
+
+  --muted: oklch(0.25 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.3 0.08 168.25);
+  --accent-foreground: oklch(0.95 0.05 168.25);
+
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 18%);
+  --ring: oklch(0.72 0.16 168.25);
+
+  --sidebar: oklch(0.18 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: var(--ring);
+}
+
+@theme inline {
+  --font-sans: 'Inter Variable', sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  @keyframes scale-bump {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.2);
+      color: var(--primary); /* Optional: shifts to emerald green at peak bump */
+    }
+  }
+
+  @keyframes ping {
+    75%,
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  /* 2. Map the Keyframes to the Tailwind Utility Variable */
+  --animate-scale-bump: scale-bump 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-ping: ping 0.9s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply font-sans bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/*
+ * Fix: stacked Radix Dialog overlays darkening the screen when multiple dialogs are open.
+ *
+ * Each Radix portal is rendered as a direct child of <body> (a div[data-radix-portal]).
+ * When a second dialog opens, its portal (and overlay) is appended AFTER the first,
+ * so the second portal is the general sibling of the first.
+ *
+ * We hide the overlay inside any portal that is preceded by another portal which
+ * also contains an overlay — leaving only the FIRST (bottom-most) overlay visible.
+ *
+ * Because all overlays are position:fixed and cover the full viewport, only one
+ * needs to be visible at a time; the topmost dialog content still renders correctly
+ * above it regardless of which portal it belongs to.
+ */
+body > [data-radix-portal]:has([data-slot="dialog-overlay"])
+  ~ [data-radix-portal]
+  [data-slot="dialog-overlay"] {
+  display: none;
+}
+
+
+div[data-slot="sidebar-container"] {
+  position: absolute;
+}

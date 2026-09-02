@@ -11,7 +11,11 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update -y \
 
 # ---------- Dependencies stage ----------
 FROM base AS install
+# Copy monorepo root manifests first for better layer caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy all workspace package.json files so pnpm can resolve the graph
+COPY apps/web/package.json ./apps/web/package.json
+COPY packages/platform/package.json ./packages/platform/package.json
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # ---------- Dev stage ----------
@@ -19,34 +23,33 @@ FROM install AS dev
 RUN --mount=type=cache,target=/var/cache/apt apt-get update -y \
   && apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
   && rm -rf /var/lib/apt/lists/*
+# Copy full source after deps are installed
 COPY . .
-# Ensure .env, .env.local and .env.config exist so --env-file never fails inside the container.
-# On a dev machine they are gitignored and hold local overrides; inside Docker they stay empty.
-RUN touch .env .env.local .env.config
+# Ensure .env files exist so --env-file never fails inside the container
+RUN touch apps/web/.env apps/web/.env.local apps/web/.env.config
 # Set schema generation environment variables for non-interactive mode
 ENV SCHEMA_AUTO_CONFIRM=yes
 ENV DEPLOYMENT_COUNTRY=PH
 # Generate Prisma schema and client from base files
-RUN pnpm run prisma:generate
+RUN pnpm --filter @startpos/web run prisma:generate:docker
 ENV NODE_ENV=development
 EXPOSE 3000
-CMD ["pnpm", "run", "dev:docker"]
+CMD ["pnpm", "--filter", "@startpos/web", "run", "dev:docker"]
 
 # ---------- Production build ----------
 FROM install AS builder
 COPY . .
-# Set schema generation environment variables for non-interactive mode
 ENV SCHEMA_AUTO_CONFIRM=yes
 ENV DEPLOYMENT_COUNTRY=PH
-# Generate Prisma schema and client before building
-RUN pnpm run prisma:generate
-RUN pnpm run build
+RUN pnpm --filter @startpos/web run prisma:generate:docker
+RUN pnpm --filter @startpos/web run build
 
 # ---------- Production runtime ----------
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder /app/.output ./.output
-COPY --from=builder /app/package.json ./
+COPY --from=builder /app/apps/web/.output ./apps/web/.output
+COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
+COPY --from=builder /app/package.json ./package.json
 EXPOSE 3000
-CMD ["node", ".output/server/index.mjs"]
+CMD ["node", "apps/web/.output/server/index.mjs"]
