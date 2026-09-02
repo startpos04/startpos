@@ -15,15 +15,6 @@
       "inputs": ["prisma/**", "../../packages/platform/prisma/**"],
       "outputs": ["prisma/generated/**"]
     },
-    "lint": {
-      "inputs": ["**/*.{ts,tsx,js,jsx,json,css}"]
-    },
-    "check": {
-      "inputs": ["**/*.{ts,tsx,js,jsx,json,css}"]
-    },
-    "format": {
-      "cache": false
-    },
     "test": {
       "inputs": ["$TURBO_DEFAULT$", "__tests__/unit/**"],
       "outputs": ["coverage/**"]
@@ -35,6 +26,24 @@
     },
     "type-check": {
       "dependsOn": ["^type-check"]
+    },
+    "start": {
+      "cache": false,
+      "persistent": true
+    },
+    "coverage": {
+      "dependsOn": ["generate"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["coverage/**"]
+    },
+    "coverage:integration": {
+      "dependsOn": ["generate"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["coverage/**"]
+    },
+    "validate": {
+      "dependsOn": ["generate", "type-check"],
+      "inputs": ["$TURBO_DEFAULT$"]
     }
   }
 }

@@ -15,9 +15,6 @@
     "seed": "tsx --env-file=.env --env-file=../../.env.config ../../packages/platform/prisma/seeders/index.ts",
     "reset": "tsx --env-file=.env --env-file=../../.env.config ./scripts/reset-db.ts",
     "type-check": "pnpm exec tsc --noEmit",
-    "lint": "biome lint .",
-    "format": "biome format --write .",
-    "check": "biome check --write .",
     "scan": "npx fallow",
     "test": "vitest run --config vitest.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
@@ -31,7 +28,7 @@
     "test:e2e:clean": "powershell -Command \"Remove-Item -Path '__tests__/e2e/fixtures/.auth/*.json' -Force -ErrorAction SilentlyContinue ; Remove-Item -Path '__tests__/e2e/fixtures/.auth/debug-*.png' -Force -ErrorAction SilentlyContinue\" && playwright test",
     "type-coverage": "type-coverage --detail --at-least 95",
     "type-coverage:report": "type-coverage --detail --output-format json",
-    "validate": "pnpm type-check && pnpm check && pnpm type-coverage && pnpm test"
+    "validate": "pnpm type-check && pnpm type-coverage && pnpm test"
   },
   "prisma": {
     "seed": "tsx --env-file=.env --env-file=.env.local ../../packages/platform/prisma/seeders/index.ts"
