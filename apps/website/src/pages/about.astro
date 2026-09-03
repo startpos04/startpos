@@ -1,0 +1,153 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import FinalCTA from '../components/sections/FinalCTA.astro'
+import { APP_URL } from '../constants'
+
+const principles = [
+  {
+    icon: '🔌',
+    title: 'Offline-first, always',
+    description: 'Data lives on the device first. The cloud is a sync target — not the single point of failure. If the internet goes down, your business keeps running.',
+  },
+  {
+    icon: '🗂️',
+    title: 'Local-first data',
+    description: 'Your data is yours. We store it locally, sync it securely, and never hold your business hostage behind a subscription wall without proper notice.',
+  },
+  {
+    icon: '🔓',
+    title: 'Open standards',
+    description: 'CSV export built in from day one. No data lock-in. Every report, transaction, and record is exportable in standard formats your accountant can read.',
+  },
+  {
+    icon: '🎯',
+    title: 'Built for real operators',
+    description: 'Every feature exists because a real business needed it — not because it looked good in a marketing deck. We cut features that add complexity without value.',
+  },
+]
+---
+
+<BaseLayout
+  title="About startPOS"
+  description="Start POS was built by a team that saw too many businesses fail because of fragile, expensive, cloud-only POS systems. We're building the alternative — offline-first, honest pricing, open standards."
+>
+
+  <!-- Hero -->
+  <section class="bg-slate-900 pt-16 pb-24 relative overflow-hidden">
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.04)_1px,transparent_1px)] bg-[size:64px_64px]"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-emerald-500/5 rounded-full blur-3xl"></div>
+
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">About</span>
+      <h1 class="mt-3 text-4xl sm:text-5xl font-black text-white leading-tight mb-6">
+        We're building the POS we<br />wish existed.
+      </h1>
+      <p class="text-slate-400 text-lg leading-relaxed">
+        Built in the Philippines, for businesses across Southeast Asia. We got tired of watching good businesses fail because their POS went down every time the Wi-Fi did.
+      </p>
+    </div>
+  </section>
+
+  <!-- Story -->
+  <section class="py-20 sm:py-24 bg-white">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+
+      <div class="reveal">
+        <h2 class="text-2xl font-black text-slate-900 mb-4">The problem we saw</h2>
+        <div class="space-y-4 text-slate-500 leading-relaxed">
+          <p>
+            Most POS systems in the Philippines are either legacy desktop software that looks like it was built in 2003, or cloud-only SaaS products that stop working the moment your internet connection hiccups.
+          </p>
+          <p>
+            We watched restaurants lose dinner service during peak hours because their cloud POS couldn't reach the server. We watched grocery owners manually tally sales in a notebook because their system was down for maintenance. We watched retail shops pay for features they never used while missing basic ones they needed daily.
+          </p>
+          <p>
+            The market was full of products solving the wrong problems — optimizing for impressive feature lists instead of reliable, daily operation.
+          </p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <h2 class="text-2xl font-black text-slate-900 mb-4">What we built</h2>
+        <div class="space-y-4 text-slate-500 leading-relaxed">
+          <p>
+            Start POS is an offline-first, multi-tenant point of sale system. The core insight is simple: your data should live on your device first and sync to the cloud second — not the other way around.
+          </p>
+          <p>
+            We support three business types because the workflows are genuinely different. A restaurant needs an order queue and kitchen display. A grocery needs batch expiry tracking. A retail shop needs product variants and barcode scanning. One POS pretending to do all three equally well, poorly, serves nobody.
+          </p>
+          <p>
+            We built Start POS to adapt to how your business actually works — with configurable features per branch, role-based access that maps to real org structures, and pricing that scales with your operation rather than punishing your growth.
+          </p>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <h2 class="text-2xl font-black text-slate-900 mb-4">Where we're building from</h2>
+        <div class="space-y-4 text-slate-500 leading-relaxed">
+          <p>
+            We're based in the Philippines 🇵🇭 and building for Southeast Asia. The product ships with BIR compliance for Philippine businesses, and the tax and compliance engine is designed to extend to Singapore GST, Malaysian SST, and other regional requirements.
+          </p>
+          <p>
+            We're a small team. We move fast, we're close to our customers, and we don't have a legacy codebase to protect. That means we can ship things the big incumbents won't touch — like true offline-first architecture — without a four-quarter roadmap debate.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Technology principles -->
+  <section class="py-20 sm:py-24 bg-slate-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-xl mx-auto mb-12 reveal">
+        <h2 class="text-3xl font-black text-slate-900">Technology philosophy</h2>
+        <p class="mt-3 text-slate-500">The principles that drive every decision we make.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {principles.map((p, i) => (
+          <div class:list={['bg-white rounded-2xl border border-slate-200 p-7 reveal', `reveal-delay-${i + 1}`]}>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-xl mb-4">{p.icon}</div>
+            <h3 class="text-base font-bold text-slate-900 mb-2">{p.title}</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">{p.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech stack callout -->
+  <section class="py-16 bg-white border-y border-slate-100">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center reveal">
+      <h2 class="text-xl font-black text-slate-900 mb-4">Built on modern, proven technology</h2>
+      <div class="flex flex-wrap justify-center gap-3">
+        {['React 19', 'TanStack Start', 'TanStack DB (local-first)', 'Prisma ORM', 'PostgreSQL', 'Tailwind CSS v4', 'Better Auth', 'Vite'].map(tech => (
+          <span class="px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-semibold rounded-full">{tech}</span>
+        ))}
+      </div>
+      <p class="mt-5 text-sm text-slate-400">
+        The local-first architecture is powered by TanStack DB — the same approach used by tools like Linear and Figma to deliver instant, offline-capable UIs.
+      </p>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-16 bg-slate-50">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center reveal">
+      <h2 class="text-2xl font-black text-slate-900 mb-3">We'd love to show you the product</h2>
+      <p class="text-slate-500 text-sm mb-6">Start a free 30-day trial or reach out directly — we answer every message.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <a href={APP_URL} class="px-7 py-3.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 shadow-md transition-all">
+          Start free trial
+        </a>
+        <a href="/contact" class="px-7 py-3.5 border border-slate-200 text-slate-600 font-semibold rounded-xl hover:border-slate-300 transition-all">
+          Contact us
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <FinalCTA />
+
+</BaseLayout>

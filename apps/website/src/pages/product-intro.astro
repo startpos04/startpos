@@ -1,0 +1,1077 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import FinalCTA from '../components/sections/FinalCTA.astro'
+import { APP_URL } from '../constants'
+import '../styles/print.css'
+---
+
+<BaseLayout
+  title="Product Introduction — Start POS"
+  description="Discover Start POS: A modern, offline-first, multi-tenant Point of Sale system designed for retail, restaurant, and grocery businesses."
+>
+
+  <!-- Print-Only Header -->
+  <div class="print-only" style="display: none;">
+    <div style="text-align: center; padding: 0.3rem 0; border-bottom: 2px solid #10b981; margin-bottom: 0.4rem;">
+      <h1 style="font-size: 1.3rem; font-weight: 900; color: #0f172a; margin: 0; line-height: 1.2;">Start POS</h1>
+      <p style="font-size: 0.8rem; color: #475569; margin: 0.1rem 0 0 0;">Product Introduction</p>
+      <p style="font-size: 0.7rem; color: #64748b; margin: 0.1rem 0 0 0;">startpos.ph | hello@startpos.ph</p>
+    </div>
+  </div>
+
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 pt-20 pb-28 relative overflow-hidden">
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.06)_1px,transparent_1px)] bg-[size:64px_64px]"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-4xl mx-auto">
+        <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
+          Your Business.<br/>Your Rules.<br/><span class="text-emerald-400">Anywhere.</span>
+        </h1>
+        <p class="text-xl sm:text-2xl text-slate-300 mb-8 leading-relaxed">
+          Transform how you run your business with <strong class="text-white">Start POS</strong> — 
+          a next-generation Point of Sale system that works everywhere, for everyone.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href={APP_URL} class="inline-flex items-center justify-center px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg transition-all hover:shadow-xl hover:scale-105">
+            Start Free Trial
+          </a>
+          <a href="#overview" class="inline-flex items-center justify-center px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl backdrop-blur-sm transition-all border border-white/20">
+            Learn More
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Overview -->
+  <section id="overview" class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-3xl mx-auto text-center mb-16">
+        <span class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Why Start POS?</span>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-black text-slate-900 mb-4">
+          Built for businesses that refuse to compromise
+        </h2>
+        <p class="text-lg text-slate-600">
+          Whether you're running a bustling restaurant, a retail store, or a grocery operation, 
+          Start POS adapts to your needs — not the other way around.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="bg-slate-50 rounded-2xl p-8 border border-slate-200">
+          <div class="text-4xl mb-4">🌐</div>
+          <h3 class="text-xl font-bold text-slate-900 mb-3">Work Anywhere, Anytime</h3>
+          <p class="text-slate-600">
+            Built with an offline-first architecture. Process sales, manage inventory, and serve customers 
+            even when the internet doesn't cooperate. Everything syncs automatically when you're back online.
+          </p>
+        </div>
+
+        <div class="bg-slate-50 rounded-2xl p-8 border border-slate-200">
+          <div class="text-4xl mb-4">🎯</div>
+          <h3 class="text-xl font-bold text-slate-900 mb-3">One System, Every Business</h3>
+          <p class="text-slate-600">
+            Retail, Restaurant, or Grocery — our intelligent system adapts to your industry. 
+            Full inventory management, kitchen workflows, and expiration tracking all in one platform.
+          </p>
+        </div>
+
+        <div class="bg-slate-50 rounded-2xl p-8 border border-slate-200">
+          <div class="text-4xl mb-4">📈</div>
+          <h3 class="text-xl font-bold text-slate-900 mb-3">Scale With Confidence</h3>
+          <p class="text-slate-600">
+            Start with a single location and grow to multiple branches without switching systems. 
+            Multi-tenant architecture with role-based access and branch-specific configurations.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Business Types -->
+  <section class="py-20 bg-slate-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <span class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Suitable For</span>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-black text-slate-900">
+          Built for your industry
+        </h2>
+      </div>
+
+      <div class="text-center">
+        <div class="inline-flex flex-wrap justify-center gap-2 text-lg font-semibold text-slate-700">
+          <span class="px-4 py-2 bg-white rounded-lg border border-slate-200">Retail</span>
+          <span class="text-slate-400">·</span>
+          <span class="px-4 py-2 bg-white rounded-lg border border-slate-200">Restaurants & Cafes</span>
+          <span class="text-slate-400">·</span>
+          <span class="px-4 py-2 bg-white rounded-lg border border-slate-200">Grocery</span>
+          <span class="text-slate-400">·</span>
+          <span class="px-4 py-2 bg-white rounded-lg border border-slate-200">Service Businesses</span>
+          <span class="text-slate-400">·</span>
+          <span class="px-4 py-2 bg-white rounded-lg border border-slate-200">Multi-Location Operations</span>
+          <span class="text-slate-400">·</span>
+          <span class="px-4 py-2 bg-white rounded-lg border border-slate-200">Mixed Operations</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Features Overview -->
+  <section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <span class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Features That Work</span>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-black text-slate-900">
+          Everything you need, nothing you don't
+        </h2>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+        <!-- Left Column -->
+        <div class="space-y-6">
+          <div>
+            <h3 class="text-xl font-bold text-slate-900 mb-2">
+              <span class="inline-block w-6 h-6 bg-emerald-100 rounded text-emerald-600 text-sm text-center leading-6 mr-3">🛒</span>
+              Intelligent Product Management
+            </h3>
+            <p class="text-slate-600 mb-3">
+              Support for physical goods, services, raw materials, and bundles. Product variants, add-ons, 
+              Bill of Materials (BOM), flexible pricing, and service duration management.
+            </p>
+            <div class="text-sm text-slate-500">
+              Categories & SKUs · Multiple units · Cost & selling price tracking · Expiration tracking
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-xl font-bold text-slate-900 mb-2">
+              <span class="inline-block w-6 h-6 bg-violet-100 rounded text-violet-600 text-sm text-center leading-6 mr-3">📦</span>
+              Complete Inventory Control
+            </h3>
+            <p class="text-slate-600 mb-3">
+              Multi-location warehousing with batch tracking, expiration monitoring, stock adjustments, 
+              internal transfers, and waste management.
+            </p>
+            <div class="text-sm text-slate-500">
+              Branch-level stock · Low-stock alerts · Automatic refill tasks · Purchase receiving
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-xl font-bold text-slate-900 mb-2">
+              <span class="inline-block w-6 h-6 bg-blue-100 rounded text-blue-600 text-sm text-center leading-6 mr-3">💰</span>
+              Powerful Sales Features
+            </h3>
+            <p class="text-slate-600 mb-3">
+              Multiple payment methods, customer management, discounts, automatic tax computation, 
+              receipt generation, and complete transaction history.
+            </p>
+            <div class="text-sm text-slate-500">
+              Cash, card, e-wallet · Refunds & adjustments · Invoice numbering · PDF receipts
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="space-y-6">
+          <div>
+            <h3 class="text-xl font-bold text-slate-900 mb-2">
+              <span class="inline-block w-6 h-6 bg-orange-100 rounded text-orange-600 text-sm text-center leading-6 mr-3">🍽️</span>
+              Restaurant-Ready
+            </h3>
+            <p class="text-slate-600 mb-3">
+              Kitchen order management, order status tracking, table/buzzer support, 
+              dine-in/takeout/delivery modes, and customizable add-ons.
+            </p>
+            <div class="text-sm text-slate-500">
+              Kitchen workflows · Order queue · Status tracking · Deposit management
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-xl font-bold text-slate-900 mb-2">
+              <span class="inline-block w-6 h-6 bg-pink-100 rounded text-pink-600 text-sm text-center leading-6 mr-3">💼</span>
+              Financial Management
+            </h3>
+            <p class="text-slate-600 mb-3">
+              Cash reconciliation, vendor session tracking, revenue and cost analysis, 
+              profit calculations, and payment tracking across all methods.
+            </p>
+            <div class="text-sm text-slate-500">
+              Vendor sessions · Revenue tracking · Cost analysis · Profit calculations
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-xl font-bold text-slate-900 mb-2">
+              <span class="inline-block w-6 h-6 bg-teal-100 rounded text-teal-600 text-sm text-center leading-6 mr-3">📋</span>
+              Operational Excellence
+            </h3>
+            <p class="text-slate-600 mb-3">
+              Built-in task management for shelf refills, purchase requests, branch transfers, 
+              stock counting, and custom workflows with approval flow.
+            </p>
+            <div class="text-sm text-slate-500">
+              Task workflows · Approval systems · Role assignments · Status tracking
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-12 text-center">
+        <a href="/features" class="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-semibold transition-colors">
+          View all features in detail
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Configuration System -->
+  <section class="py-20 bg-slate-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-12">
+          <span class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Flexibility</span>
+          <h2 class="mt-3 text-3xl sm:text-4xl font-black text-slate-900 mb-4">
+            Flexible Configuration
+          </h2>
+          <p class="text-lg text-slate-600">
+            Start POS adapts to how your business operates, allowing business-wide settings 
+            to be refined at branch and user level.
+          </p>
+        </div>
+        
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h3 class="text-lg font-bold text-slate-900 mb-4">BUSINESS</h3>
+            <ul class="space-y-2 text-sm text-slate-600">
+              <li>• Tax and business settings</li>
+              <li>• Compliance settings</li>
+              <li>• Business configuration</li>
+            </ul>
+          </div>
+          
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h3 class="text-lg font-bold text-slate-900 mb-4">BRANCH</h3>
+            <ul class="space-y-2 text-sm text-slate-600">
+              <li>• Inventory settings</li>
+              <li>• Pricing rules</li>
+              <li>• Branch-specific controls</li>
+            </ul>
+          </div>
+          
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h3 class="text-lg font-bold text-slate-900 mb-4">USER</h3>
+            <ul class="space-y-2 text-sm text-slate-600">
+              <li>• Roles and permissions</li>
+              <li>• Personal preferences</li>
+              <li>• User-level access</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Compliance -->
+  <section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 lg:p-12 text-white order-2 lg:order-1">
+          <div class="text-4xl mb-4">🧾</div>
+          <h3 class="text-2xl font-bold mb-4">Compliance Built-In</h3>
+          <p class="text-slate-300 mb-6">
+            Designed for global operations with built-in support for Philippines BIR requirements 
+            and a framework ready for other Southeast Asian markets.
+          </p>
+          <ul class="space-y-3">
+            {[
+              'VAT, GST, and Sales Tax',
+              'Multiple invoice types',
+              'Tax categories & exemptions',
+              'Compliance registry',
+              'Sequential numbering',
+              'Country-specific requirements',
+            ].map((item) => (
+              <li class="flex items-center gap-3">
+                <svg class="shrink-0 text-emerald-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span class="text-slate-200">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div class="order-1 lg:order-2">
+          <span class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Global Ready</span>
+          <h2 class="mt-3 text-3xl sm:text-4xl font-black text-slate-900 mb-4">
+            Stay compliant, everywhere
+          </h2>
+          <p class="text-lg text-slate-600 mb-6">
+            Tax regulations vary by country, but compliance shouldn't be complicated. 
+            Start POS handles the complexity so you can focus on your business.
+          </p>
+          <div class="space-y-4">
+            <div class="flex items-start gap-3">
+              <div class="shrink-0 w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 font-bold text-sm">PH</div>
+              <div>
+                <div class="font-semibold text-slate-900">Philippines</div>
+                <div class="text-sm text-slate-600">Full BIR compliance with PTU, VAT, and invoice numbering</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-sm">SG</div>
+              <div>
+                <div class="font-semibold text-slate-900">Singapore & Malaysia</div>
+                <div class="text-sm text-slate-600">GST-ready architecture for regional expansion</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="shrink-0 w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600 font-bold text-sm">+</div>
+              <div>
+                <div class="font-semibold text-slate-900">More Countries</div>
+                <div class="text-sm text-slate-600">Extensible framework for additional tax systems</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Built for Reliable Business Operations -->
+  <section class="py-20 bg-slate-900 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Built For Reliability</span>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-black mb-4">
+          Built for reliable business operations
+        </h2>
+        <p class="text-lg text-slate-400 max-w-2xl mx-auto">
+          Start POS is designed around reliability, security, flexibility, and efficient day-to-day business operations.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <div class="text-3xl mb-3">⚡</div>
+          <h3 class="font-bold text-white mb-2">Offline-Capable Operations</h3>
+          <p class="text-sm text-slate-400">Keep serving customers even when connectivity fails</p>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <div class="text-3xl mb-3">🔐</div>
+          <h3 class="font-bold text-white mb-2">Secure Business Data</h3>
+          <p class="text-sm text-slate-400">Enterprise-grade security with role-based access</p>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <div class="text-3xl mb-3">🏢</div>
+          <h3 class="font-bold text-white mb-2">Multi-Branch Support</h3>
+          <p class="text-sm text-slate-400">Scale from single location to multiple branches seamlessly</p>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <div class="text-3xl mb-3">🔄</div>
+          <h3 class="font-bold text-white mb-2">Automatic Synchronization</h3>
+          <p class="text-sm text-slate-400">Data syncs automatically when connection is restored</p>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <div class="text-3xl mb-3">💾</div>
+          <h3 class="font-bold text-white mb-2">Reliable Transaction Processing</h3>
+          <p class="text-sm text-slate-400">Every transaction is captured and processed reliably</p>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <div class="text-3xl mb-3">👥</div>
+          <h3 class="font-bold text-white mb-2">Role-Based Access</h3>
+          <p class="text-sm text-slate-400">Control what each team member can see and do</p>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <div class="text-3xl mb-3">📱</div>
+          <h3 class="font-bold text-white mb-2">Cross-Platform Ready</h3>
+          <p class="text-sm text-slate-400">Works seamlessly on desktop, tablet, and mobile</p>
+        </div>
+        
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <div class="text-3xl mb-3">🚀</div>
+          <h3 class="font-bold text-white mb-2">Continuous Product Improvements</h3>
+          <p class="text-sm text-slate-400">Regular updates and new features based on user feedback</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What's Next -->
+  <section class="py-20 bg-gradient-to-br from-emerald-50 to-blue-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <span class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Roadmap</span>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-black text-slate-900 mb-4">
+          What's next?
+        </h2>
+        <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+          We're constantly evolving Start POS based on real business needs and customer feedback.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl p-6 border border-slate-200">
+          <div class="text-3xl mb-3">☁️</div>
+          <h3 class="font-bold text-slate-900 mb-2">Cloud Synchronization</h3>
+          <p class="text-sm text-slate-600">Multi-device access with real-time sync</p>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 border border-slate-200">
+          <div class="text-3xl mb-3">📱</div>
+          <h3 class="font-bold text-slate-900 mb-2">Barcode Scanner Integration</h3>
+          <p class="text-sm text-slate-600">Native barcode scanning for inventory</p>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 border border-slate-200">
+          <div class="text-3xl mb-3">🎨</div>
+          <h3 class="font-bold text-slate-900 mb-2">Receipt Designer</h3>
+          <p class="text-sm text-slate-600">Custom receipt templates and branding</p>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 border border-slate-200">
+          <div class="text-3xl mb-3">📺</div>
+          <h3 class="font-bold text-slate-900 mb-2">Kitchen Display System</h3>
+          <p class="text-sm text-slate-600">Dedicated displays for restaurant workflows</p>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 border border-slate-200">
+          <div class="text-3xl mb-3">⭐</div>
+          <h3 class="font-bold text-slate-900 mb-2">Customer Loyalty Programs</h3>
+          <p class="text-sm text-slate-600">Points, rewards, and membership systems</p>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 border border-slate-200">
+          <div class="text-3xl mb-3">📊</div>
+          <h3 class="font-bold text-slate-900 mb-2">Advanced Analytics</h3>
+          <p class="text-sm text-slate-600">Business intelligence and forecasting</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Early Customer Program -->
+  <section class="py-20 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Join Us Early</span>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-black text-white mb-4">
+          Join us at the beginning
+        </h2>
+        <p class="text-xl text-slate-300 max-w-3xl mx-auto">
+          Start POS is entering its early customer stage, and we're inviting a select group of businesses 
+          to be part of the journey. Join us early and receive exclusive benefits while helping shape 
+          a POS platform built around the real needs of growing businesses.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-8 mb-12">
+        <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
+          <h3 class="text-xl font-bold text-white mb-6">Early Customer Benefits</h3>
+          <ul class="space-y-4">
+            <li class="flex items-start gap-3">
+              <div class="shrink-0 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center mt-0.5">
+                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div>
+                <div class="font-semibold text-white">Exclusive Introductory Pricing</div>
+                <div class="text-sm text-slate-300">Special rates locked in for early adopters</div>
+              </div>
+            </li>
+            
+            <li class="flex items-start gap-3">
+              <div class="shrink-0 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center mt-0.5">
+                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div>
+                <div class="font-semibold text-white">Priority Support</div>
+                <div class="text-sm text-slate-300">Direct access to our support team</div>
+              </div>
+            </li>
+            
+            <li class="flex items-start gap-3">
+              <div class="shrink-0 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center mt-0.5">
+                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div>
+                <div class="font-semibold text-white">Early Access to New Features</div>
+                <div class="text-sm text-slate-300">Get new capabilities before general release</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
+          <h3 class="text-xl font-bold text-white mb-6">More Benefits</h3>
+          <ul class="space-y-4">
+            <li class="flex items-start gap-3">
+              <div class="shrink-0 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center mt-0.5">
+                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div>
+                <div class="font-semibold text-white">Direct Feedback Channel</div>
+                <div class="text-sm text-slate-300">Shape the product with your input</div>
+              </div>
+            </li>
+            
+            <li class="flex items-start gap-3">
+              <div class="shrink-0 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center mt-0.5">
+                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div>
+                <div class="font-semibold text-white">Priority Feature Requests</div>
+                <div class="text-sm text-slate-300">Your needs influence our roadmap</div>
+              </div>
+            </li>
+            
+            <li class="flex items-start gap-3">
+              <div class="shrink-0 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center mt-0.5">
+                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <div>
+                <div class="font-semibold text-white">Special Benefits as Start POS Grows</div>
+                <div class="text-sm text-slate-300">Exclusive perks for founding customers</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="text-center">
+        <a href={APP_URL} class="inline-flex items-center justify-center px-12 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg rounded-xl shadow-lg transition-all hover:shadow-xl hover:scale-105">
+          Be Among The First To Join Start POS
+        </a>
+        <p class="text-sm text-slate-400 mt-4">Limited early customer spots available</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Getting Started -->
+  <section class="py-20 bg-white">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <span class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Getting Started</span>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-black text-slate-900 mb-4">
+          Up and running in minutes
+        </h2>
+        <p class="text-lg text-slate-600">
+          Start POS is designed to get you operational quickly with minimal setup.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-4 gap-8">
+        {[
+          { step: '1', title: 'Sign Up', desc: 'Create your account — no credit card required' },
+          { step: '2', title: 'Configure', desc: 'Set up your business, branches, and products with our wizard' },
+          { step: '3', title: 'Train Team', desc: 'Intuitive interface your team will learn in minutes' },
+          { step: '4', title: 'Go Live', desc: 'Start processing sales and serving customers immediately' },
+        ].map((step) => (
+          <div class="text-center">
+            <div class="inline-flex w-16 h-16 bg-emerald-100 rounded-full items-center justify-center text-2xl font-black text-emerald-600 mb-4">
+              {step.step}
+            </div>
+            <h3 class="font-bold text-slate-900 mb-2">{step.title}</h3>
+            <p class="text-sm text-slate-600">{step.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="mt-12 p-8 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl text-center">
+        <h3 class="text-2xl font-bold text-white mb-3">
+          Ready to transform your business?
+        </h3>
+        <p class="text-slate-300 mb-6 max-w-2xl mx-auto">
+          Start POS gives you the tools to serve customers faster, manage inventory smarter, 
+          and grow without limits — all while working reliably whether you're online or offline.
+        </p>
+        <a href={APP_URL} class="inline-flex items-center justify-center px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg transition-all hover:shadow-xl hover:scale-105">
+          Start Your Free Trial
+        </a>
+        <p class="text-xs text-slate-400 mt-4">1 month free • No credit card required • Cancel anytime</p>
+      </div>
+    </div>
+  </section>
+
+  <FinalCTA />
+
+  <!-- ============================================================
+       PRINT DOCUMENT — hidden on screen, visible only in print
+       This is a completely independent document layout.
+       Do not edit for web purposes; edit print.css for styling.
+       ============================================================ -->
+  <div class="print-doc">
+
+    <!-- Cover -->
+    <div class="pd-cover">
+      <div class="pd-cover-logo">start<span>POS</span></div>
+      <h1 class="pd-cover-title">Product Introduction</h1>
+      <p class="pd-cover-tagline">Your Business. Your Rules. Anywhere.</p>
+      <p class="pd-cover-sub">
+        A modern, offline-first Point of Sale system designed for retail,
+        restaurant, and grocery businesses in the Philippines and Southeast Asia.
+      </p>
+      <div class="pd-cover-meta">startpos.ph &nbsp;·&nbsp; hello@startpos.ph</div>
+    </div>
+
+    <!-- Page 1: Positioning + Industry Fit -->
+    <div class="pd-page">
+
+      <div class="pd-section">
+        <div class="pd-section-label">Overview</div>
+        <h2 class="pd-section-heading">Built for businesses that refuse to compromise</h2>
+        <p class="pd-body">
+          Whether you're running a bustling restaurant, a retail store, or a grocery operation,
+          Start POS adapts to your needs — not the other way around. One platform. Every business type.
+          Works reliably online or offline.
+        </p>
+
+        <div class="pd-pillars">
+          <div class="pd-pillar">
+            <div class="pd-pillar-heading">Works Offline</div>
+            <p class="pd-pillar-body">
+              Built with a local-first architecture. Process sales, manage inventory, and serve
+              customers even without internet. Everything syncs automatically when connectivity returns.
+            </p>
+          </div>
+          <div class="pd-pillar">
+            <div class="pd-pillar-heading">One System, Every Industry</div>
+            <p class="pd-pillar-body">
+              Retail, restaurant, or grocery — Start POS adapts to your workflows with
+              industry-specific features and configurable settings.
+            </p>
+          </div>
+          <div class="pd-pillar">
+            <div class="pd-pillar-heading">Multi-Location Ready</div>
+            <p class="pd-pillar-body">
+              Start with a single branch and grow to a chain without switching systems.
+              Multi-tenant, role-based access, branch-specific configuration.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-rule"></div>
+
+      <div class="pd-section">
+        <div class="pd-section-label">Suitable For</div>
+        <h2 class="pd-section-heading">Built for your industry</h2>
+        <div class="pd-industry-list">
+          <div class="pd-industry-row">
+            <span class="pd-industry-name">Retail</span>
+            <span class="pd-industry-items">Clothing · Electronics · General merchandise · Pop-up shops</span>
+          </div>
+          <div class="pd-industry-row">
+            <span class="pd-industry-name">Restaurants &amp; Cafes</span>
+            <span class="pd-industry-items">Quick service · Full service · Delivery &amp; takeout · Food trucks</span>
+          </div>
+          <div class="pd-industry-row">
+            <span class="pd-industry-name">Grocery</span>
+            <span class="pd-industry-items">Fresh produce · Packaged goods · Bulk items · Organic markets</span>
+          </div>
+          <div class="pd-industry-row">
+            <span class="pd-industry-name">Service Businesses</span>
+            <span class="pd-industry-items">Salons &amp; spas · Repair shops · Professional services · Workshops</span>
+          </div>
+          <div class="pd-industry-row">
+            <span class="pd-industry-name">Multi-Location Operations</span>
+            <span class="pd-industry-items">Franchises · Corporate branches · Regional operations · Pop-ups</span>
+          </div>
+          <div class="pd-industry-row">
+            <span class="pd-industry-name">Mixed Operations</span>
+            <span class="pd-industry-items">Cafe + retail · Restaurant + catering · Store + services · Hybrid models</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Page 2: Features -->
+    <div class="pd-page pd-page-break">
+
+      <div class="pd-section">
+        <div class="pd-section-label">Features</div>
+        <h2 class="pd-section-heading">Everything you need, nothing you don't</h2>
+
+        <div class="pd-features">
+          <div class="pd-feature">
+            <div class="pd-feature-heading">Intelligent Product Management</div>
+            <p class="pd-feature-body">Support for physical goods, services, raw materials, and bundles. Product variants, add-ons, Bill of Materials (BOM), flexible pricing, and service duration management.</p>
+            <div class="pd-feature-tags">Categories &amp; SKUs · Multiple units · Cost &amp; selling price · Expiration tracking</div>
+          </div>
+
+          <div class="pd-feature">
+            <div class="pd-feature-heading">Complete Inventory Control</div>
+            <p class="pd-feature-body">Multi-location warehousing with batch tracking, expiration monitoring, stock adjustments, internal transfers, and waste management.</p>
+            <div class="pd-feature-tags">Branch-level stock · Low-stock alerts · Automatic refill tasks · Purchase receiving</div>
+          </div>
+
+          <div class="pd-feature">
+            <div class="pd-feature-heading">Powerful Sales Features</div>
+            <p class="pd-feature-body">Multiple payment methods, customer management, discounts, automatic tax computation, receipt generation, and complete transaction history.</p>
+            <div class="pd-feature-tags">Cash, card, e-wallet · Refunds &amp; adjustments · Invoice numbering · PDF receipts</div>
+          </div>
+
+          <div class="pd-feature">
+            <div class="pd-feature-heading">Restaurant-Ready</div>
+            <p class="pd-feature-body">Kitchen order management, order status tracking, table and buzzer support, dine-in, takeout, and delivery modes, with customizable add-ons.</p>
+            <div class="pd-feature-tags">Kitchen workflows · Order queue · Status tracking · Deposit management</div>
+          </div>
+
+          <div class="pd-feature">
+            <div class="pd-feature-heading">Financial Management</div>
+            <p class="pd-feature-body">Cash reconciliation, vendor session tracking, revenue and cost analysis, profit calculations, and payment tracking across all methods.</p>
+            <div class="pd-feature-tags">Vendor sessions · Revenue tracking · Cost analysis · Profit calculations</div>
+          </div>
+
+          <div class="pd-feature">
+            <div class="pd-feature-heading">Operational Task Management</div>
+            <p class="pd-feature-body">Built-in task workflows for shelf refills, purchase requests, branch transfers, stock counting, and cash reconciliation with approval flow.</p>
+            <div class="pd-feature-tags">Task workflows · Approval systems · Role assignments · Status tracking</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Page 3: Configuration + Compliance -->
+    <div class="pd-page pd-page-break">
+
+      <div class="pd-section">
+        <div class="pd-section-label">Flexibility</div>
+        <h2 class="pd-section-heading">Flexible Configuration</h2>
+        <p class="pd-body">
+          Start POS adapts to how your business operates, allowing business-wide settings 
+          to be refined at branch and user level.
+        </p>
+
+        <div class="pd-config-grid">
+          <div class="pd-config-col">
+            <div class="pd-config-heading">BUSINESS</div>
+            <ul class="pd-config-list">
+              <li>Tax and business settings</li>
+              <li>Compliance settings</li>
+              <li>Business configuration</li>
+            </ul>
+          </div>
+          <div class="pd-config-col">
+            <div class="pd-config-heading">BRANCH</div>
+            <ul class="pd-config-list">
+              <li>Inventory settings</li>
+              <li>Pricing rules</li>
+              <li>Branch-specific controls</li>
+            </ul>
+          </div>
+          <div class="pd-config-col">
+            <div class="pd-config-heading">USER</div>
+            <ul class="pd-config-list">
+              <li>Roles and permissions</li>
+              <li>Personal preferences</li>
+              <li>User-level access</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-rule"></div>
+
+      <div class="pd-section">
+        <div class="pd-section-label">Global Ready</div>
+        <h2 class="pd-section-heading">Stay compliant, everywhere</h2>
+        <p class="pd-body">
+          Tax regulations vary by country. Start POS handles the complexity so you can
+          focus on your business. Built for Philippines BIR compliance and ready for
+          expansion across Southeast Asia.
+        </p>
+
+        <div class="pd-compliance-grid">
+          <div class="pd-compliance-row">
+            <span class="pd-compliance-badge">PH</span>
+            <div>
+              <strong>Philippines</strong> — Full BIR compliance with PTU registration,
+              VAT computation (inclusive and exclusive), and sequential invoice numbering.
+            </div>
+          </div>
+          <div class="pd-compliance-row">
+            <span class="pd-compliance-badge">SG / MY</span>
+            <div>
+              <strong>Singapore &amp; Malaysia</strong> — GST-ready architecture for
+              regional expansion.
+            </div>
+          </div>
+          <div class="pd-compliance-row">
+            <span class="pd-compliance-badge">+</span>
+            <div>
+              <strong>More Countries</strong> — Extensible framework supporting additional
+              tax systems, invoice types, and compliance registries.
+            </div>
+          </div>
+        </div>
+
+        <div class="pd-compliance-tags">
+          VAT · GST · Sales Tax · Multiple invoice types · Tax categories &amp; exemptions ·
+          Compliance registry · Sequential numbering
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Page 4: Built for Reliable Operations + Roadmap -->
+    <div class="pd-page pd-page-break">
+
+      <div class="pd-section">
+        <div class="pd-section-label">Built For Reliability</div>
+        <h2 class="pd-section-heading">Built for reliable business operations</h2>
+        <p class="pd-body">
+          Start POS is designed around reliability, security, flexibility, and efficient day-to-day business operations.
+        </p>
+
+        <div class="pd-tech-grid">
+          <div class="pd-tech-row">
+            <span class="pd-tech-name">Offline-Capable Operations</span>
+            <span class="pd-tech-desc">Keep serving customers even when connectivity fails</span>
+          </div>
+          <div class="pd-tech-row">
+            <span class="pd-tech-name">Reliable Transaction Processing</span>
+            <span class="pd-tech-desc">Every transaction is captured and processed reliably</span>
+          </div>
+          <div class="pd-tech-row">
+            <span class="pd-tech-name">Secure Business Data</span>
+            <span class="pd-tech-desc">Enterprise-grade security with role-based access</span>
+          </div>
+          <div class="pd-tech-row">
+            <span class="pd-tech-name">Role-Based Access</span>
+            <span class="pd-tech-desc">Control what each team member can see and do</span>
+          </div>
+          <div class="pd-tech-row">
+            <span class="pd-tech-name">Multi-Branch Support</span>
+            <span class="pd-tech-desc">Scale from single location to multiple branches seamlessly</span>
+          </div>
+          <div class="pd-tech-row">
+            <span class="pd-tech-name">Automatic Synchronization</span>
+            <span class="pd-tech-desc">Data syncs automatically when connection is restored</span>
+          </div>
+          <div class="pd-tech-row">
+            <span class="pd-tech-name">Continuous Product Improvements</span>
+            <span class="pd-tech-desc">Regular updates and new features based on user feedback</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-rule"></div>
+
+      <div class="pd-section">
+        <div class="pd-section-label">Roadmap</div>
+        <h2 class="pd-section-heading">What's next?</h2>
+        <p class="pd-body">
+          Start POS is actively developed. We're constantly evolving based on real business needs and customer feedback.
+        </p>
+
+        <div class="pd-roadmap-grid">
+          <div class="pd-roadmap-item">
+            <span class="pd-roadmap-name">Cloud Sync</span>
+            Multi-device real-time sync
+          </div>
+          <div class="pd-roadmap-item">
+            <span class="pd-roadmap-name">Barcode Scanner</span>
+            Native scanning integration
+          </div>
+          <div class="pd-roadmap-item">
+            <span class="pd-roadmap-name">Receipt Designer</span>
+            Custom receipt templates
+          </div>
+          <div class="pd-roadmap-item">
+            <span class="pd-roadmap-name">Kitchen Display</span>
+            Dedicated displays for restaurants
+          </div>
+          <div class="pd-roadmap-item">
+            <span class="pd-roadmap-name">Customer Loyalty</span>
+            Points, rewards, memberships
+          </div>
+          <div class="pd-roadmap-item">
+            <span class="pd-roadmap-name">Advanced Analytics</span>
+            Business intelligence dashboard
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Page 5: Getting Started + CTA -->
+    <div class="pd-page pd-page-break">
+
+      <div class="pd-section">
+        <div class="pd-section-label">Getting Started</div>
+        <h2 class="pd-section-heading">Up and running in minutes</h2>
+        <p class="pd-body">
+          Start POS is designed to get your business operational quickly.
+          No complex setup, no lengthy onboarding.
+        </p>
+
+        <div class="pd-steps">
+          <div class="pd-step">
+            <div class="pd-step-num">01</div>
+            <div class="pd-step-content">
+              <div class="pd-step-title">Sign Up</div>
+              <p>Create your account. No credit card required.</p>
+            </div>
+          </div>
+          <div class="pd-step">
+            <div class="pd-step-num">02</div>
+            <div class="pd-step-content">
+              <div class="pd-step-title">Configure</div>
+              <p>Set up your business profile, branches, and product catalogue.</p>
+            </div>
+          </div>
+          <div class="pd-step">
+            <div class="pd-step-num">03</div>
+            <div class="pd-step-content">
+              <div class="pd-step-title">Train Your Team</div>
+              <p>Intuitive interface your staff will learn in a single session.</p>
+            </div>
+          </div>
+          <div class="pd-step">
+            <div class="pd-step-num">04</div>
+            <div class="pd-step-content">
+              <div class="pd-step-title">Go Live</div>
+              <p>Start processing sales and serving customers immediately.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-rule"></div>
+
+      <div class="pd-section">
+        <div class="pd-section-label">Join Us Early</div>
+        <h2 class="pd-section-heading">Join us at the beginning</h2>
+        <p class="pd-body">
+          Start POS is entering its early customer stage, and we're inviting a select group of businesses 
+          to be part of the journey. Join us early and receive exclusive benefits while helping shape 
+          a POS platform built around the real needs of growing businesses.
+        </p>
+
+        <div class="pd-early-customer-benefits">
+          <div class="pd-early-benefit-col">
+            <h3 class="pd-early-benefit-heading">Early Customer Benefits</h3>
+            <ul class="pd-early-benefit-list">
+              <li>Exclusive introductory pricing</li>
+              <li>Priority support</li>
+              <li>Early access to new features</li>
+            </ul>
+          </div>
+          <div class="pd-early-benefit-col">
+            <h3 class="pd-early-benefit-heading">Additional Benefits</h3>
+            <ul class="pd-early-benefit-list">
+              <li>Direct feedback channel with Start POS team</li>
+              <li>Priority consideration for feature requests</li>
+              <li>Special benefits as Start POS grows</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-rule"></div>
+
+      <div class="pd-closing">
+        <h2 class="pd-closing-heading">Be Among The First To Join Start POS</h2>
+        <p class="pd-closing-body">
+          Start POS gives you the tools to serve customers faster, manage inventory smarter,
+          and grow without limits — reliably, whether you're online or offline.
+        </p>
+        <div class="pd-closing-cta">
+          <span class="pd-cta-url">startpos.ph</span>
+          <span class="pd-cta-divider">·</span>
+          <span>1-month free trial</span>
+          <span class="pd-cta-divider">·</span>
+          <span>No credit card required</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- end .print-doc -->
+
+  <!-- Print Button (hidden on print) -->
+  <button onclick="window.print()" class="print-button no-print" aria-label="Print or Save as PDF">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 6 2 18 2 18 9"/>
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+      <rect x="6" y="14" width="12" height="8"/>
+    </svg>
+    Print / Save PDF
+  </button>
+
+  <!-- Print script to add class -->
+  <script>
+    window.addEventListener('beforeprint', () => {
+      document.body.classList.add('printing');
+    });
+    window.addEventListener('afterprint', () => {
+      document.body.classList.remove('printing');
+    });
+  </script>
+
+</BaseLayout>
+
+<style>
+  .reveal {
+    animation: fadeInUp 0.8s ease-out forwards;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .print-button {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 50;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: bold;
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+    cursor: pointer;
+  }
+
+  .print-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(16, 185, 129, 0.4);
+  }
+
+  @media print {
+    .print-button { display: none !important; }
+  }
+</style>

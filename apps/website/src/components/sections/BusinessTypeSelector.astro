@@ -1,0 +1,161 @@
+---
+const businessTypes = [
+  {
+    id: 'retail',
+    icon: '🛒',
+    label: 'Retail',
+    tagline: 'Everything a retail shop needs. Nothing it doesn\'t.',
+    description: 'Manage your product catalogue, track inventory across locations, and process sales quickly. Built for clothing, hardware, electronics, and any general retail business.',
+    highlights: ['Product variants & SKUs', 'Barcode support', 'Inventory tracking', 'Sales history & CSV export'],
+    href: '/use-cases/retail',
+    color: 'blue',
+  },
+  {
+    id: 'restaurant',
+    icon: '🍽',
+    label: 'Restaurant',
+    tagline: 'From table to kitchen — in one tap.',
+    description: 'Take orders, send them to the kitchen, and track dine-in, take-out, and delivery — all from one screen. Built for cafes, quick-service restaurants, and full-service dining.',
+    highlights: ['Order queue & kitchen display', 'Dine-in / take-out / delivery', 'Add-ons & modifiers', 'Deposit & table tracking'],
+    href: '/use-cases/restaurant',
+    color: 'amber',
+  },
+  {
+    id: 'grocery',
+    icon: '🏪',
+    label: 'Grocery',
+    tagline: 'Fast checkout. Tight inventory. Full control.',
+    description: 'Barcode scanning, bulk item pricing, expiry date tracking, and low-stock alerts keep your shelves full and your checkout lines moving.',
+    highlights: ['Barcode scanning', 'Expiry date tracking', 'Low-stock alerts', 'Purchase orders & receiving'],
+    href: '/use-cases/grocery',
+    color: 'emerald',
+  },
+]
+---
+
+<section id="business-type" class="py-20 sm:py-24 bg-slate-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <div class="text-center max-w-2xl mx-auto mb-12 reveal">
+      <span class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Built for your business</span>
+      <h2 class="mt-2 text-3xl sm:text-4xl font-black text-slate-900 leading-tight">
+        One platform, three business types
+      </h2>
+      <p class="mt-3 text-slate-500 text-base">
+        Start POS adapts to how your business actually works — not the other way around.
+      </p>
+    </div>
+
+    <!-- Business type tabs -->
+    <div class="business-selector" data-active="retail">
+
+      <!-- Tab buttons -->
+      <div class="flex justify-center mb-8">
+        <div class="inline-flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm gap-1">
+          {businessTypes.map((bt) => (
+            <button
+              class="biz-tab px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-150 text-slate-500 hover:text-slate-700"
+              data-target={bt.id}
+            >
+              <span class="mr-1.5">{bt.icon}</span>{bt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <!-- Content panels -->
+      <div class="biz-panels">
+        {businessTypes.map((bt, i) => (
+          <div
+            id={`biz-panel-${bt.id}`}
+            class:list={['biz-panel', i === 0 ? 'block' : 'hidden']}
+            data-id={bt.id}
+          >
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+
+              <!-- Text side -->
+              <div class="space-y-6">
+                <div>
+                  <div class="text-4xl mb-3">{bt.icon}</div>
+                  <h3 class="text-2xl font-bold text-slate-900 mb-2">{bt.tagline}</h3>
+                  <p class="text-slate-500 leading-relaxed">{bt.description}</p>
+                </div>
+
+                <ul class="space-y-2">
+                  {bt.highlights.map((h) => (
+                    <li class="flex items-center gap-2 text-sm text-slate-600">
+                      <svg class="text-emerald-500 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      {h}
+                    </li>
+                  ))}
+                </ul>
+
+                <a
+                  href={bt.href}
+                  class="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
+                >
+                  See {bt.label} details
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                    <polyline points="12 5 19 12 12 19"/>
+                  </svg>
+                </a>
+              </div>
+
+              <!-- Visual placeholder -->
+              <div class="relative">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden aspect-video flex items-center justify-center">
+                  <div class="text-center text-slate-300">
+                    <div class="text-6xl mb-3">{bt.icon}</div>
+                    <p class="text-sm font-medium text-slate-400">
+                      [Screenshot: {bt.label} workflow]
+                    </p>
+                    <p class="text-xs text-slate-300 mt-1">Replace with actual app screenshot</p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        ))}
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script>
+  const tabs = document.querySelectorAll('.biz-tab')
+  const panels = document.querySelectorAll('.biz-panel')
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-target')
+
+      // Update tab styles
+      tabs.forEach((t) => {
+        t.classList.remove('bg-slate-900', 'text-white')
+        t.classList.add('text-slate-500')
+      })
+      tab.classList.remove('text-slate-500')
+      tab.classList.add('bg-slate-900', 'text-white')
+
+      // Show correct panel
+      panels.forEach((p) => {
+        const id = p.getAttribute('data-id')
+        p.classList.toggle('hidden', id !== target)
+        p.classList.toggle('block', id === target)
+      })
+    })
+  })
+
+  // Set initial active tab style
+  const firstTab = tabs[0] as HTMLElement
+  if (firstTab) {
+    firstTab.classList.remove('text-slate-500')
+    firstTab.classList.add('bg-slate-900', 'text-white')
+  }
+</script>

@@ -25,7 +25,7 @@ import { ArrowLeftIcon, CreditCardIcon, InfoIcon, UploadIcon } from 'lucide-reac
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { paymentProviderRegistry } from '@/lib/billing/payment-provider-registry'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { submitManualPayment } from '@/lib/server-fn/submit-manual-payment'
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing/manual-payment')({

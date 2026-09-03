@@ -145,7 +145,7 @@ vi.mock('@/hooks/use-pos', () => ({
 // Mock: overlay — factory must not reference outer variables (hoisting)
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -177,7 +177,7 @@ vi.mock('@/lib/conversion/price-engine', () => ({
 // Post-mock imports — resolved after vi.mock hoisting
 // ---------------------------------------------------------------------------
 
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 
 // ---------------------------------------------------------------------------
 // posFormOpts mirror (same shape as the real one in pos/index.tsx)

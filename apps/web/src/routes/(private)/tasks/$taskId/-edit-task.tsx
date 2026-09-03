@@ -3,7 +3,7 @@ import { operationalTaskCollection } from '@platform/db/collections'
 import { ArrowLeft, Lock, X } from 'lucide-react'
 import { TaskStatus } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { closeTaskSidebar } from '../../-components/task-sidebar'
 import { CreateTask, type CreateTaskFormData } from '../../create/-create-task'
 

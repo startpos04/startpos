@@ -61,7 +61,7 @@ vi.mock('@/lib/queries/fetch-ingredients', () => ({
 // Mock: overlay
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -102,7 +102,7 @@ vi.mock('@tanstack/react-router', async importOriginal => {
 // ---------------------------------------------------------------------------
 
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { IngredientDetailsSidebar } from '@/routes/(private)/(dashboard)/(admin)/ingredients/$ingredientId/index'
 
 // ---------------------------------------------------------------------------

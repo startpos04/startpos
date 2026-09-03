@@ -1,7 +1,7 @@
 import { Button } from '@platform/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
 import { CreditCard, Zap } from 'lucide-react'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 
 interface BuyBranchCreditsDialogProps extends MountProps {
   packageData: {

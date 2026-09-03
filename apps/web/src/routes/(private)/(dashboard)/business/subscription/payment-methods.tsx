@@ -16,7 +16,7 @@ import { Button } from '@platform/components/ui/button'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowLeftIcon } from 'lucide-react'
 import { z } from 'zod'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { OverviewTab } from './payment-methods/-overview-tab'
 import { ProvidersTab } from './payment-methods/-providers-tab'
 

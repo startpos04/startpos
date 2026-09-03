@@ -1,6 +1,6 @@
 import { Aside } from '@platform/components/custom/aside'
 import type { ReactNode } from 'react'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 
 export const PURCHASE_ASIDE_ID = 'purchase-aside'
 

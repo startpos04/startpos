@@ -123,7 +123,7 @@ vi.mock('@/db/collections', () => ({
 // Mock: mount-manager — inline factory avoids hoisting issues
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -155,7 +155,7 @@ vi.mock('@/lib/conversion/price-engine', () => ({
 // Post-mock imports
 // ---------------------------------------------------------------------------
 
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { ProductCard } from '@/routes/(private)/pos/-components/product-card'
 
 import { showModal } from '@/lib/overlay'

@@ -106,6 +106,8 @@ class MountRegistry {
   private dirty = new Set<MountTarget>()
   /** Which targets currently have a <MountManager /> host mounted. */
   private hosts = new Set<MountTarget>()
+  /** Calls queued before the host was registered — drained on registerHost(). */
+  private pendingQueue = new Map<MountTarget, Array<() => void>>()
 
   private batchDepth = 0
   private pendingTargets = new Set<MountTarget>()
@@ -114,6 +116,12 @@ class MountRegistry {
 
   registerHost(target: MountTarget) {
     this.hosts.add(target)
+    // Drain any calls that were made before this host mounted
+    const queued = this.pendingQueue.get(target)
+    if (queued && queued.length > 0) {
+      this.pendingQueue.delete(target)
+      for (const fn of queued) fn()
+    }
   }
 
   unregisterHost(target: MountTarget) {
@@ -122,6 +130,13 @@ class MountRegistry {
 
   hasHost(target: MountTarget) {
     return this.hosts.has(target)
+  }
+
+  /** Queue a call to run once the host for `target` is registered. */
+  queueForHost(target: MountTarget, fn: () => void) {
+    const queue = this.pendingQueue.get(target) ?? []
+    queue.push(fn)
+    this.pendingQueue.set(target, queue)
   }
 
   // ---- subscriptions ----
@@ -396,12 +411,19 @@ MountManager.show = async (Component, options) => {
     console.error('MountManager.show({ toggle: true }) requires a `key` to know which mounted component to toggle.')
   }
 
-  if (!__mountRegistry.hasHost(resolvedTarget)) {
-    console.error(hostNotFoundError(resolvedTarget))
-    return ''
-  }
-
   if (toggle) return MountManager.toggle(Component, options)
+
+  if (!__mountRegistry.hasHost(resolvedTarget)) {
+    // Host not yet mounted — queue and retry once it registers.
+    // This handles the race where show() is called during initial render
+    // before the <MountManager /> host's useEffect has fired.
+    return new Promise(resolve => {
+      __mountRegistry.queueForHost(resolvedTarget, async () => {
+        const id = await MountManager.show(Component, options)
+        resolve(id)
+      })
+    })
+  }
 
   return __mountRegistry.create(resolvedTarget, Component as any, props, key)
 }

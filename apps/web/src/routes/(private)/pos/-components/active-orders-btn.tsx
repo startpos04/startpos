@@ -3,7 +3,7 @@ import { Button } from '@platform/components/ui/button'
 import { getQueryClient } from '@platform/lib/query-client'
 import { useSearch } from '@tanstack/react-router'
 import { ReceiptText } from 'lucide-react'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
 import { ActiveOrdersDialog } from '../../orders'
 

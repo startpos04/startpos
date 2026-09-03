@@ -1,0 +1,120 @@
+---
+import '../styles/global.css'
+import Header from '../components/layout/Header.astro'
+import Footer from '../components/layout/Footer.astro'
+
+export interface Props {
+  title: string
+  description?: string
+  ogImage?: string
+  noIndex?: boolean
+}
+
+const {
+  title,
+  description = 'Start POS — the offline-first point of sale for retail, restaurant, and grocery. Works even when the internet doesn\'t.',
+  ogImage = '/og-image.png',
+  noIndex = false,
+} = Astro.props
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site)
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="generator" content={Astro.generator} />
+
+  <!-- Primary -->
+  <title>{title} | startPOS</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonicalURL} />
+  {noIndex && <meta name="robots" content="noindex, nofollow" />}
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={canonicalURL} />
+  <meta property="og:title" content={`${title} | startPOS`} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image" content={new URL(ogImage, Astro.site)} />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={`${title} | startPOS`} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={new URL(ogImage, Astro.site)} />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+  <!-- JSON-LD — Organization -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "startPOS",
+      "url": "https://startpos.github.io",
+      "description": "Offline-first point of sale system for retail, restaurant, and grocery businesses in the Philippines.",
+      "areaServed": "PH"
+    }
+  </script>
+</head>
+<body>
+  <Header />
+  <main>
+    <slot />
+  </main>
+  <Footer />
+
+  <!-- Scroll reveal -->
+  <script>
+    function initReveal() {
+      const elements = document.querySelectorAll('.reveal')
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible')
+            }
+          })
+        },
+        { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+      )
+      elements.forEach((el) => observer.observe(el))
+    }
+
+    // Presentation mode
+    function initPresentMode() {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('present') === 'true') {
+        document.body.classList.add('present-mode')
+        document.querySelectorAll('section').forEach((s) => {
+          s.classList.add('present-section')
+        })
+      }
+    }
+
+    // Header scroll effect
+    function initHeaderScroll() {
+      const header = document.querySelector('.site-header')
+      if (!header) return
+      const onScroll = () => {
+        if (window.scrollY > 20) {
+          header.classList.add('scrolled')
+        } else {
+          header.classList.remove('scrolled')
+        }
+      }
+      window.addEventListener('scroll', onScroll, { passive: true })
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initReveal()
+      initPresentMode()
+      initHeaderScroll()
+    })
+  </script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+---
+import type { Plan } from '../../constants'
+import { ANNUAL_DISCOUNT_PCT } from '../../constants'
+import Badge from './Badge.astro'
+
+export interface Props {
+  plan: Plan
+  annual?: boolean
+}
+
+const { plan, annual = false } = Astro.props
+
+const displayPrice = () => {
+  if (plan.price === null) return null
+  if (plan.price === 0) return 'Free'
+  if (annual) {
+    const discounted = Math.round(plan.price * (1 - ANNUAL_DISCOUNT_PCT / 100))
+    return `₱${discounted.toLocaleString('en-PH')}`
+  }
+  return `₱${plan.price.toLocaleString('en-PH')}`
+}
+
+const annualTotal = () => {
+  if (!plan.annualPrice || plan.annualPrice === 0) return null
+  return `₱${plan.annualPrice.toLocaleString('en-PH')} billed annually`
+}
+
+const price = displayPrice()
+---
+
+<div class:list={[
+  'relative flex flex-col rounded-2xl border p-8 transition-all duration-200',
+  plan.highlighted
+    ? 'border-emerald-400 bg-emerald-50 shadow-xl shadow-emerald-500/10 scale-[1.02]'
+    : plan.price === null
+      ? 'border-slate-700 bg-slate-900 text-white'
+      : 'border-slate-200 bg-white hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-500/5',
+]}>
+
+  <!-- Badge -->
+  {plan.badge && (
+    <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+      <Badge variant={plan.price === null ? 'violet' : 'emerald'}>
+        {plan.badge}
+      </Badge>
+    </div>
+  )}
+
+  <!-- Name & tagline -->
+  <div class="mb-6">
+    <h3 class:list={['text-xl font-bold mb-1', plan.price === null ? 'text-white' : 'text-slate-900']}>
+      {plan.name}
+    </h3>
+    <p class:list={['text-sm leading-relaxed', plan.price === null ? 'text-slate-400' : 'text-slate-500']}>
+      {plan.tagline}
+    </p>
+  </div>
+
+  <!-- Price -->
+  <div class="mb-6">
+    {price !== null ? (
+      <div>
+        <div class="flex items-end gap-1">
+          <span class:list={['text-4xl font-black', plan.price === null ? 'text-white' : 'text-slate-900']}>
+            {price}
+          </span>
+          {plan.price !== null && plan.price > 0 && (
+            <span class:list={['text-sm mb-2', plan.price === null ? 'text-slate-400' : 'text-slate-400']}>
+              / mo
+            </span>
+          )}
+        </div>
+        {annual && plan.annualPrice && plan.price !== null && plan.price > 0 && (
+          <p class="text-xs text-slate-400 mt-1">{annualTotal()}</p>
+        )}
+        {plan.price === 0 && (
+          <p class:list={['text-xs mt-1', plan.price === null ? 'text-slate-400' : 'text-slate-400']}>
+            1 month or 500 TX · No credit card required
+          </p>
+        )}
+      </div>
+    ) : (
+      <div>
+        <span class="text-2xl font-bold text-white">Contact us</span>
+        <p class="text-sm text-slate-400 mt-1">Quoted based on your needs</p>
+      </div>
+    )}
+  </div>
+
+  <!-- Limits chips -->
+  {(plan.txPerMonth !== null || plan.branches !== null || plan.employees !== null) && (
+    <div class="flex flex-wrap gap-2 mb-6">
+      {plan.txPerMonth !== null && (
+        <span class:list={['text-xs px-2.5 py-1 rounded-full font-medium', plan.highlighted ? 'bg-emerald-100 text-emerald-700' : plan.price === null ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600']}>
+          {plan.txPerMonth.toLocaleString()} TX/mo
+        </span>
+      )}
+      {plan.branches !== null && (
+        <span class:list={['text-xs px-2.5 py-1 rounded-full font-medium', plan.highlighted ? 'bg-emerald-100 text-emerald-700' : plan.price === null ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600']}>
+          {plan.branches === 1 ? '1 branch' : `${plan.branches} branches`}
+        </span>
+      )}
+      {plan.employees !== null ? (
+        <span class:list={['text-xs px-2.5 py-1 rounded-full font-medium', plan.highlighted ? 'bg-emerald-100 text-emerald-700' : plan.price === null ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600']}>
+          {plan.employees === 1 ? '1 employee' : `${plan.employees} employees`}
+        </span>
+      ) : (
+        <span class:list={['text-xs px-2.5 py-1 rounded-full font-medium', plan.highlighted ? 'bg-emerald-100 text-emerald-700' : plan.price === null ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600']}>
+          Unlimited employees
+        </span>
+      )}
+    </div>
+  )}
+
+  <!-- Feature list -->
+  <ul class="space-y-2.5 mb-8 flex-grow">
+    {plan.features.map((feature) => (
+      <li class="flex items-start gap-2">
+        <svg class:list={['mt-0.5 shrink-0', plan.highlighted ? 'text-emerald-500' : plan.price === null ? 'text-emerald-400' : 'text-emerald-500']} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span class:list={['text-sm', plan.price === null ? 'text-slate-300' : 'text-slate-600']}>
+          {feature}
+        </span>
+      </li>
+    ))}
+  </ul>
+
+  <!-- CTA -->
+  <a
+    href={plan.ctaUrl}
+    class:list={[
+      'block text-center px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-150',
+      plan.highlighted
+        ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-md hover:shadow-lg'
+        : plan.price === null
+          ? 'bg-white text-slate-900 hover:bg-slate-100'
+          : 'bg-slate-900 text-white hover:bg-slate-700',
+    ]}
+  >
+    {plan.cta}
+  </a>
+</div>

@@ -18,7 +18,7 @@ import { Role, SessionStatus, TaskStatus } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import MountManager, { type MountProps } from '@/lib/mount-manager'
+import MountManager, { type MountProps } from '@platform/lib/mount-manager'
 
 export const closeSessionFormOpts = formOptions({
   defaultValues: {

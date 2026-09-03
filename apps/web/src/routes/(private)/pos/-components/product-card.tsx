@@ -8,7 +8,7 @@ import { Coffee, Layers, Sparkles } from 'lucide-react'
 import { useMemo } from 'react'
 import { isUnlimitedStock, PosStockEngine, type posItem, stockResultToNumber } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { ProductDialog } from './product-dialog'
 

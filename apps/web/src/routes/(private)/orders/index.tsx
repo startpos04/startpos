@@ -24,7 +24,7 @@ import { Ban, CheckCheck, ChevronDown, Clock, CreditCard, DollarSign, Play, Squa
 import { OrderStatus } from 'prisma/generated/prisma/browser'
 import { toast } from 'sonner'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import MountManager, { type MountProps } from '@/lib/mount-manager'
+import MountManager, { type MountProps } from '@platform/lib/mount-manager'
 import { createPosRefund } from '@/lib/queries/create-pos-refund'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
 import { ActiveOrdersHeader } from './-components/header'

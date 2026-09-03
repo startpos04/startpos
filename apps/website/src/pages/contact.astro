@@ -1,0 +1,237 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import { APP_URL, FORMSPREE_ENDPOINT } from '../constants'
+---
+
+<BaseLayout
+  title="Contact Us"
+  description="Get in touch with the Start POS team. Start a free trial, book a demo, or ask us anything about the product."
+>
+
+  <!-- Hero -->
+  <section class="bg-slate-900 pt-16 pb-20 relative overflow-hidden">
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.04)_1px,transparent_1px)] bg-[size:64px_64px]"></div>
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Get in touch</span>
+      <h1 class="mt-3 text-4xl sm:text-5xl font-black text-white mb-4">We answer every message</h1>
+      <p class="text-slate-400 text-lg">
+        Questions, demos, custom pricing — reach out and we'll get back to you within one business day.
+      </p>
+    </div>
+  </section>
+
+  <!-- Content -->
+  <section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+
+        <!-- Form -->
+        <div>
+          <h2 class="text-xl font-black text-slate-900 mb-6">Send us a message</h2>
+
+          <form
+            id="contact-form"
+            action={FORMSPREE_ENDPOINT}
+            method="POST"
+            class="space-y-5"
+            novalidate
+          >
+            <!-- Name -->
+            <div>
+              <label for="name" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                Your name <span class="text-rose-500">*</span>
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                required
+                placeholder="Maria Santos"
+                class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+              />
+            </div>
+
+            <!-- Business name -->
+            <div>
+              <label for="business" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                Business name <span class="text-rose-500">*</span>
+              </label>
+              <input
+                id="business"
+                name="business_name"
+                type="text"
+                required
+                placeholder="Santos General Merchandise"
+                class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+              />
+            </div>
+
+            <!-- Email -->
+            <div>
+              <label for="email" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                Email address <span class="text-rose-500">*</span>
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                placeholder="maria@santos.ph"
+                class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+              />
+            </div>
+
+            <!-- Business type -->
+            <div>
+              <label for="business_type" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                Business type
+              </label>
+              <select
+                id="business_type"
+                name="business_type"
+                class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all appearance-none cursor-pointer"
+              >
+                <option value="">Select a type…</option>
+                <option value="retail">Retail</option>
+                <option value="restaurant">Restaurant / Cafe</option>
+                <option value="grocery">Grocery / Supermarket</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <!-- Message -->
+            <div>
+              <label for="message" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                Message
+              </label>
+              <textarea
+                id="message"
+                name="message"
+                rows="5"
+                placeholder="Tell us about your business, how many branches you have, and what you're looking for…"
+                class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all resize-none"
+              ></textarea>
+            </div>
+
+            <!-- Submit -->
+            <div>
+              <button
+                type="submit"
+                id="submit-btn"
+                class="w-full py-3.5 bg-emerald-500 text-white font-bold text-sm rounded-xl hover:bg-emerald-600 shadow-md hover:shadow-lg transition-all"
+              >
+                Send message
+              </button>
+            </div>
+
+            <!-- Success / error messages -->
+            <div id="form-success" class="hidden p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 font-medium">
+              ✓ Message sent! We'll get back to you within one business day.
+            </div>
+            <div id="form-error" class="hidden p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 font-medium">
+              Something went wrong. Please try again or email us directly.
+            </div>
+          </form>
+        </div>
+
+        <!-- Contact details -->
+        <div class="space-y-8">
+
+          <div>
+            <h2 class="text-xl font-black text-slate-900 mb-6">Other ways to reach us</h2>
+            <div class="space-y-4">
+
+              <div class="flex items-start gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-200">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-lg shrink-0">📧</div>
+                <div>
+                  <p class="text-sm font-bold text-slate-900 mb-0.5">Email</p>
+                  <a href="mailto:hello@startpos.ph" class="text-sm text-emerald-600 hover:underline">hello@startpos.ph</a>
+                  <p class="text-xs text-slate-400 mt-1">We reply within 1 business day</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-200">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-lg shrink-0">🎯</div>
+                <div>
+                  <p class="text-sm font-bold text-slate-900 mb-0.5">Book a demo</p>
+                  <p class="text-sm text-slate-500">See Start POS live — we'll walk through your specific use case.</p>
+                  <a href={APP_URL} class="text-sm text-emerald-600 hover:underline mt-1 inline-block">
+                    Or start your free trial directly →
+                  </a>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-200">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-lg shrink-0">📍</div>
+                <div>
+                  <p class="text-sm font-bold text-slate-900 mb-0.5">Location</p>
+                  <p class="text-sm text-slate-500">Based in the Philippines 🇵🇭</p>
+                  <p class="text-xs text-slate-400 mt-1">Serving Southeast Asia</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Trial nudge -->
+          <div class="bg-slate-900 rounded-2xl p-7 text-white">
+            <h3 class="font-black text-lg mb-2">Just want to try it?</h3>
+            <p class="text-slate-400 text-sm mb-4 leading-relaxed">
+              No need to contact us first. Start a free 1-month trial — no credit card required. Explore the full product on your own schedule.
+            </p>
+            <a
+              href={APP_URL}
+              class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white font-bold text-sm rounded-xl hover:bg-emerald-600 transition-all"
+            >
+              Start free trial
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+                <polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+</BaseLayout>
+
+<script>
+  const form = document.getElementById('contact-form') as HTMLFormElement | null
+  const successMsg = document.getElementById('form-success')
+  const errorMsg = document.getElementById('form-error')
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    if (!form || !submitBtn) return
+
+    submitBtn.textContent = 'Sending…'
+    submitBtn.disabled = true
+
+    try {
+      const data = new FormData(form)
+      const res = await fetch(form.action, {
+        method: 'POST',
+        body: data,
+        headers: { Accept: 'application/json' },
+      })
+
+      if (res.ok) {
+        form.reset()
+        successMsg?.classList.remove('hidden')
+        errorMsg?.classList.add('hidden')
+        submitBtn.textContent = 'Message sent!'
+      } else {
+        throw new Error('Non-OK response')
+      }
+    } catch {
+      errorMsg?.classList.remove('hidden')
+      successMsg?.classList.add('hidden')
+      submitBtn.textContent = 'Send message'
+      submitBtn.disabled = false
+    }
+  })
+</script>

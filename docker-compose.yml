@@ -39,7 +39,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: apps/web/Dockerfile
       target: dev
     depends_on:
       db-init:
@@ -73,6 +73,47 @@ services:
             - node_modules/
         - action: rebuild
           path: apps/web/package.json
+        - action: rebuild
+          path: packages/platform/package.json
+        - action: rebuild
+          path: pnpm-lock.yaml
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      target: dev
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    ports:
+      - '${ADMIN_PUBLIC_PORT:-3201}:${ADMIN_PORT:-3001}'
+    env_file:
+      - apps/admin/.env
+    environment:
+      POSTGRES_HOST: db
+      DOCKER_DEV: "true"
+    volumes:
+      - admin_output:/app/apps/admin/.output
+      - ./apps/admin/.env:/app/apps/admin/.env:ro
+    command: ['pnpm', '--filter', '@startpos/admin', 'run', 'dev:docker']
+    networks:
+      - app-network
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/admin
+          target: /app/apps/admin
+          ignore:
+            - node_modules/
+            - .output/
+        - action: sync
+          path: ./packages/platform
+          target: /app/packages/platform
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: apps/admin/package.json
         - action: rebuild
           path: packages/platform/package.json
         - action: rebuild
@@ -119,6 +160,7 @@ services:
 volumes:
   postgres_data:
   app_output:
+  admin_output:
   stripe_config:
 
 networks:

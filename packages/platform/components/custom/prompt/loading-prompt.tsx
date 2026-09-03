@@ -1,7 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 import type { Prettify } from '@platform/lib/types'
 
 const loadingPromptSchema = {

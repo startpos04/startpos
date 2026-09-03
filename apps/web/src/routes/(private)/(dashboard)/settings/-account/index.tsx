@@ -23,7 +23,7 @@ import dayjs from '@platform/lib/dayjs'
 import { AlertTriangle, FileText, Loader2, ShieldAlert, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { requestAccountDeletion } from '@/lib/server-fn/request-account-deletion'
 
 export function AccountPage() {

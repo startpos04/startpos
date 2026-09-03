@@ -7,7 +7,7 @@ import { authStore } from '@platform/lib/better-auth/auth-store'
 import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { TermsUpdateModal } from './-components/terms-update-modal'
 import { WelcomeModal } from './-components/welcome-modal'
 

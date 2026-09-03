@@ -20,7 +20,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { Loader2, RotateCcw, Search, Shield, ShieldCheck, ShieldX } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 import {
   fetchAllPermissions,
   grantPermissionToUser,

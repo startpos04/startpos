@@ -54,7 +54,7 @@ vi.mock('@/hooks/use-pos', () => ({
 // Mock: overlay
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -111,7 +111,7 @@ vi.mock('@tanstack/react-router', async importOriginal => {
 // ---------------------------------------------------------------------------
 
 import { usePOS } from '@/hooks/use-pos'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { Route } from '@/routes/(private)/(dashboard)/(admin)/products/index'
 
 // ---------------------------------------------------------------------------

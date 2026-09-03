@@ -5,7 +5,7 @@ import { authStore } from '@platform/lib/better-auth/auth-store'
 import { ArrowLeft, X } from 'lucide-react'
 import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { closeProductSidebar } from '../-components/product-sidebar'
 import { CreateProduct, type CreateProductFormData } from '../create/-create-product'
 

@@ -33,7 +33,7 @@ import { ResourceType, TaxCategory, VariantAttributeType } from 'prisma/generate
 import { toast } from 'sonner'
 import { z } from 'zod'
 import type { posItem } from '@/lib/conversion/pos-stock-engine'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 
 // ---------------------------------------------------------------------------
 // Types

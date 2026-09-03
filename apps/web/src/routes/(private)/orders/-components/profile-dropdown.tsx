@@ -7,7 +7,7 @@ import { Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { ClipboardPenLine, LayoutDashboard, PanelTopClose } from 'lucide-react'
 import { Role, SessionStatus } from 'prisma/generated/prisma/enums'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { CloseSessionDialog } from '../../pos/-components/close-session-dialog'
 
 export const ProfileDropdown = () => {

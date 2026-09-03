@@ -3,7 +3,7 @@ import { productCollection, productVariantCollection } from '@platform/db/collec
 import { dbTransaction } from '@platform/db/local-db-transaction'
 import { ArrowLeft, X } from 'lucide-react'
 import { toast } from 'sonner'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { closeIngredientSidebar } from '../-components/ingredient-sidebar'
 import { CreateIngredient, type CreateIngredientFormData } from '../create/-create-ingredients'
 

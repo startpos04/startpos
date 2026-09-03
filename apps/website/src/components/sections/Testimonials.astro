@@ -1,0 +1,69 @@
+---
+const testimonials = [
+  {
+    quote: 'Placeholder — real customer quote will go here once we collect testimonials.',
+    author: 'Business Owner',
+    role: 'Retail Shop · Metro Manila',
+    avatar: '👤',
+  },
+  {
+    quote: 'Placeholder — real customer quote will go here once we collect testimonials.',
+    author: 'Restaurant Manager',
+    role: 'Quick-service Restaurant · Cebu',
+    avatar: '👤',
+  },
+  {
+    quote: 'Placeholder — real customer quote will go here once we collect testimonials.',
+    author: 'Grocery Store Owner',
+    role: 'Grocery · Davao',
+    avatar: '👤',
+  },
+]
+---
+
+<section class="py-20 sm:py-24 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <div class="text-center max-w-xl mx-auto mb-12 reveal">
+      <span class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Testimonials</span>
+      <h2 class="mt-2 text-3xl sm:text-4xl font-black text-slate-900 leading-tight">
+        What business owners say
+      </h2>
+    </div>
+
+    <!-- Testimonial cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {testimonials.map((t, i) => (
+        <div class:list={['reveal', `reveal-delay-${i + 1}`]}>
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 h-full flex flex-col">
+            <!-- Stars -->
+            <div class="flex gap-1 mb-4">
+              {[1,2,3,4,5].map(() => (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#10b981" stroke="none">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+              ))}
+            </div>
+
+            <!-- Quote -->
+            <blockquote class="text-sm text-slate-500 leading-relaxed flex-grow italic border-l-2 border-slate-200 pl-4">
+              "{t.quote}"
+            </blockquote>
+
+            <!-- Author -->
+            <div class="mt-5 flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-lg">
+                {t.avatar}
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-slate-900">{t.author}</p>
+                <p class="text-xs text-slate-400">{t.role}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

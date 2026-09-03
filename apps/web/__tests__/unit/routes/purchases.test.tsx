@@ -145,7 +145,7 @@ vi.mock('@/db/local-db-transaction', () => ({
 // Mock: MountManager + purchase sidebar
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => ({
+vi.mock('@platform/lib/mount-manager', () => ({
   default: () => null,
   MountManager: () => null,
 }))

@@ -64,7 +64,7 @@ vi.mock('@/lib/queries/fetch-tasks', () => ({
 // Mock: overlay
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -93,7 +93,7 @@ vi.mock('@/lib/better-auth/auth-engine', () => ({
 // ---------------------------------------------------------------------------
 
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 
 // We import the actual route component after mocks are set up
 // Note: import the named component function directly, not via Route

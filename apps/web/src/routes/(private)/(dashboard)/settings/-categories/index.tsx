@@ -7,7 +7,7 @@ import { useLiveQuery } from '@tanstack/react-db'
 import { Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { CATEGORY_ASIDE_ID, showCategorySidebar } from './-components/category-sidebar'
 import { CreateCategorySidebar } from './-components/create-category-sidebar'
 

@@ -85,7 +85,7 @@ vi.mock('@/lib/queries/fetch-pos-products', () => ({
 // Mock: overlay
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -164,7 +164,7 @@ vi.mock('@/lib/better-auth/auth-engine', () => ({
 
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
 import { fetchPosProducts } from '@/lib/queries/fetch-pos-products'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { AlertPrompt } from '@/components/custom/prompt/alert-prompt'
 import { OpenSessionDialog } from '@/routes/(private)/pos/-components/open-session-dialog'

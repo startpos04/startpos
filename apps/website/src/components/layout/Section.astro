@@ -1,0 +1,35 @@
+---
+export interface Props {
+  id?: string
+  class?: string
+  bg?: 'white' | 'gray' | 'dark' | 'emerald'
+  py?: 'sm' | 'md' | 'lg' | 'xl'
+}
+
+const {
+  id,
+  class: className = '',
+  bg = 'white',
+  py = 'lg',
+} = Astro.props
+
+const bgClass = {
+  white: 'bg-white',
+  gray: 'bg-slate-50',
+  dark: 'bg-slate-900',
+  emerald: 'bg-emerald-600',
+}[bg]
+
+const pyClass = {
+  sm: 'py-12',
+  md: 'py-16',
+  lg: 'py-20 sm:py-24',
+  xl: 'py-28 sm:py-32',
+}[py]
+---
+
+<section id={id} class:list={[bgClass, pyClass, className]}>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <slot />
+  </div>
+</section>

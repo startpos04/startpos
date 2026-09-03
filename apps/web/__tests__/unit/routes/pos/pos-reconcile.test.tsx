@@ -85,7 +85,7 @@ vi.mock('@/db/local-db-transaction', () => ({
 // Mock: mount-manager — show resolves true (admin auth passes)
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -147,7 +147,7 @@ vi.mock('@/lib/conversion/price-engine', () => ({
 // ---------------------------------------------------------------------------
 
 import { useLiveQuery } from '@tanstack/react-db'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { ReconcileNow } from '@/routes/(private)/pos/-components/reconcile-now'
 import { ReconcileLater } from '@/routes/(private)/pos/-components/reconcile-later'
 

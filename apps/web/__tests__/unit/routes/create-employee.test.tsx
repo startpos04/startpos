@@ -40,7 +40,7 @@ vi.mock('@/components/custom/image-uploader', () => ({
   ImageUploader: ({ label }: { label: string }) => <div data-testid='image-uploader'>{label}</div>,
 }))
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -262,7 +262,7 @@ describe('EmployeeDetailsSidebar — with employee data', () => {
   })
 
   it('clicking Edit Profile calls MountManager.show', async () => {
-    const MountManager = (await import('@/lib/mount-manager')).default
+    const MountManager = (await import('@platform/lib/mount-manager')).default
     render(<EmployeeDetailsSidebar open={true} onClose={vi.fn()} employeeId='emp-001' />)
     await waitFor(() => screen.getByText('Edit Profile'))
     fireEvent.click(screen.getByText('Edit Profile'))

@@ -61,7 +61,7 @@ vi.mock('@/lib/queries/fetch-active-orders', () => ({
 // Mock: overlay
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -102,7 +102,7 @@ vi.mock('@/lib/queries/create-pos-refund', () => ({
 // ---------------------------------------------------------------------------
 
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { orderCollection } from '@/db/collections'
 import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
 import { Route } from '@/routes/(private)/orders/index'

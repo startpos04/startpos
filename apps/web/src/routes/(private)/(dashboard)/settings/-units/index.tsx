@@ -9,7 +9,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { UnitType } from 'prisma/generated/prisma/enums'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { CreateUnitSidebar } from './-components/create-unit-sidebar'
 import { showUnitSidebar, UNIT_ASIDE_ID } from './-components/unit-sidebar'
 

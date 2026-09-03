@@ -59,21 +59,34 @@ const securityHeaders = {
 // file middleware â€” so every response, including public/ assets, gets them.
 // ---------------------------------------------------------------------------
 function crossOriginHeadersPlugin(): Plugin {
+  // Routes where Stripe Elements is used — COEP must be removed so the iframe loads
+  const stripeCOEPPaths = ['/business/subscription/checkout', '/business/subscription/credits']
+
+  const headersFor = (path: string) => {
+    const noCoep = stripeCOEPPaths.some(p => path.startsWith(p))
+    if (noCoep) {
+      const { 'Cross-Origin-Embedder-Policy': _drop, ...rest } = securityHeaders
+      return rest
+    }
+    return securityHeaders
+  }
+
   return {
     name: 'force-security-headers',
     enforce: 'pre',
     configureServer(server) {
-      server.middlewares.use((_req, res, next) => {
-        for (const [key, value] of Object.entries(securityHeaders)) {
+      server.middlewares.use((req, res, next) => {
+        const headers = headersFor(req.url ?? '')
+        for (const [key, value] of Object.entries(headers)) {
           res.setHeader(key, value)
         }
         next()
       })
     },
     configurePreviewServer(server) {
-      // This is the hook that actually runs for `vite preview` / pnpm start
-      server.middlewares.use((_req, res, next) => {
-        for (const [key, value] of Object.entries(securityHeaders)) {
+      server.middlewares.use((req, res, next) => {
+        const headers = headersFor(req.url ?? '')
+        for (const [key, value] of Object.entries(headers)) {
           res.setHeader(key, value)
         }
         next()
@@ -131,6 +144,19 @@ const config = defineConfig({
       routeRules: {
         '/**': {
           headers: securityHeaders,
+        },
+        // Stripe Elements requires cross-origin iframes — remove COEP on billing pages
+        '/business/subscription/checkout/**': {
+          headers: {
+            ...securityHeaders,
+            'Cross-Origin-Embedder-Policy': 'unsafe-none',
+          },
+        },
+        '/business/subscription/credits/**': {
+          headers: {
+            ...securityHeaders,
+            'Cross-Origin-Embedder-Policy': 'unsafe-none',
+          },
         },
       },
     }),

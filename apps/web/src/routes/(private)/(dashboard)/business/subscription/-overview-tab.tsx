@@ -31,7 +31,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { SubscriptionPolicy } from '@/lib/billing/policies/subscription-policy'
 import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { type AddonCatalogItem, fetchAddonCatalog } from '@/lib/server-fn/purchase-addon-subscription'
 import { AddonDialog, BillingCTAs, formatDate, getStatusBadgeConfig } from './-shared-components'
 

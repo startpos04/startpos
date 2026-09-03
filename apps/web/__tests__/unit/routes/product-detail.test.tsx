@@ -73,7 +73,7 @@ vi.mock('@tanstack/react-db', async importOriginal => {
 // Mock: overlay
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -105,7 +105,7 @@ vi.mock('@/lib/conversion/price-engine', () => ({
 // ---------------------------------------------------------------------------
 
 import { useLiveQuery } from '@tanstack/react-db'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { ProductDetailsSidebar } from '@/routes/(private)/(dashboard)/(admin)/products/$productId/index'
 
 // ---------------------------------------------------------------------------

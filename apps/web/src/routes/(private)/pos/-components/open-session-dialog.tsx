@@ -13,7 +13,7 @@ import { Info, LayoutDashboard, LogOut, PlayCircle } from 'lucide-react'
 import { Role, SessionStatus, TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 
 export const createSessionSchema = z
   .object({

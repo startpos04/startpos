@@ -55,7 +55,7 @@ vi.mock('@tanstack/react-db', async importOriginal => {
 // Mock: overlay
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -76,7 +76,7 @@ vi.mock('@/lib/mount-manager', () => {
 // ---------------------------------------------------------------------------
 
 import { useLiveQuery } from '@tanstack/react-db'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { WarningPrompt } from '@/components/custom/prompt/warning-prompt'
 import { Route } from '@/routes/(private)/(dashboard)/(admin)/employees/index'
 

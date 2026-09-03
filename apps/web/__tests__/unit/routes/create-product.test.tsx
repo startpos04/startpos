@@ -62,7 +62,7 @@ vi.mock('@/lib/queries/fetch-unit-options', () => ({
   fetchUnitOptions: vi.fn(() => ({ data: [], isLoading: false })),
 }))
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {

@@ -25,7 +25,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { AlertTriangle, FileText, Loader2, ShieldAlert, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { requestAccountDeletion } from '@/lib/server-fn/request-account-deletion'
 
 export const Route = createFileRoute('/(private)/(dashboard)/account/')({

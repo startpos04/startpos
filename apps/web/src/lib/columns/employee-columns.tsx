@@ -8,7 +8,7 @@ import type { ColumnHelper } from '@tanstack/react-table'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { writeAudit } from '@/lib/server-fn/write-audit'
 
 export const employeeCols = {

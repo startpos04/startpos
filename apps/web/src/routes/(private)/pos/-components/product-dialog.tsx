@@ -16,7 +16,7 @@ import { useMemo } from 'react'
 import { isUnlimitedStock, PosStockEngine, type posItem, stockResultToNumber } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { getInventoryMode } from '@/lib/inventory'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 
 interface ProductDialogProps extends MountProps {

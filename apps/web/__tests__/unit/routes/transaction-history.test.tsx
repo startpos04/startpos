@@ -97,7 +97,7 @@ vi.mock('@/lib/utils/download-csv', () => ({ downloadCsv: vi.fn() }))
 // Mock: MountManager (portal — not needed in tests)
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => ({
+vi.mock('@platform/lib/mount-manager', () => ({
   default: () => null,
   MountManager: () => null,
 }))

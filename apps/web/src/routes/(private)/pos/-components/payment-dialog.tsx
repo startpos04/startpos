@@ -13,7 +13,7 @@ import { PaymentMethod } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import z from 'zod'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 
 export const PAYMENT_PLATFORMS = {
   CASH: { id: 'cash', name: 'Cash', type: PaymentMethod.CASH },

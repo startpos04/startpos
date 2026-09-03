@@ -16,7 +16,7 @@ import { ResourceType, type Unit, VariantAttributeType } from 'prisma/generated/
 import type { ReactNode } from 'react'
 import { z } from 'zod'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { AddAddonModal } from './-add-addon'

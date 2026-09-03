@@ -71,7 +71,7 @@ vi.mock('@/lib/queries/fetch-active-orders', () => ({
 // Mock: overlay
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -103,7 +103,7 @@ vi.mock('@/lib/query-client', () => ({
 // Post-mock imports
 // ---------------------------------------------------------------------------
 
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { ActiveOrdersButton } from '@/routes/(private)/pos/-components/active-orders-btn'
 
 // ---------------------------------------------------------------------------

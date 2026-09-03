@@ -10,7 +10,7 @@ import { ArrowLeft, CalendarDays, Hash, Package, ReceiptIndianRupee, Save, X } f
 import { useMemo } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { fetchLocationOptions } from '@/lib/queries/fetch-location-options'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { fetchSupplierOptions } from '@/lib/queries/fetch-supplier-options'

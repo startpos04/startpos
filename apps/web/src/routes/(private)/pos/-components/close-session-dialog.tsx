@@ -2,7 +2,7 @@ import Tab from '@platform/components/custom/tab'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
 import { useCapability } from '@platform/hooks/use-capability'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { ReconcileLater } from './reconcile-later'
 import { ReconcileNow } from './reconcile-now'
 

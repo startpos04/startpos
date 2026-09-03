@@ -30,6 +30,7 @@ type EnvMap = Map<string, { value: string; comment: string | null }>
 
 const APPS: string[] = [
   'apps/web',
+  'apps/admin',
 ]
 
 // ─── Parser ───────────────────────────────────────────────────────────────────

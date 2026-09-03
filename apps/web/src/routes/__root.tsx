@@ -11,7 +11,7 @@ import { APP_NAME } from '@platform/lib/constants'
 import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { Toaster } from 'sonner'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import type { MyRouterContext } from '@/router'
 import appCss from '../styles.css?url'
 

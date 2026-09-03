@@ -3,7 +3,7 @@ import Cropper, { type Area } from 'react-easy-crop'
 import { Button } from '@platform/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
 import { Slider } from '@platform/components/ui/slider' // Shadcn Slider
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { getCroppedImg } from '@platform/lib/utils/crop-image'
 
 interface CropImageProps extends MountProps {

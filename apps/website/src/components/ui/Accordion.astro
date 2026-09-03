@@ -1,0 +1,61 @@
+---
+import type { FAQ } from '../../constants'
+
+export interface Props {
+  items: FAQ[]
+}
+
+const { items } = Astro.props
+---
+
+<div class="space-y-3" role="list">
+  {items.map((item, i) => (
+    <div class="faq-item border border-slate-200 rounded-xl overflow-hidden" role="listitem">
+      <button
+        class="faq-trigger w-full flex items-center justify-between gap-4 px-6 py-4 text-left bg-white hover:bg-slate-50 transition-colors"
+        aria-expanded="false"
+        aria-controls={`faq-answer-${i}`}
+        id={`faq-btn-${i}`}
+      >
+        <span class="text-sm font-semibold text-slate-900">{item.question}</span>
+        <svg
+          class="faq-icon shrink-0 text-slate-400 transition-transform duration-200"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      <div
+        class="faq-answer hidden px-6 pb-5"
+        id={`faq-answer-${i}`}
+        role="region"
+        aria-labelledby={`faq-btn-${i}`}
+      >
+        <p class="text-sm text-slate-500 leading-relaxed">{item.answer}</p>
+      </div>
+    </div>
+  ))}
+</div>
+
+<script>
+  document.querySelectorAll('.faq-trigger').forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      const expanded = trigger.getAttribute('aria-expanded') === 'true'
+      const answerId = trigger.getAttribute('aria-controls')
+      const answer = answerId ? document.getElementById(answerId) : null
+      const icon = trigger.querySelector('.faq-icon')
+
+      trigger.setAttribute('aria-expanded', String(!expanded))
+      answer?.classList.toggle('hidden', expanded)
+      icon?.style && (icon.style.transform = expanded ? '' : 'rotate(180deg)')
+    })
+  })
+</script>

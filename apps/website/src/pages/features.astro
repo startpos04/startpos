@@ -1,0 +1,278 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import FinalCTA from '../components/sections/FinalCTA.astro'
+import { APP_URL } from '../constants'
+
+const modules = [
+  {
+    id: 'pos',
+    icon: '🛒',
+    title: 'POS Checkout',
+    plan: 'All plans',
+    planVariant: 'emerald' as const,
+    description: 'A fast, full-featured checkout experience built for high-volume retail, restaurant, and grocery environments.',
+    features: [
+      'Multiple payment methods: cash, card, e-wallet, mixed',
+      'Automatic VAT/GST calculation (inclusive and exclusive)',
+      'Discounts — percentage and fixed amount',
+      'Refunds and order adjustments',
+      'BIR-compliant receipt numbering and printing',
+      'PDF receipt generation and download',
+      'Customer reference on transactions',
+      'Cash denomination breakdown for cashiers',
+    ],
+    screenshot: '[Screenshot: POS checkout screen with product grid and cart]',
+  },
+  {
+    id: 'catalogue',
+    icon: '🏷️',
+    title: 'Product Catalogue',
+    plan: 'All plans',
+    planVariant: 'emerald' as const,
+    description: 'Manage every type of product your business sells — from simple items to complex bundles with variants and add-ons.',
+    features: [
+      'Physical goods, services, raw materials, and bundles',
+      'Product variants with individual pricing and SKUs',
+      'Product images and descriptions',
+      'Multiple units of measure',
+      'Cost price and selling price per variant',
+      'Product components (Bill of Materials)',
+      'Add-ons and modifiers for restaurant orders',
+      'Expiration date tracking per batch',
+    ],
+    screenshot: '[Screenshot: Product catalogue management with variants]',
+  },
+  {
+    id: 'inventory',
+    icon: '📦',
+    title: 'Inventory Management',
+    plan: 'Premium+',
+    planVariant: 'violet' as const,
+    description: 'Full visibility into your stock — across every location, every batch, every day.',
+    features: [
+      'Multi-location inventory with branch-level stock',
+      'Batch and lot tracking',
+      'Expiry date monitoring with alerts',
+      'Manual stock adjustments with reason codes',
+      'Internal stock transfers between branches',
+      'External transfers for returns and deliveries',
+      'Waste and spoilage recording',
+      'Low-stock threshold alerts and auto-refill tasks',
+    ],
+    screenshot: '[Screenshot: Inventory management dashboard with stock levels]',
+  },
+  {
+    id: 'purchasing',
+    icon: '🚚',
+    title: 'Purchasing',
+    plan: 'Enterprise+',
+    planVariant: 'blue' as const,
+    description: 'Close the loop between what you sell and what you buy. Track every purchase order from request to shelf.',
+    features: [
+      'Supplier directory with contact details',
+      'Purchase order creation and approval workflow',
+      'Line-item detail with expected costs',
+      'Stock receiving against purchase orders',
+      'Cost price updates on receiving',
+      'Purchase history per supplier',
+      'Delivery variance tracking',
+    ],
+    screenshot: '[Screenshot: Purchase order creation and receiving workflow]',
+  },
+  {
+    id: 'orders',
+    icon: '🍽',
+    title: 'Orders & Kitchen Flow',
+    plan: 'All plans',
+    planVariant: 'emerald' as const,
+    description: 'Purpose-built for restaurants — from the order taker to the kitchen to the customer.',
+    features: [
+      'Order queue with real-time status updates',
+      'Kitchen display system integration',
+      'Dine-in, take-out, and delivery order types',
+      'Table number and buzzer reference',
+      'Add-ons and modifiers per order item',
+      'Order status: pending → in progress → ready → served',
+      'Deposit and partial payment tracking',
+      'Order history and audit trail',
+    ],
+    screenshot: '[Screenshot: Order queue and kitchen display screen]',
+  },
+  {
+    id: 'tasks',
+    icon: '📋',
+    title: 'Task Management',
+    plan: 'Enterprise+',
+    planVariant: 'blue' as const,
+    description: 'Structured operational workflows keep your team aligned — from stock counts to branch transfers.',
+    features: [
+      'Shelf refill tasks triggered by low-stock alerts',
+      'Purchase request tasks for reordering',
+      'Branch transfer tasks with approval flow',
+      'Stock counting tasks with count sheets',
+      'Waste disposal recording tasks',
+      'Cash reconciliation tasks',
+      'Task status: Draft → Pending → Approved → In Progress → Fulfilled → Reviewed',
+      'Role-based task assignment and approval',
+    ],
+    screenshot: '[Screenshot: Task management board with workflow statuses]',
+  },
+  {
+    id: 'reports',
+    icon: '📊',
+    title: 'Reports & Analytics',
+    plan: 'Premium+',
+    planVariant: 'violet' as const,
+    description: 'The numbers you need to make decisions — not just the ones that are easy to count.',
+    features: [
+      'Sales reports by period, product, and branch',
+      'Inventory valuation report',
+      'Gross profit and margin calculation',
+      'Top-selling products ranking',
+      'Low-stock and out-of-stock reports',
+      'Payment method breakdown',
+      'Employee sales performance',
+      'CSV export for all reports',
+    ],
+    screenshot: '[Screenshot: Sales reports dashboard with charts]',
+  },
+  {
+    id: 'branches',
+    icon: '🏢',
+    title: 'Multi-Branch & Employees',
+    plan: 'Premium+',
+    planVariant: 'violet' as const,
+    description: 'One account, multiple locations. Each branch has its own config, stock, and team — with central oversight.',
+    features: [
+      'Unlimited branches on Enterprise (3 on Premium)',
+      'Branch-level inventory and sales separation',
+      'Centralized reporting across all branches',
+      'Role-based access: Admin, Supervisor, Cashier, Service Provider',
+      'Employee accounts with branch assignment',
+      'Configurable feature toggles per branch',
+      'Branch-level VAT and compliance config',
+    ],
+    screenshot: '[Screenshot: Multi-branch overview and employee management]',
+  },
+  {
+    id: 'compliance',
+    icon: '🧾',
+    title: 'Compliance',
+    plan: 'All plans',
+    planVariant: 'emerald' as const,
+    description: 'Built to meet Philippines BIR requirements out of the box — with a framework ready for other Southeast Asian markets.',
+    features: [
+      'BIR TIN and PTU number registration',
+      'Sequential invoice numbering per BIR rules',
+      'VAT-inclusive and VAT-exclusive price display',
+      'Tax category support: standard, reduced, exempt, zero-rated',
+      'Sales Tax and VAT computation modes',
+      'GST-ready architecture for Singapore and Malaysia',
+      'Audit-ready transaction logs',
+    ],
+    screenshot: '[Screenshot: Compliance registry and invoice configuration]',
+  },
+]
+---
+
+<BaseLayout
+  title="Features"
+  description="Full feature walkthrough of Start POS — POS checkout, inventory, purchasing, orders, task management, reports, multi-branch, and BIR compliance."
+>
+
+  <!-- Hero -->
+  <section class="bg-slate-900 pt-16 pb-20 relative overflow-hidden">
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.04)_1px,transparent_1px)] bg-[size:64px_64px]"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Everything in one platform</span>
+      <h1 class="mt-3 text-4xl sm:text-5xl font-black text-white mb-4">
+        Features built for real operations
+      </h1>
+      <p class="text-lg text-slate-400 max-w-2xl mx-auto">
+        Start POS isn't just a cash register. It's a complete operations platform — built module by module from watching real businesses run.
+      </p>
+    </div>
+  </section>
+
+  <!-- Jump links -->
+  <nav class="sticky top-16 z-40 bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-1 overflow-x-auto py-3 scrollbar-hide">
+        {modules.map((m) => (
+          <a
+            href={`#${m.id}`}
+            class="shrink-0 px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors whitespace-nowrap"
+          >
+            {m.icon} {m.title}
+          </a>
+        ))}
+      </div>
+    </div>
+  </nav>
+
+  <!-- Module sections — alternating layout -->
+  {modules.map((mod, i) => (
+    <section id={mod.id} class:list={['py-20 sm:py-24', i % 2 === 0 ? 'bg-white' : 'bg-slate-50']}>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class:list={[
+          'grid grid-cols-1 lg:grid-cols-2 gap-12 items-center',
+          i % 2 !== 0 && 'lg:[&>*:first-child]:order-2'
+        ]}>
+
+          <!-- Text -->
+          <div class="reveal space-y-6">
+            <div>
+              <div class="flex items-center gap-3 mb-3">
+                <span class="text-3xl">{mod.icon}</span>
+                <span class:list={[
+                  'text-xs font-bold px-2.5 py-0.5 rounded-full',
+                  mod.planVariant === 'emerald' ? 'bg-emerald-100 text-emerald-700' :
+                  mod.planVariant === 'violet' ? 'bg-violet-100 text-violet-700' :
+                  'bg-blue-100 text-blue-700'
+                ]}>
+                  {mod.plan}
+                </span>
+              </div>
+              <h2 class="text-2xl sm:text-3xl font-black text-slate-900 mb-3">{mod.title}</h2>
+              <p class="text-slate-500 leading-relaxed">{mod.description}</p>
+            </div>
+
+            <ul class="space-y-2.5">
+              {mod.features.map((f) => (
+                <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                  <svg class="mt-0.5 shrink-0 text-emerald-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+
+            <a href={APP_URL} class="inline-flex items-center gap-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
+              Try it free
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+                <polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- Screenshot placeholder -->
+          <div class:list={['reveal reveal-delay-2', i % 2 !== 0 && 'lg:order-1']}>
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden aspect-video flex items-center justify-center">
+              <div class="text-center p-8">
+                <div class="text-5xl mb-3">{mod.icon}</div>
+                <p class="text-sm font-medium text-slate-400">{mod.screenshot}</p>
+                <p class="text-xs text-slate-300 mt-1">Replace with actual screenshot</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <FinalCTA />
+
+</BaseLayout>

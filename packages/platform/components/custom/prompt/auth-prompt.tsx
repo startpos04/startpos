@@ -6,7 +6,7 @@ import { Form } from '@platform/components/custom/form'
 import { Button } from '@platform/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
 import { AuthEngine } from '@platform/lib/better-auth/auth-engine'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { TextInput } from '../form/text-input'
 
 const authPromptSchema = z.object({

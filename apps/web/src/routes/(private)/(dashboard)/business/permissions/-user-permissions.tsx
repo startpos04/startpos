@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@plat
 import { Separator } from '@platform/components/ui/separator'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Crown, Plus, Shield, ShieldCheck, ShieldX, User } from 'lucide-react'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { fetchUsersWithPermissions, type UserWithPermissions } from '@/lib/queries/permission-management'
 import { PermissionAssignmentDialog } from './-permission-assignment-dialog'
 

@@ -19,7 +19,7 @@ import { NotificationType, Role, SessionStatus, TaskStatus } from 'prisma/genera
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
 
 export const closeSessionFormOpts = formOptions({

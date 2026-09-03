@@ -43,7 +43,7 @@ vi.mock('@/lib/queries/fetch-ingredients', () => ({
 // Mock: overlay
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/mount-manager', () => {
+vi.mock('@platform/lib/mount-manager', () => {
   const MountManagerMock = Object.assign(
     () => null, // renderable as <MountManager />
     {
@@ -77,7 +77,7 @@ vi.mock('@/lib/conversion/price-engine', () => ({
 // ---------------------------------------------------------------------------
 
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
-import MountManager from '@/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { Route } from '@/routes/(private)/(dashboard)/(admin)/ingredients/index'
 
 // ---------------------------------------------------------------------------

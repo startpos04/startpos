@@ -10,7 +10,7 @@ import { AlertTriangle, Loader2, Trash2, X } from 'lucide-react'
 import { MovementType } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import type { MountProps } from '@/lib/mount-manager'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { FinishedGoodsEngine } from '@/lib/production'
 import { closePreparationSidebar } from './preparation-sidebar'
 

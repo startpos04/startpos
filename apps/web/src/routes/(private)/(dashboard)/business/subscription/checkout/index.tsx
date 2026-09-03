@@ -221,7 +221,7 @@ function StripeCardForm({ planId, interval, onSuccess }: { planId: string; inter
         fontFamily: 'Inter, system-ui, sans-serif',
         '::placeholder': { color: isDark ? '#6b7280' : '#9ca3af' },
         iconColor: isDark ? '#9ca3af' : '#6b7280',
-        backgroundColor: 'transparent',
+        backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
       },
       invalid: { color: isDark ? '#f87171' : '#ef4444', iconColor: isDark ? '#f87171' : '#ef4444' },
     },
@@ -594,7 +594,10 @@ function CheckoutPage() {
   const stripePromise = useMemo(() => {
     const key = import.meta.env['VITE_STRIPE_PUBLIC_KEY']
     if (!key) return null
-    return loadStripe(key)
+    return loadStripe(key).catch(err => {
+      console.error('[Stripe] Failed to load Stripe.js:', err)
+      return null
+    })
   }, [])
   const [paymentType, setPaymentType] = useState<'stripe' | 'manual'>('stripe')
   const [manualPeriods, setManualPeriods] = useState(1)
