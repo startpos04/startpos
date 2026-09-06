@@ -1,4 +1,4 @@
-import { AuthorizationEngine } from '@platform/lib/authorization/authorization-engine'
+import { buildSummaryFromDatabase } from '@platform/lib/authorization/authorization-engine.server'
 import type { PermissionKey } from '@platform/lib/authorization/permission-keys'
 import { createMiddleware } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
@@ -34,7 +34,7 @@ export const authMiddleware = createMiddleware().server(async ({ next }) => {
     ...(sessionData.branchId != null && { branchId: sessionData.branchId }),
   }
 
-  const permissionSummary = await AuthorizationEngine.buildSummary(authContext)
+  const permissionSummary = await buildSummaryFromDatabase(authContext)
 
   return await next({
     context: {

@@ -1,4 +1,4 @@
-import { AuthorizationEngine } from '@platform/lib/authorization/authorization-engine'
+import { buildSummaryFromDatabase } from '@platform/lib/authorization/authorization-engine.server'
 import { getSessionUser } from '@platform/lib/better-auth/auth-server'
 import type { UserContext } from '@platform/lib/compliance'
 import { getComplianceAdapter, getComplianceIncludes } from '@platform/lib/compliance'
@@ -448,7 +448,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
 
     const canCheckoutOffline = branchData.offlineTerminalId === userId
 
-    const authorization = await AuthorizationEngine.buildSummary({
+    const authorization = await buildSummaryFromDatabase({
       userId,
       role: userData.role,
     })

@@ -8,8 +8,8 @@
  *
  * Evaluation order:
  *   1. Get role default permissions
- *   2. Get user-specific grants from database
- *   3. Get user-specific revokes from database
+ *   2. Get user-specific grants from database/collections
+ *   3. Get user-specific revokes from database/collections
  *   4. Calculate final permission set (defaults + grants - revokes)
  *   5. Return result
  *
@@ -54,75 +54,38 @@ export interface MultiPermissionCheckResult {
  */
 export const AuthorizationEngine = {
   /**
-   * Build a complete permission summary for a user.
+   * Build a complete permission summary for a user from collections.
    * This is called once at session load and cached in authStore.
    *
-   * OFFLINE SUPPORT: Reads from collections instead of database for offline capability.
+   * OFFLINE SUPPORT: Reads from collections which work on both client and server.
+   * Collections are synced from the database when online.
    *
    * @param ctx - Authorization context with userId and role
    * @returns PermissionSummary with final permissions and custom grants/revokes
    *
    * @example
-   * const summary = await AuthorizationEngine.buildSummary({ userId: '123', role: 'ADMIN' })
+   * const summary = AuthorizationEngine.buildSummaryFromCollections({ userId: '123', role: 'ADMIN' })
    * console.log(summary.permissions) // ['business:view:billing', ...]
    */
-  async buildSummary(ctx: AuthorizationContext): Promise<PermissionSummary> {
+  buildSummaryFromCollections(ctx: AuthorizationContext): PermissionSummary {
     // 1. Get role default permissions
     const roleDefaults = getDefaultPermissionsForRole(ctx.role)
 
-    // 2. Get user-specific permission grants/revokes
+    // 2. Get user-specific permission grants/revokes from collections
     const now = new Date()
 
-    // Check if we're on the server or client
-    const isServer = typeof window === 'undefined'
+    const allUserPermissions = [...userPermissionCollection.values()]
+    const userPermissions = allUserPermissions.filter(up => {
+      // Filter for this user and non-expired permissions
+      if (up.userId !== ctx.userId) return false
+      if (up.expiresAt && new Date(up.expiresAt) <= now) {
+        return false
+      }
+      return true
+    })
 
-    let userPermissions: Array<{ userId: string; permissionId: string; granted: boolean; expiresAt: Date | null }>
-    let allPermissions: Array<{ id: string; key: string }>
-
-    if (isServer) {
-      // Server-side: use Prisma directly (rootPrisma for platform-wide permissions table)
-      const { prisma: rootPrisma } = await import('@platform/lib/prisma-client')
-
-      // Fetch user permissions from database
-      const dbUserPermissions = await rootPrisma.userPermission.findMany({
-        where: {
-          userId: ctx.userId,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-        },
-        select: {
-          userId: true,
-          permissionId: true,
-          granted: true,
-          expiresAt: true,
-        },
-      })
-
-      // Fetch all permissions to build the map
-      const dbPermissions = await rootPrisma.permission.findMany({
-        select: {
-          id: true,
-          key: true,
-        },
-      })
-
-      userPermissions = dbUserPermissions
-      allPermissions = dbPermissions
-    } else {
-      // Client-side: use collections (offline-capable)
-      const allUserPermissions = [...userPermissionCollection.values()]
-      userPermissions = allUserPermissions.filter(up => {
-        // Filter for this user and non-expired permissions
-        if (up.userId !== ctx.userId) return false
-        if (up.expiresAt && new Date(up.expiresAt) <= now) {
-          return false
-        }
-        return true
-      })
-
-      // Get all permissions from collection
-      allPermissions = [...permissionCollection.values()]
-    }
-
+    // Get all permissions from collection
+    const allPermissions = [...permissionCollection.values()]
     const permissionMap = new Map(allPermissions.map(p => [p.id, p.key]))
 
     // 3. Separate grants and revokes
@@ -168,8 +131,8 @@ export const AuthorizationEngine = {
    * const result = await AuthorizationEngine.check(Permissions.BUSINESS_MANAGE_BILLING, ctx)
    * if (!result.granted) throw new Error(result.reason)
    */
-  async check(permission: PermissionKey, ctx: AuthorizationContext): Promise<PermissionCheckResult> {
-    const summary = await this.buildSummary(ctx)
+  check(permission: PermissionKey, ctx: AuthorizationContext): PermissionCheckResult {
+    const summary = this.buildSummaryFromCollections(ctx)
 
     const granted = summary.permissions.includes(permission)
 
@@ -194,8 +157,8 @@ export const AuthorizationEngine = {
    * ], ctx)
    * if (!result.granted) console.log('Missing:', result.missing)
    */
-  async checkAll(permissions: PermissionKey[], ctx: AuthorizationContext): Promise<MultiPermissionCheckResult> {
-    const summary = await this.buildSummary(ctx)
+  checkAll(permissions: PermissionKey[], ctx: AuthorizationContext): MultiPermissionCheckResult {
+    const summary = this.buildSummaryFromCollections(ctx)
 
     const missing = permissions.filter(p => !summary.permissions.includes(p))
 
@@ -220,8 +183,8 @@ export const AuthorizationEngine = {
    * ], ctx)
    * if (result.granted) console.log('Has:', result.matched)
    */
-  async checkAny(permissions: PermissionKey[], ctx: AuthorizationContext): Promise<MultiPermissionCheckResult> {
-    const summary = await this.buildSummary(ctx)
+  checkAny(permissions: PermissionKey[], ctx: AuthorizationContext): MultiPermissionCheckResult {
+    const summary = this.buildSummaryFromCollections(ctx)
 
     const matched = permissions.filter(p => summary.permissions.includes(p))
 

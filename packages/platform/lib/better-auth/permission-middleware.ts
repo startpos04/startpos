@@ -14,7 +14,7 @@
 
 import { createMiddleware } from '@tanstack/react-start'
 import { Role } from 'prisma/generated/prisma/enums'
-import { AuthorizationEngine } from '../authorization/authorization-engine'
+import { buildSummaryFromDatabase } from '../authorization/authorization-engine.server'
 import type { PermissionKey } from '../authorization/permission-keys'
 import type { ServerContext } from './server-context'
 
@@ -50,7 +50,7 @@ export function requirePermission(permission: PermissionKey) {
       throw new PermissionDeniedError('UNAUTHENTICATED', 'You must be logged in to perform this action.')
     }
 
-    const authorization = await AuthorizationEngine.buildSummary({
+    const authorization = await buildSummaryFromDatabase({
       userId: user.id,
       role: user.role ?? Role.CASHIER,
     })
@@ -77,7 +77,7 @@ export function requireAllPermissions(permissions: PermissionKey[]) {
       throw new PermissionDeniedError('UNAUTHENTICATED', 'You must be logged in to perform this action.')
     }
 
-    const authorization = await AuthorizationEngine.buildSummary({
+    const authorization = await buildSummaryFromDatabase({
       userId: user.id,
       role: user.role ?? Role.CASHIER,
     })
@@ -106,7 +106,7 @@ export function requireAnyPermission(permissions: PermissionKey[]) {
       throw new PermissionDeniedError('UNAUTHENTICATED', 'You must be logged in to perform this action.')
     }
 
-    const authorization = await AuthorizationEngine.buildSummary({
+    const authorization = await buildSummaryFromDatabase({
       userId: user.id,
       role: user.role ?? Role.CASHIER,
     })
@@ -130,16 +130,16 @@ export function requireAnyPermission(permissions: PermissionKey[]) {
 // ---------------------------------------------------------------------------
 
 export async function checkPermission(userId: string, role: Role, permission: PermissionKey): Promise<boolean> {
-  const authorization = await AuthorizationEngine.buildSummary({ userId, role })
+  const authorization = await buildSummaryFromDatabase({ userId, role })
   return authorization.permissions.includes(permission)
 }
 
 export async function checkAllPermissions(userId: string, role: Role, permissions: PermissionKey[]): Promise<boolean> {
-  const authorization = await AuthorizationEngine.buildSummary({ userId, role })
+  const authorization = await buildSummaryFromDatabase({ userId, role })
   return permissions.every(p => authorization.permissions.includes(p))
 }
 
 export async function checkAnyPermission(userId: string, role: Role, permissions: PermissionKey[]): Promise<boolean> {
-  const authorization = await AuthorizationEngine.buildSummary({ userId, role })
+  const authorization = await buildSummaryFromDatabase({ userId, role })
   return permissions.some(p => authorization.permissions.includes(p))
 }
