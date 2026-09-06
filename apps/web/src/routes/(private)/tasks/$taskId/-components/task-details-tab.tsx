@@ -98,7 +98,7 @@ function QuantityStrip({ task }: QuantityStripProps) {
                 canEditApproved ? 'text-amber-600 border-amber-200 bg-amber-50 animate-pulse' : 'text-purple-600 border-purple-200 bg-purple-50',
               )}
             >
-              {canEditApproved ? 'Set Approved â†—' : 'Approved'}
+              {canEditApproved ? 'Set Approved ↗' : 'Approved'}
             </Badge>
           </div>
           {canEditApproved ? (
@@ -131,7 +131,7 @@ function QuantityStrip({ task }: QuantityStripProps) {
                 canEditVerified ? 'text-emerald-600 border-emerald-200 bg-emerald-50 animate-pulse' : 'text-indigo-600 border-indigo-200 bg-indigo-50',
               )}
             >
-              {canEditVerified ? 'Record Actual â†—' : 'Verified'}
+              {canEditVerified ? 'Record Actual ↗' : 'Verified'}
             </Badge>
           </div>
           {canEditVerified ? (

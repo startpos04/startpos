@@ -7,21 +7,21 @@
  * Three switching paths:
  *
  * PATH A — Same billing model, different plan or interval
- *   (e.g. Monthly Basic â†’ Monthly Enterprise, Monthly Basic â†’ Annual Basic)
+ *   (e.g. Monthly Basic → Monthly Enterprise, Monthly Basic → Annual Basic)
  *   Uses adapter.updateSubscription() to swap the Stripe price inline with
  *   proration_behavior: 'always_invoice'. No cancel+recreate, no redirect.
  *   The prorated difference is charged/credited immediately on the customer's
  *   card on file. DB is updated atomically with the new planId + billingModel.
  *
- * PATH B — Any subscription model â†’ Credits
- *   (MONTHLY_SUBSCRIPTION | YEARLY_SUBSCRIPTION â†’ PREPAID_CREDITS)
+ * PATH B — Any subscription model → Credits
+ *   (MONTHLY_SUBSCRIPTION | YEARLY_SUBSCRIPTION → PREPAID_CREDITS)
  *   Cancels the current Stripe subscription immediately. Clears externalId.
  *   Sets billingModel = PREPAID_CREDITS. Existing credit balance is preserved
  *   as a buffer — the business can continue using credits for transactions.
  *   No new Stripe subscription created.
  *
- * PATH C — Credits â†’ Subscription model
- *   (PREPAID_CREDITS â†’ MONTHLY_SUBSCRIPTION | YEARLY_SUBSCRIPTION)
+ * PATH C — Credits → Subscription model
+ *   (PREPAID_CREDITS → MONTHLY_SUBSCRIPTION | YEARLY_SUBSCRIPTION)
  *   Creates a new Stripe Checkout Session for the target plan.
  *   Returns a checkoutUrl — the client redirects to Stripe to complete payment.
  *   Credit balance is preserved as a buffer (used for overage TX when
@@ -163,7 +163,7 @@ export const changeSubscription = createServerFn({ method: 'POST' })
     const appUrl = process.env['CANONICAL_URL'] ?? process.env['APP_URL'] ?? 'http://localhost:3000'
 
     // ------------------------------------------------------------------
-    // PATH B — Any subscription â†’ PREPAID_CREDITS
+    // PATH B — Any subscription → PREPAID_CREDITS
     // Cancel Stripe sub immediately; preserve credit balance as buffer.
     // ------------------------------------------------------------------
 
@@ -220,7 +220,7 @@ export const changeSubscription = createServerFn({ method: 'POST' })
     }
 
     // ------------------------------------------------------------------
-    // PATH C — PREPAID_CREDITS â†’ Subscription
+    // PATH C — PREPAID_CREDITS → Subscription
     // Create a new Stripe checkout session. Credit balance becomes a buffer.
     // ------------------------------------------------------------------
 
@@ -291,7 +291,7 @@ export const changeSubscription = createServerFn({ method: 'POST' })
     }
 
     // ------------------------------------------------------------------
-    // PATH A — Subscription â†’ Subscription (plan or interval change)
+    // PATH A — Subscription → Subscription (plan or interval change)
     // Use updateSubscription (inline price swap) if externalId exists.
     // If no externalId (e.g. checkout was abandoned), fall back to a new
     // checkout session identical to create-subscription flow.

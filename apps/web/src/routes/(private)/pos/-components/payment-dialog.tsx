@@ -178,10 +178,10 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value='cash'>ðŸ’µ Cash</SelectItem>
-                              <SelectItem value='bdo_card'>ðŸ’³ Card (BDO)</SelectItem>
-                              <SelectItem value='gcash'>ðŸ“± GCash</SelectItem>
-                              <SelectItem value='maya'>ðŸ’³ Maya</SelectItem>
+                              <SelectItem value='cash'>💵 Cash</SelectItem>
+                              <SelectItem value='bdo_card'>💳 Card (BDO)</SelectItem>
+                              <SelectItem value='gcash'>📱 GCash</SelectItem>
+                              <SelectItem value='maya'>💳 Maya</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -324,7 +324,7 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
             {scPwdOpen && scPwdDiscountCents > 0 && (
               <div className='flex justify-between items-center text-amber-600'>
                 <span>SC/PWD Discount:</span>
-                <span className='text-base font-black'>âˆ’ {PriceEngine.format(scPwdDiscountCents)}</span>
+                <span className='text-base font-black'>− {PriceEngine.format(scPwdDiscountCents)}</span>
               </div>
             )}
             {scPwdOpen && scPwdDiscountCents > 0 && (

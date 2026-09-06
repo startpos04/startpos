@@ -247,7 +247,7 @@ export const ProductionEngine = {
   },
 
   /**
-   * Start production (DRAFT â†’ IN_PROGRESS).
+   * Start production (DRAFT → IN_PROGRESS).
    *
    * For recipe-based production:
    *   - Validates sufficient raw materials exist
@@ -395,7 +395,7 @@ export const ProductionEngine = {
   },
 
   /**
-   * Complete production (IN_PROGRESS â†’ COMPLETED).
+   * Complete production (IN_PROGRESS → COMPLETED).
    *
    * Adds finished goods to inventory with proper cost allocation:
    *   - Recipe-based: costPerUnit = totalCost / actualQuantity
@@ -496,7 +496,7 @@ export const ProductionEngine = {
   },
 
   /**
-   * Cancel production order (DRAFT â†’ CANCELLED).
+   * Cancel production order (DRAFT → CANCELLED).
    *
    * Can only cancel DRAFT orders (before materials are consumed).
    * Once IN_PROGRESS, must complete the production even if output is 0.

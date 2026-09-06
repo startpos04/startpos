@@ -5,7 +5,7 @@
  * Version: 2026-08-01
  *
  * Publicly accessible — no auth required.
- * Linked from: registration checkbox, re-acceptance modal, Settings â†’ Account tab.
+ * Linked from: registration checkbox, re-acceptance modal, Settings → Account tab.
  */
 
 import { LegalFooter } from '@platform/components/custom/legal-footer'
@@ -231,7 +231,7 @@ function TermsPage() {
 
         <Section id='account-deletion' title='8. Account Deletion and Termination'>
           <p>
-            <strong className='text-foreground'>Voluntary deletion:</strong> You may request account deletion at any time from Settings â†’ Account â†’ Request
+            <strong className='text-foreground'>Voluntary deletion:</strong> You may request account deletion at any time from Settings → Account → Request
             Deletion, or by emailing {SUPPORT_EMAIL}. Upon receiving your request, we will contact you to confirm and process the deletion within 30 days.
           </p>
           <p>

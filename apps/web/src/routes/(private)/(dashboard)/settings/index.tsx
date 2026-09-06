@@ -44,7 +44,7 @@ function RouteComponent() {
     // Note: Business-level settings (Suppliers, Customers, Branches, Capabilities, Business Profile)
     // have been moved to /business section and are now accessible via the context switcher
     // Note: User-level settings (Account, Security) have been moved to /account section
-    // and are now accessible via the profile dropdown â†’ "My Account"
+    // and are now accessible via the profile dropdown → "My Account"
   ] as const
 
   const VALID_TABS: Set<string> = new Set(TABS.map(t => t.label))

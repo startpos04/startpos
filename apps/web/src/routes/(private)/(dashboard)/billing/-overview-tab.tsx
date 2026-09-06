@@ -97,7 +97,7 @@ export function OverviewTab() {
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-bold'>
-                {isUnlimitedTx ? 'âˆž' : `${(displayQuotaRemaining ?? 0).toLocaleString()} / ${(displayQuotaTotal ?? 0).toLocaleString()}`}
+                {isUnlimitedTx ? '∞' : `${(displayQuotaRemaining ?? 0).toLocaleString()} / ${(displayQuotaTotal ?? 0).toLocaleString()}`}
               </div>
               <p className='text-xs text-muted-foreground'>
                 {isUnlimitedTx ? 'Unlimited transactions in current period' : `${displayQuotaUsed.toLocaleString()} used this period`}

@@ -95,7 +95,7 @@ export interface Workflow<S extends string, C> {
   isTerminal(state: S): boolean
 
   /**
-   * Return the TransitionDef for a specific (from â†’ to) pair, or null if it
+   * Return the TransitionDef for a specific (from → to) pair, or null if it
    * does not exist. Useful for rendering per-transition UI metadata.
    */
   getTransition(from: S, to: S): TransitionDef<S, C> | null
@@ -112,15 +112,15 @@ export interface Workflow<S extends string, C> {
  * allowedTransitions are O(guards) at runtime, not O(transitions).
  */
 export function createWorkflow<S extends string, C>(config: WorkflowConfig<S, C>): Workflow<S, C> {
-  // Pre-build: (from â†’ to) â†’ TransitionDef map for O(1) lookup
+  // Pre-build: (from → to) → TransitionDef map for O(1) lookup
   const transitionMap = new Map<string, TransitionDef<S, C>>()
-  // Pre-build: from â†’ TransitionDef[] for allowedTransitions
+  // Pre-build: from → TransitionDef[] for allowedTransitions
   const outgoingMap = new Map<string, TransitionDef<S, C>[]>()
   // Pre-build: terminal state set
   const terminalSet = new Set<S>(config.terminalStates)
 
   for (const transition of config.transitions) {
-    const key = `${transition.from}â†’${transition.to}`
+    const key = `${transition.from}→${transition.to}`
     transitionMap.set(key, transition)
 
     const outgoing = outgoingMap.get(transition.from) ?? []
@@ -130,11 +130,11 @@ export function createWorkflow<S extends string, C>(config: WorkflowConfig<S, C>
 
   return {
     canTransition(from: S, to: S, context: C): OperationResult<void> {
-      const key = `${from}â†’${to}`
+      const key = `${from}→${to}`
       const def = transitionMap.get(key)
 
       if (!def) {
-        return opFail('PRECONDITION_FAILED', `Transition ${from} â†’ ${to} is not defined in this workflow.`)
+        return opFail('PRECONDITION_FAILED', `Transition ${from} → ${to} is not defined in this workflow.`)
       }
 
       for (const guard of def.guards) {
@@ -157,7 +157,7 @@ export function createWorkflow<S extends string, C>(config: WorkflowConfig<S, C>
     },
 
     getTransition(from: S, to: S): TransitionDef<S, C> | null {
-      return transitionMap.get(`${from}â†’${to}`) ?? null
+      return transitionMap.get(`${from}→${to}`) ?? null
     },
   }
 }

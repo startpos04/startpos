@@ -1,7 +1,7 @@
 /**
  * confirm-goods-receipt.ts
  *
- * E5: Confirms a PENDING GRN (PENDING â†’ CONFIRMED) and triggers inventory
+ * E5: Confirms a PENDING GRN (PENDING → CONFIRMED) and triggers inventory
  * credit via InventoryEngine.applyPurchaseReceipt.
  *
  * This is the point at which INV-01 is satisfied:

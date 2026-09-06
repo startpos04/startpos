@@ -121,7 +121,7 @@ export function WelcomeModal() {
 
         <DialogFooter>
           <Button className='w-full' asChild onClick={handleDismiss}>
-            <Link to='/dashboard'>Go to dashboard â†’</Link>
+            <Link to='/dashboard'>Go to dashboard →</Link>
           </Button>
         </DialogFooter>
       </DialogContent>

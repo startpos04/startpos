@@ -122,8 +122,8 @@ export function FeatureLibrary() {
   const handleEnable = async (entry: FeatureEntry) => {
     setEnablingId(entry.id)
     try {
-      // RECOMMENDED â†’ use accept() (tracks that user acted on a recommendation)
-      // AVAILABLE   â†’ use enable() (HIDDEN â†’ ENABLED, may need to create the row first)
+      // RECOMMENDED → use accept() (tracks that user acted on a recommendation)
+      // AVAILABLE   → use enable() (HIDDEN → ENABLED, may need to create the row first)
       const action =
         entry.state === 'RECOMMENDED' ? acceptCapability({ data: { capabilityId: entry.id } }) : enableCapability({ data: { capabilityId: entry.id } })
 

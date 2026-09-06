@@ -6,13 +6,13 @@
  * every authenticated page.
  *
  * Severity levels:
- *   GRACE_PERIOD       â†’ amber warning — "Payment overdue, X days left"
- *   EXPIRED            â†’ red error     — "Subscription expired, operational features blocked"
- *   LONG_TERM_INACTIVE â†’ red error     — "Account inactive, reactivate to continue"
- *   CANCELLED          â†’ red error     — "Subscription cancelled"
- *   SUSPENDED          â†’ red error     — "Account suspended, contact support"
- *   TRIAL (last 7d)    â†’ blue info     — "X days left in your trial"
- *   All others         â†’ null (no banner)
+ *   GRACE_PERIOD       → amber warning — "Payment overdue, X days left"
+ *   EXPIRED            → red error     — "Subscription expired, operational features blocked"
+ *   LONG_TERM_INACTIVE → red error     — "Account inactive, reactivate to continue"
+ *   CANCELLED          → red error     — "Subscription cancelled"
+ *   SUSPENDED          → red error     — "Account suspended, contact support"
+ *   TRIAL (last 7d)    → blue info     — "X days left in your trial"
+ *   All others         → null (no banner)
  *
  * The banner is non-dismissable — it stays until the subscription state
  * changes or the user navigates to /billing to resolve it.

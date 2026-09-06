@@ -71,7 +71,7 @@ async function handlePurchaseTransition(purchase: fePurchase, targetStatus: Purc
     return true
   }
 
-  // E4 change: APPROVED â†’ RECEIVED now creates a GRN at PENDING instead of
+  // E4 change: APPROVED → RECEIVED now creates a GRN at PENDING instead of
   // directly crediting inventory. Inventory credit happens when the GRN is confirmed.
   // The "Confirm Goods Received" button becomes "Receive Goods" which creates the GRN.
   if (targetStatus === PurchaseStatus.RECEIVED) {
@@ -88,8 +88,8 @@ async function handlePurchaseTransition(purchase: fePurchase, targetStatus: Purc
     return true
   }
 
-  // All other transitions (PENDING_APPROVAL â†’ APPROVED, PENDING_APPROVAL â†’ DRAFT,
-  // RECEIVED â†’ CLOSED): simple status update
+  // All other transitions (PENDING_APPROVAL → APPROVED, PENDING_APPROVAL → DRAFT,
+  // RECEIVED → CLOSED): simple status update
   const result = await dbTransaction(() => {
     purchaseCollection.update(purchase.id, draft => {
       draft.status = targetStatus
@@ -104,7 +104,7 @@ async function handlePurchaseTransition(purchase: fePurchase, targetStatus: Purc
   }
 
   const { label } = getPurchaseStatusUIMetadata(targetStatus)
-  toast.success(`${purchase.purchaseId} â†’ ${label}`)
+  toast.success(`${purchase.purchaseId} → ${label}`)
   return true
 }
 

@@ -35,9 +35,10 @@ type ToggleBranchCapabilityInput = z.infer<typeof ToggleBranchCapabilitySchema>
 
 // ---------------------------------------------------------------------------
 // Helper: Convert capability key to config key
-// Example: "CREATE_ORDER" â†’ "ENABLE_CREATE_ORDER"
+// Example: "CREATE_ORDER" → "ENABLE_CREATE_ORDER"
 // ---------------------------------------------------------------------------
 
+// biome-ignore lint/correctness/noUnusedVariables: kept for future config key helper
 function _getConfigKey(capabilityKey: CapabilityKey): string {
   return `ENABLE_${capabilityKey}`
 }
@@ -50,7 +51,7 @@ export const toggleBranchCapability = createServerFn({ method: 'POST' })
   .middleware([authMiddleware, requirePermission(Permissions.BRANCH_MANAGE_SETTINGS), requireTenantContext()])
   .inputValidator((data: ToggleBranchCapabilityInput) => ToggleBranchCapabilitySchema.parse(data))
   .handler(async ({ context, data }): Promise<{ success: boolean; message?: string }> => {
-    const { businessId, branchId } = getTenantContext(context).user
+    const { branchId } = getTenantContext(context).user
 
     const { capabilityKey, enabled } = data
 

@@ -140,7 +140,7 @@ function RouteComponent() {
                 Setting up…
               </>
             ) : (
-              'Continue â†’'
+              'Continue →'
             )}
           </Button>
         </CardFooter>

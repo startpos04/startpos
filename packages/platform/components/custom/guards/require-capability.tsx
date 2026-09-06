@@ -40,18 +40,18 @@
  *
  * When to use RequireCapability vs RequirePermission:
  *   - RequireCapability: Business-wide feature enablement
- *     â†’ "Is this feature enabled for the business?"
- *     â†’ Checks subscription plan, capability states, survey answers
- *     â†’ Example: Is inventory tracking enabled?
+ *     → "Is this feature enabled for the business?"
+ *     → Checks subscription plan, capability states, survey answers
+ *     → Example: Is inventory tracking enabled?
  *
  *   - RequirePermission: User-level authorization
- *     â†’ "Does this user have permission to perform this action?"
- *     â†’ Checks role-based and custom-assigned permissions
- *     â†’ Example: Can this CASHIER edit business settings?
+ *     → "Does this user have permission to perform this action?"
+ *     → Checks role-based and custom-assigned permissions
+ *     → Example: Can this CASHIER edit business settings?
  *
  *   - Use both (nested): Feature must be enabled AND user must have permission
- *     â†’ Outer: RequireCapability (business-level gate)
- *     â†’ Inner: RequirePermission (user-level gate)
+ *     → Outer: RequireCapability (business-level gate)
+ *     → Inner: RequirePermission (user-level gate)
  *
  * Architecture:
  *   - Reads from authStore.user.entitlement.capabilities (session-loaded).

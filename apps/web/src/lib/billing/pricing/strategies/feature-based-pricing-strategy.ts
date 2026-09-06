@@ -8,9 +8,9 @@
  * selected feature. Bundle detection and discount application are built in.
  *
  * Pipeline:
- *   1. Map selected features â†’ FeaturePriceDTO entries from the catalog
+ *   1. Map selected features → FeaturePriceDTO entries from the catalog
  *   2. Build FEATURE line items (one per selected feature)
- *   3. Run bundle detection â†’ apply highest-saving qualifying bundle discount
+ *   3. Run bundle detection → apply highest-saving qualifying bundle discount
  *   4. Apply branch surcharge if branchCount > 1
  *   5. Calculate tax
  *   6. Optionally compute annual totals with annual discount

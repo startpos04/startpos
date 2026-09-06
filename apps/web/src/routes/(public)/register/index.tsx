@@ -12,7 +12,7 @@
  * On submit:
  *   1. Checks email availability.
  *   2. Sends a 6-digit OTP via authClient.emailOtp.sendVerificationOtp().
- *   3. User enters OTP â†’ verified via authClient.emailOtp.verifyEmail().
+ *   3. User enters OTP → verified via authClient.emailOtp.verifyEmail().
  *   4. Calls registerWithSurvey — creates the auth user + full tenant record
  *      atomically. If survey config fails, no user is left orphaned.
  *   6. Signs in to get a session with businessId/branchId.
@@ -281,7 +281,7 @@ function OtpStep({ email, onVerified, onBack }: OtpStepProps) {
 
         <CardFooter>
           <Button type='button' variant='ghost' className='w-full' onClick={onBack}>
-            â† Back
+            ← Back
           </Button>
         </CardFooter>
       </Card>
@@ -553,7 +553,7 @@ function RouteComponent() {
               selector={state => [state.canSubmit, state.isSubmitting]}
               children={([canSubmit, isSubmitting]) => (
                 <Button type='submit' className='w-full' disabled={!canSubmit || !isOnline} data-testid='register-button'>
-                  {isSubmitting ? <Loader2 className='size-4 mr-2 animate-spin' /> : 'Continue â†’'}
+                  {isSubmitting ? <Loader2 className='size-4 mr-2 animate-spin' /> : 'Continue →'}
                 </Button>
               )}
             />

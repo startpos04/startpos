@@ -7,7 +7,7 @@
  * Tutorial variant (variant='tutorial'):
  *   - Primary color border, action-oriented.
  *   - Shows title + body + CTA button + X dismiss button.
- *   - Pressing X â†’ session-dismisses the tutorial (TutorialStore).
+ *   - Pressing X → session-dismisses the tutorial (TutorialStore).
  *   - Condition resolution removes it automatically on next evaluation.
  *
  * Hint variant (variant='hint'):

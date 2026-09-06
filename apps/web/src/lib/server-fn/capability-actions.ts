@@ -34,7 +34,7 @@ export interface CorrectCharacteristicInput {
 }
 
 // ---------------------------------------------------------------------------
-// Accept (RECOMMENDED â†’ ENABLED)
+// Accept (RECOMMENDED → ENABLED)
 // ---------------------------------------------------------------------------
 
 export const acceptCapability = createServerFn({ method: 'POST' })
@@ -46,7 +46,7 @@ export const acceptCapability = createServerFn({ method: 'POST' })
   })
 
 // ---------------------------------------------------------------------------
-// Enable (HIDDEN|RECOMMENDED â†’ ENABLED)
+// Enable (HIDDEN|RECOMMENDED → ENABLED)
 // ---------------------------------------------------------------------------
 
 export const enableCapability = createServerFn({ method: 'POST' })
@@ -58,7 +58,7 @@ export const enableCapability = createServerFn({ method: 'POST' })
   })
 
 // ---------------------------------------------------------------------------
-// Pause (ENABLED|CONFIGURED â†’ PAUSED)
+// Pause (ENABLED|CONFIGURED → PAUSED)
 // ---------------------------------------------------------------------------
 
 export const pauseCapability = createServerFn({ method: 'POST' })
@@ -70,7 +70,7 @@ export const pauseCapability = createServerFn({ method: 'POST' })
   })
 
 // ---------------------------------------------------------------------------
-// Restore (PAUSED â†’ ENABLED)
+// Restore (PAUSED → ENABLED)
 // ---------------------------------------------------------------------------
 
 export const restoreCapability = createServerFn({ method: 'POST' })
@@ -82,7 +82,7 @@ export const restoreCapability = createServerFn({ method: 'POST' })
   })
 
 // ---------------------------------------------------------------------------
-// Dismiss (RECOMMENDED â†’ HIDDEN, 30-day cooldown)
+// Dismiss (RECOMMENDED → HIDDEN, 30-day cooldown)
 // ---------------------------------------------------------------------------
 
 export const dismissCapability = createServerFn({ method: 'POST' })

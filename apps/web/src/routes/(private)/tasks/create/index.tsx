@@ -20,7 +20,7 @@ export function CreateTaskSidebar() {
       operationalTaskCollection.insert({
         id: crypto.randomUUID(),
         // C1: Tasks start as DRAFT — creator must submit for approval explicitly.
-        // The DRAFTâ†’PENDING transition is already wired in task-workflow.ts with
+        // The DRAFT→PENDING transition is already wired in task-workflow.ts with
         // buttonLabel "Submit for Approval" and is available to all roles.
         status: TaskStatus.DRAFT,
         businessId: user.business.id,

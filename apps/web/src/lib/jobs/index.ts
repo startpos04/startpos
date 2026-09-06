@@ -10,29 +10,29 @@
  *   4. Be idempotent — running twice for the same period must not produce duplicate effects.
  *
  * Registered jobs:
- *   subscription-lifecycle      â†’ src/lib/jobs/subscription-lifecycle.ts
+ *   subscription-lifecycle      → src/lib/jobs/subscription-lifecycle.ts
  *     Trigger: daily cron
- *     Purpose: TRIALâ†’EXPIRED, GRACE_PERIODâ†’EXPIRED, EXPIREDâ†’LONG_TERM_INACTIVE
+ *     Purpose: TRIAL→EXPIRED, GRACE_PERIOD→EXPIRED, EXPIRED→LONG_TERM_INACTIVE
  *
- *   usage-counter-reset         â†’ src/lib/jobs/usage-counter-reset.ts
+ *   usage-counter-reset         → src/lib/jobs/usage-counter-reset.ts
  *     Trigger: daily cron (checks currentPeriodEnd)
  *     Purpose: close current UsageCounter; open next period counter
  *
- *   billing-invoice-generation  â†’ src/lib/jobs/billing-invoice-generation.ts  [Phase 4]
+ *   billing-invoice-generation  → src/lib/jobs/billing-invoice-generation.ts  [Phase 4]
  *     Trigger: daily cron (runs after usage-counter-reset)
  *     Purpose: generate BillingInvoice + items for closed billing periods
  *     Dependencies: usage-counter-reset must run first in the same cron window
  *
- *   pricing-quote-expiry        â†’ src/lib/jobs/pricing-quote-expiry.ts  [Phase 5]
+ *   pricing-quote-expiry        → src/lib/jobs/pricing-quote-expiry.ts  [Phase 5]
  *     Trigger: daily cron
  *     Purpose: set DRAFT/CALCULATED/SENT quotes past validUntil to EXPIRED
  *
- *   composable-renewal-preview  â†’ src/lib/jobs/composable-renewal-preview.ts  [Phase 5]
+ *   composable-renewal-preview  → src/lib/jobs/composable-renewal-preview.ts  [Phase 5]
  *     Trigger: daily cron (runs after pricing-quote-expiry)
  *     Purpose: detect grandfathered price changes; notify businesses before renewal
  *     Dependencies: active PricingCatalog must exist (seeded in Phase 5)
  *
- *   subscription-renewal-reminders  â†’ src/lib/jobs/subscription-renewal-reminders.ts  [Phase 7]
+ *   subscription-renewal-reminders  → src/lib/jobs/subscription-renewal-reminders.ts  [Phase 7]
  *     Trigger: daily cron (runs independently)
  *     Purpose: send provider-agnostic renewal reminders at configurable intervals
  *     Dependencies: PaymentProviderRegistry for provider-specific guidance

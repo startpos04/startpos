@@ -3,7 +3,7 @@
  * for the current business including plan entitlements, usage limits, and
  * current usage counts.
  *
- * This provides the data needed for the Settings â†’ Entitlements tab to show
+ * This provides the data needed for the Settings → Entitlements tab to show
  * each capability with its corresponding entitlement configuration.
  */
 
@@ -76,7 +76,7 @@ const BUSINESS_LEVEL_CAPABILITIES = new Set([
 
 /**
  * Helper: Convert capability key to config key
- * Example: "CREATE_ORDER" â†’ "ENABLE_CREATE_ORDER"
+ * Example: "CREATE_ORDER" → "ENABLE_CREATE_ORDER"
  */
 function _getConfigKey(capabilityKey: CapabilityKey): string {
   return `ENABLE_${capabilityKey}`

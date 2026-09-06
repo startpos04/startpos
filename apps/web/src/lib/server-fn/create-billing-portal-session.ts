@@ -14,7 +14,7 @@
  *   - Manual: Returns error (no portal available)
  *
  * Customer ID resolution (in order):
- *   1. externalId on BusinessSubscription â†’ retrieve subscription â†’ get customer
+ *   1. externalId on BusinessSubscription → retrieve subscription → get customer
  *   2. Fallback: search provider customers by the user's email
  *
  * The customer is returned to /billing after they finish in the portal.
@@ -45,7 +45,7 @@ export const createBillingPortalSession = createServerFn({ method: 'POST' })
     try {
       let customerId: string | null = null
 
-      // --- Path 1: we have a subscription externalId â†’ retrieve customer from it ---
+      // --- Path 1: we have a subscription externalId → retrieve customer from it ---
       const subscription = await rootPrisma.businessSubscription.findUnique({
         where: { businessId },
         select: { externalId: true },
@@ -56,7 +56,7 @@ export const createBillingPortalSession = createServerFn({ method: 'POST' })
         customerId = typeof stripeSub.customer === 'string' ? stripeSub.customer : stripeSub.customer.id
       }
 
-      // --- Path 2: no externalId yet â†’ look up customer by email ---
+      // --- Path 2: no externalId yet → look up customer by email ---
       if (!customerId && email) {
         const customers = await stripe.customers.list({ email, limit: 1 })
         if (customers.data.length > 0) {

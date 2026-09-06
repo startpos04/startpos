@@ -278,7 +278,7 @@ export function AddonDialog({ addon, open, onClose }: MountProps & { addon: Addo
                   onClick={() => setQuantity(q => Math.max(1, q - 1))}
                   disabled={quantity <= 1}
                 >
-                  âˆ’
+                  −
                 </Button>
                 <span className='w-8 text-center font-semibold text-sm tabular-nums'>{quantity}</span>
                 <Button type='button' size='icon' variant='outline' className='h-7 w-7' onClick={() => setQuantity(q => Math.min(50, q + 1))}>

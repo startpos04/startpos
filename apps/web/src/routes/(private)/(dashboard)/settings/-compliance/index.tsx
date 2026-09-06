@@ -109,7 +109,7 @@ export function CompliancePage() {
     const missingFields = validateCompliance()
 
     if (missingFields.length === 0) {
-      toast.success('âœ“ All required fields are complete', {
+      toast.success('✓ All required fields are complete', {
         description: 'You can now save and mark your business as registered.',
       })
     } else {
@@ -181,7 +181,7 @@ export function CompliancePage() {
       })
 
       if (result.success) {
-        toast.success('âœ“ Business registration complete!', {
+        toast.success('✓ Business registration complete!', {
           description: 'Your business is now marked as registered.',
         })
         setRegistrationStatus('REGISTERED')
@@ -397,13 +397,13 @@ export function CompliancePage() {
             <CardContent className='space-y-2'>
               <div className='space-y-1 text-sm'>
                 <a href='https://www.dti.gov.ph/' target='_blank' rel='noopener noreferrer' className='text-primary hover:underline block'>
-                  â†’ DTI Registration Guide
+                  → DTI Registration Guide
                 </a>
                 <a href='https://www.bir.gov.ph/' target='_blank' rel='noopener noreferrer' className='text-primary hover:underline block'>
-                  â†’ How to get a BIR TIN
+                  → How to get a BIR TIN
                 </a>
                 <a href='https://www.bir.gov.ph/' target='_blank' rel='noopener noreferrer' className='text-primary hover:underline block'>
-                  â†’ How to apply for Permit to Use (PTU)
+                  → How to apply for Permit to Use (PTU)
                 </a>
               </div>
             </CardContent>

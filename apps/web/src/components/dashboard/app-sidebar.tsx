@@ -501,7 +501,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         {item.items?.map(subItem => (
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton asChild isActive={subItem.isActive}>
-                              <Link to={subItem.url}>
+                              <Link to={subItem.url as never} params={{} as never} search={prev => prev as never}>
                                 <span>{subItem.title}</span>
                               </Link>
                             </SidebarMenuSubButton>
@@ -514,7 +514,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               ) : (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={item.isActive} tooltip={item.title}>
-                    <Link to={item.url}>
+                    <Link to={item.url as never} params={{} as never} search={prev => prev as never}>
                       {item.icon}
                       <span>{item.title}</span>
                     </Link>

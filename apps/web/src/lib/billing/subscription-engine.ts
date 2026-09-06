@@ -6,26 +6,31 @@
  *
  * Architectural contract (ADR-001, ADR-002):
  *   - No Prisma imports, no collection reads, no HTTP calls.
- *   - Deterministic: same inputs â†’ same output.
+ *   - Deterministic: same inputs → same output.
  *   - Returns OperationResult — callers act on the result, never catch exceptions.
  *   - All data arrives as DTOs via SubscriptionSnapshot from the Application Layer.
  *
- * State machine (from v1-master-plan.md Â§2.5):
+ * Subscription Lifecycle State Transitions:
  *
  *   TRIAL
- *     â†“ trial period ends
- *   EXPIRED  â†  GRACE_PERIOD (grace window expires)
- *     â†“ no reactivation after LONG_TERM_INACTIVE_DAYS
+ *     │
+ *     ▼ trial period ends
+ *   EXPIRED  ◄───  GRACE_PERIOD (grace window expires)
+ *     │
+ *     ▼ no reactivation after LONG_TERM_INACTIVE_DAYS
  *   LONG_TERM_INACTIVE
- *     â†‘ business subscribes again
+ *     ▲
+ *     │ business subscribes again
  *   ACTIVE  (all data immediately restored)
  *
  *   ACTIVE / TRIAL / GRACE_PERIOD
- *     â†“ manual admin action
+ *     │
+ *     ▼ manual admin action
  *   SUSPENDED
  *
  *   ACTIVE / TRIAL / GRACE_PERIOD / EXPIRED
- *     â†“ business cancels
+ *     │
+ *     ▼ business cancels
  *   CANCELLED
  *
  * Usage:
@@ -41,7 +46,7 @@ import { type BillingModel, type LifecycleThresholds, type StatusTransitionRecor
 
 // ---------------------------------------------------------------------------
 // Valid state machine edges
-// Source state â†’ set of allowed target states
+// Source state → set of allowed target states
 // ---------------------------------------------------------------------------
 const VALID_TRANSITIONS: Readonly<Record<SubscriptionStatus, ReadonlySet<SubscriptionStatus>>> = {
   [SubscriptionStatus.TRIAL]: new Set([
@@ -52,7 +57,7 @@ const VALID_TRANSITIONS: Readonly<Record<SubscriptionStatus, ReadonlySet<Subscri
     SubscriptionStatus.SUSPENDED, // Admin action
   ]),
   [SubscriptionStatus.ACTIVE]: new Set([
-    SubscriptionStatus.GRACE_PERIOD, // Payment failed â†’ enter grace window
+    SubscriptionStatus.GRACE_PERIOD, // Payment failed → enter grace window
     SubscriptionStatus.EXPIRED, // Grace period ended; no payment
     SubscriptionStatus.SUSPENDED, // Admin suspension
     SubscriptionStatus.CANCELLED, // Business cancellation
@@ -89,7 +94,7 @@ const VALID_TRANSITIONS: Readonly<Record<SubscriptionStatus, ReadonlySet<Subscri
 export const SubscriptionEngine = {
   // -------------------------------------------------------------------------
   // canTransition
-  // Validates that a transition from fromStatus â†’ toStatus is defined in the
+  // Validates that a transition from fromStatus → toStatus is defined in the
   // state machine. Returns opFail with PRECONDITION_FAILED if invalid.
   // -------------------------------------------------------------------------
   canTransition(fromStatus: SubscriptionStatus, toStatus: SubscriptionStatus): OperationResult<void> {
@@ -97,7 +102,7 @@ export const SubscriptionEngine = {
     if (!allowed.has(toStatus)) {
       return opFail(
         'PRECONDITION_FAILED',
-        `Invalid subscription transition: ${fromStatus} â†’ ${toStatus}. ` + `Allowed from ${fromStatus}: [${[...allowed].join(', ')}]`,
+        `Invalid subscription transition: ${fromStatus} → ${toStatus}. ` + `Allowed from ${fromStatus}: [${[...allowed].join(', ')}]`,
       )
     }
     return opOk()
@@ -156,7 +161,7 @@ export const SubscriptionEngine = {
   // -------------------------------------------------------------------------
   // evaluateGracePeriodExpiry
   // Returns a transition record if the grace period has ended and the
-  // subscription should move from GRACE_PERIOD â†’ EXPIRED.
+  // subscription should move from GRACE_PERIOD → EXPIRED.
   //
   // Updated for advance payments: If subscription has advance credits that
   // cover the current period, skip grace period expiry.

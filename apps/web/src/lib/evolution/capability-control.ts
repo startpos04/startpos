@@ -11,12 +11,12 @@
  *   - Emits CAPABILITY_STATE_CHANGED via BusinessEventBus
  *
  * Public API:
- *   accept(businessId, capabilityId, actorId)  — RECOMMENDED â†’ ENABLED + apply outputs
- *   enable(businessId, capabilityId, actorId)  — HIDDEN|RECOMMENDED â†’ ENABLED + apply outputs
- *   pause(businessId, capabilityId, actorId)   — ENABLED|CONFIGURED â†’ PAUSED + rollback outputs
- *   restore(businessId, capabilityId, actorId) — PAUSED â†’ ENABLED + re-apply outputs
- *   dismiss(businessId, capabilityId, actorId) — RECOMMENDED â†’ HIDDEN (30-day cooldown)
- *   advance(businessId, capabilityId)          — ENABLED â†’ CONFIGURED (system-triggered)
+ *   accept(businessId, capabilityId, actorId)  — RECOMMENDED → ENABLED + apply outputs
+ *   enable(businessId, capabilityId, actorId)  — HIDDEN|RECOMMENDED → ENABLED + apply outputs
+ *   pause(businessId, capabilityId, actorId)   — ENABLED|CONFIGURED → PAUSED + rollback outputs
+ *   restore(businessId, capabilityId, actorId) — PAUSED → ENABLED + re-apply outputs
+ *   dismiss(businessId, capabilityId, actorId) — RECOMMENDED → HIDDEN (30-day cooldown)
+ *   advance(businessId, capabilityId)          — ENABLED → CONFIGURED (system-triggered)
  *
  * Error model:
  *   All methods return `OperationResult` — never throw to the caller.
@@ -53,7 +53,7 @@ export type ControlResult = { ok: true; newState: CapabilityLifecycleState } | {
 // ---------------------------------------------------------------------------
 
 /**
- * Accept a recommendation: RECOMMENDED â†’ ENABLED.
+ * Accept a recommendation: RECOMMENDED → ENABLED.
  * Applies capability outputs to Configuration.
  */
 export async function accept(businessId: string, capabilityId: string, actorId: string): Promise<ControlResult> {
@@ -64,7 +64,7 @@ export async function accept(businessId: string, capabilityId: string, actorId: 
 }
 
 /**
- * Manually enable a capability: HIDDEN|RECOMMENDED â†’ ENABLED.
+ * Manually enable a capability: HIDDEN|RECOMMENDED → ENABLED.
  * Applies capability outputs to Configuration.
  */
 export async function enable(businessId: string, capabilityId: string, actorId: string): Promise<ControlResult> {
@@ -75,7 +75,7 @@ export async function enable(businessId: string, capabilityId: string, actorId: 
 }
 
 /**
- * Pause a capability: ENABLED|CONFIGURED â†’ PAUSED.
+ * Pause a capability: ENABLED|CONFIGURED → PAUSED.
  * Applies rollback outputs to Configuration.
  * Always-on capabilities (checkout, products, etc.) cannot be paused.
  */
@@ -100,7 +100,7 @@ export async function pause(businessId: string, capabilityId: string, actorId: s
 }
 
 /**
- * Restore a paused capability: PAUSED â†’ ENABLED.
+ * Restore a paused capability: PAUSED → ENABLED.
  * Re-applies capability outputs to Configuration.
  */
 export async function restore(businessId: string, capabilityId: string, actorId: string): Promise<ControlResult> {
@@ -111,7 +111,7 @@ export async function restore(businessId: string, capabilityId: string, actorId:
 }
 
 /**
- * Dismiss a recommendation: RECOMMENDED â†’ HIDDEN (30-day cooldown).
+ * Dismiss a recommendation: RECOMMENDED → HIDDEN (30-day cooldown).
  * No config changes. Sets dismissedAt and increments dismissalCount.
  */
 export async function dismiss(businessId: string, capabilityId: string, actorId: string): Promise<ControlResult> {
@@ -121,7 +121,7 @@ export async function dismiss(businessId: string, capabilityId: string, actorId:
 }
 
 /**
- * Advance a capability from ENABLED â†’ CONFIGURED.
+ * Advance a capability from ENABLED → CONFIGURED.
  * Called by the RecalculationJob when configuredSignal returns true.
  * No config changes — the capability is already enabled and configured.
  */
@@ -137,7 +137,7 @@ type TransitionOptions = {
   applyOutputs?: boolean
   applyRollback?: boolean
   setDismissedAt?: boolean
-  schedulePriority?: number
+  schedulePriority?: import('./recalculation-queue').RecalculationPriority
 }
 
 async function transition(
@@ -405,7 +405,7 @@ export async function correctCharacteristic(
     await rootPrisma.business.update({
       where: { id: businessId },
       data: {
-        livingCharacteristics: correctedLiving,
+        livingCharacteristics: correctedLiving as import('prisma/generated/prisma/client').Prisma.InputJsonValue,
         lastCharacteristicsEvent: now,
       },
     })

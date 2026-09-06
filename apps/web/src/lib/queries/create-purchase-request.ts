@@ -2,7 +2,7 @@
  * create-purchase-request.ts
  *
  * D5: Purchase Request path — creates a purchase at PENDING_APPROVAL status.
- * The quick-receive path (create-purchase.ts â†’ RECEIVED) is unchanged and
+ * The quick-receive path (create-purchase.ts → RECEIVED) is unchanged and
  * remains the default for cash-and-carry operations.
  *
  * This path:
@@ -11,12 +11,12 @@
  *   3. Does NOT credit inventory (goods not yet received)
  *   4. Sends a PURCHASE_PENDING_APPROVAL notification to supervisors/admins
  *
- * Inventory is credited when the purchase transitions APPROVED â†’ RECEIVED
+ * Inventory is credited when the purchase transitions APPROVED → RECEIVED
  * via transitionPurchaseStatus in purchase-workflow-actions.ts.
  *
  * D5 — Traceability: pass the originating PURCHASE_REQUEST task ID (if any) so
  * the purchase record is linked back to the task that requested it. This closes
- * the task â†’ purchase audit trail (Purchase.operationalTaskId FK).
+ * the task → purchase audit trail (Purchase.operationalTaskId FK).
  */
 
 import { auditLogCollection, membershipCollection, purchaseCollection, purchaseItemCollection } from '@platform/db/collections'
@@ -35,7 +35,7 @@ export { createPurchaseSchema }
 export interface CreatePurchaseRequestOptions {
   /** ID of the PURCHASE_REQUEST OperationalTask that originated this request, if any.
    *  When provided, the resulting Purchase record is linked back to the task so the
-   *  full procurement cycle (task â†’ purchase â†’ GRN) is traceable in one query.
+   *  full procurement cycle (task → purchase → GRN) is traceable in one query.
    *  Source: Architecture Compliance Audit Deviation 5 — operationalTaskId never populated.
    */
   originatingTaskId?: string | null
@@ -85,7 +85,7 @@ export const createPurchaseRequest = async (data: CreatePurchaseInput, options: 
 
     // 1. Create the purchase header at PENDING_APPROVAL — no inventory yet.
     //    operationalTaskId links this purchase back to the originating PURCHASE_REQUEST task
-    //    so the full audit trail (task â†’ purchase â†’ GRN) is queryable from a single record.
+    //    so the full audit trail (task → purchase → GRN) is queryable from a single record.
     purchaseCollection.insert({
       id: purchaseId,
       purchaseId: structuredId, // Use pre-allocated sequence from above

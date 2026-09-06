@@ -4,7 +4,7 @@
  * Application Layer helper — persists an AuditEntryDTO to the audit_logs table.
  *
  * Architectural position:
- *   AuditEngine (pure domain) â†’ recordAudit (Application Layer) â†’ rootPrisma
+ *   AuditEngine (pure domain) → recordAudit (Application Layer) → rootPrisma
  *
  * Why rootPrisma and not dbTransaction / crudAPI?
  *   AuditLog is an append-only server-side record, not a local-first collection.
@@ -40,7 +40,7 @@ import type { AuditEntryDTO } from './types'
 
 export async function recordAudit(entry: AuditEntryDTO, options: { throwOnFailure?: boolean } = {}): Promise<void> {
   try {
-    await rootPrisma.auditLog.create({ data: entry })
+    await rootPrisma.auditLog.create({ data: entry as Parameters<typeof rootPrisma.auditLog.create>[0]['data'] })
   } catch (error) {
     console.error('[recordAudit] Failed to write audit log entry:', {
       action: entry.action,
@@ -63,5 +63,5 @@ export async function recordAuditWithTx(
   tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
   entry: AuditEntryDTO,
 ): Promise<void> {
-  await tx.auditLog.create({ data: entry })
+  await tx.auditLog.create({ data: entry as Parameters<typeof rootPrisma.auditLog.create>[0]['data'] })
 }

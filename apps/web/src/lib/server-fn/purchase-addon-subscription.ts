@@ -16,7 +16,7 @@
  *   3. Browser redirects to Stripe hosted page.
  *   4. On payment: Stripe fires customer.subscription.updated webhook.
  *   5. Webhook handler creates/updates BusinessSubscriptionAddon row.
- *   6. On cancellation: customer.subscription.deleted â†’ row marked inactive.
+ *   6. On cancellation: customer.subscription.deleted → row marked inactive.
  *
  * Environment variables required (one per addon type):
  *   STRIPE_ADDON_BRANCH_PRICE_ID

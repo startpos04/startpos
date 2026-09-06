@@ -4,7 +4,7 @@
  * Core permission checking engine. Mirrors the EntitlementEngine pattern.
  *
  * Architecture:
- *   Infrastructure fetches data â†’ Engine evaluates permissions â†’ Infrastructure acts on result
+ *   Infrastructure fetches data → Engine evaluates permissions → Infrastructure acts on result
  *
  * Evaluation order:
  *   1. Get role default permissions

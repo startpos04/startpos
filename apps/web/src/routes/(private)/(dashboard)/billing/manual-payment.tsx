@@ -245,7 +245,7 @@ function ManualPaymentPage() {
               <p className='text-3xl font-bold text-primary'>₱{(calculatedAmount / 100).toFixed(2)}</p>
               {periodsAdvancePaid > 1 && (
                 <p className='text-xs text-green-600 dark:text-green-400 mt-1'>
-                  âœ“ Covers {periodsAdvancePaid} billing periods • No payments needed until{' '}
+                  ✓ Covers {periodsAdvancePaid} billing periods • No payments needed until{' '}
                   {new Date(Date.now() + periodsAdvancePaid * 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
                 </p>
               )}
@@ -278,7 +278,7 @@ function ManualPaymentPage() {
                 {periodsAdvancePaid > 1 && (
                   <div className='mt-3 pt-3 border-t border-blue-300 dark:border-blue-700'>
                     <p className='text-blue-800 dark:text-blue-200'>
-                      <strong>ðŸ’¡ Advance Payment:</strong> You're paying for {periodsAdvancePaid} months. Make sure to transfer the full amount of ₱
+                      <strong>💡 Advance Payment:</strong> You're paying for {periodsAdvancePaid} months. Make sure to transfer the full amount of ₱
                       {(calculatedAmount / 100).toFixed(2)}.
                     </p>
                   </div>
@@ -371,7 +371,7 @@ function ManualPaymentPage() {
               <div className='text-sm text-blue-800 dark:text-blue-300'>
                 <p className='font-medium mb-1'>Payment Review Process</p>
                 <p>
-                  â±ï¸ Your payment will be reviewed by our admin team within 24 hours.
+                  ⏱️ Your payment will be reviewed by our admin team within 24 hours.
                   {periodsAdvancePaid > 1 && (
                     <>
                       {' '}
@@ -382,8 +382,7 @@ function ManualPaymentPage() {
                 </p>
                 {user.business.preferredPaymentProvider === 'stripe' && periodsAdvancePaid > 1 && (
                   <p className='mt-2 text-blue-700 dark:text-blue-300'>
-                    ðŸ”„ <strong>Auto-sync enabled:</strong> Your advance payment will be synced to Stripe to prevent duplicate charges during the advance
-                    period.
+                    🔄 <strong>Auto-sync enabled:</strong> Your advance payment will be synced to Stripe to prevent duplicate charges during the advance period.
                   </p>
                 )}
               </div>

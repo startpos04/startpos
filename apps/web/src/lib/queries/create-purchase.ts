@@ -20,7 +20,7 @@ export const createPurchaseLineSchema = z.object({
   variantId: z.string().min(1, 'Item required'),
   quantity: z.number().positive('Must be > 0'),
   unitId: z.string().min(1, 'Unit required'),
-  unitCost: z.number().nonnegative('Cost must be â‰¥ 0'),
+  unitCost: z.number().nonnegative('Cost must be ≥ 0'),
 })
 
 export const createPurchaseSchema = z.object({

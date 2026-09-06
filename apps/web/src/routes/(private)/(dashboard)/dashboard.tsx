@@ -91,7 +91,7 @@ function DashboardPage() {
   const dashboardHints = isOnline ? serverHints : filteredOfflineHints
 
   // Surface critical and high-importance RECOMMENDED capabilities on the dashboard.
-  // importance is derived from score: critical â‰¥ 0.75, high â‰¥ 0.55.
+  // importance is derived from score: critical ≥ 0.75, high ≥ 0.55.
   // We use recommendationScore as a proxy — show top 2 highest-scored RECOMMENDED caps.
   const topRecommendations = (capabilities ?? [])
     .filter(c => c.state === 'RECOMMENDED' && (c.recommendationScore ?? 0) >= 0.55)
@@ -274,9 +274,9 @@ function TipsSection({ hints }: TipsSectionProps) {
 
 function getGreeting(): { text: string; emoji: string } {
   const hour = new Date().getHours()
-  if (hour < 12) return { text: 'Good morning', emoji: 'â˜€ï¸' }
-  if (hour < 17) return { text: 'Good afternoon', emoji: '📋‹' }
-  return { text: 'Good evening', emoji: 'ðŸŒ™' }
+  if (hour < 12) return { text: 'Good morning', emoji: '☀️' }
+  if (hour < 17) return { text: 'Good afternoon', emoji: '🌤️' }
+  return { text: 'Good evening', emoji: '🌙' }
 }
 
 interface WelcomeBannerProps {

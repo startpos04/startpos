@@ -8,7 +8,7 @@
  *
  * Architecture compliance:
  *   - Zero client-side price arithmetic — all calculations are server-side only.
- *   - Feature selection â†’ server mutation â†’ PricingResult displayed.
+ *   - Feature selection → server mutation → PricingResult displayed.
  *   - No PricingEngine imports in this file (G10 — engine is infrastructure-free).
  *   - MANAGE_BILLING capability required.
  */

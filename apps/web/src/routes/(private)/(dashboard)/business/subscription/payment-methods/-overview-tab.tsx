@@ -135,7 +135,7 @@ export function OverviewTab() {
                         </div>
                         <p className='text-sm text-muted-foreground'>{registry?.description || getProviderDescription(providerId, config)}</p>
                         {registry?.requiresApproval && (
-                          <p className='text-xs text-amber-600 mt-1'>â±ï¸ Requires manual approval within {registry.gracePeriodDays || 24}h</p>
+                          <p className='text-xs text-amber-600 mt-1'>⏱️ Requires manual approval within {registry.gracePeriodDays || 24}h</p>
                         )}
                       </div>
                     </div>

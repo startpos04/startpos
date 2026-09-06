@@ -4,7 +4,7 @@
  * Reusable callout that explains how to pay via GCash through Stripe.
  *
  * GCash works on Stripe via the GCash Mastercard virtual card:
- *   1. Open GCash â†’ tap "Pay Bills" or "GCash Card"
+ *   1. Open GCash → tap "Pay Bills" or "GCash Card"
  *   2. Reveal the 16-digit virtual Mastercard number, expiry, and CVV
  *   3. On Stripe checkout, choose "Card" and enter those details
  *   4. GCash will send an OTP — enter it to complete payment
@@ -86,7 +86,7 @@ export function GCashPaymentGuide({ alwaysVisible = false, className }: GCashPay
                 className='text-xs text-blue-500 hover:text-blue-700 dark:text-blue-500 dark:hover:text-blue-300 transition-colors ml-1'
                 aria-label='Dismiss GCash guide'
               >
-                âœ•
+                ✕
               </button>
             )}
           </div>
@@ -121,11 +121,10 @@ export function GCashPaymentGuide({ alwaysVisible = false, className }: GCashPay
 
             {/* Requirement callout */}
             <div className='flex items-start gap-2 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/20 px-3 py-2'>
-              <span className='text-amber-500 text-sm leading-none mt-px'>âš </span>
+              <span className='text-amber-500 text-sm leading-none mt-px'>⚠️</span>
               <p className='text-xs text-amber-800 dark:text-amber-300 leading-relaxed'>
                 You need a <span className='font-semibold'>GCash card</span> (virtual or physical) to use this method. If you haven&apos;t activated yours yet,
-                open the GCash app â†’ tap <span className='font-mono font-semibold'>GCash Card</span> â†’ follow the activation steps. It takes about 2
-                minutes.
+                open the GCash app → tap <span className='font-mono font-semibold'>GCash Card</span> → follow the activation steps. It takes about 2 minutes.
               </p>
             </div>
           </div>

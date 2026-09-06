@@ -101,7 +101,7 @@ export const downloadTransactionsCSV = createServerFn({ method: 'POST' })
         const variant = item.variant
         const product = variant.product
 
-        // ðŸ“¸ PHASE 1: Use snapshot fields with fallback to live data for old records
+        // 📸 PHASE 1: Use snapshot fields with fallback to live data for old records
         const productName = item.snapshotProductName || product.name
         const variantName = item.snapshotVariantName || variant.name || ''
         const categoryName = item.snapshotCategoryName || product.category?.name || 'N/A'

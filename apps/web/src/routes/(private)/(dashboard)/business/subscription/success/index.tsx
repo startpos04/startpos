@@ -202,7 +202,7 @@ function BillingSuccessPage() {
           <p className='text-lg text-muted-foreground max-w-md'>Your account has been upgraded and is ready to go.</p>
           <div className='flex items-center justify-center gap-2'>
             <Badge variant='outline' className='text-emerald-700 border-emerald-300 bg-emerald-50/80 dark:bg-emerald-900/20 font-medium'>
-              âœ¨ Active
+              ✨ Active
             </Badge>
             <Badge variant='secondary' className='text-muted-foreground font-normal'>
               {getBillingMethodDisplay()}
@@ -331,7 +331,7 @@ function BillingSuccessPage() {
                 <p className='text-xs text-muted-foreground'>Your {planName} plan includes unlimited employee accounts at no extra cost.</p>
               </div>
               <Badge variant='outline' className='text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20'>
-                Unlimited âˆž
+                Unlimited ∞
               </Badge>
             </CardContent>
           </Card>

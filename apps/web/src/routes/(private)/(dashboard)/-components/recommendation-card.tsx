@@ -8,9 +8,9 @@
  *   - "Enable now" button (accept) + "Not right now" button (dismiss)
  *
  * Placement is determined by the parent based on importance:
- *   critical / high  â†’ Dashboard card section
- *   medium           â†’ Contextual (relevant page)
- *   low              â†’ Settings â†’ Capabilities only (not rendered here)
+ *   critical / high  → Dashboard card section
+ *   medium           → Contextual (relevant page)
+ *   low              → Settings → Capabilities only (not rendered here)
  *
  * @param capabilityId  - The capability to act on
  * @param label         - Human-readable name

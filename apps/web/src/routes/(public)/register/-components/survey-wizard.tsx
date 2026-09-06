@@ -1,7 +1,7 @@
 /**
  * survey-wizard.tsx — Adaptive onboarding survey UI (Phase 1.4)
  *
- * Multi-step adaptive question tree: Q1 â†’ Q8 with conditional branching.
+ * Multi-step adaptive question tree: Q1 → Q8 with conditional branching.
  * - Q1 (business type) is required — the submit button is disabled without it.
  * - All other questions can be skipped; safe defaults apply.
  * - Progress indicator shows approximate steps remaining.
@@ -11,8 +11,8 @@
  * Branching rules (mirrors survey-interpreter.ts logic):
  *   Q3a shown only when Q3 = deferred or mixed
  *   Q3b shown only when Q3 = deferred or mixed
- *   Q4a shown only when Q4 â‰  'no'
- *   Q4b shown only when Q4 â‰  'no' and teamSize â‰  solo
+ *   Q4a shown only when Q4 ≠ 'no'
+ *   Q4b shown only when Q4 ≠ 'no' and teamSize ≠ solo
  *   Q4c shown only when any physical/food/raw material selected in Q1
  *   Q5a shown only when Q5 = yes
  *   Q6a shown only when Q6 = yes
@@ -500,11 +500,11 @@ export function SurveyWizard({ onComplete, isSubmitting = false, onBack }: Surve
                 Setting up…
               </>
             ) : isLast ? (
-              "Let's go â†’"
+              "Let's go →"
             ) : selectedSingle || selectedValues.length > 0 ? (
-              'Next â†’'
+              'Next →'
             ) : (
-              'Skip â†’'
+              'Skip →'
             )}
           </Button>
         </CardFooter>

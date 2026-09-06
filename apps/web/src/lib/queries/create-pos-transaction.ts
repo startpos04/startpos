@@ -242,14 +242,14 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
         unitPrice: Number(variant.price),
         unitCost: Number(variant.costPrice || 0),
         unitId: product.baseUnitId,
-        // ðŸ“¸ PHASE 1 SNAPSHOTS: Capture product/variant/category data at time of sale
+        // 📸 PHASE 1 SNAPSHOTS: Capture product/variant/category data at time of sale
         snapshotProductName: product.name,
         snapshotVariantName: variant.name,
         snapshotCategoryName: product.category.name,
         snapshotSku: variant.sku,
         snapshotProductType: product.type,
         snapshotProductImage: variant.image || product.image,
-        // ðŸ“¸ PHASE 2 SNAPSHOTS: Capture unit & tax data at time of sale
+        // 📸 PHASE 2 SNAPSHOTS: Capture unit & tax data at time of sale
         snapshotUnitName: product.baseUnit.name,
         snapshotUnitAbbrev: product.baseUnit.abbreviation,
         snapshotUnitType: product.baseUnit.type,
@@ -276,11 +276,11 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
             quantity: a.quantityUsed,
             snapshotUnitPrice: Number(comp.priceOverride || 0),
             snapshotUnitCost: Number(comp.material.costPrice || 0),
-            // ðŸ“¸ PHASE 1 SNAPSHOTS: Capture addon details at time of sale
+            // 📸 PHASE 1 SNAPSHOTS: Capture addon details at time of sale
             snapshotAddonProductName: comp.material.product.name,
             snapshotAddonVariantName: comp.material.name,
             snapshotAddonSku: comp.material.sku,
-            // ðŸ“¸ PHASE 2 SNAPSHOTS: Capture addon unit & tax at time of sale
+            // 📸 PHASE 2 SNAPSHOTS: Capture addon unit & tax at time of sale
             snapshotAddonUnitName: comp.unit.name,
             snapshotAddonUnitAbbrev: comp.unit.abbreviation,
             snapshotAddonTaxCategory: comp.material.taxCategory,
@@ -307,7 +307,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
     //
     // IMPORTANT: This must remain synchronous — it runs inside dbTransaction
     // which is a synchronous local-first callback (no network I/O).
-    // Pattern mirrors InventoryEngine: read from collection â†’ engine call â†’ write to collection.
+    // Pattern mirrors InventoryEngine: read from collection → engine call → write to collection.
 
     const businessId = user.business.id
     const subscription = authStore.state.user?.entitlement
@@ -358,9 +358,9 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       })
       usageCounterId = openCounterEntry.id
     } else {
-      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // ═══════════════════════════════════════════════════════════════════════
       // USAGE COUNTER: Not found in local collection
-      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // ═══════════════════════════════════════════════════════════════════════
       //
       // Scenarios:
       // 1. First transaction of a new billing period (counter not created yet)
@@ -372,24 +372,24 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       // The server will handle counter reconciliation when the transaction syncs.
       //
       // FLOW:
-      // â”Œ─────────────────────────────────────────────────────────────────────â”
-      // â”‚ ONLINE:                                                              â”‚
-      // â”‚ 1. Transaction created with usageCounterId = null                   â”‚
-      // â”‚ 2. dbTransaction syncs to server via transactionAPI                 â”‚
-      // â”‚ 3. Server detects null usageCounterId                               â”‚
-      // â”‚ 4. Server finds/creates appropriate UsageCounter                    â”‚
-      // â”‚ 5. Server increments counter and links transaction                  â”‚
-      // â”‚ 6. Server returns updated transaction with counterId                â”‚
-      // â”‚ 7. Client collection updated with linked counterId                  â”‚
-      // â”‚                                                                      â”‚
-      // â”‚ OFFLINE:                                                             â”‚
-      // â”‚ 1. Transaction created with usageCounterId = null                   â”‚
-      // â”‚ 2. Transaction stored in local collection (not synced)              â”‚
-      // â”‚ 3. User continues working offline                                   â”‚
-      // â”‚ 4. When back online, pending transactions sync                      â”‚
-      // â”‚ 5. Server performs reconciliation for each transaction              â”‚
-      // â”‚ 6. All counters updated retroactively                               â”‚
-      // â””─────────────────────────────────────────────────────────────────────â”˜
+      // ┌─────────────────────────────────────────────────────────────────────┐
+      // │ ONLINE:                                                             │
+      // │ 1. Transaction created with usageCounterId = null                   │
+      // │ 2. dbTransaction syncs to server via transactionAPI                 │
+      // │ 3. Server detects null usageCounterId                               │
+      // │ 4. Server finds/creates appropriate UsageCounter                    │
+      // │ 5. Server increments counter and links transaction                  │
+      // │ 6. Server returns updated transaction with counterId                │
+      // │ 7. Client collection updated with linked counterId                  │
+      // │                                                                     │
+      // │ OFFLINE:                                                            │
+      // │ 1. Transaction created with usageCounterId = null                   │
+      // │ 2. Transaction stored in local collection (not synced)              │
+      // │ 3. User continues working offline                                   │
+      // │ 4. When back online, pending transactions sync                      │
+      // │ 5. Server performs reconciliation for each transaction              │
+      // │ 6. All counters updated retroactively                               │
+      // └─────────────────────────────────────────────────────────────────────┘
       //
       // GUARANTEES:
       // ✅ Transactions always succeed (never blocked by missing counter)
@@ -407,7 +407,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       // - Transaction limits are enforced via EntitlementEngine (not real-time counter)
       // - Billing happens periodically (not per-transaction)
       // - Server reconciliation backfills all links before billing runs
-      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // ═══════════════════════════════════════════════════════════════════════
       console.info(
         '[createPosTransaction] No usage counter in local collection.',
         isOffline ? 'Offline mode: transaction will link when synced.' : 'Online: server will reconcile counter.',
@@ -846,7 +846,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
  *   - ConcurrencyError: Retry with exponential backoff (max 3 attempts)
  *   - Other errors: Throw immediately (do NOT retry out-of-stock errors)
  *
- * Reference: CONCURRENCY-CONTROL-REQUIREMENT.md, production-edge-cases.md Â§3
+ * Reference: CONCURRENCY-CONTROL-REQUIREMENT.md, production-edge-cases.md §3
  */
 export const createPosTransactionWithRetry = async (data: CreateSaleInput, posOrders: posProduct[], maxAttempts = 3): Promise<CreatePosTransactionResponse> => {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {

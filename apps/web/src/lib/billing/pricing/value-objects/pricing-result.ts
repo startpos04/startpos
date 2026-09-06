@@ -6,9 +6,9 @@
  * Contains the full line-item breakdown, discount details, tax components,
  * annual pricing, and one-time fees for a pricing calculation.
  *
- * Key invariants (per v1-master-plan.md Â§2.17 and Architecture Compliance Gate G10):
+ * Key invariants (per v1-master-plan.md §2.17 and Architecture Compliance Gate G10):
  *   - grandTotal does NOT include oneTimeFees — they are displayed separately.
- *   - annualGrandTotal = grandTotal × 12 âˆ’ annualSavings (when applicable).
+ *   - annualGrandTotal = grandTotal × 12 − annualSavings (when applicable).
  *   - All amounts are integers in cents.
  *
  * Architectural contract:
@@ -44,7 +44,7 @@ export type PricingResult = {
   readonly taxAmount: number
 
   /**
-   * Monthly recurring total = subtotal âˆ’ discount + tax (cents/month).
+   * Monthly recurring total = subtotal − discount + tax (cents/month).
    * Does NOT include oneTimeFees.
    */
   readonly grandTotal: number
@@ -100,7 +100,7 @@ type PricingResultParams = {
 export const PricingResultFactory = {
   /**
    * Build a validated PricingResult.
-   * Throws if the grandTotal invariant is violated (subtotal âˆ’ discount + tax â‰  grandTotal).
+   * Throws if the grandTotal invariant is violated (subtotal − discount + tax ≠ grandTotal).
    * Throws if grandTotal includes one-time fees.
    *
    * In production, these checks guard against strategy implementation bugs.

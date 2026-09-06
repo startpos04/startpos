@@ -100,9 +100,9 @@ export type FeatureBundleVersionDTO = {
   pricingType: BundlePricingType
   /**
    * Interpretation depends on pricingType:
-   *   PERCENTAGE_DISCOUNT â†’ basis points (1500 = 15%)
-   *   FIXED_PRICE         â†’ total cents
-   *   FLAT_DISCOUNT       â†’ cents subtracted
+   *   PERCENTAGE_DISCOUNT → basis points (1500 = 15%)
+   *   FIXED_PRICE         → total cents
+   *   FLAT_DISCOUNT       → cents subtracted
    */
   discountValue: number
   /** Min number of bundle items that must be in selection to qualify. 0 = require all. */

@@ -4,9 +4,9 @@
  * Server function: convert an ACCEPTED PricingQuote to a COMPOSABLE_FEATURES
  * BusinessSubscription with BusinessSubscriptionFeature snapshot rows.
  *
- * Atomicity guarantee (per v1-master-plan.md Â§2.18 and Compliance Gate G5):
+ * Atomicity guarantee (per v1-master-plan.md §2.18 and Compliance Gate G5):
  *   All writes are inside a single Prisma transaction:
- *     1. PricingQuote status â†’ CONVERTED
+ *     1. PricingQuote status → CONVERTED
  *     2. BusinessSubscription create/update (billingModel = COMPOSABLE_FEATURES)
  *     3. BusinessSubscriptionFeature rows (one per FEATURE line item)
  *   If any step fails, the entire transaction rolls back — quote status is NOT

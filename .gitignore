@@ -6,6 +6,7 @@ count.txt
 
 # ─── Env files ────────────────────────────────────────────────────────────────
 # Root shared overrides
+.env
 .env.local
 
 # App-specific generated output and local overrides

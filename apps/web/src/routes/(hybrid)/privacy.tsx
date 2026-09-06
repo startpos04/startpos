@@ -5,7 +5,7 @@
  * Version: 2026-08-01
  *
  * Publicly accessible — no auth required.
- * Linked from: registration checkbox, re-acceptance modal, Settings â†’ Account tab.
+ * Linked from: registration checkbox, re-acceptance modal, Settings → Account tab.
  */
 
 import { LegalFooter } from '@platform/components/custom/legal-footer'
@@ -295,7 +295,7 @@ function PrivacyPage() {
               <tbody>
                 {[
                   ['Transaction records (OR numbers, amounts, cashier ID)', '10 years from transaction date', 'BIR Revenue Regulations 17-2013'],
-                  ['SC/PWD compliance data in transaction records', '10 years from transaction date', 'BIR RR 17-2013; RA 10173 Â§12(b)'],
+                  ['SC/PWD compliance data in transaction records', '10 years from transaction date', 'BIR RR 17-2013; RA 10173 §12(b)'],
                   ['Buyer TIN / address on official receipts', '10 years from transaction date', 'BIR Revenue Regulations 17-2013'],
                   ['Billing invoices and credit ledger', '7 years from invoice date', 'Standard accounting records requirement'],
                   ['Account and profile data', 'Duration of account + 90 days after deletion', 'Performance of contract'],

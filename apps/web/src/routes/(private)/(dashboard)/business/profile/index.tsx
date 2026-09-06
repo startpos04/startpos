@@ -6,7 +6,7 @@
  *   - Current value (formatted for humans)
  *   - Source label ("From your survey" / "Based on your activity" / "Set by you")
  *   - Evidence string when available
- *   - Edit button â†’ inline value picker
+ *   - Edit button → inline value picker
  *   - Decayed badge when confidence = 0 (Phase 7 visibility)
  *
  * Stale intent prompts: intent fields that are > 12 months old show

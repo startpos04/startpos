@@ -132,7 +132,7 @@ export function BusinessCapabilityDetailsSidebar({ capability, onClose }: Busine
             </div>
             <div className='ml-auto'>
               <Button variant='link' size='sm' className='h-auto p-0 text-xs text-primary'>
-                Learn More â†’
+                Learn More →
               </Button>
             </div>
           </div>

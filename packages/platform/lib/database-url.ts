@@ -11,12 +11,18 @@ function encodeCredential(value: string): string {
 }
 
 export function buildPostgresUrl(fallback?: string): string {
+  // Prioritize explicit DATABASE_URL or DIRECT_URL over POSTGRES_* variables
+  const explicitUrl = process.env['DATABASE_URL'] ?? process.env['DIRECT_URL']
+  if (explicitUrl) {
+    return explicitUrl
+  }
+
   const user = process.env['POSTGRES_USER']
   const password = process.env['POSTGRES_PASSWORD']
   const database = process.env['POSTGRES_DB']
 
   if (!user || !password || !database) {
-    return fallback ?? process.env['DATABASE_URL'] ?? process.env['DIRECT_URL'] ?? ''
+    return fallback ?? ''
   }
 
   const host = process.env['POSTGRES_HOST'] ?? 'localhost'

@@ -155,7 +155,7 @@ function RouteComponent() {
                 <div className='flex flex-col gap-0.5 text-xs text-muted-foreground'>
                   <div className='flex items-center gap-1'>
                     <span className='font-medium text-foreground'>{meta.sourceLocation || 'Stock'}</span>
-                    <span>â†’</span>
+                    <span>→</span>
                     <span className='font-medium text-foreground'>{meta.targetLocation || 'Floor'}</span>
                   </div>
                 </div>

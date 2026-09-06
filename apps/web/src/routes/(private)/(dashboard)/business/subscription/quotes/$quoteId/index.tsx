@@ -4,8 +4,8 @@
  * /billing/quotes/:quoteId — Quote Detail
  *
  * Displays the full line-item breakdown of a PricingQuote and allows:
- *   - Accept: transitions quote CALCULATED/SENT â†’ ACCEPTED
- *   - Convert: transitions ACCEPTED â†’ CONVERTED (creates composable subscription)
+ *   - Accept: transitions quote CALCULATED/SENT → ACCEPTED
+ *   - Convert: transitions ACCEPTED → CONVERTED (creates composable subscription)
  *   - Decline: marks quote as CANCELLED
  *
  * Architecture compliance:
@@ -385,7 +385,7 @@ function LineItemRow({
           isNegative && 'text-emerald-600 dark:text-emerald-400',
         )}
       >
-        {isNegative ? `âˆ’${formatCents(Math.abs(amount))}` : formatCents(amount)}
+        {isNegative ? `−${formatCents(Math.abs(amount))}` : formatCents(amount)}
       </span>
     </div>
   )

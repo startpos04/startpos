@@ -11,11 +11,11 @@
  * - Checks subscription metadata for advance payment info
  *
  * Handles:
- * - invoice.paid â†’ mark BillingInvoice as PAID; transition subscription to ACTIVE; consume advance credit
- * - invoice.payment_failed â†’ transition subscription to GRACE_PERIOD (unless covered by advance)
- * - customer.subscription.deleted â†’ transition subscription to CANCELLED
- * - customer.subscription.updated â†’ sync period dates; handle plan changes; respect advance payments
- * - checkout.session.completed â†’ insert CreditLedger PURCHASE entry
+ * - invoice.paid → mark BillingInvoice as PAID; transition subscription to ACTIVE; consume advance credit
+ * - invoice.payment_failed → transition subscription to GRACE_PERIOD (unless covered by advance)
+ * - customer.subscription.deleted → transition subscription to CANCELLED
+ * - customer.subscription.updated → sync period dates; handle plan changes; respect advance payments
+ * - checkout.session.completed → insert CreditLedger PURCHASE entry
  */
 
 import { SubscriptionStatus } from '@platform/lib/entitlement/entitlement-types'
@@ -100,9 +100,9 @@ export const handleInvoicePaid: WebhookEventHandler = async (event: WebhookEvent
       if (hasAdvanceCredits) {
         // Consume one advance credit for this billing period
         try {
-          const consumeResult = await advancePaymentService.consumeAdvanceCredit(resolvedSubscription.businessId, resolvedSubscription.id, tx)
+          const remainingCredits = await advancePaymentService.consumeAdvanceCredit(resolvedSubscription.id)
 
-          if (consumeResult.success) {
+          if (remainingCredits >= 0) {
             console.log(`[webhook/stripe] Consumed advance credit for business ${resolvedSubscription.businessId}`)
           }
         } catch (error) {
@@ -364,7 +364,7 @@ export const handleSubscriptionUpdated: WebhookEventHandler = async (event: Webh
 
   const now = new Date()
 
-  // Map provider status â†’ our SubscriptionStatus
+  // Map provider status → our SubscriptionStatus
   const targetStatus = ((): (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus] | null => {
     switch (sub.status) {
       case 'active':
@@ -524,8 +524,8 @@ async function handleCreditPurchase(event: WebhookEvent, session: NonNullable<We
       amount: entry.amount,
       balanceAfter: entry.balanceAfter,
       transactionId: null,
-      note: entry.note,
-      actorId: entry.actorId,
+      ...(entry.note !== null && entry.note !== undefined && { note: entry.note }),
+      ...(entry.actorId !== null && entry.actorId !== undefined && { actorId: entry.actorId }),
     },
   })
 

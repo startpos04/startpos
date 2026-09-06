@@ -5,7 +5,7 @@
  *
  * Flow:
  *   1. Business admin requests cancellation from /billing.
- *   2. This function validates the transition (ACTIVE/GRACE_PERIOD â†’ CANCELLED).
+ *   2. This function validates the transition (ACTIVE/GRACE_PERIOD → CANCELLED).
  *   3. Cancellation is sent to the billing provider via the adapter.
  *   4. BusinessSubscription status is updated to CANCELLED atomically with a
  *      SubscriptionStatusHistory record.

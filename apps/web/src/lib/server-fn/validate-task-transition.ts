@@ -46,7 +46,7 @@
  * Entitlement check:
  *   Task transitions that involve OPERATIONAL capabilities (CREATE_TASK) are also
  *   checked via entitlementMiddleware. Transitions that are purely workflow-level
- *   (PENDING â†’ APPROVED, etc.) are workflow-permission checks only — the
+ *   (PENDING → APPROVED, etc.) are workflow-permission checks only — the
  *   CREATE_TASK capability gate applies at task creation, not status updates.
  *   The entitlement check for CREATE_TASK is intentionally not applied here because
  *   all post-creation transitions are management operations, not new creation events.

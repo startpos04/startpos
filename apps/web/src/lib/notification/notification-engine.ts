@@ -27,7 +27,7 @@ interface SendNotificationParams {
 /**
  * DEV-6: Per-type default priorities.
  * Callers may pass an explicit `priority` override when context warrants it
- * (e.g. cash variance above threshold â†’ URGENT).
+ * (e.g. cash variance above threshold → URGENT).
  */
 const DEFAULT_PRIORITY: Record<NotificationType, NotificationPriority> = {
   [NotificationType.LOW_STOCK]: NotificationPriority.MEDIUM,

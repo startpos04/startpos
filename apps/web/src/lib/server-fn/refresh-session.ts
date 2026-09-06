@@ -10,7 +10,7 @@
  *
  * Why this is needed:
  *   - OAuth sign-in creates a session before the Membership exists.
- *   - The session.create.before hook finds no Membership â†’ businessId is null.
+ *   - The session.create.before hook finds no Membership → businessId is null.
  *   - After completeRegistration the Membership exists, but the session token
  *     still carries the old null businessId.
  *   - This function patches the session row so the existing cookie is valid.

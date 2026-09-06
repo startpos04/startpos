@@ -10,7 +10,7 @@
  *
  * Architecture:
  *   - Follows the same MountProps pattern as ProductDialog.
- *   - Uses dbTransaction â†’ productCollection + productVariantCollection to
+ *   - Uses dbTransaction → productCollection + productVariantCollection to
  *     create the product locally-first (syncs to server in background).
  *   - Resolves a default category and unit for the business on the fly;
  *     creates them if they don't exist yet (first Quick Add bootstraps defaults).

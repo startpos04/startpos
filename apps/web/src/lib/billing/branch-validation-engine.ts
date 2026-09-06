@@ -71,10 +71,10 @@ export const BranchValidationEngine = {
    * validateTransaction - Check if branch can process a transaction
    *
    * Logic:
-   * 1. If branch has no quota limit â†’ allowed (unlimited)
-   * 2. If branch usage < limit â†’ allowed (within quota)
-   * 3. If branch usage >= limit BUT has credits â†’ allowed, deduct 1 credit
-   * 4. If branch usage >= limit AND no credits â†’ blocked
+   * 1. If branch has no quota limit → allowed (unlimited)
+   * 2. If branch usage < limit → allowed (within quota)
+   * 3. If branch usage >= limit BUT has credits → allowed, deduct 1 credit
+   * 4. If branch usage >= limit AND no credits → blocked
    */
   validateTransaction(input: BranchValidationInput): OperationResult<ValidationResult> {
     const { branchQuota, branchCredits } = input
@@ -100,7 +100,7 @@ export const BranchValidationEngine = {
     // Branch has reached its limit - check credits
     if (branchCredits.balance <= 0) {
       return opFail(
-        'BRANCH_QUOTA_EXHAUSTED',
+        'PRECONDITION_FAILED',
         `Branch has reached its transaction limit (${branchQuota.txQuotaLimit}/month) and has no credits remaining. Purchase credits to continue.`,
       )
     }

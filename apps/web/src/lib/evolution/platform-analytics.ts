@@ -7,7 +7,7 @@
  *
  * Aggregations (per Phase 6 spec 6.3):
  *   - Health stage distribution across all businesses
- *   - Recommendation acceptance rate per capability (â†’ recommendation-analytics.ts)
+ *   - Recommendation acceptance rate per capability (→ recommendation-analytics.ts)
  *   - Most common profiles at registration
  *   - Profile graduation frequency
  *   - Milestone frequency (GROWTH_THRESHOLD_CROSSED events by milestoneId)
@@ -119,7 +119,7 @@ async function fetchProfileDistribution(field: 'onboardingProfile' | 'currentPro
 
   if (result.isErr()) throw new Error(result.error)
 
-  const rows = result.value as Array<Record<string, string | null>>
+  const rows = result.value as unknown as Array<Record<string, string | null>>
   const total = rows.length
   if (total === 0) return []
 

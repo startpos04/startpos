@@ -8,7 +8,7 @@
  * Atomically creates the complete tenant record in a single $transaction:
  *   1. Business (with BOS onboarding fields from adaptive survey)
  *   2. Branch (Main Branch)
- *   3. Membership (userId â†” businessId â†” branchId, role = ADMIN)
+ *   3. Membership (userId ↔ businessId ↔ branchId, role = ADMIN)
  *   3b. User.role promoted to ADMIN
  *   4. BusinessConfiguration defaults (from ConfigurationEngine — capability-derived)
  *   5. BusinessSubscription (TRIAL via SubscriptionEngine.buildInitialSubscription)
@@ -332,8 +332,8 @@ export const completeRegistration = createServerFn({ method: 'POST' })
 
         // ------------------------------------------------------------------
         // Step 8: Write BusinessCapabilityState rows
-        // ENABLED capabilities â†’ state='ENABLED'  (analytics: stamp enabledAt)
-        // RECOMMENDED capabilities â†’ state='RECOMMENDED' (analytics: stamp recommendedAt)
+        // ENABLED capabilities → state='ENABLED'  (analytics: stamp enabledAt)
+        // RECOMMENDED capabilities → state='RECOMMENDED' (analytics: stamp recommendedAt)
         // ------------------------------------------------------------------
         for (const capId of v2Config.enabledCapabilities) {
           await tx.businessCapabilityState.create({
@@ -371,7 +371,7 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         //
         // These are the minimum required so a cashier can Quick Add a product
         // on day one without hitting a FK constraint error. They can be renamed
-        // or supplemented later from Settings â†’ Categories / Units.
+        // or supplemented later from Settings → Categories / Units.
         // ------------------------------------------------------------------
         await tx.category.create({
           data: {

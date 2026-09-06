@@ -109,14 +109,14 @@ export const createPosOrder = async (data: CreateSaleInput, posOrders: posProduc
         unitPrice: Number(variant.price),
         unitCost: Number(variant.costPrice || 0),
         unitId: product.baseUnitId,
-        // ðŸ“¸ PHASE 1 SNAPSHOTS: Capture product/variant/category data at time of order
+        // 📸 PHASE 1 SNAPSHOTS: Capture product/variant/category data at time of order
         snapshotProductName: product.name,
         snapshotVariantName: variant.name,
         snapshotCategoryName: product.category.name,
         snapshotSku: variant.sku,
         snapshotProductType: product.type,
         snapshotProductImage: variant.image || product.image,
-        // ðŸ“¸ PHASE 2 SNAPSHOTS: Capture unit & tax data at time of order
+        // 📸 PHASE 2 SNAPSHOTS: Capture unit & tax data at time of order
         snapshotUnitName: product.baseUnit.name,
         snapshotUnitAbbrev: product.baseUnit.abbreviation,
         snapshotUnitType: product.baseUnit.type,
@@ -137,11 +137,11 @@ export const createPosOrder = async (data: CreateSaleInput, posOrders: posProduc
             quantity: a.quantityUsed,
             snapshotUnitPrice: Number(comp.priceOverride || 0),
             snapshotUnitCost: Number(comp.material.costPrice || 0),
-            // ðŸ“¸ PHASE 1 SNAPSHOTS: Capture addon details at time of order
+            // 📸 PHASE 1 SNAPSHOTS: Capture addon details at time of order
             snapshotAddonProductName: comp.material.product.name,
             snapshotAddonVariantName: comp.material.name,
             snapshotAddonSku: comp.material.sku,
-            // ðŸ“¸ PHASE 2 SNAPSHOTS: Capture addon unit & tax at time of order
+            // 📸 PHASE 2 SNAPSHOTS: Capture addon unit & tax at time of order
             snapshotAddonUnitName: comp.unit.name,
             snapshotAddonUnitAbbrev: comp.unit.abbreviation,
             snapshotAddonTaxCategory: comp.material.taxCategory,

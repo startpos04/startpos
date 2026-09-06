@@ -56,9 +56,9 @@
  *   - Less boilerplate: no need to repeat inline/fallback props
  *
  * When NOT to use RequireAccess:
- *   - When you only need capability check â†’ use RequireCapability
- *   - When you only need permission check â†’ use RequirePermission
- *   - When you need custom fallback for each gate â†’ nest manually
+ *   - When you only need capability check → use RequireCapability
+ *   - When you only need permission check → use RequirePermission
+ *   - When you need custom fallback for each gate → nest manually
  */
 
 import type { PermissionKey } from '@platform/lib/authorization/permission-keys'

@@ -127,7 +127,7 @@ export const PlanEngine = {
 
   /**
    * Returns a short human-readable TX allowance string.
-   * e.g., 500 â†’ "500 TX/mo", -1 â†’ "Unlimited TX"
+   * e.g., 500 → "500 TX/mo", -1 → "Unlimited TX"
    */
   formatTxAllowance(includedTxPerMonth: number): string {
     if (includedTxPerMonth === -1) return 'Unlimited TX'

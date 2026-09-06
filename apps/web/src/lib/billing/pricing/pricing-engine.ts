@@ -125,7 +125,7 @@ export const PricingEngine = {
   resolveDependencies(selectedKeys: CapabilityKey[], dependencies: FeatureDependencyDTO[]): OperationResult<CapabilityKey[]> {
     if (dependencies.length === 0) return opOk([...selectedKeys])
 
-    // Build adjacency map: featureKey â†’ set of keys it directly depends on
+    // Build adjacency map: featureKey → set of keys it directly depends on
     const depMap = new Map<CapabilityKey, Set<CapabilityKey>>()
     for (const dep of dependencies) {
       const key = dep.featureKey as CapabilityKey
@@ -195,7 +195,7 @@ export const PricingEngine = {
       for (const neighbor of neighbors) {
         const c = color.get(neighbor) ?? WHITE
         if (c === GRAY) {
-          return opFail('PRECONDITION_FAILED', `Cycle detected in FeatureDependency graph: "${node}" â†’ "${neighbor}" creates a circular dependency.`)
+          return opFail('PRECONDITION_FAILED', `Cycle detected in FeatureDependency graph: "${node}" → "${neighbor}" creates a circular dependency.`)
         }
         if (c === WHITE) {
           const result = dfs(neighbor)

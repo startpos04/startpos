@@ -14,11 +14,11 @@ import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
  *
  * Icon States:
  * - ⚠️ (Yellow/Orange) = UNREGISTERED
- * - â³ (Blue) = PENDING
+ * - ⏳ (Blue) = PENDING
  * - ✅ (Green) = REGISTERED
- * - ðŸ”´ (Red) = EXPIRED
+ * - 🔴 (Red) = EXPIRED
  *
- * Clicking the icon navigates to Settings â†’ Compliance page.
+ * Clicking the icon navigates to Settings → Compliance page.
  */
 export function RegistrationStatusIndicator() {
   const user = useAuthenticatedUser()
@@ -47,7 +47,7 @@ export function RegistrationStatusIndicator() {
         return {
           icon: CheckCircleIcon,
           colorClass: 'text-green-600 hover:text-green-700 dark:text-green-500',
-          tooltip: 'Business registered âœ“',
+          tooltip: 'Business registered ✓',
           bgClass: 'hover:bg-green-50 dark:hover:bg-green-950/20',
         }
       case 'EXPIRED':

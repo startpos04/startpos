@@ -15,7 +15,7 @@
  *   - All methods are synchronous — safe to call inside dbTransaction callbacks.
  *   - Returns OperationResult — callers act on the result, never catch exceptions.
  *
- * Usage (inside createPosTransaction â†’ dbTransaction):
+ * Usage (inside createPosTransaction → dbTransaction):
  *   const counter = usageCounterCollection.findOpenForPeriod(businessId, periodStart)
  *   const result = UsageEngine.increment(counter, plan.includedTxPerMonth)
  *   if (!result.ok) return result
@@ -65,8 +65,8 @@ export const UsageEngine = {
   // increment
   // Returns an updated UsageCounterSnapshot with txCount + 1.
   // If the allowance is exhausted:
-  //   - overageBillingEnabled = true  â†’ increment overageTxCount; return updated snapshot
-  //   - overageBillingEnabled = false â†’ return opFail (caller should deny the checkout)
+  //   - overageBillingEnabled = true  → increment overageTxCount; return updated snapshot
+  //   - overageBillingEnabled = false → return opFail (caller should deny the checkout)
   //
   // IMPORTANT: This method is synchronous. It must remain synchronous so it
   // can safely be called inside a dbTransaction callback (which is sync).
@@ -112,10 +112,11 @@ export const UsageEngine = {
   // The id is a sentinel ('__NEW__') — the Application Layer replaces it
   // after the DB insert returns the generated id.
   // -------------------------------------------------------------------------
-  buildNewCounter(businessId: string, billingPeriodStart: Date, billingPeriodEnd: Date): UsageCounterSnapshot {
+  buildNewCounter(businessId: string, branchId: string, billingPeriodStart: Date, billingPeriodEnd: Date): UsageCounterSnapshot {
     return {
       id: '__NEW__',
       businessId,
+      branchId,
       billingPeriodStart,
       billingPeriodEnd,
       txCount: 0,

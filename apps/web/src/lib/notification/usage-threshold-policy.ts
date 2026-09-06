@@ -46,7 +46,7 @@ export function computePercent(currentUsage: number, limit: number): number | nu
 // null if no threshold crossing occurred.
 //
 // "Highest" because a single large increment could jump multiple thresholds
-// (e.g. 0 â†’ 500 on a 500-limit plan crosses 50% and 100%). We return only
+// (e.g. 0 → 500 on a 500-limit plan crosses 50% and 100%). We return only
 // the highest so the caller notifies once per event at the most impactful level.
 // Additional notifications for skipped thresholds are handled separately
 // via evaluateAll() which checks all thresholds not yet notified.

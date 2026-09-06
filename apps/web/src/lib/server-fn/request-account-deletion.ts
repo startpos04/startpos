@@ -12,7 +12,7 @@
  *   - Does not soft-delete the account (that is done manually by support)
  *
  * This is the Phase 1 email-based process described in the Legal Compliance
- * Master Plan Â§4.3. A structured in-app deletion workflow is planned for Phase 3.
+ * Master Plan §4.3. A structured in-app deletion workflow is planned for Phase 3.
  *
  * Audit: ACCOUNT_DELETION_REQUESTED is written to AuditLog on every call.
  * Rate guard: better-auth rate limiting on the session prevents mass-spamming.
@@ -30,7 +30,8 @@ export const requestAccountDeletion = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .handler(async ({ context }): Promise<{ ok: true } | { ok: false; error: string }> => {
     const { id: actorId, businessId, email, name } = getServerContext(context).user
-    const businessName = getServerContext(context).user.business?.name ?? 'Unknown business'
+    const businessName = (getServerContext(context).user as Record<string, unknown>)?.['business'] as { name: string } | undefined
+    const businessDisplayName = businessName?.name ?? 'Unknown business'
 
     if (!businessId) {
       return { ok: false, error: 'Business context not found. Please reload and try again.' }
@@ -46,7 +47,7 @@ export const requestAccountDeletion = createServerFn({ method: 'POST' })
     const emailResult = await resend.emails.send({
       from,
       to: supportEmail,
-      subject: `[Account Deletion Request] ${businessName}`,
+      subject: `[Account Deletion Request] ${businessDisplayName}`,
       html: `
         <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
           <h2 style="font-size: 18px; margin-bottom: 4px;">Account Deletion Request</h2>
@@ -58,7 +59,7 @@ export const requestAccountDeletion = createServerFn({ method: 'POST' })
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <tr style="border-bottom: 1px solid #eee;">
               <td style="padding: 8px 0; color: #888; width: 140px;">Business</td>
-              <td style="padding: 8px 0; font-weight: 600;">${businessName}</td>
+              <td style="padding: 8px 0; font-weight: 600;">${businessDisplayName}</td>
             </tr>
             <tr style="border-bottom: 1px solid #eee;">
               <td style="padding: 8px 0; color: #888;">Merchant name</td>

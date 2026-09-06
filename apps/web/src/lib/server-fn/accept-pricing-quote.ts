@@ -3,7 +3,7 @@
  *
  * Server function: mark a PricingQuote as ACCEPTED.
  *
- * Transitions a quote from SENT or CALCULATED â†’ ACCEPTED.
+ * Transitions a quote from SENT or CALCULATED → ACCEPTED.
  * The business must explicitly accept a quote before it can be converted
  * to a subscription. This creates an auditable acceptance record.
  *

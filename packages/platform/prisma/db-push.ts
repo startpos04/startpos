@@ -11,15 +11,20 @@
 import { execSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buildPostgresUrl } from '../lib/database-url'
-import { confirmYesNo, getDatabaseTarget, isProductionDatabaseTarget } from './db-script-utils'
+import { askQuestion, confirmYesNo, getDatabaseTarget, isProductionDatabaseTarget } from './db-script-utils'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 async function main() {
   const { dbUrl, dbTarget, nodeEnv } = getDatabaseTarget()
-  const isProductionDB = isProductionDatabaseTarget(dbUrl)
+  
+  // For Prisma schema operations (push/migrate), prefer DIRECT_URL over DATABASE_URL
+  // because connection poolers (like Supabase pgBouncer) don't support schema operations
+  const directUrl = process.env['DIRECT_URL']
+  const actualDbUrl = directUrl || dbUrl
+  
+  const isProductionDB = isProductionDatabaseTarget(actualDbUrl)
   const isProductionEnv = nodeEnv === 'PRODUCTION' || nodeEnv === 'PROD'
   const isHighRisk = isProductionDB || isProductionEnv
 
@@ -28,10 +33,13 @@ async function main() {
   console.info('======================================================')
   console.info(`💻 SYSTEM ENVIRONMENT : \x1b[36m${nodeEnv}\x1b[0m`)
   console.info(`🗄️  DATABASE TARGET    : \x1b[33m${dbTarget}\x1b[0m`)
+  if (directUrl) {
+    console.info(`🔗 USING DIRECT URL   : \x1b[32mYes (bypassing pooler)\x1b[0m`)
+  }
   console.info(`🚨 TARGET RISK SCALE  : ${isHighRisk ? '\x1b[41m🔴 HIGH RISK (PRODUCTION)\x1b[0m' : '\x1b[42m🟢 LOW RISK (LOCAL/TEST)\x1b[0m'}`)
   console.info('======================================================\n')
 
-  if (!dbUrl) {
+  if (!actualDbUrl) {
     console.error('❌ Could not build DATABASE_URL — check POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB are set.')
     process.exit(1)
   }
@@ -41,6 +49,25 @@ async function main() {
     if (!confirmed) {
       console.info('🛑 db:push canceled by operator.')
       process.exit(0)
+    }
+
+    // Second security layer: require typing the database host to confirm
+    try {
+      // Parse PostgreSQL URL: postgresql://user:pass@host:port/database
+      const urlMatch = actualDbUrl.match(/^postgresql:\/\/[^@]+@([^:/]+)/)
+      if (!urlMatch || !urlMatch[1]) {
+        throw new Error('Could not extract hostname from DATABASE_URL')
+      }
+      const dbHost = urlMatch[1]
+      const confirmText = await askQuestion(`\x1b[33m🔐 Type the database hostname to confirm:\x1b[0m "${dbHost}"\n> `)
+      if (confirmText.trim() !== dbHost) {
+        console.info('\x1b[31m❌ Hostname mismatch. Aborting for safety.\x1b[0m')
+        process.exit(0)
+      }
+      console.info('\x1b[32m✓ Hostname confirmed.\x1b[0m\n')
+    } catch (error) {
+      console.error('❌ Could not parse database URL for confirmation:', error instanceof Error ? error.message : error)
+      process.exit(1)
     }
   } else {
     const confirmed = await confirmYesNo(`Push schema changes to \x1b[33m${dbTarget}\x1b[0m? (y/N): `)
@@ -52,7 +79,7 @@ async function main() {
 
   const prismaConfigPath = path.resolve(__dirname, '..', 'prisma.config.ts')
   const platformDir = path.resolve(__dirname, '..')
-  const env = { ...process.env, DATABASE_URL: dbUrl }
+  const env = { ...process.env, DATABASE_URL: actualDbUrl }
 
   console.info('\n🔨 Pushing schema...\n')
 

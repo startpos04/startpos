@@ -6,8 +6,8 @@
  * Responsibilities:
  *   - Read the current credit balance from a CreditLedgerSnapshot (the latest
  *     `balanceAfter` value — O(1), no SUM query needed).
- *   - Validate that a deduction is possible (balance â‰¥ cost).
- *   - Build new CreditLedgerEntry DTOs for insert by the Application Layer.
+ *   - Validate that a deduction is possible (balance ≥ cost).
+ *    - Build new CreditLedgerEntry DTOs for insert by the Application Layer.
  *   - Check whether the balance after a deduction is below the low-balance
  *     threshold (to trigger the CREDIT_LOW_BALANCE notification).
  *   - Provide legacy credit restoration capability (DEPRECATED - no longer used in business flows).

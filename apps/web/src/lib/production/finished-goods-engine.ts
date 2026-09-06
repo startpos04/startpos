@@ -15,7 +15,7 @@
  *   - Throws ConcurrencyError on version mismatch (caller must retry)
  *   - Follows existing InventoryEngine patterns
  *
- * Reference: production-module-spec.md Phase 2.2, production-edge-cases.md Â§3
+ * Reference: production-module-spec.md Phase 2.2, production-edge-cases.md §3
  */
 
 import type {
@@ -113,15 +113,15 @@ export const FinishedGoodsEngine = {
    * Race condition scenario WITHOUT version check:
    *   Terminal A reads: quantity = 5, version = 1
    *   Terminal B reads: quantity = 5, version = 1
-   *   Terminal A writes: quantity = 2  âœ“
-   *   Terminal B writes: quantity = 2  âœ“
+   *   Terminal A writes: quantity = 2  ✓
+   *   Terminal B writes: quantity = 2  ✓
    *   Result: -1 units (NEGATIVE INVENTORY BUG)
    *
    * WITH version check (this implementation):
    *   Terminal A reads: quantity = 5, version = 1
    *   Terminal B reads: quantity = 5, version = 1
-   *   Terminal A writes: quantity = 2, version = 2 WHERE version = 1  âœ“
-   *   Terminal B writes: quantity = 2, version = 2 WHERE version = 1  âœ—
+   *   Terminal A writes: quantity = 2, version = 2 WHERE version = 1  ✓
+   *   Terminal B writes: quantity = 2, version = 2 WHERE version = 1  ✗
    *   Result: ConcurrencyError thrown, terminal B retries, sees quantity = 2,
    *           correctly shows out-of-stock error
    *

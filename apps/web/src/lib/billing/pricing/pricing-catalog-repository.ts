@@ -117,7 +117,7 @@ export function createPricingCatalogRepository(prisma: PrismaClient): IPricingCa
 
 // ---------------------------------------------------------------------------
 // assembleCatalogDTO
-// Private helper: maps Prisma query result â†’ PricingCatalogDTO.
+// Private helper: maps Prisma query result → PricingCatalogDTO.
 // Also fetches dependency edges in a separate query for clarity.
 // ---------------------------------------------------------------------------
 // biome-ignore lint/suspicious/noExplicitAny: Prisma include result type is complex

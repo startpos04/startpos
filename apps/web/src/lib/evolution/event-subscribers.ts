@@ -9,12 +9,12 @@
  *   - BusinessEventBus itself imports NOTHING from subscriber modules.
  *   - Subscribers import BusinessEventBus (not the other way around).
  *   - This file (event-subscribers.ts) is the only place that creates
- *     the coupling: import subscriber â†’ call registerSubscriber().
+ *     the coupling: import subscriber → call registerSubscriber().
  *   - A broken subscriber implementation cannot crash server functions
  *     that emit events, because the EventBus error-swallows per subscriber.
  *
  * Phase 6 additions:
- *   - CAPABILITY_STATE_CHANGED â†’ writes to BusinessEventLog for analytics
+ *   - CAPABILITY_STATE_CHANGED → writes to BusinessEventLog for analytics
  *
  * To add a new subscriber:
  *   1. Write the handler function in the relevant module
@@ -30,7 +30,7 @@ import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { type BusinessEvent, BusinessEventBus } from './business-event-bus'
 
 // ---------------------------------------------------------------------------
-// CAPABILITY_STATE_CHANGED â†’ BusinessEventLog (Phase 6 analytics)
+// CAPABILITY_STATE_CHANGED → BusinessEventLog (Phase 6 analytics)
 // ---------------------------------------------------------------------------
 
 /**
@@ -56,7 +56,7 @@ async function handleCapabilityStateChanged(event: BusinessEvent): Promise<void>
         businessId: event.businessId,
         actorId: event.actorId ?? null,
         occurredAt: event.occurredAt,
-        payload: event.payload ?? {},
+        payload: (event.payload ?? {}) as import('prisma/generated/prisma/client').Prisma.InputJsonValue,
       },
     })
   } catch (err) {
@@ -65,7 +65,7 @@ async function handleCapabilityStateChanged(event: BusinessEvent): Promise<void>
 }
 
 // ---------------------------------------------------------------------------
-// GROWTH_THRESHOLD_CROSSED â†’ BusinessEventLog (Phase 5 milestone tracking)
+// GROWTH_THRESHOLD_CROSSED → BusinessEventLog (Phase 5 milestone tracking)
 // ---------------------------------------------------------------------------
 
 /**
@@ -81,7 +81,7 @@ async function handleGrowthThresholdCrossed(event: BusinessEvent): Promise<void>
         businessId: event.businessId,
         actorId: event.actorId ?? null,
         occurredAt: event.occurredAt,
-        payload: event.payload ?? {},
+        payload: (event.payload ?? {}) as import('prisma/generated/prisma/client').Prisma.InputJsonValue,
       },
     })
   } catch (err) {

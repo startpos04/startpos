@@ -6,9 +6,9 @@
  * Runs daily. Evaluates every active BusinessSubscription and applies any
  * pending automated status transitions:
  *
- *   TRIAL â†’ EXPIRED           (when trialEndsAt is in the past)
- *   GRACE_PERIOD â†’ EXPIRED    (when gracePeriodEndsAt is in the past)
- *   EXPIRED â†’ LONG_TERM_INACTIVE  (when expiredAt + LONG_TERM_INACTIVE_DAYS is in the past)
+ *   TRIAL → EXPIRED           (when trialEndsAt is in the past)
+ *   GRACE_PERIOD → EXPIRED    (when gracePeriodEndsAt is in the past)
+ *   EXPIRED → LONG_TERM_INACTIVE  (when expiredAt + LONG_TERM_INACTIVE_DAYS is in the past)
  *
  * Idempotency guarantees:
  *   - Only subscriptions whose current status matches the expected source status
@@ -147,7 +147,7 @@ export async function runSubscriptionLifecycleJob(rootPrisma: PrismaClient, thre
           break // Only one transition per subscription per run
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err)
-          warnings.push(`[${snapshot.businessId}] Failed to apply transition ${record.fromStatus} â†’ ${record.toStatus}: ${message}`)
+          warnings.push(`[${snapshot.businessId}] Failed to apply transition ${record.fromStatus} → ${record.toStatus}: ${message}`)
         }
       }
 
@@ -178,10 +178,10 @@ function buildStatusUpdateData(
   switch (toStatus) {
     case 'EXPIRED':
       // Record when the subscription first lapsed.
-      // gracePeriodEndsAt is set here so the GRACE_PERIOD â†’ EXPIRED path also clears it.
+      // gracePeriodEndsAt is set here so the GRACE_PERIOD → EXPIRED path also clears it.
       return {
         ...base,
-        expiredAt: snapshot.expiredAt ?? now, // Preserve if already set (GRACE_PERIOD â†’ EXPIRED)
+        expiredAt: snapshot.expiredAt ?? now, // Preserve if already set (GRACE_PERIOD → EXPIRED)
         gracePeriodEndsAt: null, // Clear grace period marker
       }
 

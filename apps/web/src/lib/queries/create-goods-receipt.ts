@@ -2,12 +2,12 @@
  * create-goods-receipt.ts
  *
  * E4: Creates a Goods Receipt Note (GRN) for an APPROVED purchase at PENDING
- * status. This replaces the direct APPROVEDâ†’RECEIVED inventory credit that
+ * status. This replaces the direct APPROVED→RECEIVED inventory credit that
  * previously happened inside $purchaseId/index.tsx.
  *
  * The contract (from DOMAIN_CONTRACTS_UBIQUITOUS_LANGUAGE.md Part 2):
  *   - Receiving domain owns the GRN lifecycle
- *   - Inventory is only credited when a GRN transitions PENDING â†’ CONFIRMED
+ *   - Inventory is only credited when a GRN transitions PENDING → CONFIRMED
  *   - A GRN must reference a valid Purchase Order (INV-08)
  *
  * What this function does:
@@ -18,7 +18,7 @@
  *   4. Inserts one GoodsReceiptItem per PO line inside the same transaction
  *   5. Does NOT credit inventory — that happens in confirm-goods-receipt.ts
  *
- * Backward compat: the quick-receive path (create-purchase.ts â†’ RECEIVED) is
+ * Backward compat: the quick-receive path (create-purchase.ts → RECEIVED) is
  * completely untouched. This path is only triggered when the user clicks
  * "Receive Goods" on an APPROVED purchase.
  */

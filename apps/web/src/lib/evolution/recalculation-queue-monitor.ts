@@ -47,7 +47,7 @@ export type QueueHealthReport = {
   pendingCount: number
   /** Pending entries with attempts > 0 (tried but not succeeded yet) */
   retryingCount: number
-  /** Entries with attempts â‰¥ MAX_ATTEMPTS and processedAt still null */
+  /** Entries with attempts ≥ MAX_ATTEMPTS and processedAt still null */
   failedCount: number
   /** Age of the oldest pending entry in minutes (null if no pending entries) */
   oldestPendingAgeMinutes: number | null
@@ -136,7 +136,7 @@ export async function getQueueHealthReport(): Promise<QueueHealthReport> {
 // ---------------------------------------------------------------------------
 
 /**
- * Returns all permanently failed queue entries (attempts â‰¥ MAX_ATTEMPTS).
+ * Returns all permanently failed queue entries (attempts ≥ MAX_ATTEMPTS).
  * Used by the operator to investigate and manually re-queue or clear failures.
  */
 export async function getFailedQueueEntries(): Promise<QueueEntry[]> {

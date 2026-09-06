@@ -45,7 +45,7 @@ export const calculateStats = (transactions: TransactionReport[]) => {
     tx.orderItems.forEach(item => {
       const key = item.variantId
       if (!productMap[key]) {
-        // ðŸ“¸ PHASE 1: Use snapshot fields with fallback to live data for old records
+        // 📸 PHASE 1: Use snapshot fields with fallback to live data for old records
         const productName = item.snapshotProductName || item.variant.product?.name || 'Unknown Product'
         productMap[key] = { name: productName, qty: 0, revenue: 0 }
       }

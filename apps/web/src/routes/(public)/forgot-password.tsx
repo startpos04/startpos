@@ -179,7 +179,7 @@ function OtpStep({ email, onVerified, onBack }: OtpStepProps) {
 
       <CardFooter>
         <Button type='button' variant='ghost' className='w-full' onClick={onBack}>
-          â† Back
+          ← Back
         </Button>
       </CardFooter>
     </Card>
@@ -266,7 +266,7 @@ function NewPasswordStep({ email, otp, onBack }: NewPasswordStepProps) {
             )}
           />
           <Button type='button' variant='ghost' className='w-full' onClick={onBack}>
-            â† Back
+            ← Back
           </Button>
         </CardFooter>
       </Form>

@@ -35,7 +35,7 @@ function RouteComponent() {
       return
     }
 
-    // Session exists but no Membership yet â†’ OAuth user needs business setup
+    // Session exists but no Membership yet → OAuth user needs business setup
     if (isOnline && user && !user.business?.id) {
       navigate({ to: '/register/business-setup' })
       return
