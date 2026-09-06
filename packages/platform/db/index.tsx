@@ -13,6 +13,7 @@ import {
 import { BasicIndex, type Collection, createCollection, parseLoadSubsetOptions, type SyncMode } from '@tanstack/db'
 import { queryCollectionOptions } from '@tanstack/query-db-collection'
 import utc from 'dayjs/plugin/utc'
+import { setPersistenceStatus } from './persistence-status'
 
 dayjs.extend(utc)
 
@@ -24,13 +25,37 @@ let localDB = null as unknown as BrowserWASQLiteDatabase
 export let persistence = null as unknown as PersistedCollectionPersistence
 
 if (typeof window !== 'undefined') {
-  localDB = await openBrowserWASQLiteOPFSDatabase({
-    databaseName: 'pos_offline_storage_v2.sqlite',
-  })
+  try {
+    // Try to open OPFS database (requires COEP/COOP headers)
+    localDB = await openBrowserWASQLiteOPFSDatabase({
+      databaseName: 'pos_offline_storage_v2.sqlite',
+    })
 
-  persistence = createBrowserWASQLitePersistence({
-    database: localDB,
-  })
+    persistence = createBrowserWASQLitePersistence({
+      database: localDB,
+    })
+
+    setPersistenceStatus('available')
+    console.info('[DB] OPFS persistence initialized successfully')
+  } catch (error) {
+    // Fallback to in-memory storage if OPFS is unavailable
+    // This can happen if:
+    // - Browser doesn't support OPFS
+    // - COEP/COOP headers are not set correctly
+    // - Running in incognito/private mode
+    setPersistenceStatus('unavailable')
+    console.warn('[DB] OPFS unavailable, falling back to in-memory storage:', error)
+    console.warn('[DB] Note: Data will not persist across page refreshes')
+
+    // Create a null persistence that effectively disables persistence
+    // Collections will still work but data won't be saved
+    persistence = {
+      getItem: async () => null,
+      setItem: async () => {},
+      removeItem: async () => {},
+      getAllKeys: async () => [],
+    } as PersistedCollectionPersistence
+  }
 }
 
 const bc = typeof window !== 'undefined' ? new BroadcastChannel('db_sync') : null

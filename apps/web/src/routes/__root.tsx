@@ -1,6 +1,7 @@
 import { NavigationProgress } from '@platform/components/custom/navigation-progress'
 import { ThemeProvider } from '@platform/components/custom/theme/theme-provider'
 import { useSw } from '@platform/hooks/use-sw'
+import { PersistenceWarning } from '@/components/persistence-warning'
 import { getAuthUser } from '@/lib/better-auth/auth-server'
 import { setupAuth } from '@/lib/better-auth/auth-setup'
 import { setUser } from '@/lib/better-auth/auth-store'
@@ -78,6 +79,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
+          <PersistenceWarning />
           <NavigationProgress />
           <MountManager />
           {children}
