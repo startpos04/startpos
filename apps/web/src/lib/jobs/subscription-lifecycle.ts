@@ -98,6 +98,8 @@ export async function runSubscriptionLifecycleJob(rootPrisma: PrismaClient, thre
         activatedAt: row.activatedAt,
         cancelledAt: row.cancelledAt,
         suspendedAt: row.suspendedAt,
+        advancePaymentCredits: ((row as Record<string, unknown>)['advancePaymentCredits'] as number) ?? 0,
+        advancePaymentExpiresAt: ((row as Record<string, unknown>)['advancePaymentExpiresAt'] as Date | null) ?? null,
       }
 
       // Evaluate all possible transitions in priority order.

@@ -12,6 +12,7 @@
  */
 
 import { prisma } from '@platform/lib/prisma-client'
+import type { PaymentProvider } from 'prisma/generated/prisma/enums'
 import type { WebhookEvent } from '@/lib/billing/billing-provider'
 import { WebhookOutcome, type WebhookProcessingResult } from '@/lib/billing/types'
 
@@ -67,9 +68,9 @@ export class WebhookIdempotencyManager {
   async isProcessed(providerId: string, eventId: string): Promise<boolean> {
     const existing = await prisma.webhookEvent.findUnique({
       where: {
-        providerId_eventId: {
-          providerId,
-          eventId,
+        provider_externalId: {
+          provider: providerId as PaymentProvider,
+          externalId: eventId,
         },
       },
       select: { id: true },
@@ -83,25 +84,28 @@ export class WebhookIdempotencyManager {
    */
   async markProcessed(providerId: string, eventId: string, eventType: string, rawPayload: unknown, outcome: WebhookOutcome, message?: string): Promise<void> {
     try {
+      // Map WebhookOutcome values to DB status strings
+      const status = outcome === WebhookOutcome.PROCESSED ? 'PROCESSED' : outcome === WebhookOutcome.SKIPPED ? 'SKIPPED' : 'ERROR'
+
       await prisma.webhookEvent.upsert({
         where: {
-          providerId_eventId: {
-            providerId,
-            eventId,
+          provider_externalId: {
+            provider: providerId as PaymentProvider,
+            externalId: eventId,
           },
         },
         create: {
-          providerId,
-          eventId,
+          provider: providerId as PaymentProvider,
+          externalId: eventId,
           eventType,
-          payload: rawPayload,
-          outcome,
-          message,
+          rawPayload: rawPayload as import('prisma/generated/prisma/client').Prisma.InputJsonValue,
+          status,
+          ...(message !== undefined && { errorMessage: message }),
           processedAt: new Date(),
         },
         update: {
-          outcome,
-          message,
+          status,
+          ...(message !== undefined && { errorMessage: message }),
           processedAt: new Date(),
         },
       })
@@ -118,8 +122,11 @@ export class WebhookIdempotencyManager {
 export class WebhookProcessor {
   private router = new WebhookEventRouter()
   private idempotency = new WebhookIdempotencyManager()
+  private config: WebhookProcessorConfig
 
-  constructor(private config: WebhookProcessorConfig) {}
+  constructor(config: WebhookProcessorConfig) {
+    this.config = config
+  }
 
   /**
    * Register event handlers
@@ -206,9 +213,9 @@ export class WebhookProcessor {
     const since = new Date(Date.now() - hours * 60 * 60 * 1000)
 
     const stats = await prisma.webhookEvent.groupBy({
-      by: ['outcome'],
+      by: ['status'],
       where: {
-        providerId,
+        provider: providerId as PaymentProvider,
         createdAt: { gte: since },
       },
       _count: {
@@ -218,9 +225,9 @@ export class WebhookProcessor {
 
     return {
       total: stats.reduce((sum, stat) => sum + stat._count.id, 0),
-      processed: stats.find(s => s.outcome === WebhookOutcome.PROCESSED)?._count.id || 0,
-      skipped: stats.find(s => s.outcome === WebhookOutcome.SKIPPED)?._count.id || 0,
-      errors: stats.find(s => s.outcome === WebhookOutcome.ERROR)?._count.id || 0,
+      processed: stats.find(s => s.status === 'PROCESSED')?._count.id ?? 0,
+      skipped: stats.find(s => s.status === 'SKIPPED')?._count.id ?? 0,
+      errors: stats.find(s => s.status === 'ERROR')?._count.id ?? 0,
     }
   }
 }

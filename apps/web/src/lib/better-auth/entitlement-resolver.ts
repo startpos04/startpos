@@ -99,9 +99,9 @@ export async function buildEntitlementContext(businessId: string): Promise<Entit
     billingModel: (subscription.billingModel ?? BillingModel.PREPAID_CREDITS) as EntitlementContext['billingModel'],
     planFeatures,
     usageLimits,
-    currentUsage: {},
+    currentUsage: {} as Partial<Record<CapabilityKey, number>>,
     txRemaining,
     overrides: mappedOverrides,
     creditBalance,
-  }
+  } as EntitlementContext
 }

@@ -136,10 +136,10 @@ async function processEntry(queueId: string, businessId: string): Promise<void> 
   const summaryRow = await rootPrisma.businessUsageSummary.findFirst({
     where: { businessId },
     orderBy: { periodEnd: 'desc' },
-    select: { data: true },
+    select: { additionalMetrics: true },
   })
 
-  const usageSummary = (summaryRow?.data ?? {}) as BusinessUsageSummaryData
+  const usageSummary = (summaryRow?.additionalMetrics ?? {}) as BusinessUsageSummaryData
 
   // Step 3: Assemble input — parse stored living characteristics from JSON
   const current = parseLivingCharacteristics(business.livingCharacteristics)
@@ -206,7 +206,7 @@ async function processEntry(queueId: string, businessId: string): Promise<void> 
   }
 
   // Step 7b: Profile graduation notification
-  // Fires when the operational profile changes (e.g. LITE_POS â†’ SIMPLE_RETAILER).
+  // Fires when the operational profile changes (e.g. LITE_POS → SIMPLE_RETAILER).
   // Creates a system notification — never silently enables capabilities.
   if (profileChanged && previousProfile !== null) {
     await createProfileGraduationNotification(businessId, previousProfile, newProfile, now)
@@ -214,7 +214,7 @@ async function processEntry(queueId: string, businessId: string): Promise<void> 
 
   // Step 7c: Milestone detection (Phase 5)
   // Detects growth thresholds that were crossed in this recalculation cycle.
-  // Only fires when changedFields is non-empty (no change â†’ no milestone check).
+  // Only fires when changedFields is non-empty (no change → no milestone check).
   if (output.changedFields.length > 0) {
     const milestones = detectMilestones({
       changedFields: output.changedFields,
@@ -230,7 +230,7 @@ async function processEntry(queueId: string, businessId: string): Promise<void> 
   }
 
   // Step 8: Evaluate configuredSignal for ENABLED capabilities
-  // Advances ENABLED â†’ CONFIGURED for any capability whose usage signal has fired.
+  // Advances ENABLED → CONFIGURED for any capability whose usage signal has fired.
   await advanceConfiguredCapabilities(businessId, usageSummary)
 }
 
@@ -326,7 +326,7 @@ async function createMilestoneNotifications(businessId: string, milestones: Mile
 
 /**
  * Creates a system notification when the operational profile changes.
- * The notification links to Settings â†’ Capabilities where new capabilities
+ * The notification links to Settings → Capabilities where new capabilities
  * are visible. No capability is silently enabled.
  */
 async function createProfileGraduationNotification(businessId: string, _fromProfile: string, _toProfile: string, now: Date): Promise<void> {
@@ -345,7 +345,7 @@ async function createProfileGraduationNotification(businessId: string, _fromProf
         branchId: branch.id,
         type: 'SYSTEM_ALERT',
         title: 'Your business has grown',
-        message: `New capabilities are now available for your business. Visit Settings â†’ Capabilities to see what's changed.`,
+        message: `New capabilities are now available for your business. Visit Settings → Capabilities to see what's changed.`,
         createdAt: now,
       } as Parameters<typeof rootPrisma.notification.create>[0]['data'],
     })
@@ -361,7 +361,7 @@ async function createProfileGraduationNotification(businessId: string, _fromProf
 
 /**
  * Evaluates configuredSignal for all ENABLED capabilities of the given business.
- * Advances ENABLED â†’ CONFIGURED for any capability whose signal has fired.
+ * Advances ENABLED → CONFIGURED for any capability whose signal has fired.
  *
  * This is called at the end of every recalculation so advancement happens
  * promptly after usage data is updated — no separate job needed.

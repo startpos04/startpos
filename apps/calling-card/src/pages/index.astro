@@ -1,0 +1,129 @@
+---
+import CardFront from '../components/CardFront.astro';
+import CardBack from '../components/CardBack.astro';
+import '../styles/cards.css';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StartPOS — Calling Card</title>
+  <style>
+    .preview-page {
+      min-height: 100vh;
+      background: #E9EBEA;
+      padding: 56px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 40px;
+    }
+
+    .preview-heading {
+      text-align: center;
+    }
+
+    .preview-heading h1 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+    }
+
+    .preview-heading p {
+      margin-top: 6px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+    }
+
+    .card-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 48px;
+    }
+
+    .card-slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .side-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.05em;
+    }
+
+    .card-shadow {
+      box-shadow: 0 12px 30px rgba(10, 25, 30, 0.16);
+    }
+
+    @media print {
+      .preview-heading {
+        display: none;
+      }
+
+      .side-label {
+        display: none;
+      }
+
+      .preview-page {
+        padding: 0;
+        gap: 0.35in;
+      }
+
+      .card-row {
+        gap: 0.35in;
+      }
+
+      .card-slot {
+        page-break-inside: avoid;
+      }
+
+      .card-shadow {
+        box-shadow: none;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .card-row {
+        gap: 32px;
+      }
+
+      .preview-page {
+        padding: 40px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-page">
+    <div class="preview-heading">
+      <h1>STARTPOS CALLING CARD</h1>
+      <p>Preview only — save this file, open it in Chrome, then print. This heading and the FRONT/BACK labels never appear on paper.</p>
+    </div>
+
+    <div class="card-row">
+      <div class="card-slot">
+        <span class="side-label">FRONT</span>
+        <div class="card-shadow">
+          <CardFront />
+        </div>
+      </div>
+
+      <div class="card-slot">
+        <span class="side-label">BACK</span>
+        <div class="card-shadow">
+          <CardBack />
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

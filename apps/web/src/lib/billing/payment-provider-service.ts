@@ -29,7 +29,8 @@ export class PaymentProviderService {
     })
 
     if (business?.preferredPaymentProvider) {
-      const adapter = paymentProviderRegistry.getAdapter(business.preferredPaymentProvider)
+      const lowercaseId = business.preferredPaymentProvider.toLowerCase() as PaymentProviderId
+      const adapter = paymentProviderRegistry.getAdapter(lowercaseId)
       if (adapter) {
         return adapter
       }
@@ -43,7 +44,9 @@ export class PaymentProviderService {
     })
 
     if (recentPayment?.provider) {
-      const adapter = paymentProviderRegistry.getAdapter(recentPayment.provider as PaymentProviderId)
+      // Map uppercase PaymentProvider enum to lowercase PaymentProviderId
+      const lowercaseId = recentPayment.provider.toLowerCase() as PaymentProviderId
+      const adapter = paymentProviderRegistry.getAdapter(lowercaseId)
       if (adapter) {
         return adapter
       }
@@ -86,7 +89,7 @@ export class PaymentProviderService {
 
     await prisma.business.update({
       where: { id: businessId },
-      data: { preferredPaymentProvider: providerId },
+      data: { preferredPaymentProvider: providerId.toUpperCase() as import('prisma/generated/prisma/enums').PaymentProvider },
     })
   }
 
@@ -178,10 +181,10 @@ export class PaymentProviderService {
 
     // Manual payment method - get config for setup route
     const config = paymentProviderRegistry.getConfig(preferredProvider)
-    if (config?.config.setupRoute) {
+    if (config?.config['setupRoute']) {
       return {
         type: 'manual-payment',
-        redirectUrl: `${config.config.setupRoute}?planId=${planId}`,
+        redirectUrl: `${config.config['setupRoute']}?planId=${planId}`,
       }
     }
 
@@ -201,7 +204,7 @@ export class PaymentProviderService {
    */
   getSetupRoute(providerId: PaymentProviderId, planId?: string): string {
     const config = paymentProviderRegistry.getConfig(providerId)
-    const baseRoute = (config?.config.setupRoute as string) || '/billing/plans'
+    const baseRoute = (config?.config['setupRoute'] as string | undefined) ?? '/billing/plans'
 
     return planId ? `${baseRoute}?planId=${planId}` : baseRoute
   }

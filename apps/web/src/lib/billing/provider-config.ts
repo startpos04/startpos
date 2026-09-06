@@ -172,7 +172,7 @@ export function getEnabledProviderConfigs(): Array<{ providerId: PaymentProvider
 
   for (const providerId of providers) {
     if (isProviderEnabled(providerId)) {
-      const config = getProviderConfig(providerId)
+      const config = getProviderConfig(providerId as keyof ProviderConfigMap)
       if (config) {
         enabled.push({ providerId, config })
       }

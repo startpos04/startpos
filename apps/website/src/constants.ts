@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 /** The URL to the hosted application (trial signup destination) */
-export const APP_URL = 'https://start-pos-two.vercel.app'
+export const APP_URL = 'https://https://startpos.github.io/'
 
 /** Formspree endpoint for the contact form */
 export const FORMSPREE_ENDPOINT = 'https://formspree.io/f/YOUR_FORM_ID'

@@ -25,6 +25,7 @@ import type { CapabilityDefinition, CapabilityOutput, RegistryValidationError } 
 // Helper to produce a rollback output (sets key back to 'false' or default)
 // ---------------------------------------------------------------------------
 
+// biome-ignore lint/correctness/noUnusedVariables: rollback helper kept for future use
 function _rollback(key: string, defaultValue = 'false'): CapabilityOutput {
   return { key, value: defaultValue }
 }

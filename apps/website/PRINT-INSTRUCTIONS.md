@@ -91,7 +91,7 @@ Edit the print-only header section in `product-intro.astro`:
 
 ```html
 <p class="text-sm text-slate-500 mt-2">
-  Visit: startpos.ph | Email: hello@startpos.ph
+  Visit: startpos.ph | Email: startpos04@gmail.com
 </p>
 ```
 

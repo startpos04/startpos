@@ -29,7 +29,7 @@ export type CapabilityRecommendationStats = {
   totalRecommended: number
   /** Number of businesses that accepted (moved to ENABLED or higher) */
   totalAccepted: number
-  /** Number of businesses that dismissed (dismissalCount â‰¥ 1 and still not ENABLED) */
+  /** Number of businesses that dismissed (dismissalCount ≥ 1 and still not ENABLED) */
   totalDismissed: number
   /** Number that were recommended but are still not ENABLED or dismissed — stagnant */
   totalAbandoned: number
@@ -118,7 +118,7 @@ export async function fetchRecommendationAnalytics(): Promise<RecommendationAnal
     // Average days from recommendedAt to enabledAt for accepted rows
     const enableTimes = acceptedRows
       .filter(r => r.recommendedAt !== null && r.enabledAt !== null)
-      .map(r => (r.enabledAt?.getTime() - r.recommendedAt?.getTime()) / (1000 * 60 * 60 * 24))
+      .map(r => (r.enabledAt!.getTime() - r.recommendedAt!.getTime()) / (1000 * 60 * 60 * 24))
 
     const avgDaysToEnable = enableTimes.length > 0 ? enableTimes.reduce((sum, v) => sum + v, 0) / enableTimes.length : null
 

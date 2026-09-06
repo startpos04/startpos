@@ -137,6 +137,7 @@ export async function runBillingInvoiceGenerationJob(
           ? {
               id: usageCounter.id,
               businessId: usageCounter.businessId,
+              branchId: (usageCounter as { branchId?: string }).branchId ?? '__unknown__',
               billingPeriodStart: usageCounter.billingPeriodStart,
               billingPeriodEnd: usageCounter.billingPeriodEnd,
               txCount: usageCounter.txCount,
@@ -146,8 +147,9 @@ export async function runBillingInvoiceGenerationJob(
           : {
               id: '__stub__',
               businessId: subscription.businessId,
-              billingPeriodStart: subscription.currentPeriodStart,
-              billingPeriodEnd: subscription.currentPeriodEnd,
+              branchId: '__stub__',
+              billingPeriodStart: subscription.currentPeriodStart ?? new Date(),
+              billingPeriodEnd: subscription.currentPeriodEnd ?? new Date(),
               txCount: 0,
               overageTxCount: 0,
               isClosed: true,

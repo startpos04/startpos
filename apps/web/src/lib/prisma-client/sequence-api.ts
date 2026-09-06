@@ -172,7 +172,7 @@ export async function allocateSequenceCore(prisma: TenantPrismaClient, type: Seq
         counterId: counter.id,
       }
     },
-    { isolationLevel: 'Serializable', timeout: 5000 },
+    { isolationLevel: 'Serializable' },
   ) as Promise<AllocateSequenceOutput>
 }
 

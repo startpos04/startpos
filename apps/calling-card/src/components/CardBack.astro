@@ -1,0 +1,62 @@
+---
+interface Props {
+  phone?: string;
+  website?: string;
+  email?: string;
+}
+
+const { 
+  phone = '+63 939 273 7849',
+  website = 'startpos.github.io',
+  email = 'startpos04@gmail.com'
+} = Astro.props;
+---
+
+<article class="card card--back">
+  <h2 class="back__headline">Complete POS + inventory for retail, restaurant & grocery.</h2>
+
+  <div class="back__groups">
+    <div class="back__group back__group--sell">
+      <p class="back__group-label">Sell</p>
+      <p>Fast checkout<br>Sales tracking</p>
+    </div>
+
+    <div class="back__group back__group--manage">
+      <p class="back__group-label">Manage</p>
+      <p>Products<br>Inventory</p>
+    </div>
+
+    <div class="back__group back__group--monitor">
+      <p class="back__group-label">Monitor</p>
+      <p>Stock levels<br>Business activity</p>
+    </div>
+  </div>
+
+  <div class="back__cta-row">
+    <div class="back__cta">
+      <h2>See StartPOS in action</h2>
+      <p>Scan to learn more</p>
+    </div>
+
+    <div class="qr" role="img" aria-label="QR code linking to StartPOS website">
+      <img src="/qr-code.svg" alt="QR code for startpos.github.io">
+    </div>
+  </div>
+
+  <div class="back__footer">
+    <div class="back__footer-item">
+      <span>Website</span>
+      <span>{website}</span>
+    </div>
+    <div class="back__footer-divider"></div>
+    <div class="back__footer-item">
+      <span>Phone</span>
+      <span>{phone}</span>
+    </div>
+    <div class="back__footer-divider"></div>
+    <div class="back__footer-item">
+      <span>Email</span>
+      <span>{email}</span>
+    </div>
+  </div>
+</article>

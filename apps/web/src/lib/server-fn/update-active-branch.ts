@@ -1,7 +1,7 @@
+import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
-import { getTenantPrisma } from '@/lib/prisma-client'
 
 /**
  * updateActiveBranch
@@ -19,9 +19,6 @@ export const updateActiveBranch = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }) => {
     const { businessId, id: userId } = getTenantContext(context).user
     const { branchId } = data
-
-    // Use root prisma to access membership across all branches
-    const { rootPrisma } = getTenantPrisma(businessId, branchId)
 
     try {
       // Verify the branch exists and belongs to the user's business

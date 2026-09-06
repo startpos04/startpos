@@ -99,16 +99,16 @@ export function extractComplianceFromForm(formData: {
 }): ComplianceData {
   return {
     businessTaxId: formData.birTin?.trim() ?? '',
-    businessTaxOfficeCode: formData.rdoCode?.trim(),
+    ...(formData.rdoCode?.trim() && { businessTaxOfficeCode: formData.rdoCode.trim() }),
     isTaxRegistered: formData.isVatRegistered ?? false,
-    taxRegistrationDate: formData.vatRegistrationDate,
-    businessPermitNumber: formData.ptuNumber?.trim(),
-    businessPermitIssuedAt: formData.ptuIssueDate,
-    branchSerialNumber: formData.branchSerialNumber?.trim(),
-    branchCode: formData.branchCode?.trim(),
-    branchPermitNumber: formData.branchPtuNumber?.trim(),
+    ...(formData.vatRegistrationDate && { taxRegistrationDate: formData.vatRegistrationDate }),
+    ...(formData.ptuNumber?.trim() && { businessPermitNumber: formData.ptuNumber.trim() }),
+    ...(formData.ptuIssueDate && { businessPermitIssuedAt: formData.ptuIssueDate }),
+    ...(formData.branchSerialNumber?.trim() && { branchSerialNumber: formData.branchSerialNumber.trim() }),
+    ...(formData.branchCode?.trim() && { branchCode: formData.branchCode.trim() }),
+    ...(formData.branchPtuNumber?.trim() && { branchPermitNumber: formData.branchPtuNumber.trim() }),
     metadata: {
       dtiSecRegistration: formData.dtiSecNumber?.trim(),
     },
-  }
+  } as ComplianceData
 }

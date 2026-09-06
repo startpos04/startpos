@@ -8,7 +8,7 @@ import { AlertTriangle } from 'lucide-react'
 import numeral from 'numeral'
 import type { Inventory, ProductComponent, ProductVariant } from 'prisma/generated/prisma/client'
 import { VariantAttributeType } from 'prisma/generated/prisma/enums'
-import { PosStockEngine, type posItem } from '../conversion/pos-stock-engine'
+import { PosStockEngine, type posItem, stockResultToNumber } from '../conversion/pos-stock-engine'
 import { PriceEngine } from '../conversion/price-engine'
 import type { posProduct } from '../queries/fetch-pos-products'
 
@@ -75,11 +75,10 @@ export const productCols = {
         const primaryVariant = product.variants?.[0]
         if (!primaryVariant) return <span className='text-muted-foreground text-xs text-center block'>—</span>
 
-        const maxServings = PosStockEngine.calculateRemainingYield(product, primaryVariant, selectedComponentIds, cartItems, orderItems)
+        const maxServings = stockResultToNumber(PosStockEngine.calculateRemainingYield(product, primaryVariant, selectedComponentIds, cartItems, orderItems))
 
         // Unlimited sentinel — product has no tracked stock (SERVICE or provisional)
-        // Show '—' so the column isn't misleading when inventory is enabled
-        if (maxServings >= 999) {
+        if (maxServings === Infinity) {
           return <div className='text-xs text-center text-muted-foreground/40 font-mono'>—</div>
         }
 

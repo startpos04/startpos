@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Generator - StartPOS</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      color: #0C222C;
+    }
+    .subtitle {
+      margin: 0 0 32px;
+      color: #666;
+      font-size: 14px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: monospace;
+      margin-bottom: 24px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #F2A73C;
+    }
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    button {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #F2A73C;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #D89430;
+    }
+    .btn-secondary {
+      background: #4FD1AE;
+      color: white;
+    }
+    .btn-secondary:hover {
+      background: #3DBEA0;
+    }
+    #output {
+      display: none;
+      text-align: center;
+      padding: 32px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      border: 2px dashed #e0e0e0;
+    }
+    #output.active {
+      display: block;
+    }
+    #qrcode {
+      display: inline-block;
+      padding: 16px;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .instructions {
+      text-align: left;
+      margin-top: 24px;
+      padding: 16px;
+      background: #FFF9F0;
+      border-left: 4px solid #F2A73C;
+      border-radius: 4px;
+    }
+    .instructions h3 {
+      margin: 0 0 12px;
+      color: #0C222C;
+      font-size: 16px;
+    }
+    .instructions ol {
+      margin: 0;
+      padding-left: 20px;
+      color: #666;
+      font-size: 14px;
+    }
+    .instructions li {
+      margin-bottom: 8px;
+    }
+    code {
+      background: rgba(0,0,0,0.05);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>QR Code Generator</h1>
+    <p class="subtitle">Generate a custom QR code for your StartPOS calling card</p>
+
+    <label for="url">Enter URL:</label>
+    <input 
+      type="url" 
+      id="url" 
+      value="https://https://startpos.github.io/"
+      placeholder="https://your-website.com"
+    >
+
+    <div class="btn-group">
+      <button class="btn-primary" onclick="generateQR()">Generate QR Code</button>
+      <button class="btn-secondary" onclick="downloadSVG()">Download SVG</button>
+    </div>
+
+    <div id="output">
+      <div id="qrcode"></div>
+      <div class="instructions">
+        <h3>Next Steps:</h3>
+        <ol>
+          <li>Click <strong>"Download SVG"</strong> to save the QR code</li>
+          <li>Save it as <code>qr-code.svg</code> in the calling-card folder</li>
+          <li>Replace the existing <code>qr-code.svg</code> file</li>
+          <li>Refresh <code>index.html</code> to see your new QR code</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <script>
+    let currentQR = null;
+
+    function generateQR() {
+      const url = document.getElementById('url').value;
+      if (!url) {
+        alert('Please enter a URL');
+        return;
+      }
+
+      // Generate QR code
+      const qr = qrcode(0, 'M');
+      qr.addData(url);
+      qr.make();
+      currentQR = qr;
+
+      // Display QR code
+      const container = document.getElementById('qrcode');
+      container.innerHTML = qr.createSvgTag({ 
+        cellSize: 4, 
+        margin: 1,
+        scalable: true 
+      });
+
+      // Show output
+      document.getElementById('output').classList.add('active');
+    }
+
+    function downloadSVG() {
+      if (!currentQR) {
+        alert('Please generate a QR code first');
+        return;
+      }
+
+      const svg = currentQR.createSvgTag({ 
+        cellSize: 4, 
+        margin: 1,
+        scalable: true 
+      });
+
+      // Create blob and download
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'qr-code.svg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Generate default QR on load
+    window.addEventListener('load', () => {
+      generateQR();
+    });
+  </script>
+</body>
+</html>

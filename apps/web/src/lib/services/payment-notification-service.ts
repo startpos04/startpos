@@ -95,7 +95,11 @@ const DEFAULT_CONFIG: NotificationConfig = {
  * PaymentNotificationService - Orchestrates payment notifications
  */
 export class PaymentNotificationService {
-  constructor(private config: NotificationConfig = DEFAULT_CONFIG) {}
+  private config: NotificationConfig
+
+  constructor(config: NotificationConfig = DEFAULT_CONFIG) {
+    this.config = config
+  }
 
   // ---------------------------------------------------------------------------
   // SCHEDULING METHODS

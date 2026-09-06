@@ -135,7 +135,7 @@ export async function runUsageCounterResetJob(rootPrisma: PrismaClient, now: Dat
         const nextPeriodEnd = new Date(nextPeriodStart.getTime() + periodDurationMs)
 
         // Build the new counter for the next period
-        const newCounter = UsageEngine.buildNewCounter(subscription.businessId, nextPeriodStart, nextPeriodEnd)
+        const newCounter = UsageEngine.buildNewCounter(subscription.businessId, snapshot.branchId, nextPeriodStart, nextPeriodEnd)
 
         // Atomically:
         //   1. Close the current counter

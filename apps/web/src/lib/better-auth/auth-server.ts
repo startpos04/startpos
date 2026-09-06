@@ -141,12 +141,14 @@ export const getAuthUser = createServerFn({ method: 'GET' })
 
       prisma.business.findUnique({
         where: { id: businessId },
-        include: { ...complianceIncludes.business, configurations: true },
+        // biome-ignore lint/suspicious/noExplicitAny: compliance includes are country-specific and not in base Prisma types
+        include: { ...complianceIncludes.business, configurations: true } as any,
       }) as Promise<DBBusiness | null>,
 
       prisma.branch.findUnique({
         where: { id: branchId },
-        include: { ...complianceIncludes.branch, configurations: true },
+        // biome-ignore lint/suspicious/noExplicitAny: compliance includes are country-specific and not in base Prisma types
+        include: { ...complianceIncludes.branch, configurations: true } as any,
       }) as Promise<DBBranch | null>,
 
       prisma.vendorSession.findFirst({

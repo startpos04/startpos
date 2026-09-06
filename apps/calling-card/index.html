@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StartPOS — Calling Card</title>
+<style>
+/* ==========================================================================
+   1. VARIABLES
+   Edit these to re-brand the card. Everything below references these tokens.
+   The two accents are used with intent, not decoration:
+     --accent-sell  → checkout / transactions / "Sell"
+     --accent-stock → inventory / stock levels / "Track"
+   ========================================================================== */
+:root {
+  --brand-ink:       #0C222C;  /* near-black navy — the StartPOS "screen"   */
+  --brand-ink-soft:  #14313D;  /* lifted panel tone on top of brand-ink     */
+  --accent-sell:     #F2A73C;  /* amber — checkout, transactions            */
+  --accent-sell-text:#B06F1A;  /* amber, darkened for AA text contrast on white */
+  --accent-stock:    #4FD1AE;  /* mint — inventory, stock levels            */
+  --surface:         #FAFAF9; /* back-of-card background                   */
+  --surface-raised:  #FFFFFF; /* cards / QR box on the light surface       */
+  --text-primary:    #10222B;
+  --text-secondary:  #5C6B71;
+  --text-on-ink:     #F4F7F6;
+  --text-on-ink-dim: #9FB2B8;
+  --line:            #E1E6E5;
+  --card-w: 3.5in;
+  --card-h: 2in;
+  --safe:   0.24in; /* minimum distance of important content from the edge */
+}
+
+/* ==========================================================================
+   2. RESET
+   ========================================================================== */
+*,* ::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+h1, h2, h3, p { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+
+/* ==========================================================================
+   3. PREVIEW PRESENTATION (screen only — never printed)
+   ========================================================================== */
+.preview-page {
+  min-height: 100vh;
+  background: #E9EBEA;
+  padding: 56px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+
+.preview-heading { text-align: center; }
+
+.preview-heading h1 {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.preview-heading p {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.card-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 48px;
+}
+
+.card-slot { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+.side-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.05em; }
+
+.card-shadow { box-shadow: 0 12px 30px rgba(10, 25, 30, 0.16); }
+
+/* ==========================================================================
+   4. CARD LAYOUT (shared base for front + back)
+   ========================================================================== */
+.card { width: var(--card-w); height: var(--card-h); position: relative; overflow: hidden; border-radius: 7px; }
+
+/* ==========================================================================
+   5. FRONT
+   ========================================================================== */
+.card--front {
+  background: var(--brand-ink);
+  padding: 0.22in var(--safe);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.front__edge {
+  position: absolute;
+  left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(to bottom, var(--accent-sell) 0% 50%, var(--accent-stock) 50% 100%);
+}
+
+.front__wordmark {
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-on-ink);
+  line-height: 1;
+}
+
+.front__tagline {
+  margin-top: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-on-ink-dim);
+  letter-spacing: 0.01em;
+}
+
+.front__tagline .plus { color: var(--accent-sell); font-weight: 800; padding: 0 2px; }
+
+.front__proposition {
+  margin-top: 15px;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text-on-ink);
+  letter-spacing: 0.005em;
+}
+
+.front__contact {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.front__contact-item {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-on-ink-dim);
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+}
+
+.front__contact-item a {
+  color: var(--text-on-ink-dim);
+  text-decoration: none;
+}
+
+/* ==========================================================================
+   6. BACK
+   ========================================================================== */
+.card--back {
+  background: var(--surface);
+  padding: 0.15in var(--safe);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.back__headline {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+  max-width: 100%;
+  margin-bottom: 10px;
+}
+
+.back__groups {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  column-gap: 10px;
+}
+
+.back__group { display: flex; flex-direction: column; gap: 1px; padding-left: 8px; border-left: 2px solid var(--group-color, var(--line)); }
+
+.back__group--sell   { --group-color: var(--accent-sell); }
+.back__group--manage { --group-color: var(--brand-ink); }
+.back__group--monitor{ --group-color: var(--accent-stock); }
+
+.back__group-label {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.back__group p {
+  font-size: 8.2px;
+  color: var(--text-secondary);
+  line-height: 1.18;
+}
+
+.back__cta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.back__cta h2 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.back__cta p {
+  margin-top: 2px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-sell-text);
+}
+
+.back__footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.back__footer-item { display: flex; flex-direction: column; gap: 0; }
+
+.back__footer-item span:first-child {
+  font-size: 6.6px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  line-height: 1.15;
+}
+
+.back__footer-item span:last-child {
+  font-size: 7px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.back__footer-divider { width: 1px; align-self: stretch; background: var(--line); }
+
+/* ==========================================================================
+   7. TYPOGRAPHY HELPERS
+   ========================================================================== */
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ==========================================================================
+   8. DECORATIVE ELEMENTS — Clean, minimal POS preview
+   Simple and elegant representation of the interface
+   ========================================================================== */
+.front__panel {
+  overflow: hidden;
+  position: absolute;
+  right: 0.24in;
+  bottom: 0.22in;
+  width: 1.35in;
+  height: 0.88in;
+  padding: 8px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 20px rgba(16, 185, 129, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Top status bar - simple and clean */
+.panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.panel__status-badge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.panel__status-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.panel__status-text {
+  font-size: 5px;
+  font-weight: 700;
+  color: #10b981;
+  letter-spacing: 0.03em;
+}
+
+.panel__menu-dots {
+  display: flex;
+  gap: 2px;
+}
+
+.panel__menu-dot {
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Main content area - clean product cards */
+.panel__content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 5px;
+}
+
+.panel__card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 5px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: all 0.2s;
+}
+
+.panel__card-image {
+  width: 100%;
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.panel__card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panel__card-name {
+  height: 3px;
+  width: 85%;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 2px;
+}
+
+.panel__card-price {
+  height: 3px;
+  width: 45%;
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.5), rgba(16, 185, 129, 0.3));
+  border-radius: 2px;
+}
+
+/* Bottom action button */
+.panel__footer {
+  display: flex;
+  gap: 4px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.panel__button {
+  flex: 1;
+  height: 10px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+}
+
+/* ==========================================================================
+   9. QR CODE
+   ========================================================================== */
+.qr {
+  flex: none;
+  width: 0.72in;
+  height: 0.72in;
+  border-radius: 6px;
+  background: var(--surface-raised);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  overflow: hidden;
+}
+
+.qr img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ==========================================================================
+   10. PRINT STYLES
+   ========================================================================== */
+@media print {
+  @page { size: auto; margin: 0.4in; }
+  body { background: #FFFFFF; }
+  .preview-page { min-height: 0; background: #FFFFFF; padding: 0; gap: 0.35in; display: block; }
+  .preview-heading { display: none; }
+  .card-row { gap: 0.35in; justify-content: flex-start; }
+  .card-slot { gap: 0; page-break-inside: avoid; }
+  .side-label { display: none; }
+  .card { border-radius: 0; }
+  .card-shadow { box-shadow: none; }
+}
+
+/* ==========================================================================
+   11. RESPONSIVE PREVIEW (small screens only — cards themselves never resize)
+   ========================================================================== */
+@media (max-width: 700px) {
+  .card-row { gap: 32px; }
+  .preview-page { padding: 40px 16px; }
+}
+</style>
+</head>
+<body>
+<div class="preview-page">
+  <div class="preview-heading">
+    <h1>STARTPOS CALLING CARD</h1>
+    <p>Preview only — save this file, open it in Chrome, then print. This heading and the FRONT/BACK labels never appear on paper.</p>
+  </div>
+
+  <div class="card-row">
+    <div class="card-slot">
+      <span class="side-label">FRONT</span>
+      <article class="card card--front card-shadow" aria-label="StartPOS business card, front side">
+        <div class="front__edge" aria-hidden="true"></div>
+        <h1 class="front__wordmark">StartPOS</h1>
+        <p class="front__tagline">Point of Sale <span class="plus">+</span> Inventory</p>
+        <p class="front__proposition">Sell. Track. Grow.</p>
+
+        <div class="front__contact">
+          <p class="front__contact-item">📱 +63 939 273 7849</p>
+          <p class="front__contact-item">🌐 startpos.github.io</p>
+        </div>
+
+        <div class="front__panel" aria-hidden="true">
+          <!-- Top status bar -->
+          <div class="panel__header">
+            <div class="panel__status-badge">
+              <div class="panel__status-dot"></div>
+              <div class="panel__status-text">ONLINE</div>
+            </div>
+            <div class="panel__menu-dots">
+              <div class="panel__menu-dot"></div>
+              <div class="panel__menu-dot"></div>
+              <div class="panel__menu-dot"></div>
+            </div>
+          </div>
+
+          <!-- Product cards - 2x2 grid -->
+          <div class="panel__content">
+            <div class="panel__card">
+              <div class="panel__card-image">👕</div>
+              <div class="panel__card-info">
+                <div class="panel__card-name"></div>
+                <div class="panel__card-price"></div>
+              </div>
+            </div>
+            <div class="panel__card">
+              <div class="panel__card-image">☕</div>
+              <div class="panel__card-info">
+                <div class="panel__card-name"></div>
+                <div class="panel__card-price"></div>
+              </div>
+            </div>
+            <div class="panel__card">
+              <div class="panel__card-image">🍕</div>
+              <div class="panel__card-info">
+                <div class="panel__card-name"></div>
+                <div class="panel__card-price"></div>
+              </div>
+            </div>
+            <div class="panel__card">
+              <div class="panel__card-image">🥤</div>
+              <div class="panel__card-info">
+                <div class="panel__card-name"></div>
+                <div class="panel__card-price"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action button -->
+          <div class="panel__footer">
+            <div class="panel__button"></div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="card-slot">
+      <span class="side-label">BACK</span>
+      <article class="card card--back card-shadow" aria-label="StartPOS business card, back side">
+        <h2 class="back__headline">Complete POS + inventory for retail, restaurant & grocery.</h2>
+
+        <div class="back__groups">
+          <div class="back__group back__group--sell">
+            <p class="back__group-label">Sell</p>
+            <p>Fast checkout<br>Sales tracking</p>
+          </div>
+
+          <div class="back__group back__group--manage">
+            <p class="back__group-label">Manage</p>
+            <p>Products<br>Inventory</p>
+          </div>
+
+          <div class="back__group back__group--monitor">
+            <p class="back__group-label">Monitor</p>
+            <p>Stock levels<br>Business activity</p>
+          </div>
+        </div>
+
+        <div class="back__cta-row">
+          <div class="back__cta">
+            <h2>See StartPOS in action</h2>
+            <p>Scan to learn more</p>
+          </div>
+
+          <div class="qr" role="img" aria-label="QR code linking to StartPOS website">
+            <img src="qr-code.svg" alt="QR code for startpos.github.io">
+          </div>
+        </div>
+
+        <div class="back__footer">
+          <div class="back__footer-item"><span>Website</span><span>startpos.github.io</span></div>
+          <div class="back__footer-divider" aria-hidden="true"></div>
+          <div class="back__footer-item"><span>Phone</span><span>+63 939 273 7849</span></div>
+          <div class="back__footer-divider" aria-hidden="true"></div>
+          <div class="back__footer-item"><span>Email</span><span>startpos04@gmail.com</span></div>
+        </div>
+      </article>
+    </div>
+  </div>
+</div>
+</body>
+</html>

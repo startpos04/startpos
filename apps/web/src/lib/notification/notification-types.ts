@@ -52,7 +52,7 @@ export const NotificationMetadataSchema = z.union([
   LowStockMetadataSchema,
   CreditLowBalanceMetadataSchema,
   UsageThresholdMetadataSchema,
-  z.record(z.unknown()), // Fallback for other notification types
-])
+  z.record(z.string(), z.unknown()),
+] as const)
 
 export type NotificationMetadata = z.infer<typeof NotificationMetadataSchema>

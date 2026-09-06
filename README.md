@@ -256,20 +256,53 @@ Features:
 
 # Project Structure
 
+This is a monorepo containing multiple applications:
+
+## Apps
+
+### `apps/web` — Main POS Application
+The primary point-of-sale application with full inventory, sales, and management features.
+
+```bash
+pnpm dev:web
+```
+
+### `apps/website` — Marketing Website
+Public-facing marketing website built with Astro.
+
+```bash
+pnpm dev:website
+```
+
+### `apps/admin` — Admin Dashboard
+Platform administration interface for system-level management.
+
+```bash
+pnpm dev:admin
+```
+
+### `apps/calling-card` — Business Cards
+Print-ready business calling cards for marketing and distribution.
+
+```bash
+pnpm dev:calling-card
+```
+
+Visit http://localhost:3005 to preview the cards, or see `apps/calling-card/PRINTING.md` for printing instructions.
+
+## Core Structure
+
 ```
 .
+├── apps/
+│   ├── web/           # Main POS app
+│   ├── website/       # Marketing site
+│   ├── admin/         # Admin dashboard
+│   └── calling-card/  # Business cards
+├── packages/
+│   └── platform/      # Shared Prisma models
 ├── prisma/
 ├── scripts/
-├── src/
-│   ├── components/
-│   ├── routes/
-│   ├── db/
-│   ├── collections/
-│   ├── hooks/
-│   ├── lib/
-│   ├── server/
-│   └── utils/
-├── public/
 └── package.json
 ```
 

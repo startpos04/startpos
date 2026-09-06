@@ -1,0 +1,53 @@
+---
+interface Props {
+  phone?: string;
+  website?: string;
+}
+
+const { 
+  phone = '+63 939 273 7849',
+  website = 'startpos.github.io'
+} = Astro.props;
+---
+
+<article class="card card--front">
+  <div class="front__edge"></div>
+  <h1 class="front__wordmark">StartPOS</h1>
+  <p class="front__tagline">Point of Sale <span class="plus">+</span> Inventory</p>
+  <p class="front__proposition">Sell. Track. Grow.</p>
+  
+  <div class="front__contact">
+    <p class="front__contact-item">📱 {phone}</p>
+    <p class="front__contact-item">🌐 {website}</p>
+  </div>
+
+  <div class="front__panel" aria-hidden="true">
+    <div class="panel__header">
+      <div class="panel__status-badge">
+        <div class="panel__status-dot"></div>
+        <div class="panel__status-text">ONLINE</div>
+      </div>
+      <div class="panel__menu-dots">
+        <div class="panel__menu-dot"></div>
+        <div class="panel__menu-dot"></div>
+        <div class="panel__menu-dot"></div>
+      </div>
+    </div>
+
+    <div class="panel__content">
+      {['👕', '☕', '🍕', '🥤'].map(emoji => (
+        <div class="panel__card">
+          <div class="panel__card-image">{emoji}</div>
+          <div class="panel__card-info">
+            <div class="panel__card-name"></div>
+            <div class="panel__card-price"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div class="panel__footer">
+      <div class="panel__button"></div>
+    </div>
+  </div>
+</article>

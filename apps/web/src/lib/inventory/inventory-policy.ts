@@ -81,8 +81,8 @@ export const InventoryPolicy = {
         variantId,
         available: currentQuantity,
         requested: requestedQuantity,
-        productName,
-        batchId,
+        ...(productName !== undefined && { productName }),
+        ...(batchId !== undefined && { batchId }),
       })
     }
   },
@@ -152,7 +152,7 @@ export const InventoryPolicy = {
         variantId,
         available: availableQuantity,
         requested: wasteQuantity,
-        productName,
+        ...(productName !== undefined && { productName }),
       })
     }
   },

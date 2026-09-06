@@ -1,0 +1,129 @@
+---
+import CardBack from '../components/CardBack.astro'
+import CardFront from '../components/CardFront.astro'
+import '../styles/cards.css'
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StartPOS — Mass Print</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    .print-sheet {
+      width: 8.5in;
+      height: 11in;
+      padding: 0.5in;
+      box-sizing: border-box;
+      display: grid;
+      grid-template-columns: repeat(2, 3.5in);
+      grid-template-rows: repeat(5, 2in);
+      gap: 0.25in;
+      page-break-after: always;
+    }
+
+    .print-sheet:last-child {
+      page-break-after: auto;
+    }
+
+    /* Page 2 - reverse order for duplex printing (flip on short edge) */
+    .print-sheet--back {
+      /* Flip the entire sheet horizontally */
+      transform: scaleX(-1);
+      /* Reverse the grid direction so cards align when flipped */
+      direction: rtl;
+    }
+
+    .print-sheet--back .card {
+      /* Flip cards back to readable orientation */
+      transform: scaleX(-1);
+      /* Reset direction for card content */
+      direction: ltr;
+    }
+
+    @media screen {
+      body {
+        background: #E9EBEA;
+        padding: 20px;
+      }
+
+      .print-sheet {
+        background: white;
+        margin: 0 auto 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .page-label {
+        text-align: center;
+        font-size: 14px;
+        font-weight: 700;
+        color: #5C6B71;
+        margin-bottom: 10px;
+      }
+    }
+
+    @media print {
+      @page {
+        size: letter;
+        margin: 0.5in;
+      }
+
+      body {
+        background: white;
+        padding: 0;
+      }
+
+      .print-sheet {
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+      }
+
+      .page-label {
+        display: none;
+      }
+
+      .card {
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- PAGE 1: FRONTS (10 cards) -->
+  <div class="page-label">PAGE 1 — FRONTS (Print this page first)</div>
+  <div class="print-sheet print-sheet--front">
+    <CardFront />
+    <CardFront />
+    <CardFront />
+    <CardFront />
+    <CardFront />
+    <CardFront />
+    <CardFront />
+    <CardFront />
+    <CardFront />
+    <CardFront />
+  </div>
+
+  <!-- PAGE 2: BACKS MIRRORED (10 cards flipped for duplex) -->
+  <div class="page-label">PAGE 2 — BACKS (Flip paper and print on back)</div>
+  <div class="print-sheet print-sheet--back">
+    <CardBack />
+    <CardBack />
+    <CardBack />
+    <CardBack />
+    <CardBack />
+    <CardBack />
+    <CardBack />
+    <CardBack />
+    <CardBack />
+    <CardBack />
+  </div>
+</body>
+</html>

@@ -17,15 +17,15 @@
  *
  * Schema (added to Prisma in the Phase 1 migration):
  *   model CharacteristicsRecalculationQueue {
- *     id          String   @id @default(cuid())
- *     businessId  String   @unique  â† deduplication
- *     priority    Int      @default(0)  â† higher = processed first
- *     scheduledAt DateTime @default(now())
- *     processedAt DateTime?  â† null = pending
- *     attempts    Int      @default(0)
+ *     id          String    @id @default(cuid())
+ *     businessId  String    @unique  ← deduplication
+ *     priority    Int       @default(0)  ← higher = processed first
+ *     scheduledAt DateTime  @default(now())
+ *     processedAt DateTime? ← null = pending
+ *     attempts    Int       @default(0)
  *     lastError   String?
- *     createdAt   DateTime @default(now())
- *     updatedAt   DateTime @updatedAt
+ *     createdAt   DateTime  @default(now())
+ *     updatedAt   DateTime  @updatedAt
  *   }
  *
  * Phase 1 note:
@@ -145,7 +145,11 @@ export const NoOpRecalculationQueue: RecalculationQueuePort = {
  *   After 3 failed attempts the row is left in place — an operator must clear it manually.
  */
 export class PrismaRecalculationQueue implements RecalculationQueuePort {
-  constructor(private readonly prisma: PrismaClientLike) {}
+  private readonly prisma: PrismaClientLike
+
+  constructor(prisma: PrismaClientLike) {
+    this.prisma = prisma
+  }
 
   async schedule(businessId: string, priority: RecalculationPriority): Promise<void> {
     // Upsert: if a pending row exists, keep the higher priority value.

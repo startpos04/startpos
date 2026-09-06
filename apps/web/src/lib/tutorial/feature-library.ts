@@ -91,7 +91,7 @@ export interface FeatureEntry {
 // ---------------------------------------------------------------------------
 
 interface CtaConfig {
-  cta: FeatureCta
+  cta: FeatureCta | null
   howTo: FeatureHowToStep[]
 }
 

@@ -48,19 +48,19 @@ export class PhilippinesComplianceAdapter implements ComplianceAdapter {
     return {
       // Business-level BIR data
       businessTaxId: phCompliance?.birTin ?? '',
-      businessPermitNumber: phCompliance?.birPtuNumber,
-      businessPermitIssuedAt: phCompliance?.birPtuIssuedAt?.toISOString(),
-      businessTaxOfficeCode: phCompliance?.birRdoCode,
+      ...(phCompliance?.birPtuNumber != null && { businessPermitNumber: phCompliance.birPtuNumber }),
+      ...(phCompliance?.birPtuIssuedAt != null && { businessPermitIssuedAt: phCompliance.birPtuIssuedAt.toISOString() }),
+      ...(phCompliance?.birRdoCode != null && { businessTaxOfficeCode: phCompliance.birRdoCode }),
 
       // Branch-level BIR data
-      branchSerialNumber: phBranchCompliance?.branchSerialNumber,
+      ...(phBranchCompliance?.branchSerialNumber != null && { branchSerialNumber: phBranchCompliance.branchSerialNumber }),
       branchCode: String(phBranchCompliance?.branchCode ?? branch.branchCode ?? ''),
-      branchPermitNumber: phBranchCompliance?.ptuNumber,
-      branchTaxOfficeCode: phBranchCompliance?.rdoCode,
+      ...(phBranchCompliance?.ptuNumber != null && { branchPermitNumber: phBranchCompliance.ptuNumber }),
+      ...(phBranchCompliance?.rdoCode != null && { branchTaxOfficeCode: phBranchCompliance.rdoCode }),
 
       // VAT status
       isTaxRegistered: !!phCompliance?.vatRegistrationDate,
-      taxRegistrationDate: phCompliance?.vatRegistrationDate?.toISOString(),
+      ...(phCompliance?.vatRegistrationDate != null && { taxRegistrationDate: phCompliance.vatRegistrationDate.toISOString() }),
 
       // Additional Philippines metadata
       metadata: {
@@ -68,7 +68,7 @@ export class PhilippinesComplianceAdapter implements ComplianceAdapter {
         mayorPermit: phCompliance?.mayorPermit,
         dtiRegistration: phCompliance?.dtiRegistration,
       },
-    }
+    } as ComplianceData
   }
 
   getComplianceIncludes(): {

@@ -106,13 +106,16 @@ export function canTransition(from: CapabilityLifecycleState, to: CapabilityLife
 // ---------------------------------------------------------------------------
 
 export class InvalidTransitionError extends Error {
-  constructor(
-    public readonly capabilityId: string,
-    public readonly from: CapabilityLifecycleState,
-    public readonly to: CapabilityLifecycleState,
-  ) {
+  readonly capabilityId: string
+  readonly from: CapabilityLifecycleState
+  readonly to: CapabilityLifecycleState
+
+  constructor(capabilityId: string, from: CapabilityLifecycleState, to: CapabilityLifecycleState) {
     super(`Invalid lifecycle transition for '${capabilityId}': ${from} → ${to}`)
     this.name = 'InvalidTransitionError'
+    this.capabilityId = capabilityId
+    this.from = from
+    this.to = to
   }
 }
 

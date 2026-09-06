@@ -18,6 +18,10 @@ type SingaporeComplianceRecord = {
   gstNumber?: string | null
   uenNumber?: string | null
   acraNumber?: string | null
+  isGSTRegistered?: boolean | null
+  gstEffectiveDate?: Date | null
+  entityType?: string | null
+  gstRate?: number | null
 }
 
 type SingaporeBranchComplianceRecord = {
@@ -37,18 +41,18 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
 
     return {
       // Business-level IRAS data
-      businessTaxId: sgCompliance?.gstNumber ?? '', // GST number is the primary tax ID
-      businessPermitNumber: sgCompliance?.uenNumber, // UEN as permit number
-      businessTaxOfficeCode: sgCompliance?.acraNumber, // ACRA as tax office
+      businessTaxId: sgCompliance?.gstNumber ?? '',
+      ...(sgCompliance?.uenNumber != null && { businessPermitNumber: sgCompliance.uenNumber }),
+      ...(sgCompliance?.acraNumber != null && { businessTaxOfficeCode: sgCompliance.acraNumber }),
 
       // Branch-level IRAS data
-      branchSerialNumber: sgBranchCompliance?.branchUEN,
+      ...(sgBranchCompliance?.branchUEN != null && { branchSerialNumber: sgBranchCompliance.branchUEN }),
       branchCode: String(branch.branchCode ?? ''),
-      branchPermitNumber: sgBranchCompliance?.tradeLicense,
+      ...(sgBranchCompliance?.tradeLicense != null && { branchPermitNumber: sgBranchCompliance.tradeLicense }),
 
       // GST status
       isTaxRegistered: sgCompliance?.isGSTRegistered ?? false,
-      taxRegistrationDate: sgCompliance?.gstEffectiveDate?.toISOString(),
+      ...(sgCompliance?.gstEffectiveDate != null && { taxRegistrationDate: sgCompliance.gstEffectiveDate.toISOString() }),
 
       // Additional Singapore metadata
       metadata: {
@@ -57,7 +61,7 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
         entityType: sgCompliance?.entityType,
         gstRate: sgCompliance?.gstRate,
       },
-    }
+    } as ComplianceData
   }
 
   getComplianceIncludes(): {
@@ -67,10 +71,10 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
     return {
       business: {
         singaporeCompliance: true,
-      },
+      } as Prisma.BusinessInclude,
       branch: {
         singaporeBranchCompliance: true,
-      },
+      } as Prisma.BranchInclude,
     }
   }
 
@@ -138,9 +142,11 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
       snapshotIsGSTRegistered: originalTransaction['snapshotIsGSTRegistered'],
 
       // Copy customer fields if present
-      ...(originalTransaction['snapshotCustomerTIN'] && {
-        snapshotCustomerTIN: originalTransaction['snapshotCustomerTIN'],
-      }),
+      ...(originalTransaction['snapshotCustomerTIN']
+        ? {
+            snapshotCustomerTIN: originalTransaction['snapshotCustomerTIN'],
+          }
+        : {}),
     }
   }
 

@@ -13,6 +13,7 @@
 
 import dayjs from '@platform/lib/dayjs'
 import { prisma } from '@platform/lib/prisma-client'
+import type { PaymentMethod2 } from 'prisma/generated/prisma/enums'
 import type {
   BillingProviderAdapter,
   CancelSubscriptionResult,
@@ -44,7 +45,11 @@ export type ManualPaymentProviderConfig = {
  * and admin manually approves/rejects the payment.
  */
 class ManualPaymentAdapter implements BillingProviderAdapter {
-  constructor(private config: ManualPaymentProviderConfig) {}
+  private config: ManualPaymentProviderConfig
+
+  constructor(config: ManualPaymentProviderConfig) {
+    this.config = config
+  }
 
   // -------------------------------------------------------------------------
   // Provider Identity Methods
@@ -95,13 +100,13 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
     // Return synthetic subscription ID based on payment record
 
     const businessId = params.externalCustomerId // For manual, customerId = businessId
-    const planId = params.metadata.planId
-    const amount = parseInt(params.metadata.amount || '0', 10)
-    const periodsAdvancePaid = parseInt(params.metadata.periodsAdvancePaid || '1', 10)
-    const referenceNo = params.metadata.referenceNo
-    const proofImageUrl = params.metadata.proofImageUrl
-    const notes = params.metadata.notes
-    const actorId = params.metadata.userId
+    const planId = params.metadata['planId']
+    const amount = parseInt(params.metadata['amount'] || '0', 10)
+    const periodsAdvancePaid = parseInt(params.metadata['periodsAdvancePaid'] || '1', 10)
+    const referenceNo = params.metadata['referenceNo']
+    const proofImageUrl = params.metadata['proofImageUrl']
+    const notes = params.metadata['notes']
+    const actorId = params.metadata['userId']
 
     if (!planId || !amount) {
       throw new Error('[ManualAdapter] planId and amount are required in metadata')
@@ -117,22 +122,21 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
       data: {
         businessId,
         provider: 'MANUAL',
-        paymentMethod: this.config.paymentMethod as PaymentMethod2, // Map to PaymentMethod2 enum
+        paymentMethod: this.config.paymentMethod as PaymentMethod2,
         amount,
         currency: 'PHP',
         status: 'PENDING_APPROVAL',
         requiresApproval: true,
-        providerReference: referenceNo,
-        proofImageUrl,
-        notes,
-        actorId,
-        // Advance payment fields
+        ...(referenceNo !== undefined && { providerReference: referenceNo }),
+        ...(proofImageUrl !== undefined && { proofImageUrl }),
+        ...(notes !== undefined && { notes }),
+        ...(actorId !== undefined && { actorId }),
         isAdvancePayment: periodsAdvancePaid > 1,
         periodsAdvancePaid,
         coversPeriodStart,
         coversPeriodEnd,
         advancePaymentExpiresAt,
-        syncStatus: 'NOT_REQUIRED', // Will be updated to PENDING if provider enabled
+        syncStatus: 'NOT_REQUIRED',
         providerMetadata: {
           planId,
           paymentMethod: this.config.paymentMethod,
@@ -188,8 +192,8 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
     // Return a URL to the manual payment submission page
 
     const businessId = params.externalCustomerId
-    const amount = parseInt(params.metadata.amount || '0', 10)
-    const periodsAdvancePaid = parseInt(params.metadata.periodsAdvancePaid || '1', 10)
+    const amount = parseInt(params.metadata['amount'] || '0', 10)
+    const periodsAdvancePaid = parseInt(params.metadata['periodsAdvancePaid'] || '1', 10)
 
     if (!amount) {
       throw new Error('[ManualAdapter] amount is required in metadata for credit purchase')
@@ -209,7 +213,7 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
         currency: 'PHP',
         status: 'PENDING_APPROVAL',
         requiresApproval: true,
-        actorId: params.metadata.userId,
+        ...(params.metadata['userId'] && { actorId: params.metadata['userId'] }),
         isAdvancePayment: periodsAdvancePaid > 1,
         periodsAdvancePaid,
         coversPeriodStart,
@@ -242,8 +246,8 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
   }): Promise<CreatePaymentLinkResult> {
     // Similar to credit purchase but for addon subscriptions
     const businessId = params.externalCustomerId
-    const amount = parseInt(params.metadata.amount || '0', 10)
-    const periodsAdvancePaid = parseInt(params.metadata.periodsAdvancePaid || '1', 10)
+    const amount = parseInt(params.metadata['amount'] || '0', 10)
+    const periodsAdvancePaid = parseInt(params.metadata['periodsAdvancePaid'] || '1', 10)
 
     if (!amount) {
       throw new Error('[ManualAdapter] amount is required in metadata for addon subscription')
@@ -263,7 +267,7 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
         currency: 'PHP',
         status: 'PENDING_APPROVAL',
         requiresApproval: true,
-        actorId: params.metadata.userId,
+        ...(params.metadata['userId'] && { actorId: params.metadata['userId'] }),
         isAdvancePayment: periodsAdvancePaid > 1,
         periodsAdvancePaid,
         coversPeriodStart,
@@ -273,7 +277,7 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
         providerMetadata: {
           type: 'addon_subscription',
           quantity: params.quantity,
-          addonType: params.metadata.addonType,
+          addonType: params.metadata['addonType'],
           periodsAdvancePaid,
           originalMetadata: params.metadata,
         },

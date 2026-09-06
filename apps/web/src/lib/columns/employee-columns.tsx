@@ -71,6 +71,7 @@ export const employeeCols = {
                     targetId: row.original.id,
                     before,
                     after: null,
+                    ipAddress: null,
                   },
                 }).catch(err => console.error('[audit] EMPLOYEE_DISABLED write failed:', err))
                 return true

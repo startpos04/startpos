@@ -184,7 +184,7 @@ export const purchaseBranchCredits = createServerFn({ method: 'POST' })
       cancelUrl: `${appUrl}/billing?purchase=cancelled`,
       metadata: {
         businessId,
-        branchId, // â† Key: Associates purchase with this branch
+        branchId,
         userId,
         packageId: selectedPackage.id,
         creditAmount: String(selectedPackage.creditAmount),

@@ -25,7 +25,7 @@ export function fetchStructuredId(type: SequenceType) {
       draft.lastNumber += 1
     })
     // Get the updated value after the mutation
-    lastNumber = sequenceCounterCollection.get(counterId)?.lastNumber
+    lastNumber = sequenceCounterCollection.get(counterId)?.lastNumber ?? 1
   } else {
     // 4. Insert new
     sequenceCounterCollection.insert({

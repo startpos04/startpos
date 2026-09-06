@@ -178,7 +178,7 @@ export class BaseAdvancePaymentSyncService implements AdvancePaymentSyncService 
     // Exponential backoff: 5min, 15min, 30min, 1hr
     const backoffMinutes = [5, 15, 30, 60]
     const attempt = payment.syncAttempts
-    const backoff = backoffMinutes[Math.min(attempt, backoffMinutes.length - 1)]
+    const backoff = backoffMinutes[Math.min(attempt, backoffMinutes.length - 1)] ?? 5
 
     const timeSinceLastAttempt = payment.lastSyncAttemptAt ? Date.now() - payment.lastSyncAttemptAt.getTime() : Infinity
 
@@ -219,9 +219,11 @@ export class BaseAdvancePaymentSyncService implements AdvancePaymentSyncService 
 // ---------------------------------------------------------------------------
 
 export class StripeAdvancePaymentSyncService extends BaseAdvancePaymentSyncService {
-  private stripe: BillingProviderAdapter | undefined
+  // biome-ignore lint/suspicious/noExplicitAny: Stripe SDK client — typed loosely to avoid importing Stripe types
+  private stripe: any | undefined
 
-  constructor(stripeClient?: BillingProviderAdapter) {
+  // biome-ignore lint/suspicious/noExplicitAny: Stripe SDK client
+  constructor(stripeClient?: any) {
     super()
     this.stripe = stripeClient
   }
@@ -334,7 +336,7 @@ export class StripeAdvancePaymentSyncService extends BaseAdvancePaymentSyncServi
   // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   private async createSubscriptionSchedule(subscription: any, payment: BillingPayment): Promise<any> {
     // Get the current subscription from Stripe
-    const stripeSubscription = await this.stripe.subscriptions.retrieve(subscription.externalId)
+    const stripeSubscription = await this.stripe!.subscriptions.retrieve(subscription.externalId)
 
     // Calculate phase dates
     const now = Math.floor(Date.now() / 1000)
@@ -347,7 +349,7 @@ export class StripeAdvancePaymentSyncService extends BaseAdvancePaymentSyncServi
     // 3. Resume phase: normal billing resumes
 
     try {
-      const schedule = await this.stripe.subscriptionSchedules.create({
+      const schedule = await this.stripe!.subscriptionSchedules.create({
         from_subscription: subscription.externalId,
         phases: [
           {
@@ -406,7 +408,7 @@ export class StripeAdvancePaymentSyncService extends BaseAdvancePaymentSyncServi
   // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   private async createInvoiceCredit(subscription: any, payment: BillingPayment): Promise<any> {
     // Create customer balance transaction (credit)
-    const credit = await this.stripe.customers.createBalanceTransaction(subscription.business.externalCustomerId || subscription.businessId, {
+    const credit = await this.stripe!.customers.createBalanceTransaction(subscription.business.externalCustomerId || subscription.businessId, {
       amount: -payment.amount, // Negative = credit
       currency: payment.currency.toLowerCase(),
       description: `Advance payment credit - ${payment.periodsAdvancePaid} period(s)`,

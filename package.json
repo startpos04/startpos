@@ -7,6 +7,7 @@
     "dev:web": "pnpm --filter @startpos/web dev",
     "dev:website": "pnpm --filter @startpos/website dev",
     "dev:admin": "pnpm --filter @startpos/admin dev",
+    "dev:calling-card": "pnpm --filter @startpos/calling-card dev",
     "build": "turbo build",
     "build:web": "pnpm --filter @startpos/web build",
     "build:website": "pnpm --filter @startpos/website build",

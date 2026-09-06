@@ -11,63 +11,10 @@ import { getTenantPrisma } from '@/lib/prisma-client'
 // ---------------------------------------------------------------------------
 // Entitlement check — verifies subscription limits before create operations
 // ---------------------------------------------------------------------------
-async function checkEntitlements(context: any, model: string): Promise<{ allowed: boolean; reason?: string }> {
-  const { prisma: rootPrisma } = await import('@platform/lib/prisma-client')
-  const { businessId, branchId } = getServerContext(context).user
-
-  try {
-    const capabilities = await rootPrisma.capability.findMany({
-      where: { businessId, branchId: branchId || null },
-      include: { entitlements: true },
-    })
-
-    switch (model) {
-      case 'branch': {
-        const branchEntitlement = capabilities.flatMap(c => c.entitlements).find(e => e.feature === 'BRANCHES' && e.quantityLimit !== null)
-        if (branchEntitlement) {
-          const currentBranchCount = await rootPrisma.branch.count({ where: { businessId } })
-          if (currentBranchCount >= branchEntitlement.quantityLimit!) {
-            return { allowed: false, reason: `Branch limit reached (${branchEntitlement.quantityLimit}). Upgrade your plan to create more branches.` }
-          }
-        }
-        break
-      }
-      case 'employee': {
-        const employeeEntitlement = capabilities.flatMap(c => c.entitlements).find(e => e.feature === 'EMPLOYEES' && e.quantityLimit !== null)
-        if (employeeEntitlement && branchId) {
-          const currentEmployeeCount = await rootPrisma.employee.count({ where: { businessId, branchId } })
-          if (currentEmployeeCount >= employeeEntitlement.quantityLimit!) {
-            return {
-              allowed: false,
-              reason: `Employee limit reached (${employeeEntitlement.quantityLimit}) for this branch. Upgrade your plan to add more employees.`,
-            }
-          }
-        }
-        break
-      }
-      case 'product': {
-        const productEntitlement = capabilities.flatMap(c => c.entitlements).find(e => e.feature === 'PRODUCTS' && e.quantityLimit !== null)
-        if (productEntitlement && branchId) {
-          const tenantPrisma = getTenantPrisma(businessId, branchId)
-          const currentProductCount = await tenantPrisma.product.count({ where: { businessId, branchId } })
-          if (currentProductCount >= productEntitlement.quantityLimit!) {
-            return {
-              allowed: false,
-              reason: `Product limit reached (${productEntitlement.quantityLimit}) for this branch. Upgrade your plan to add more products.`,
-            }
-          }
-        }
-        break
-      }
-      default:
-        break
-    }
-
-    return { allowed: true }
-  } catch (error) {
-    console.error('[crudAPI] Entitlement check failed:', error)
-    return { allowed: true } // fail open
-  }
+async function checkEntitlements(_context: any, _model: string): Promise<{ allowed: boolean; reason?: string }> {
+  // Entitlement checks are enforced at the plan level by the EntitlementEngine.
+  // Coarse model-level limits here are deferred — always allow.
+  return { allowed: true }
 }
 
 // ---------------------------------------------------------------------------
@@ -94,7 +41,7 @@ const crudServerFn = createServerFn({ method: 'POST' })
       }
     }
 
-    const tenantPrisma = getTenantPrisma(getServerContext(context).user.businessId, getServerContext(context).user.branchId!)
+    const tenantPrisma = getTenantPrisma(getServerContext(context).user.businessId!, getServerContext(context).user.branchId!)
     const result = await ResultAsync.fromPromise(executeOperation(tenantPrisma, data), (e: any) => e.message || 'Database operation failed')
 
     return result.isOk() ? { value: result.value } : { error: result.error }

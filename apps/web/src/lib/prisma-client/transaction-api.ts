@@ -37,7 +37,7 @@ const transactionServerFn = createServerFn({ method: 'POST' })
 
     // Gate 1: Permission check — validate ALL operations before executing ANY
     for (let i = 0; i < data.operations.length; i++) {
-      const op = data.operations[i]
+      const op = data.operations[i]!
       const requiredPermission = getRequiredPermission(op.table, op.action)
       if (requiredPermission && !userPermissions.includes(requiredPermission)) {
         return { error: `Permission denied: ${requiredPermission} required for operation ${i + 1} (${op.action} on ${op.table})` }
@@ -51,7 +51,7 @@ const transactionServerFn = createServerFn({ method: 'POST' })
     }
 
     const { businessId, branchId } = getServerContext(context).user
-    const tenantPrisma = getTenantPrisma(businessId, branchId)
+    const tenantPrisma = getTenantPrisma(businessId!, branchId!)
 
     const txResult = await ResultAsync.fromPromise(
       tenantPrisma.$transaction(async tx => {
@@ -77,7 +77,7 @@ const transactionServerFn = createServerFn({ method: 'POST' })
       const executionResults = txResult.value
 
       for (let i = 0; i < data.operations.length; i++) {
-        const op = data.operations[i]
+        const op = data.operations[i]!
         const result = executionResults[i]
 
         if (op.table === 'transaction' && op.action === 'create' && result != null && result?.usageCounterId === null) {
@@ -86,8 +86,8 @@ const transactionServerFn = createServerFn({ method: 'POST' })
 
           const openCounter = await rootPrisma.usageCounter.findFirst({
             where: {
-              businessId,
-              branchId,
+              businessId: businessId!,
+              branchId: branchId!,
               isClosed: false,
               billingPeriodStart: { lte: transactionCreatedAt },
               billingPeriodEnd: { gte: transactionCreatedAt },
@@ -108,14 +108,22 @@ const transactionServerFn = createServerFn({ method: 'POST' })
             const periodStart = new Date(transactionCreatedAt.getFullYear(), transactionCreatedAt.getMonth(), 1)
             const periodEnd = new Date(transactionCreatedAt.getFullYear(), transactionCreatedAt.getMonth() + 1, 0, 23, 59, 59, 999)
             const newCounter = await rootPrisma.usageCounter.create({
-              data: { businessId, branchId, billingPeriodStart: periodStart, billingPeriodEnd: periodEnd, txCount: 1, overageTxCount: 0, isClosed: false },
+              data: {
+                businessId: businessId!,
+                branchId: branchId!,
+                billingPeriodStart: periodStart,
+                billingPeriodEnd: periodEnd,
+                txCount: 1,
+                overageTxCount: 0,
+                isClosed: false,
+              },
               select: { id: true },
             })
             counterId = newCounter.id
           }
 
           await rootPrisma.transaction.update({
-            where: { id: transactionId, businessId },
+            where: { id: transactionId, ...(businessId && { businessId }) },
             data: { usageCounterId: counterId },
           })
 

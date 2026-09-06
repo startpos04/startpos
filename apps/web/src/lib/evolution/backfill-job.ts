@@ -8,7 +8,7 @@
  * Safe to re-run — businesses with existing `livingCharacteristics` are skipped.
  *
  * Backfill strategy per business:
- *   1. If `onboardingSurveyAnswers` exists â†’ interpret survey + apply as SURVEY_ANSWER sources
+ *   1. If `onboardingSurveyAnswers` exists → interpret survey + apply as SURVEY_ANSWER sources
  *   2. Else infer from current `Configuration` keys (IS_VAT_REGISTERED, ENABLE_ORDER, etc.)
  *   3. Read the latest `BusinessUsageSummary` (if any)
  *   4. Run `CharacteristicsEngine.compute()` to merge sources
@@ -74,9 +74,10 @@ export async function runBackfill(dryRun = false): Promise<BackfillResult> {
   // Process in batches to avoid loading all businesses into memory
   while (true) {
     const batch = await rootPrisma.business.findMany({
-      where: { livingCharacteristics: null, deletedAt: null },
+      where: { livingCharacteristics: { equals: import('prisma/generated/prisma/client').Prisma.JsonNull }, deletedAt: null },
       select: {
         id: true,
+        name: true,
         onboardingSurveyAnswers: true,
         configurations: {
           select: { key: true, value: true, scope: true },
@@ -91,7 +92,7 @@ export async function runBackfill(dryRun = false): Promise<BackfillResult> {
     result.total += batch.length
     cursor = batch[batch.length - 1]?.id
 
-    for (const business of batch) {
+    for (const business of batch as BusinessRow[]) {
       try {
         await backfillBusiness(business, dryRun)
         result.processed++
@@ -120,6 +121,7 @@ export async function runBackfill(dryRun = false): Promise<BackfillResult> {
 
 type BusinessRow = {
   id: string
+  name: string
   onboardingSurveyAnswers: unknown
   configurations: Array<{ key: string; value: string; scope: string }>
 }
@@ -144,10 +146,10 @@ async function backfillBusiness(business: BusinessRow, dryRun: boolean): Promise
   const summaryRow = await rootPrisma.businessUsageSummary.findFirst({
     where: { businessId: business.id },
     orderBy: { periodEnd: 'desc' },
-    select: { data: true },
+    select: { additionalMetrics: true },
   })
 
-  const usageSummary = (summaryRow?.data ?? {}) as BusinessUsageSummaryData
+  const usageSummary = (summaryRow?.additionalMetrics ?? {}) as BusinessUsageSummaryData
 
   // Step 3: Run the engine
   const engineInput: CharacteristicsEngineInput = {
@@ -175,7 +177,7 @@ async function backfillBusiness(business: BusinessRow, dryRun: boolean): Promise
   const healthStage = classifyHealthStage(output.characteristics, capabilityStates)
 
   if (dryRun) {
-    console.log(`[BackfillJob] DRY RUN ${business.id} â†’ profile: ${profile}, health: ${healthStage}`)
+    console.log(`[BackfillJob] DRY RUN ${business.id} → profile: ${profile}, health: ${healthStage}`)
     return
   }
 

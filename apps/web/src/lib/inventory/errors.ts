@@ -27,22 +27,26 @@
 export class InsufficientStockError extends Error {
   readonly name = 'InsufficientStockError'
 
+  readonly details: {
+    variantId: string
+    available: number
+    requested: number
+    productName?: string
+    batchId?: string
+  }
+
   constructor(
     message: string,
-    public readonly details: {
-      /** The product variant ID that lacks stock */
+    details: {
       variantId: string
-      /** Current available quantity */
       available: number
-      /** Quantity that was requested */
       requested: number
-      /** Human-readable product name (optional) */
       productName?: string
-      /** Batch ID if applicable (optional) */
       batchId?: string
     },
   ) {
     super(message)
+    this.details = details
 
     // Maintains proper stack trace for where error was thrown (only in V8 engines)
     if (Error.captureStackTrace) {

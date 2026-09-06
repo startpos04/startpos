@@ -1,3 +1,5 @@
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
+import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import {
   inventoryCollection,
   membershipCollection,
@@ -9,8 +11,6 @@ import {
 import { dbTransaction } from '@platform/db/local-db-transaction'
 import { safeJsonStringify } from '@platform/lib/json-utils'
 import { NotificationPriority, NotificationType, Role } from 'prisma/generated/prisma/enums'
-import { authStore } from '@/lib/better-auth/auth-store'
-import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import { type NotificationMetadata, NotificationMetadataSchema } from './notification-types'
 import type { ThresholdSeverity, UsageNotificationResult } from './usage-notification-types'
 
@@ -59,7 +59,7 @@ export const NotificationEngine = {
    */
   async checkLowStock(variantIds: string[]) {
     try {
-      const { user } = authStore.state
+      const user = getAuthenticatedUser()
 
       // 1. Group by variantId and sum quantity where quantity > 0
       // Simulating Prisma's groupBy using Array.reduce on the local collection
@@ -197,7 +197,7 @@ export const NotificationEngine = {
    * Internal helper to distribute notifications to all branch admins
    */
   async send(receiverIds: string[], { type, title, message, metadata, link, priority }: SendNotificationParams) {
-    const { user } = authStore.state
+    const user = getAuthenticatedUser()
 
     // Serialize metadata with type safety
     let metadataJson = '{}'

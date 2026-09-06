@@ -19,6 +19,11 @@ type USAComplianceRecord = {
   ein?: string | null
   salesTaxPermit?: string | null
   stateOfIncorporation?: string | null
+  isSalesTaxRegistered?: boolean | null
+  stateTaxID?: string | null
+  federalTaxType?: string | null
+  salesTaxRate?: number | null
+  cityTaxID?: string | null
 }
 
 type USABranchComplianceRecord = {
@@ -38,14 +43,14 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
 
     return {
       // Business-level IRS data
-      businessTaxId: usCompliance?.ein ?? '', // EIN is the primary federal tax ID
-      businessPermitNumber: usCompliance?.salesTaxPermit,
-      businessTaxOfficeCode: usCompliance?.stateOfIncorporation, // State as tax office identifier
+      businessTaxId: usCompliance?.ein ?? '',
+      ...(usCompliance?.salesTaxPermit != null && { businessPermitNumber: usCompliance.salesTaxPermit }),
+      ...(usCompliance?.stateOfIncorporation != null && { businessTaxOfficeCode: usCompliance.stateOfIncorporation }),
 
       // Branch-level state/local data
-      branchSerialNumber: usBranchCompliance?.stateTaxID,
+      ...(usBranchCompliance?.stateTaxID != null && { branchSerialNumber: usBranchCompliance.stateTaxID }),
       branchCode: String(branch.branchCode ?? ''),
-      branchPermitNumber: usBranchCompliance?.salesTaxPermit,
+      ...(usBranchCompliance?.salesTaxPermit != null && { branchPermitNumber: usBranchCompliance.salesTaxPermit }),
 
       // Sales tax status (most US states require sales tax)
       isTaxRegistered: usCompliance?.isSalesTaxRegistered ?? false,
@@ -58,7 +63,7 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
         salesTaxRate: usCompliance?.salesTaxRate,
         cityTaxID: usCompliance?.cityTaxID,
       },
-    }
+    } as ComplianceData
   }
 
   getComplianceIncludes(): {
@@ -68,10 +73,10 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
     return {
       business: {
         usaCompliance: true,
-      },
+      } as Prisma.BusinessInclude,
       branch: {
         usaBranchCompliance: true,
-      },
+      } as Prisma.BranchInclude,
     }
   }
 
@@ -110,14 +115,16 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
 
       // USA-specific IRS fields
       snapshotEIN: compliance.businessTaxId, // Employer Identification Number
-      snapshotStateTaxID: compliance.metadata?.stateTaxID,
+      snapshotStateTaxID: compliance.metadata?.['stateTaxID'],
       snapshotSalesTaxRate: salesTaxRate, // Rate in cents (e.g., 825 = 8.25%)
       snapshotIsTaxExempt: false, // Default to not exempt (overridden in transaction if needed)
 
       // Customer B2B fields (if provided)
-      ...(customerData?.buyerTaxId && {
-        snapshotCustomerTIN: customerData.buyerTaxId, // Customer's EIN or Tax ID
-      }),
+      ...(customerData?.buyerTaxId
+        ? {
+            snapshotCustomerTIN: customerData.buyerTaxId,
+          }
+        : {}),
     }
   }
 
@@ -140,14 +147,18 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
       snapshotIsTaxExempt: originalTransaction['snapshotIsTaxExempt'],
 
       // Copy customer fields if present
-      ...(originalTransaction['snapshotCustomerTIN'] && {
-        snapshotCustomerTIN: originalTransaction['snapshotCustomerTIN'],
-      }),
+      ...(originalTransaction['snapshotCustomerTIN']
+        ? {
+            snapshotCustomerTIN: originalTransaction['snapshotCustomerTIN'],
+          }
+        : {}),
 
       // Copy tax exemption ID if present
-      ...(originalTransaction['snapshotTaxExemptID'] && {
-        snapshotTaxExemptID: originalTransaction['snapshotTaxExemptID'],
-      }),
+      ...(originalTransaction['snapshotTaxExemptID']
+        ? {
+            snapshotTaxExemptID: originalTransaction['snapshotTaxExemptID'],
+          }
+        : {}),
     }
   }
 

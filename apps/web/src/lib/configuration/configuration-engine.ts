@@ -18,7 +18,7 @@
 
 import { getDefinition, getDefinitionsByCategory, getHardcodedDefault, validateValue } from '@platform/lib/configuration/configuration-engine'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
-import type { ConfigCategory, ConfigurationKey, ConfigurationScope } from 'prisma/generated/prisma/enums'
+import type { ConfigurationKey, ConfigurationScope } from 'prisma/generated/prisma/enums'
 import { getTenantPrisma } from '@/lib/prisma-client'
 
 // Re-export platform primitives so callers only need one import

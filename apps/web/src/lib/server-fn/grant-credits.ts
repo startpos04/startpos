@@ -66,7 +66,7 @@ export const grantCredits = createServerFn({ method: 'POST' })
     await rootPrisma.creditLedger.create({
       data: {
         businessId: entry.businessId,
-        eventType: entry.eventType as import('prisma/generated/prisma/enums').CreditEventType,
+        eventType: entry.eventType as import('prisma/generated/prisma/browser').CreditEventType,
         amount: entry.amount,
         balanceAfter: entry.balanceAfter,
         transactionId: entry.transactionId,
