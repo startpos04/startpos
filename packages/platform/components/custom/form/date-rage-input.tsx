@@ -1,11 +1,11 @@
-import { Calendar as CalendarIcon, Check } from 'lucide-react'
-import * as React from 'react'
-import type { DateRange as DateRangeType } from 'react-day-picker'
 import { Button } from '@platform/components/ui/button'
 import { Calendar } from '@platform/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@platform/components/ui/popover'
 import dayjs from '@platform/lib/dayjs'
 import { cn } from '@platform/lib/utils'
+import { Calendar as CalendarIcon, Check } from 'lucide-react'
+import * as React from 'react'
+import type { DateRange as DateRangeType } from 'react-day-picker'
 
 export type DateRange = DateRangeType | undefined
 

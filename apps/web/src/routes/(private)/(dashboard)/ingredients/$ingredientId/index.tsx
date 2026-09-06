@@ -3,13 +3,13 @@
 import Tab from '@platform/components/custom/tab'
 import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
-import { authStore } from '@platform/lib/better-auth/auth-store'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { Box, Edit, Plus, X } from 'lucide-react'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import type { MountProps } from '@platform/lib/mount-manager'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { closeIngredientSidebar, showIngredientSidebar } from '../-components/ingredient-sidebar'
 import { BatchesTab } from './-batches-tab'
@@ -39,7 +39,7 @@ export function IngredientDetailsSidebar({ open: _open, onClose, ingredientId }:
 }
 
 function RouteComponent({ ingredientId: propId, onClose }: RouteComponentProps & { onClose?: () => void }) {
-  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context â€” used inside MountManager or route component
+  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
   const ingredientId = propId || Route.useLoaderData().ingredientId
   const user = useStore(authStore, s => s.user)
   const { data: ingredients, isLoading } = fetchIngredients(ingredientId)
@@ -122,7 +122,7 @@ function RouteComponent({ ingredientId: propId, onClose }: RouteComponentProps &
         </Button>
       </div>
 
-      {/* Compact info row â€” same style as product detail */}
+      {/* Compact info row — same style as product detail */}
       <div className='flex items-center gap-4 px-4 py-2.5 border-b bg-muted/20 shrink-0'>
         <div>
           <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Stock</p>
@@ -175,7 +175,7 @@ function RouteComponent({ ingredientId: propId, onClose }: RouteComponentProps &
         />
       </div>
 
-      {/* Sticky footer â€” action buttons */}
+      {/* Sticky footer — action buttons */}
       <div className='p-4 border-t shrink-0 flex gap-2'>
         <Button size='sm' className='flex-1 shadow-sm shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]' onClick={handleRestock}>
           <Plus className='size-3.5' /> Restock

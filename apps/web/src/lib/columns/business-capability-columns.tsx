@@ -21,7 +21,7 @@ export const businessCapabilityCols = {
       header: 'Description',
       cell: info => {
         const value = info.getValue()
-        return <span className='text-sm text-muted-foreground'>{value || 'â€”'}</span>
+        return <span className='text-sm text-muted-foreground'>{value || '—'}</span>
       },
     }),
 
@@ -81,7 +81,7 @@ export const businessCapabilityCols = {
         const isActive = capability.state === 'ENABLED' || capability.state === 'CONFIGURED'
 
         if (isActive || minutes === 0) {
-          return <span className='text-xs text-muted-foreground'>â€”</span>
+          return <span className='text-xs text-muted-foreground'>—</span>
         }
 
         return (

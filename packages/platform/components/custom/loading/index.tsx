@@ -1,5 +1,5 @@
-import { GalleryVerticalEndIcon } from 'lucide-react'
 import { cn } from '@platform/lib/utils'
+import { GalleryVerticalEndIcon } from 'lucide-react'
 
 function Loading({ className = 'h-full' }: { className?: string }) {
   return (

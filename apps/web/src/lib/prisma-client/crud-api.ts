@@ -1,18 +1,19 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: allowing any type for flexibility */
 
 import { getRequiredPermission, requiresEntitlementCheck } from '@platform/lib/authorization/model-permissions'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
-import { getTenantPrisma } from '@platform/lib/prisma-client'
-import { type CleanArgs, type CrudProxy, type DBPayload, type DeepPrettify, executeOperation, type InferResult } from '@platform/lib/prisma-client/crud-api'
+import { getServerContext } from '@platform/lib/better-auth/server-context'
+import { type CrudProxy, type DBPayload, executeOperation } from '@platform/lib/prisma-client/crud-api'
 import { createServerFn } from '@tanstack/react-start'
 import { err, ok, ResultAsync } from 'neverthrow'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantPrisma } from '@/lib/prisma-client'
 
 // ---------------------------------------------------------------------------
 // Entitlement check — verifies subscription limits before create operations
 // ---------------------------------------------------------------------------
 async function checkEntitlements(context: any, model: string): Promise<{ allowed: boolean; reason?: string }> {
   const { prisma: rootPrisma } = await import('@platform/lib/prisma-client')
-  const { businessId, branchId } = context.user
+  const { businessId, branchId } = getServerContext(context).user
 
   try {
     const capabilities = await rootPrisma.capability.findMany({
@@ -93,7 +94,7 @@ const crudServerFn = createServerFn({ method: 'POST' })
       }
     }
 
-    const tenantPrisma = getTenantPrisma(context.user.businessId, context.user.branchId!)
+    const tenantPrisma = getTenantPrisma(getServerContext(context).user.businessId, getServerContext(context).user.branchId!)
     const result = await ResultAsync.fromPromise(executeOperation(tenantPrisma, data), (e: any) => e.message || 'Database operation failed')
 
     return result.isOk() ? { value: result.value } : { error: result.error }

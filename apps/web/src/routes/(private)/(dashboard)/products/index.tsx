@@ -9,9 +9,8 @@ import { Progress } from '@platform/components/ui/progress'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@platform/components/ui/tooltip'
 import { productCollection } from '@platform/db/collections'
 import { useCapability } from '@platform/hooks/use-capability'
-import { usePOS } from '@platform/hooks/use-pos'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { createFileRoute, redirect, useSearch } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
@@ -21,11 +20,12 @@ import numeral from 'numeral'
 import { ResourceType } from 'prisma/generated/prisma/enums'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { usePOS } from '@/hooks/use-pos'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { productCols } from '@/lib/columns/product-columns'
 import { tableCols } from '@/lib/columns/table-columns'
 import { PosStockEngine } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import MountManager from '@platform/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { closeProductSidebar, PRODUCT_ASIDE_ID, showProductSidebar } from './-components/product-sidebar'
 import { ProductDetailsSidebar } from './$productId'
@@ -73,7 +73,7 @@ function RouteComponent() {
   const [selectedId, setSelectedId] = useState<string>('')
   const hasInventory = useCapability(Capabilities.MANAGE_INVENTORY)
 
-  // Provisional products â€” always computed from the full list, not the paginated slice
+  // Provisional products — always computed from the full list, not the paginated slice
   const provisionalProducts = useMemo(() => posProducts.filter(isProvisionalProduct), [posProducts])
   const provisionalCount = provisionalProducts.length
 
@@ -203,7 +203,7 @@ function RouteComponent() {
   return (
     <div className='w-full h-screen bg-background flex overflow-hidden relative min-h-0 flex-1'>
       <div className='flex-1 min-w-0 h-full px-4 flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-background/50 space-y-2'>
-        {/* â”€â”€ Provisional products review banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── Provisional products review banner ─────────────────────────── */}
         {provisionalCount > 0 && !provisional && (
           <div className='flex items-center justify-between gap-3 rounded-lg border border-amber-400/40 bg-amber-50/60 dark:bg-amber-950/20 px-4 py-2.5 shrink-0'>
             <div className='flex items-center gap-2.5 min-w-0'>
@@ -212,7 +212,7 @@ function RouteComponent() {
                 <span className='font-bold'>
                   {provisionalCount} {provisionalCount === 1 ? 'product needs' : 'products need'} review
                 </span>{' '}
-                â€” added at the POS without full details. Add a cost price, category, or SKU to complete them.
+                — added at the POS without full details. Add a cost price, category, or SKU to complete them.
               </p>
             </div>
             <Button
@@ -226,7 +226,7 @@ function RouteComponent() {
           </div>
         )}
 
-        {/* â”€â”€ Active provisional filter indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── Active provisional filter indicator ────────────────────────── */}
         {provisional && (
           <div className='flex items-center gap-2 shrink-0'>
             <Badge variant='outline' className='border-amber-400/60 text-amber-600 bg-amber-50/50 gap-1.5 px-2.5 py-1'>
@@ -370,15 +370,15 @@ function RouteComponent() {
                           <div className='rounded-xl border border-amber-400/30 bg-amber-50/40 dark:bg-amber-950/20 px-3 py-2.5 space-y-1.5'>
                             <p className='text-xs font-semibold text-amber-700 dark:text-amber-400'>Complete this product</p>
                             <ul className='text-[11px] text-amber-600/80 dark:text-amber-500/80 space-y-0.5'>
-                              {!primaryVariant.sku && <li>â€¢ Add a SKU</li>}
-                              {Number(primaryVariant.costPrice) === 0 && <li>â€¢ Set a cost price</li>}
-                              {product.type === ResourceType.SERVICE && <li>â€¢ Update product type if needed</li>}
-                              {!product.image && <li>â€¢ Add a product image</li>}
+                              {!primaryVariant.sku && <li>• Add a SKU</li>}
+                              {Number(primaryVariant.costPrice) === 0 && <li>• Set a cost price</li>}
+                              {product.type === ResourceType.SERVICE && <li>• Update product type if needed</li>}
+                              {!product.image && <li>• Add a product image</li>}
                             </ul>
                           </div>
                         )}
 
-                        {/* Availability Bar â€” only when inventory tracking is enabled */}
+                        {/* Availability Bar — only when inventory tracking is enabled */}
                         {!isProvisional && hasInventory && (
                           <div className='space-y-1.5'>
                             <div className='flex justify-between text-[10px] font-bold uppercase tracking-tight'>

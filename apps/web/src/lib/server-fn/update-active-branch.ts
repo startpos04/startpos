@@ -1,6 +1,7 @@
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
-import { getTenantPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
+import { getTenantPrisma } from '@/lib/prisma-client'
 
 /**
  * updateActiveBranch
@@ -13,14 +14,10 @@ import { createServerFn } from '@tanstack/react-start'
  * @returns Success result or error message
  */
 export const updateActiveBranch = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requireTenantContext()])
   .inputValidator((data: { branchId: string }) => data)
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId || !context?.user?.id) {
-      return { success: false as const, error: 'User not authenticated' }
-    }
-
-    const { businessId, id: userId } = context.user
+    const { businessId, id: userId } = getTenantContext(context).user
     const { branchId } = data
 
     // Use root prisma to access membership across all branches

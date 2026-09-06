@@ -35,7 +35,7 @@
 apps/web/src/routeTree.gen.ts
 apps/web/.output
 apps/web/.tanstack
-apps/web/prisma/generated
+packages/platform/prisma/generated
 
 # Stripe env output (generated at runtime by stripe-setup)
 apps/stripe/env

@@ -7,7 +7,7 @@
  *   1. Open GCash â†’ tap "Pay Bills" or "GCash Card"
  *   2. Reveal the 16-digit virtual Mastercard number, expiry, and CVV
  *   3. On Stripe checkout, choose "Card" and enter those details
- *   4. GCash will send an OTP â€” enter it to complete payment
+ *   4. GCash will send an OTP — enter it to complete payment
  *
  * The callout starts collapsed so it doesn't clutter the page. A
  * "How to pay with GCash" trigger expands the steps inline. Once
@@ -31,7 +31,7 @@ export function GCashPaymentGuide({ alwaysVisible = false, className }: GCashPay
   const [dismissed, setDismissed] = useState(false)
   const [open, setOpen] = useState(false)
 
-  // Check session storage on mount â€” avoid showing to users who already read it
+  // Check session storage on mount — avoid showing to users who already read it
   useEffect(() => {
     if (!alwaysVisible && sessionStorage.getItem(DISMISSED_KEY) === '1') {
       setDismissed(true)
@@ -57,7 +57,7 @@ export function GCashPaymentGuide({ alwaysVisible = false, className }: GCashPay
             </div>
             <div>
               <p className='text-sm font-semibold text-blue-900 dark:text-blue-200 leading-tight'>Paying with GCash?</p>
-              <p className='text-xs text-blue-700 dark:text-blue-400 leading-tight mt-0.5'>You can use your GCash virtual card â€” no physical card needed.</p>
+              <p className='text-xs text-blue-700 dark:text-blue-400 leading-tight mt-0.5'>You can use your GCash virtual card — no physical card needed.</p>
             </div>
           </div>
 
@@ -113,7 +113,7 @@ export function GCashPaymentGuide({ alwaysVisible = false, className }: GCashPay
             {/* Note */}
             <div className='rounded-lg bg-blue-100 dark:bg-blue-900/30 px-3 py-2'>
               <p className='text-xs text-blue-800 dark:text-blue-300 leading-relaxed'>
-                <span className='font-semibold'>Note:</span> The GCash virtual card is a Mastercard â€” on Stripe checkout select{' '}
+                <span className='font-semibold'>Note:</span> The GCash virtual card is a Mastercard — on Stripe checkout select{' '}
                 <span className='font-mono font-semibold'>Card</span> and enter your virtual card number, expiry, and CVV exactly as shown in the GCash app.
                 You&apos;ll receive a GCash OTP to confirm the charge.
               </p>
@@ -124,7 +124,8 @@ export function GCashPaymentGuide({ alwaysVisible = false, className }: GCashPay
               <span className='text-amber-500 text-sm leading-none mt-px'>âš </span>
               <p className='text-xs text-amber-800 dark:text-amber-300 leading-relaxed'>
                 You need a <span className='font-semibold'>GCash card</span> (virtual or physical) to use this method. If you haven&apos;t activated yours yet,
-                open the GCash app â†’ tap <span className='font-mono font-semibold'>GCash Card</span> â†’ follow the activation steps. It takes about 2 minutes.
+                open the GCash app â†’ tap <span className='font-mono font-semibold'>GCash Card</span> â†’ follow the activation steps. It takes about 2
+                minutes.
               </p>
             </div>
           </div>

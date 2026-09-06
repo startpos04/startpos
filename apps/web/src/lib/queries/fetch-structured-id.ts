@@ -1,10 +1,10 @@
 import { sequenceCounterCollection } from '@platform/db/collections'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import dayjs from '@platform/lib/dayjs'
 import { SequenceType } from 'prisma/generated/prisma/enums'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 
 export function fetchStructuredId(type: SequenceType) {
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
   const now = dayjs.utc()
   const year = now.year()
   const month = now.month() + 1
@@ -25,7 +25,7 @@ export function fetchStructuredId(type: SequenceType) {
       draft.lastNumber += 1
     })
     // Get the updated value after the mutation
-    lastNumber = sequenceCounterCollection.get(counterId)!.lastNumber
+    lastNumber = sequenceCounterCollection.get(counterId)?.lastNumber
   } else {
     // 4. Insert new
     sequenceCounterCollection.insert({

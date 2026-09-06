@@ -1,9 +1,9 @@
 /**
- * use-capability.ts â€” Client-side capability access hook
+ * use-capability.ts — Client-side capability access hook
  *
  * Reads from authStore.user.entitlement.capabilities (populated once at
  * session load by EntitlementEngine.buildSummary). No server call on every
- * render â€” the capability list is already in the session.
+ * render — the capability list is already in the session.
  *
  * Usage:
  *   // Check a single capability
@@ -23,9 +23,9 @@
  *   independently of what the client sends.
  */
 
-import { useStore } from '@tanstack/react-store'
-import type { CapabilityKey } from '@platform/lib/entitlement/capability-keys'
 import { authStore } from '@platform/lib/better-auth/auth-store'
+import type { CapabilityKey } from '@platform/lib/entitlement/capability-keys'
+import { useStore } from '@tanstack/react-store'
 
 // ---------------------------------------------------------------------------
 // Single capability check
@@ -44,7 +44,7 @@ export function useCapability(capability: CapabilityKey): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Multiple capability check (batch â€” avoids multiple store subscriptions)
+// Multiple capability check (batch — avoids multiple store subscriptions)
 // ---------------------------------------------------------------------------
 
 /**

@@ -1,8 +1,8 @@
-import { Store } from '@tanstack/react-store'
-import { z } from 'zod'
 import type { PermissionKey } from '@platform/lib/authorization/permission-keys'
 import { setLocalStorage } from '@platform/lib/json-utils'
 import type { Prettify } from '@platform/lib/types'
+import { Store, useStore } from '@tanstack/react-store'
+import { z } from 'zod'
 import type { BaseUser } from './base-user'
 
 // Schema for auth storage data
@@ -49,19 +49,14 @@ const defaultValue = {
   authorization: null as AuthorizationSummary | null,
 }
 
-export type AuthState = Prettify<
-  | typeof defaultValue
-  | (Omit<typeof defaultValue, 'isAuthenticated' | 'user'> & { isAuthenticated: true; user: BaseUser })
->
+export type AuthState = Prettify<typeof defaultValue | (Omit<typeof defaultValue, 'isAuthenticated' | 'user'> & { isAuthenticated: true; user: BaseUser })>
 
 export const authStore = new Store<AuthState>(defaultValue)
 
 export const setUser = (user: BaseUser, authorization?: AuthorizationSummary | null) => {
   authStore.setState(state => {
     if (state.isAuthenticated && state.user?.id) return state
-    return user
-      ? ({ ...state, isAuthenticated: true as const, user, authorization: authorization ?? null } as AuthState)
-      : defaultValue
+    return user ? ({ ...state, isAuthenticated: true as const, user, authorization: authorization ?? null } as AuthState) : defaultValue
   })
 }
 
@@ -84,6 +79,54 @@ export const refreshUser = (user: BaseUser, authorization?: AuthorizationSummary
 
 export const resetAuth = () => {
   authStore.setState(() => defaultValue)
+}
+
+/**
+ * getAuthenticatedUser — returns the current user from the store.
+ *
+ * The generic parameter lets app-layer code narrow the return type to their
+ * concrete user type without re-implementing the guard:
+ *
+ * @example
+ * // platform layer — returns BaseUser
+ * const user = getAuthenticatedUser()
+ *
+ * // app layer — returns ServerUser with no cast
+ * import type { ServerUser } from '@/lib/better-auth/auth-server'
+ * const user = getAuthenticatedUser<ServerUser>()
+ *
+ * @throws {Error} when the store has no authenticated user
+ */
+export const getAuthenticatedUser = <TUser extends BaseUser = BaseUser>(): TUser => {
+  const state = authStore.state
+  if (!state.isAuthenticated || !state.user) {
+    throw new Error('[authStore] getAuthenticatedUser called before authentication — ensure this is only called inside authenticated contexts')
+  }
+  return state.user as TUser
+}
+
+/**
+ * useAuthenticatedUser — reactive hook that returns the current user.
+ *
+ * The generic parameter lets app-layer code narrow the return type to their
+ * concrete user type without re-implementing the guard:
+ *
+ * @example
+ * // platform layer — returns BaseUser
+ * const user = useAuthenticatedUser()
+ *
+ * // app layer — returns ServerUser with no cast
+ * import type { ServerUser } from '@/lib/better-auth/auth-server'
+ * const user = useAuthenticatedUser<ServerUser>()
+ *
+ * @throws {Error} when the store has no authenticated user
+ */
+export const useAuthenticatedUser = <TUser extends BaseUser = BaseUser>(): TUser => {
+  const state = useStore(authStore, s => s)
+  if (!state.isAuthenticated || !state.user) {
+    throw new Error('[authStore] useAuthenticatedUser called before authentication — ensure this is only rendered inside authenticated routes')
+  }
+  return state.user as TUser
 }
 
 /**

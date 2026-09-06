@@ -11,33 +11,60 @@
  * - Customer GST/UEN for B2B transactions
  */
 
-import type { Prisma } from 'prisma/generated/prisma/client'
+import type { Branch, Business, Prisma, SingaporeBranchCompliance, SingaporeCompliance } from 'prisma/generated/prisma/client'
 import type { ComplianceAdapter, ComplianceData, RefundContext, UserContext } from '../compliance-adapter'
 
-export class SingaporeComplianceAdapter implements ComplianceAdapter {
+/** Business shape expected by this adapter — base fields + SG compliance relation */
+type SGBusiness = Business & {
+  singaporeCompliance: SingaporeCompliance | null
+}
+
+/** Branch shape expected by this adapter — base fields + SG branch compliance relation */
+type SGBranch = Branch & {
+  singaporeBranchCompliance: SingaporeBranchCompliance | null
+}
+
+/**
+ * The subset of SG snapshot fields copied during a refund.
+ * Typed so copyRefundSnapshot never needs `as any` on originalTransaction.
+ */
+interface SGTransactionSnapshot {
+  snapshotBusinessName: string
+  snapshotBranchName: string
+  snapshotBranchAddress: string | null
+  snapshotBranchSN: string
+  snapshotCurrency: string
+  snapshotGSTNumber: string | null
+  snapshotUENNumber: string | null
+  snapshotGSTRate: number | null
+  snapshotIsGSTRegistered: boolean | null
+  snapshotCustomerTIN?: string | null
+}
+
+export class SingaporeComplianceAdapter implements ComplianceAdapter<SGBusiness, SGBranch> {
   readonly countryCode = 'SG'
 
-  extractComplianceData(context: UserContext): ComplianceData {
+  extractComplianceData(context: UserContext<SGBusiness, SGBranch>): ComplianceData {
     const { business, branch } = context
 
-    // Extract Singapore-specific compliance data
-    const sgCompliance = (business as any).singaporeCompliance
-    const sgBranchCompliance = (branch as any).singaporeBranchCompliance
+    // No cast needed — SGBusiness and SGBranch declare these relations explicitly
+    const sgCompliance = business.singaporeCompliance
+    const sgBranchCompliance = branch.singaporeBranchCompliance
 
     return {
       // Business-level IRAS data
-      businessTaxId: sgCompliance?.gstNumber ?? '', // GST number is the primary tax ID
-      businessPermitNumber: sgCompliance?.uenNumber, // UEN as permit number
-      businessTaxOfficeCode: sgCompliance?.acraNumber, // ACRA as tax office
+      businessTaxId: sgCompliance?.gstNumber ?? '',
+      ...(sgCompliance?.uenNumber != null && { businessPermitNumber: sgCompliance.uenNumber }),
+      ...(sgCompliance?.acraNumber != null && { businessTaxOfficeCode: sgCompliance.acraNumber }),
 
       // Branch-level IRAS data
-      branchSerialNumber: sgBranchCompliance?.branchUEN,
+      ...(sgBranchCompliance?.branchUEN != null && { branchSerialNumber: sgBranchCompliance.branchUEN }),
       branchCode: String(branch.branchCode ?? ''),
-      branchPermitNumber: sgBranchCompliance?.tradeLicense,
+      ...(sgBranchCompliance?.tradeLicense != null && { branchPermitNumber: sgBranchCompliance.tradeLicense }),
 
       // GST status
       isTaxRegistered: sgCompliance?.isGSTRegistered ?? false,
-      taxRegistrationDate: sgCompliance?.gstEffectiveDate?.toISOString(),
+      ...(sgCompliance?.gstEffectiveDate != null && { taxRegistrationDate: sgCompliance.gstEffectiveDate.toISOString() }),
 
       // Additional Singapore metadata
       metadata: {
@@ -54,19 +81,15 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
     branch: Prisma.BranchInclude
   } {
     return {
-      business: {
-        singaporeCompliance: true,
-      },
-      branch: {
-        singaporeBranchCompliance: true,
-      },
+      business: { singaporeCompliance: true },
+      branch: { singaporeBranchCompliance: true },
     }
   }
 
   populateTransactionSnapshot(data: {
     compliance: ComplianceData
-    business: UserContext['business']
-    branch: UserContext['branch']
+    business: SGBusiness
+    branch: SGBranch
     user: UserContext['user']
     currency: string
     customerData?: {
@@ -109,8 +132,9 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
   }
 
   copyRefundSnapshot(context: RefundContext): Record<string, unknown> {
-    const { originalTransaction, currentUser } = context
-    const original = originalTransaction as any
+    const { currentUser } = context
+    // Cast through the typed snapshot — all fields are known SG snapshot columns
+    const original = context.originalTransaction as unknown as SGTransactionSnapshot
 
     return {
       // Copy universal fields

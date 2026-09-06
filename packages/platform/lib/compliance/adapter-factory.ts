@@ -32,7 +32,7 @@ class DefaultComplianceAdapterFactory implements ComplianceAdapterFactory {
    */
   private getDeploymentCountry(): string {
     // Check for DEPLOYMENT_COUNTRY env var (set at build time)
-    const deploymentCountry = process.env.DEPLOYMENT_COUNTRY
+    const deploymentCountry = process.env['DEPLOYMENT_COUNTRY']
 
     if (deploymentCountry) {
       return deploymentCountry.toUpperCase()

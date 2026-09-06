@@ -5,10 +5,10 @@
  * Called after user completes 3D Secure authentication.
  */
 
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { prisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 
 const getSubscriptionStatusSchema = z.object({
   subscriptionId: z.string(),

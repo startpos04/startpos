@@ -1,7 +1,7 @@
-import type { Row } from '@tanstack/react-table'
 import { ScrollArea } from '@platform/components/ui/scroll-area'
 import { Skeleton } from '@platform/components/ui/skeleton'
 import { cn } from '@platform/lib/utils'
+import type { Row } from '@tanstack/react-table'
 import type { DataViewProps } from '.'
 import { DataViewPagination } from './pagination'
 import { useDataView } from './use-data-view'

@@ -10,13 +10,13 @@ import { Switch } from '@platform/components/ui/switch'
 import { productVariantCollection } from '@platform/db/collections'
 import { useCapability } from '@platform/hooks/use-capability'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import MountManager from '@platform/lib/mount-manager'
 import { useForm } from '@tanstack/react-form'
 import { Layers, Package, Plus, PlusCircle, Save, Utensils, Warehouse, X } from 'lucide-react'
 import { ResourceType, type Unit, VariantAttributeType } from 'prisma/generated/prisma/browser'
 import type { ReactNode } from 'react'
 import { z } from 'zod'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import MountManager from '@platform/lib/mount-manager'
 import { fetchCategoryOptions } from '@/lib/queries/fetch-category-options'
 import { fetchUnitOptions } from '@/lib/queries/fetch-unit-options'
 import { AddAddonModal } from './-add-addon'
@@ -280,29 +280,27 @@ export function CreateProduct({ variantId, onSubmit, defaultValues, children, te
                 children={({ isBatchPrepared, ingredients }) => (
                   <>
                     {isBatchPrepared && ingredients.length > 0 && (
-                      <>
-                        <form.Field
-                          name='shelfLifeHours'
-                          children={field => (
-                            <div className='space-y-1.5'>
-                              <Label>Shelf Life (hours)</Label>
-                              <input
-                                type='number'
-                                min='0'
-                                step='1'
-                                placeholder='e.g. 24'
-                                className='flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50'
-                                value={field.state.value ?? ''}
-                                onChange={e => {
-                                  const val = e.target.value
-                                  field.handleChange(val === '' ? null : Number(val))
-                                }}
-                              />
-                              <p className='text-[10px] text-muted-foreground'>Optional: Hours until product expires after prep</p>
-                            </div>
-                          )}
-                        />
-                      </>
+                      <form.Field
+                        name='shelfLifeHours'
+                        children={field => (
+                          <div className='space-y-1.5'>
+                            <Label>Shelf Life (hours)</Label>
+                            <input
+                              type='number'
+                              min='0'
+                              step='1'
+                              placeholder='e.g. 24'
+                              className='flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50'
+                              value={field.state.value ?? ''}
+                              onChange={e => {
+                                const val = e.target.value
+                                field.handleChange(val === '' ? null : Number(val))
+                              }}
+                            />
+                            <p className='text-[10px] text-muted-foreground'>Optional: Hours until product expires after prep</p>
+                          </div>
+                        )}
+                      />
                     )}
                   </>
                 )}

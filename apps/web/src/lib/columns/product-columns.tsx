@@ -48,7 +48,7 @@ export const productCols = {
           return val ? (
             <span className='font-mono text-xs uppercase tracking-wider'>{val}</span>
           ) : (
-            <span className='text-muted-foreground/40 font-mono text-xs'>â€”</span>
+            <span className='text-muted-foreground/40 font-mono text-xs'>—</span>
           )
         },
       },
@@ -73,14 +73,14 @@ export const productCols = {
         const { selectedComponentIds = [], cartItems = [], orderItems = [] } = options || {}
         const product = info.row.original
         const primaryVariant = product.variants?.[0]
-        if (!primaryVariant) return <span className='text-muted-foreground text-xs text-center block'>â€”</span>
+        if (!primaryVariant) return <span className='text-muted-foreground text-xs text-center block'>—</span>
 
         const maxServings = PosStockEngine.calculateRemainingYield(product, primaryVariant, selectedComponentIds, cartItems, orderItems)
 
-        // Unlimited sentinel â€” product has no tracked stock (SERVICE or provisional)
-        // Show 'â€”' so the column isn't misleading when inventory is enabled
+        // Unlimited sentinel — product has no tracked stock (SERVICE or provisional)
+        // Show '—' so the column isn't misleading when inventory is enabled
         if (maxServings >= 999) {
-          return <div className='text-xs text-center text-muted-foreground/40 font-mono'>â€”</div>
+          return <div className='text-xs text-center text-muted-foreground/40 font-mono'>—</div>
         }
 
         const isLowStock = maxServings < 10
@@ -153,7 +153,7 @@ export const productCols = {
       cell: info => {
         const product = info.row.original
         const primaryVariant = product.variants?.[0]
-        if (!primaryVariant) return <span className='font-mono text-xs'>â‚±0.00</span>
+        if (!primaryVariant) return <span className='font-mono text-xs'>₱0.00</span>
 
         const recipeComponents = primaryVariant.components?.filter((c: ProductComponent) => !c.isAddon) || []
         const ingredientBreakdown = recipeComponents.map((comp: any) => ({
@@ -174,7 +174,7 @@ export const productCols = {
       cell: info => {
         const product = info.row.original as posProduct
         const primaryVariant = product.variants?.find(v => v.attributeType === 'UNSPECIFIED') || product.variants?.[0]
-        if (!primaryVariant) return <div className='text-right text-muted-foreground text-xs'>â€”</div>
+        if (!primaryVariant) return <div className='text-right text-muted-foreground text-xs'>—</div>
 
         // 2. Exact same financial cost breakdown mapping
         const recipeComponents = primaryVariant.components?.filter((c: any) => !c.isAddon) || []

@@ -1,7 +1,7 @@
 /**
  * billing/invoices/index.tsx
  *
- * /billing/invoices â€” Invoice History
+ * /billing/invoices — Invoice History
  *
  * Displays a paginated table of all BillingInvoice records for the business:
  *   - Billing period dates
@@ -11,7 +11,7 @@
  *   - External invoice link (Stripe-hosted) when available
  *
  * Architecture compliance:
- *   - No monetary calculations in the component â€” all amounts from the server.
+ *   - No monetary calculations in the component — all amounts from the server.
  *   - Reads invoice data via fetchInvoices server function (not authStore).
  *   - ADMIN-only page (MANAGE_BILLING capability required).
  */
@@ -97,7 +97,7 @@ function getStatusConfig(status: InvoiceStatusKey): StatusConfig {
 // ---------------------------------------------------------------------------
 
 function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return 'â€”'
+  if (!date) return '—'
   return new Date(date).toLocaleDateString('en-PH', {
     year: 'numeric',
     month: 'short',
@@ -112,7 +112,7 @@ function formatPeriod(start: Date | string, end: Date | string): string {
     day: 'numeric',
     year: 'numeric',
   })
-  return `${s} â€“ ${e}`
+  return `${s} – ${e}`
 }
 
 function formatCents(cents: number): string {
@@ -246,9 +246,9 @@ function InvoiceRow({ invoice }: { invoice: InvoiceSummaryDTO }) {
             </a>
           </Button>
         ) : invoice.externalInvoiceId ? (
-          <span className='text-xs text-muted-foreground font-mono'>{invoice.externalInvoiceId.slice(0, 16)}â€¦</span>
+          <span className='text-xs text-muted-foreground font-mono'>{invoice.externalInvoiceId.slice(0, 16)}…</span>
         ) : (
-          <span className='text-xs text-muted-foreground'>â€”</span>
+          <span className='text-xs text-muted-foreground'>—</span>
         )}
       </TableCell>
     </TableRow>

@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny:  allowing any type for flexibility */
 /**
  * api-registry.ts — Data API provider registry
  *
@@ -12,8 +13,8 @@
  *   registerDataAPIs({ crudAPI, transactionAPI })
  */
 
-import type { DBPayload } from './crud-api'
 import type { Result } from 'neverthrow'
+import type { DBPayload } from './crud-api'
 
 export interface CrudAPILike {
   [table: string]: (action: string, args?: any) => Promise<Result<any, string>>

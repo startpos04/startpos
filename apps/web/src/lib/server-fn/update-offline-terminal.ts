@@ -1,5 +1,5 @@
 /**
- * update-offline-terminal.ts â€” Update branch offline terminal designation
+ * update-offline-terminal.ts — Update branch offline terminal designation
  *
  * Phase 2: Offline checkout restriction
  * Sets which user can perform checkouts while offline for a given branch.
@@ -8,20 +8,17 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
-import { getTenantPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
+import { getTenantPrisma } from '@/lib/prisma-client'
 
 export const updateOfflineTerminal = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_MANAGE_SETTINGS)])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_MANAGE_SETTINGS), requireTenantContext()])
   .inputValidator((data: { branchId: string; offlineTerminalId: string | null }) => data)
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId || !context?.user?.branchId) {
-      return { success: false as const, error: 'Unauthorized' }
-    }
-
-    const { businessId } = context.user
+    const { businessId } = getTenantContext(context).user
     const prisma = getTenantPrisma(businessId, data.branchId)
 
     try {

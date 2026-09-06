@@ -181,7 +181,7 @@ export function mergeCartItem(existingItems: posItem[], newItem: posItem): posIt
     const updatedItems = [...existingItems]
     updatedItems[existingItemIndex] = {
       ...updatedItems[existingItemIndex]!,
-      quantity: updatedItems[existingItemIndex]!.quantity + newItem.quantity,
+      quantity: updatedItems[existingItemIndex]?.quantity + newItem.quantity,
     }
     return updatedItems
   }

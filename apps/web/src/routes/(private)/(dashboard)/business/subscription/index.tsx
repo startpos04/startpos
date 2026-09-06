@@ -1,10 +1,10 @@
 /**
- * /business/subscription â€” Subscription & Billing Dashboard
+ * /business/subscription — Subscription & Billing Dashboard
  *
  * Displays subscription status, plan details, invoices, and payment methods
  *
  * Architecture compliance:
- *   - No monetary calculations in the component â€” uses PlanEngine helpers.
+ *   - No monetary calculations in the component — uses PlanEngine helpers.
  *   - All subscription data read from authStore.entitlement (already assembled server-side).
  *   - MANAGE_BILLING capability check: this page must remain accessible for all statuses.
  */

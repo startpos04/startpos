@@ -1,7 +1,7 @@
 /**
  * feature-library.tsx
  *
- * FeatureLibrary â€” feature discovery UI for the dashboard.
+ * FeatureLibrary — feature discovery UI for the dashboard.
  *
  * Replaces SetupChecklist. Shows every optional capability the app offers,
  * written as mini-articles answering:
@@ -10,9 +10,9 @@
  *   3. How do you enable and use it?
  *
  * Architecture:
- *   - Reads enabledIds and deferredIds from authStore â€” zero new fetches.
- *   - Calls buildFeatureLibrary() â€” pure, no IO.
- *   - Filter tabs are local state only (no URL params â€” this is a dashboard widget).
+ *   - Reads enabledIds and deferredIds from authStore — zero new fetches.
+ *   - Calls buildFeatureLibrary() — pure, no IO.
+ *   - Filter tabs are local state only (no URL params — this is a dashboard widget).
  *   - Expand/collapse per card is local state.
  *   - Recommended entries show an "Enable now" action using the existing
  *     acceptCapability server function (same as RecommendationCard).
@@ -21,13 +21,13 @@
 import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@platform/components/ui/card'
-import { refreshAuthUser } from '@platform/lib/better-auth/auth-store'
 import { cn } from '@platform/lib/utils'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { ArrowRightIcon, CheckCircle2Icon, ChevronDownIcon, ChevronUpIcon, ClockIcon, Loader2Icon, SparklesIcon, ZapIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { refreshAuthUser } from '@/lib/better-auth/auth-store'
 import type { CapabilityCategory } from '@/lib/onboarding/types'
 import { acceptCapability, enableCapability } from '@/lib/server-fn/capability-actions'
 import { fetchCapabilityStates } from '@/lib/server-fn/fetch-capability-states'
@@ -155,7 +155,7 @@ export function FeatureLibrary() {
           <div className='flex items-center justify-between'>
             <CardTitle className='text-base'>Features</CardTitle>
             <span className='text-xs text-muted-foreground'>
-              {counts.enabled} enabled Â· {allEntries.length} total
+              {counts.enabled} enabled · {allEntries.length} total
             </span>
           </div>
 
@@ -251,7 +251,7 @@ function CategorySection({ category, entries, expandedId, enablingId, onToggle, 
 }
 
 // ---------------------------------------------------------------------------
-// FeatureCard â€” collapsed row + expandable article
+// FeatureCard — collapsed row + expandable article
 // ---------------------------------------------------------------------------
 
 interface FeatureCardProps {
@@ -278,7 +278,7 @@ function FeatureCard({ entry, isExpanded, isEnabling, onToggle, onEnable }: Feat
         isExpanded && 'shadow-sm',
       )}
     >
-      {/* â”€â”€ Collapsed row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Collapsed row ───────────────────────────────────────────────── */}
       <button type='button' className='w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left' onClick={onToggle}>
         <div className='flex items-center gap-2.5 min-w-0'>
           {/* Icon */}
@@ -317,7 +317,7 @@ function FeatureCard({ entry, isExpanded, isEnabling, onToggle, onEnable }: Feat
         </div>
       </button>
 
-      {/* â”€â”€ Expanded article â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Expanded article ─────────────────────────────────────────────── */}
       {isExpanded && (
         <div className='px-3 pb-3 pt-1 border-t border-border/50 space-y-3'>
           {/* What / Why */}

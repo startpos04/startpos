@@ -2,10 +2,10 @@ import { Button } from '@platform/components/ui/button'
 import { Input } from '@platform/components/ui/input'
 import { Label } from '@platform/components/ui/label'
 import { categoryCollection } from '@platform/db/collections'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { Plus, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { closeCategorySidebar } from './category-sidebar'
 
 export function CreateCategorySidebar() {

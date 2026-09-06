@@ -1,7 +1,7 @@
 /**
  * create-purchase-request.ts
  *
- * D5: Purchase Request path â€” creates a purchase at PENDING_APPROVAL status.
+ * D5: Purchase Request path — creates a purchase at PENDING_APPROVAL status.
  * The quick-receive path (create-purchase.ts â†’ RECEIVED) is unchanged and
  * remains the default for cash-and-carry operations.
  *
@@ -14,18 +14,18 @@
  * Inventory is credited when the purchase transitions APPROVED â†’ RECEIVED
  * via transitionPurchaseStatus in purchase-workflow-actions.ts.
  *
- * D5 â€” Traceability: pass the originating PURCHASE_REQUEST task ID (if any) so
+ * D5 — Traceability: pass the originating PURCHASE_REQUEST task ID (if any) so
  * the purchase record is linked back to the task that requested it. This closes
  * the task â†’ purchase audit trail (Purchase.operationalTaskId FK).
  */
 
 import { auditLogCollection, membershipCollection, purchaseCollection, purchaseItemCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
-import { sequenceAPI } from '@platform/lib/prisma-client/sequence-api'
 import { PurchaseStatus, Role, SequenceType } from 'prisma/generated/prisma/enums'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
+import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
 import { type CreatePurchaseInput, createPurchaseSchema } from './create-purchase'
 import { fetchStructuredId } from './fetch-structured-id'
 
@@ -36,13 +36,13 @@ export interface CreatePurchaseRequestOptions {
   /** ID of the PURCHASE_REQUEST OperationalTask that originated this request, if any.
    *  When provided, the resulting Purchase record is linked back to the task so the
    *  full procurement cycle (task â†’ purchase â†’ GRN) is traceable in one query.
-   *  Source: Architecture Compliance Audit Deviation 5 â€” operationalTaskId never populated.
+   *  Source: Architecture Compliance Audit Deviation 5 — operationalTaskId never populated.
    */
   originatingTaskId?: string | null
 }
 
 export const createPurchaseRequest = async (data: CreatePurchaseInput, options: CreatePurchaseRequestOptions = {}) => {
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
   const { originatingTaskId = null } = options
 
   // ---------------------------------------------------------------------------
@@ -83,7 +83,7 @@ export const createPurchaseRequest = async (data: CreatePurchaseInput, options: 
     const purchaseId = crypto.randomUUID()
     const totalCost = data.items.reduce((sum, i) => sum + Math.round(i.unitCost * i.quantity), 0)
 
-    // 1. Create the purchase header at PENDING_APPROVAL â€” no inventory yet.
+    // 1. Create the purchase header at PENDING_APPROVAL — no inventory yet.
     //    operationalTaskId links this purchase back to the originating PURCHASE_REQUEST task
     //    so the full audit trail (task â†’ purchase â†’ GRN) is queryable from a single record.
     purchaseCollection.insert({
@@ -146,7 +146,7 @@ export const createPurchaseRequest = async (data: CreatePurchaseInput, options: 
     return { data: null, error: result.error }
   }
 
-  // 3. Notify supervisors/admins (outside transaction â€” notification delivery is best-effort)
+  // 3. Notify supervisors/admins (outside transaction — notification delivery is best-effort)
   const admins = [...membershipCollection.values()].filter(m => ([Role.ADMIN, Role.SUPERVISOR] as Role[]).includes(m.role))
   if (admins.length > 0) {
     await NotificationEngine.send(

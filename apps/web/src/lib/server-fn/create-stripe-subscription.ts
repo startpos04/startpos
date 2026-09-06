@@ -15,11 +15,11 @@
  * 8. Return subscription data
  */
 
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { prisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import Stripe from 'stripe'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2026-07-29.dahlia',
@@ -73,7 +73,7 @@ export const createStripeSubscription = createServerFn({ method: 'POST' })
       where: { id: planId },
     })
 
-    if (!plan || !plan.isActive) {
+    if (!plan?.isActive) {
       throw new Error('Invalid or inactive plan')
     }
 

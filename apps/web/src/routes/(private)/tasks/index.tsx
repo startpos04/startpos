@@ -1,12 +1,11 @@
-import { Dashboard } from '@platform/components/custom/dashboard'
 import { getColumns } from '@platform/components/custom/data-view'
 import { TableView } from '@platform/components/custom/data-view/table-view'
 import { WarningPrompt } from '@platform/components/custom/prompt/warning-prompt'
 import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { operationalTaskCollection } from '@platform/db/collections'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
@@ -14,7 +13,8 @@ import { Calendar, ClipboardList, Plus, Trash2 } from 'lucide-react'
 import { Role, TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import MountManager from '@platform/lib/mount-manager'
+import { Dashboard } from '@/components/dashboard'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
 import { showTaskSidebar, TASK_ASIDE_ID } from './-components/task-sidebar'
 import { TaskDetailsSidebar } from './$taskId'
@@ -145,7 +145,7 @@ function RouteComponent() {
                 <div className='flex flex-col gap-0.5'>
                   <span className='text-xs font-medium'>Cash Reconciliation</span>
                   <span className={cn('text-[10px] font-mono font-semibold', isDiscrepancy ? 'text-destructive' : 'text-emerald-600')}>
-                    Variance: â‚±{(meta.variance / 100).toFixed(2)}
+                    Variance: ₱{(meta.variance / 100).toFixed(2)}
                   </span>
                 </div>
               )

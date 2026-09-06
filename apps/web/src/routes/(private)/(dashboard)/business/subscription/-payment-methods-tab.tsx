@@ -7,10 +7,10 @@
 import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { CreditCardIcon, MailIcon } from 'lucide-react'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export function PaymentMethodsTab() {
   const user = useStore(authStore, state => state.user)

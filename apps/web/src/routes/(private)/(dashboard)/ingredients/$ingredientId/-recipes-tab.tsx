@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { PriceEngine } from '@/lib/conversion/price-engine'
 
 interface RecipesTabProps {
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   primaryVariant: any
   currentCost: number
   usageCount: number
@@ -25,6 +26,7 @@ export function RecipesTab({ primaryVariant, currentCost, usageCount }: RecipesT
         </TableRow>
       </TableHeader>
       <TableBody>
+        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
         {primaryVariant?.usedIn?.map((usage: any) => (
           <TableRow key={usage.id}>
             <TableCell className='text-sm font-medium py-2'>

@@ -12,10 +12,10 @@
  * - Returns payment ID for tracking
  */
 
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
-import { prisma } from '@platform/lib/prisma-client'
+// import { prisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 import { paymentProviderRegistry } from '@/lib/billing/payment-provider-registry'
 
 const submitManualPaymentSchema = z.object({

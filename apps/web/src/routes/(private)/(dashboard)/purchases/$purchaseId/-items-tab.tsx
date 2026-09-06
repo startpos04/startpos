@@ -25,10 +25,11 @@ export function ItemsTab({ purchase }: ItemsTabProps) {
       </TableHeader>
       <TableBody>
         {purchase.items.length > 0 ? (
+          // biome-ignore lint/suspicious/noExplicitAny: flexibility required
           purchase.items.map((item: any) => (
             <TableRow key={item.id}>
               <TableCell className='py-2'>
-                <p className='text-xs font-medium leading-tight'>{item.product?.name ?? 'â€”'}</p>
+                <p className='text-xs font-medium leading-tight'>{item.product?.name ?? '—'}</p>
                 {item.variant?.name && <p className='text-[10px] text-muted-foreground font-mono mt-0.5'>{item.variant.name}</p>}
               </TableCell>
               <TableCell className='text-right font-mono text-xs py-2'>

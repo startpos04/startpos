@@ -18,8 +18,8 @@
  *   if (!result.granted) throw new Error(result.reason)
  */
 
-import { permissionCollection, userPermissionCollection } from '../../db/collections'
 import { coreAPI } from '@platform/lib/prisma-client/core-api'
+import { permissionCollection, userPermissionCollection } from '../../db/collections'
 import type { PermissionKey } from './permission-keys'
 import { getDefaultPermissionsForRole } from './role-permissions'
 

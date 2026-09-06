@@ -1,9 +1,9 @@
 import { Button } from '@platform/components/ui/button'
 import { userCollection } from '@platform/db/collections'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { ArrowLeft, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
-import type { MountProps } from '@platform/lib/mount-manager'
 import { writeAudit } from '@/lib/server-fn/write-audit'
 import { closeEmployeeSidebar } from '../-components/employee-sidebar'
 import { CreateAccount, type CreateAccountFormData } from '../create/-create-account'
@@ -25,7 +25,7 @@ export function EditEmployeeSidebar({ employeeId, defaultValues, open: _open, on
 
       toast.success('Employee successfully updated')
 
-      // Audit role changes specifically â€” role escalation is a privilege-elevating action.
+      // Audit role changes specifically — role escalation is a privilege-elevating action.
       if (value.role !== defaultValues.role) {
         writeAudit({
           data: {
@@ -37,7 +37,7 @@ export function EditEmployeeSidebar({ employeeId, defaultValues, open: _open, on
           },
         }).catch(err => console.error('[audit] EMPLOYEE_ROLE_CHANGED write failed:', err))
       } else {
-        // Non-role profile update â€” still auditable but lower severity
+        // Non-role profile update — still auditable but lower severity
         writeAudit({
           data: {
             action: AuditAction.EMPLOYEE_UPDATED,
@@ -83,7 +83,7 @@ export function EditEmployeeSidebar({ employeeId, defaultValues, open: _open, on
         </Button>
       </div>
 
-      {/* Form â€” CreateAccount already has flex-col h-full with scrollable body + sticky footer */}
+      {/* Form — CreateAccount already has flex-col h-full with scrollable body + sticky footer */}
       <CreateAccount defaultValues={defaultValues} onSubmit={handleSubmit} textBtn={{ default: 'Update Employee', isSubmitting: 'Updating...' }} />
     </div>
   )

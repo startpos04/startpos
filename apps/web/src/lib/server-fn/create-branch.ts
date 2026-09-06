@@ -6,15 +6,16 @@
  * and must be created outside tenant-scoped Prisma isolation.
  *
  * After creation, the branchCollection sync will pick it up on the next
- * eager refresh â€” no manual collection.insert needed here.
+ * eager refresh — no manual collection.insert needed here.
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 
 export const CreateBranchInputSchema = z.object({
   name: z.string().min(1).max(100),
@@ -25,14 +26,10 @@ export const CreateBranchInputSchema = z.object({
 export type CreateBranchInput = z.infer<typeof CreateBranchInputSchema>
 
 export const createBranch = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_CREATE_BRANCH)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_CREATE_BRANCH), requireTenantContext()])
   .inputValidator((data: CreateBranchInput) => CreateBranchInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'Not authenticated' }
-    }
-
-    const { businessId } = context.user as typeof context.user & { businessId: string }
+    const { businessId } = getTenantContext(context).user
 
     // Check current branch count
     const currentBranchCount = await rootPrisma.branch.count({

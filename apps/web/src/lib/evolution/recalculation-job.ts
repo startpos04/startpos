@@ -1,9 +1,9 @@
 /**
- * recalculation-job.ts â€” Characteristics recalculation job runner (Phase 2)
+ * recalculation-job.ts — Characteristics recalculation job runner (Phase 2)
  *
  * This is the Application Layer orchestrator for the CharacteristicsEngine.
  * It owns all IO: DB reads, DB writes, queue operations, event emission.
- * The CharacteristicsEngine itself is pure â€” it takes DTOs and returns results.
+ * The CharacteristicsEngine itself is pure — it takes DTOs and returns results.
  *
  * Job flow per entry:
  *   1. Claim a batch from CharacteristicsRecalculationQueue
@@ -11,7 +11,7 @@
  *      a. Read Business.livingCharacteristics (current state)
  *      b. Read the most recent BusinessUsageSummary for this business
  *      c. Assemble CharacteristicsEngineInput
- *      d. Call computeCharacteristics() â€” pure, no IO
+ *      d. Call computeCharacteristics() — pure, no IO
  *      e. Write updatedLiving back to Business.livingCharacteristics
  *      f. Mark queue entry as processed
  *      g. Emit CHARACTERISTICS_UPDATED if any fields changed
@@ -26,14 +26,14 @@
  *   - Uses rootPrisma (platform-level access to Business + queue tables).
  *   - CharacteristicsEngine is imported only for its pure computeCharacteristics().
  *   - BusinessEventBus is imported for post-write emission only.
- *   - No createServerFn wrapper â€” this is a background job, not a route handler.
+ *   - No createServerFn wrapper — this is a background job, not a route handler.
  */
 
-import { BusinessEventBus } from '@platform/lib/evolution/business-event-bus'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { CAPABILITY_REGISTRY } from '../onboarding/capability-registry'
 import { resolveCapabilities } from '../onboarding/capability-resolver'
 import { classifyProfile } from '../onboarding/profile-classifier'
+import { BusinessEventBus } from './business-event-bus'
 import { classifyHealthStage } from './business-health-model'
 import { advance } from './capability-control'
 import { computeCharacteristics } from './characteristics-engine'
@@ -81,9 +81,9 @@ export async function runRecalculationBatch(batchSize = BATCH_SIZE): Promise<Rec
   console.log(`[RecalculationJob] Claimed ${entries.length} entries`)
 
   for (const entry of entries) {
-    // Skip if too many attempts â€” leave for operator inspection
+    // Skip if too many attempts — leave for operator inspection
     if (entry.attempts >= MAX_ATTEMPTS) {
-      console.warn(`[RecalculationJob] Skipping ${entry.businessId} â€” ${entry.attempts} failed attempts`)
+      console.warn(`[RecalculationJob] Skipping ${entry.businessId} — ${entry.attempts} failed attempts`)
       result.skipped++
       continue
     }
@@ -104,7 +104,7 @@ export async function runRecalculationBatch(batchSize = BATCH_SIZE): Promise<Rec
 
   result.durationMs = Date.now() - startedAt
   console.log(
-    `[RecalculationJob] Done â€” processed: ${result.processed}, failed: ${result.failed}, skipped: ${result.skipped}, duration: ${result.durationMs}ms`,
+    `[RecalculationJob] Done — processed: ${result.processed}, failed: ${result.failed}, skipped: ${result.skipped}, duration: ${result.durationMs}ms`,
   )
   return result
 }
@@ -141,7 +141,7 @@ async function processEntry(queueId: string, businessId: string): Promise<void> 
 
   const usageSummary = (summaryRow?.data ?? {}) as BusinessUsageSummaryData
 
-  // Step 3: Assemble input â€” parse stored living characteristics from JSON
+  // Step 3: Assemble input — parse stored living characteristics from JSON
   const current = parseLivingCharacteristics(business.livingCharacteristics)
 
   const input: CharacteristicsEngineInput = {
@@ -197,7 +197,7 @@ async function processEntry(queueId: string, businessId: string): Promise<void> 
       payload: {
         changedFields: output.changedFields,
         dominantSourceChanged: output.dominantSourceChanged,
-        version: 'unknown', // version is incremented in DB â€” we don't read it back here
+        version: 'unknown', // version is incremented in DB — we don't read it back here
         profileChanged,
         newProfile,
         newHealthStage,
@@ -207,7 +207,7 @@ async function processEntry(queueId: string, businessId: string): Promise<void> 
 
   // Step 7b: Profile graduation notification
   // Fires when the operational profile changes (e.g. LITE_POS â†’ SIMPLE_RETAILER).
-  // Creates a system notification â€” never silently enables capabilities.
+  // Creates a system notification — never silently enables capabilities.
   if (profileChanged && previousProfile !== null) {
     await createProfileGraduationNotification(businessId, previousProfile, newProfile, now)
   }
@@ -364,7 +364,7 @@ async function createProfileGraduationNotification(businessId: string, _fromProf
  * Advances ENABLED â†’ CONFIGURED for any capability whose signal has fired.
  *
  * This is called at the end of every recalculation so advancement happens
- * promptly after usage data is updated â€” no separate job needed.
+ * promptly after usage data is updated — no separate job needed.
  *
  * @param businessId - The business to check
  * @param usageSummary - The latest usage counts (already read by the caller)

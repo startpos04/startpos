@@ -12,18 +12,19 @@
  *   6. Return the new quote id and calculated result
  *
  * Architecture:
- *   - Server function â€” never runs in the browser bundle.
- *   - PricingEngine receives all data as DTOs â€” no Prisma imports in the engine.
+ *   - Server function — never runs in the browser bundle.
+ *   - PricingEngine receives all data as DTOs — no Prisma imports in the engine.
  *   - businessId is always taken from the session context (never from the payload).
- *   - calculatedAt is injected by this function â€” engine never calls new Date().
+ *   - calculatedAt is injected by this function — engine never calls new Date().
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { createPricingCatalogRepositoryWithDeps } from '../billing/pricing/pricing-catalog-repository'
 import { PricingEngine } from '../billing/pricing/pricing-engine'
 import type { PricingConfig } from '../billing/pricing/types'
@@ -47,14 +48,10 @@ export type CreatePricingQuoteInput = z.infer<typeof CreatePricingQuoteInputSche
 // ---------------------------------------------------------------------------
 
 export const createPricingQuote = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING), requireTenantContext()])
   .inputValidator((data: CreatePricingQuoteInput) => CreatePricingQuoteInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context' }
-    }
-
-    const { businessId, id: userId } = context.user
+    const { businessId, id: userId } = getTenantContext(context).user
 
     // Load active catalog
     const repo = createPricingCatalogRepositoryWithDeps(rootPrisma as unknown as import('prisma/generated/prisma/client').PrismaClient)

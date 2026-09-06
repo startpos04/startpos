@@ -1,5 +1,5 @@
 /**
- * toggle-branch-capability.ts â€” Enable or disable a capability at the branch level
+ * toggle-branch-capability.ts — Enable or disable a capability at the branch level
  *
  * This allows branch managers to control which capabilities are active for their
  * specific branch, independent of other branches in the business.
@@ -12,12 +12,13 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { Capabilities, type CapabilityKey } from '@platform/lib/entitlement/capability-keys'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 
 // ---------------------------------------------------------------------------
 // Input validation
@@ -37,7 +38,7 @@ type ToggleBranchCapabilityInput = z.infer<typeof ToggleBranchCapabilitySchema>
 // Example: "CREATE_ORDER" â†’ "ENABLE_CREATE_ORDER"
 // ---------------------------------------------------------------------------
 
-function getConfigKey(capabilityKey: CapabilityKey): string {
+function _getConfigKey(capabilityKey: CapabilityKey): string {
   return `ENABLE_${capabilityKey}`
 }
 
@@ -46,15 +47,10 @@ function getConfigKey(capabilityKey: CapabilityKey): string {
 // ---------------------------------------------------------------------------
 
 export const toggleBranchCapability = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_MANAGE_SETTINGS)])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_MANAGE_SETTINGS), requireTenantContext()])
   .inputValidator((data: ToggleBranchCapabilityInput) => ToggleBranchCapabilitySchema.parse(data))
   .handler(async ({ context, data }): Promise<{ success: boolean; message?: string }> => {
-    const businessId = context?.user?.businessId
-    const branchId = context?.user?.branchId
-
-    if (!businessId || !branchId) {
-      return { success: false, message: 'Authentication required' }
-    }
+    const { businessId, branchId } = getTenantContext(context).user
 
     const { capabilityKey, enabled } = data
 

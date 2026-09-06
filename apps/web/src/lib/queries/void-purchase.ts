@@ -1,17 +1,17 @@
 import { inventoryCollection, inventoryMovementCollection, purchaseCollection, purchaseItemCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { PurchaseStatus } from 'prisma/generated/prisma/enums'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { getInventoryMode } from '@/lib/inventory'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 
 /**
- * Voids a purchase order â€” mirrors the refund pattern from createPosRefund.
+ * Voids a purchase order — mirrors the refund pattern from createPosRefund.
  * - Marks the purchase as voided (does NOT delete it)
  * - Delegates all inventory reversal to InventoryEngine.applyPurchaseVoid
  */
 export const voidPurchase = async (purchaseId: string) => {
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
 
   const result = await dbTransaction(() => {
     const purchase = purchaseCollection.get(purchaseId)
@@ -36,7 +36,7 @@ export const voidPurchase = async (purchaseId: string) => {
         locationId: m.locationId,
       }))
 
-    // 1. Mark purchase as voided â€” set status field (D6); retain notes prefix for
+    // 1. Mark purchase as voided — set status field (D6); retain notes prefix for
     //    backward compat with any code that still reads the notes prefix.
     purchaseCollection.update(purchaseId, draft => {
       draft.status = PurchaseStatus.VOIDED

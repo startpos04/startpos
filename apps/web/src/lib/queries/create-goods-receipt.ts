@@ -16,7 +16,7 @@
  *      (receiver adjusts quantities if there is a discrepancy before confirming)
  *   3. Inserts GoodsReceipt at PENDING status inside dbTransaction
  *   4. Inserts one GoodsReceiptItem per PO line inside the same transaction
- *   5. Does NOT credit inventory â€” that happens in confirm-goods-receipt.ts
+ *   5. Does NOT credit inventory — that happens in confirm-goods-receipt.ts
  *
  * Backward compat: the quick-receive path (create-purchase.ts â†’ RECEIVED) is
  * completely untouched. This path is only triggered when the user clicks
@@ -25,8 +25,8 @@
 
 import { goodsReceiptCollection, goodsReceiptItemCollection, purchaseCollection, purchaseItemCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { GoodsReceiptStatus, PurchaseStatus } from 'prisma/generated/prisma/enums'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 
 export interface CreateGoodsReceiptInput {
   /** The purchase (PO) this receipt is for. Must be in APPROVED status. */
@@ -41,7 +41,7 @@ export interface CreateGoodsReceiptInput {
 }
 
 export const createGoodsReceipt = async (input: CreateGoodsReceiptInput) => {
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
 
   const result = await dbTransaction(() => {
     const purchase = purchaseCollection.get(input.purchaseId)
@@ -59,6 +59,7 @@ export const createGoodsReceipt = async (input: CreateGoodsReceiptInput) => {
     // 1. Insert the GRN header at PENDING
     goodsReceiptCollection.insert({
       id: receiptId,
+      userId: user.id,
       purchaseId: input.purchaseId,
       status: GoodsReceiptStatus.PENDING,
       notes: input.notes ?? null,

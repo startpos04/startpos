@@ -1,7 +1,7 @@
 /**
  * guidance-banner.tsx
  *
- * GuidanceBanner â€” shared corner-toast primitive used by both the Tutorial
+ * GuidanceBanner — shared corner-toast primitive used by both the Tutorial
  * system and the Hint system.
  *
  * Tutorial variant (variant='tutorial'):
@@ -12,12 +12,12 @@
  *
  * Hint variant (variant='hint'):
  *   - Neutral/muted border, informational.
- *   - Shows title + body only â€” no CTA, no X button.
+ *   - Shows title + body only — no CTA, no X button.
  *   - Auto-dismisses after HINT_DISPLAY_SECONDS (managed by useHints).
  *
  * Both variants render in the bottom-right corner of the viewport.
  * Named GuidanceBanner rather than TutorialBanner / HintBanner because this
- * is the platform's shared guidance surface â€” it will grow beyond just these
+ * is the platform's shared guidance surface — it will grow beyond just these
  * two systems.
  */
 
@@ -81,7 +81,7 @@ export function GuidanceBanner(props: GuidanceBannerProps) {
       {/* Body */}
       <p className='mt-1 text-sm text-muted-foreground leading-snug'>{props.body}</p>
 
-      {/* CTA â€” tutorial variant only */}
+      {/* CTA — tutorial variant only */}
       {isTutorial && (
         <div className='mt-3'>
           <Button asChild size='sm' className='w-full'>
@@ -94,7 +94,7 @@ export function GuidanceBanner(props: GuidanceBannerProps) {
 }
 
 // ---------------------------------------------------------------------------
-// TutorialBannerList â€” renders the first active tutorial as a corner banner.
+// TutorialBannerList — renders the first active tutorial as a corner banner.
 // Accepts the tutorials array from useTutorials() and the dismiss callback.
 // Only the first unresolved tutorial is shown at a time.
 // ---------------------------------------------------------------------------

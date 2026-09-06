@@ -1,5 +1,3 @@
-import type { Table } from '@tanstack/react-table'
-import { useState } from 'react'
 import { Button } from '@platform/components/ui/button'
 import { ButtonGroup } from '@platform/components/ui/button-group'
 import { Input } from '@platform/components/ui/input'
@@ -14,6 +12,8 @@ import {
 } from '@platform/components/ui/pagination'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@platform/components/ui/select'
 import { cn } from '@platform/lib/utils'
+import type { Table } from '@tanstack/react-table'
+import { useState } from 'react'
 
 interface DataViewPaginationProps<T> {
   table: Table<T>

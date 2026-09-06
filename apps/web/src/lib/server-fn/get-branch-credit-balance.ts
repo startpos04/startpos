@@ -15,32 +15,19 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 
 // ---------------------------------------------------------------------------
 // getBranchCreditBalance server function
 // ---------------------------------------------------------------------------
 
 export const getBranchCreditBalance = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_BILLING), requireTenantContext()])
   .handler(async ({ context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context', balance: 0 }
-    }
-
-    const { businessId } = context.user
-    // Use user's current branch since no input is provided
-    const branchId = context.user.branchId
-
-    if (!branchId) {
-      return {
-        success: false as const,
-        error: 'No branch context provided',
-        balance: 0,
-      }
-    }
+    const { businessId, branchId } = getTenantContext(context).user
 
     const { prisma: rootPrisma } = await import('@platform/lib/prisma-client')
 
@@ -80,13 +67,9 @@ export const getBranchCreditBalance = createServerFn({ method: 'GET' })
 // ---------------------------------------------------------------------------
 
 export const getAllBranchCreditBalances = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING), requireTenantContext()])
   .handler(async ({ context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context', branches: [] }
-    }
-
-    const { businessId } = context.user
+    const { businessId } = getTenantContext(context).user
     const { prisma: rootPrisma } = await import('@platform/lib/prisma-client')
 
     // Get all branches for this business

@@ -1,5 +1,5 @@
 /**
- * capability-actions.ts â€” Server function wrappers for BOS capability lifecycle
+ * capability-actions.ts — Server function wrappers for BOS capability lifecycle
  *
  * Wraps the pure CapabilityControl methods so UI components can call them
  * as authenticated server functions. Each function validates the session,
@@ -10,11 +10,12 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
-import { requireCapability } from '@platform/lib/better-auth/entitlement-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { requireCapability } from '@/lib/better-auth/entitlement-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import type { ControlResult } from '../evolution/capability-control'
 import { accept, correctCharacteristic, dismiss, enable, pause, restore } from '../evolution/capability-control'
 import type { BusinessCharacteristics } from '../onboarding/types'
@@ -37,13 +38,11 @@ export interface CorrectCharacteristicInput {
 // ---------------------------------------------------------------------------
 
 export const acceptCapability = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requireCapability(Capabilities.MANAGE_SETTINGS)])
+  .middleware([authMiddleware, requireCapability(Capabilities.MANAGE_SETTINGS), requireTenantContext()])
   .inputValidator((d: CapabilityActionInput) => d)
   .handler(async ({ data, context }): Promise<ControlResult> => {
-    if (!context?.user?.id || !context?.user?.businessId) {
-      return { ok: false, code: 'INTERNAL_ERROR', reason: 'Not authenticated' }
-    }
-    return accept(context.user.businessId, data.capabilityId, context.user.id)
+    const { businessId, id } = getTenantContext(context).user
+    return accept(businessId, data.capabilityId, id)
   })
 
 // ---------------------------------------------------------------------------
@@ -51,13 +50,11 @@ export const acceptCapability = createServerFn({ method: 'POST' })
 // ---------------------------------------------------------------------------
 
 export const enableCapability = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requireCapability(Capabilities.MANAGE_SETTINGS)])
+  .middleware([authMiddleware, requireCapability(Capabilities.MANAGE_SETTINGS), requireTenantContext()])
   .inputValidator((d: CapabilityActionInput) => d)
   .handler(async ({ data, context }): Promise<ControlResult> => {
-    if (!context?.user?.id || !context?.user?.businessId) {
-      return { ok: false, code: 'INTERNAL_ERROR', reason: 'Not authenticated' }
-    }
-    return enable(context.user.businessId, data.capabilityId, context.user.id)
+    const { businessId, id } = getTenantContext(context).user
+    return enable(businessId, data.capabilityId, id)
   })
 
 // ---------------------------------------------------------------------------
@@ -65,13 +62,11 @@ export const enableCapability = createServerFn({ method: 'POST' })
 // ---------------------------------------------------------------------------
 
 export const pauseCapability = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requireCapability(Capabilities.MANAGE_SETTINGS)])
+  .middleware([authMiddleware, requireCapability(Capabilities.MANAGE_SETTINGS), requireTenantContext()])
   .inputValidator((d: CapabilityActionInput) => d)
   .handler(async ({ data, context }): Promise<ControlResult> => {
-    if (!context?.user?.id || !context?.user?.businessId) {
-      return { ok: false, code: 'INTERNAL_ERROR', reason: 'Not authenticated' }
-    }
-    return pause(context.user.businessId, data.capabilityId, context.user.id)
+    const { businessId, id } = getTenantContext(context).user
+    return pause(businessId, data.capabilityId, id)
   })
 
 // ---------------------------------------------------------------------------
@@ -79,13 +74,11 @@ export const pauseCapability = createServerFn({ method: 'POST' })
 // ---------------------------------------------------------------------------
 
 export const restoreCapability = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requireCapability(Capabilities.MANAGE_SETTINGS)])
+  .middleware([authMiddleware, requireCapability(Capabilities.MANAGE_SETTINGS), requireTenantContext()])
   .inputValidator((d: CapabilityActionInput) => d)
   .handler(async ({ data, context }): Promise<ControlResult> => {
-    if (!context?.user?.id || !context?.user?.businessId) {
-      return { ok: false, code: 'INTERNAL_ERROR', reason: 'Not authenticated' }
-    }
-    return restore(context.user.businessId, data.capabilityId, context.user.id)
+    const { businessId, id } = getTenantContext(context).user
+    return restore(businessId, data.capabilityId, id)
   })
 
 // ---------------------------------------------------------------------------
@@ -93,25 +86,21 @@ export const restoreCapability = createServerFn({ method: 'POST' })
 // ---------------------------------------------------------------------------
 
 export const dismissCapability = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requireCapability(Capabilities.MANAGE_SETTINGS)])
+  .middleware([authMiddleware, requireCapability(Capabilities.MANAGE_SETTINGS), requireTenantContext()])
   .inputValidator((d: CapabilityActionInput) => d)
   .handler(async ({ data, context }): Promise<ControlResult> => {
-    if (!context?.user?.id || !context?.user?.businessId) {
-      return { ok: false, code: 'INTERNAL_ERROR', reason: 'Not authenticated' }
-    }
-    return dismiss(context.user.businessId, data.capabilityId, context.user.id)
+    const { businessId, id } = getTenantContext(context).user
+    return dismiss(businessId, data.capabilityId, id)
   })
 
 // ---------------------------------------------------------------------------
-// Correct Characteristic (ADMIN_DECISION source â€” highest priority)
+// Correct Characteristic (ADMIN_DECISION source — highest priority)
 // ---------------------------------------------------------------------------
 
 export const correctCharacteristicFn = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_PROFILE)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_PROFILE), requireTenantContext()])
   .inputValidator((d: CorrectCharacteristicInput) => d)
   .handler(async ({ data, context }) => {
-    if (!context?.user?.id || !context?.user?.businessId) {
-      return { ok: false as const, reason: 'Not authenticated' }
-    }
-    return correctCharacteristic(context.user.businessId, data.field, data.value, context.user.id)
+    const { businessId, id } = getTenantContext(context).user
+    return correctCharacteristic(businessId, data.field, data.value, id)
   })

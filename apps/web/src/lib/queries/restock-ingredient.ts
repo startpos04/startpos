@@ -7,12 +7,12 @@ import {
   purchaseItemCollection,
 } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
-import { sequenceAPI } from '@platform/lib/prisma-client/sequence-api'
 import { SequenceType } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
+import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
 import { fetchStructuredId } from './fetch-structured-id'
 
 export const restockSchema = z.object({
@@ -28,7 +28,7 @@ export const restockSchema = z.object({
 })
 
 export const restockIngredient = async (data: z.infer<typeof restockSchema>) => {
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
 
   // ---------------------------------------------------------------------------
   // PHASE 1 FIX: Allocate purchase sequence SERVER-SIDE before transaction
@@ -79,6 +79,7 @@ export const restockIngredient = async (data: z.infer<typeof restockSchema>) => 
       updatedAt: new Date(),
       createdAt: new Date(),
       operationalTaskId: null,
+      status: 'PENDING_APPROVAL',
     })
 
     purchaseItemCollection.insert({

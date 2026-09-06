@@ -19,8 +19,8 @@ const COUNTRY_NAMES: Record<Country, string> = {
   US: 'United States',
 }
 
-// Output schema goes to apps/web/prisma/ (generated artifact, stays with the app)
-const PRISMA_DIR = path.join(__dirname, '..', '..', '..', '..', 'apps', 'web', 'prisma')
+// Output schema goes to packages/platform/prisma/ (centralized — shared by all apps)
+const PRISMA_DIR = path.join(__dirname, '..')
 // Source models live in platform/prisma/
 const MODELS_DIR = path.join(__dirname, '..')
 

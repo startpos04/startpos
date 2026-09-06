@@ -5,13 +5,14 @@ import { buildPostgresUrl } from '../../packages/platform/lib/database-url'
 config({ path: '.env' })
 config({ path: '../../.env.config', override: true })
 
-// Admin shares the same schema and migrations as apps/web.
-// The generated client lives in apps/web/prisma/generated — referenced via
-// the prisma/* path alias in tsconfig.json and vite.config.ts.
+/**
+ * Delegates to the canonical schema and migrations in packages/platform/prisma/.
+ * This app does NOT own the schema — it only owns the datasource connection.
+ */
 export default defineConfig({
-  schema: '../web/prisma/schema.prisma',
+  schema: '../../packages/platform/prisma/schema.prisma',
   migrations: {
-    path: '../web/prisma/migrations',
+    path: '../../packages/platform/prisma/migrations',
   },
   datasource: {
     url: buildPostgresUrl(process.env['DIRECT_URL']),

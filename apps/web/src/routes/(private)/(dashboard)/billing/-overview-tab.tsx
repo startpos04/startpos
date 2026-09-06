@@ -8,15 +8,14 @@ import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Skeleton } from '@platform/components/ui/skeleton'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { AlertCircle, GitBranchIcon, ShoppingCartIcon, TrendingUp, Zap } from 'lucide-react'
 import { toast } from 'sonner'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { getBranchCreditPackages } from '@/lib/billing/credit-packages'
-import MountManager from '@platform/lib/mount-manager'
 import { fetchEntitlementDetails } from '@/lib/server-fn/fetch-entitlement-details'
 import { getBranchCreditBalance } from '@/lib/server-fn/get-branch-credit-balance'
-import { BuyBranchCreditsDialog } from './-components/buy-branch-credits-dialog'
 
 export function OverviewTab() {
   const user = authStore.state.user
@@ -179,6 +178,7 @@ export function OverviewTab() {
 
 function BranchCreditPackageList() {
   const packages = getBranchCreditPackages()
+  const navigate = useNavigate()
 
   return (
     <div className='space-y-2'>
@@ -203,22 +203,13 @@ function BranchCreditPackageList() {
           <div className='flex items-center justify-between sm:justify-end gap-3 shrink-0'>
             <div className='text-right'>
               <p className='text-sm font-medium'>{pkg.price}</p>
-              <p className='text-xs text-muted-foreground'>â‚±{pkg.pricePerCredit.toFixed(2)}/credit</p>
+              <p className='text-xs text-muted-foreground'>₱{pkg.pricePerCredit.toFixed(2)}/credit</p>
             </div>
             <Button
               size='sm'
               variant='ghost'
               className='h-8 px-3 text-xs w-fit'
-              onClick={() =>
-                MountManager.show(BuyBranchCreditsDialog, {
-                  packageData: {
-                    credits: pkg.credits,
-                    price: pkg.price,
-                    description: pkg.description,
-                  },
-                  key: 'buy-branch-credits-dialog',
-                })
-              }
+              onClick={() => navigate({ to: '/billing/credits/checkout', search: { packageId: pkg.id } })}
             >
               <ShoppingCartIcon className='h-3 w-3 mr-1.5' />
               Buy
@@ -234,8 +225,8 @@ function OverviewSkeleton() {
   return (
     <div className='max-w-5xl space-y-6'>
       <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
-        {[...Array(3)].map((_, i) => (
-          <Card key={i}>
+        {['quota', 'credits', 'branch'].map(id => (
+          <Card key={id}>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
               <Skeleton className='h-4 w-24' />
               <Skeleton className='h-4 w-4' />
@@ -260,8 +251,8 @@ function OverviewSkeleton() {
         </CardHeader>
         <CardContent>
           <div className='space-y-2'>
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className='flex items-center justify-between py-3 px-4 rounded-lg bg-muted/40 gap-4'>
+            {['item-1', 'item-2', 'item-3', 'item-4'].map(id => (
+              <div key={id} className='flex items-center justify-between py-3 px-4 rounded-lg bg-muted/40 gap-4'>
                 <div className='flex items-center gap-3'>
                   <Skeleton className='h-4 w-4' />
                   <div>

@@ -98,8 +98,8 @@ export const fetchInventoryReports = (from?: string | Date, to?: string | Date) 
 export type FetchInventoryReportsReturn = ReturnType<typeof fetchInventoryReports>
 export type InventoryData = NonNullable<FetchInventoryReportsReturn['data']>
 
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/inventory-reports/')({
   beforeLoad: () => {

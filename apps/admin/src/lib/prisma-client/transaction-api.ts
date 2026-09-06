@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: flexibility for batch operations */
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
+import { platformAuthMiddleware as authMiddleware } from '@platform/lib/better-auth/create-auth-middleware'
 import { prisma } from '@platform/lib/prisma-client'
 import { type DBPayload, executeOperation } from '@platform/lib/prisma-client/crud-api'
 import { createServerFn } from '@tanstack/react-start'

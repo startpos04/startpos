@@ -1,18 +1,18 @@
 /**
  * pricing-engine.ts
  *
- * PricingEngine â€” single facade for all composable pricing operations.
+ * PricingEngine — single facade for all composable pricing operations.
  *
  * This is the most complex domain engine in the codebase. It orchestrates
  * the five pricing strategies and provides graph utilities (dependency
  * resolution, cycle detection, bundle detection, grandfathered price
  * validation, and quote generation).
  *
- * Architectural contract (ADR-009, ADR-010 â€” hard compliance gate G10):
+ * Architectural contract (ADR-009, ADR-010 — hard compliance gate G10):
  *   - ZERO imports from PrismaClient, collections, better-auth, or any
  *     HTTP/framework package. CI enforcement required.
  *   - All data arrives as DTOs from PricingCatalogRepository.
- *   - calculatedAt is always injected by the caller â€” engine never calls
+ *   - calculatedAt is always injected by the caller — engine never calls
  *     new Date() internally.
  *   - PricingResult.grandTotal never includes oneTimeFees.
  *
@@ -83,7 +83,7 @@ export const PricingEngine = {
 
       switch (strategy) {
         case PricingStrategy.FLAT_SUBSCRIPTION: {
-          // Flat requires additional fields â€” cast validated at call site
+          // Flat requires additional fields — cast validated at call site
           result = FlatSubscriptionPricingStrategy.calculate(resolvedInput as FlatSubscriptionInput, config, catalog)
           break
         }
@@ -131,7 +131,7 @@ export const PricingEngine = {
       const key = dep.featureKey as CapabilityKey
       const depOn = dep.dependsOnKey as CapabilityKey
       if (!depMap.has(key)) depMap.set(key, new Set())
-      depMap.get(key)!.add(depOn)
+      depMap.get(key)?.add(depOn)
     }
 
     const resolved = new Set<CapabilityKey>(selectedKeys)
@@ -142,7 +142,7 @@ export const PricingEngine = {
 
     while (queue.length > 0) {
       if (++iterations > MAX_ITERATIONS) {
-        return opFail('PRECONDITION_FAILED', 'Dependency resolution exceeded maximum iterations â€” likely a cycle in the FeatureDependency graph.')
+        return opFail('PRECONDITION_FAILED', 'Dependency resolution exceeded maximum iterations — likely a cycle in the FeatureDependency graph.')
       }
 
       const current = queue.shift()!
@@ -180,7 +180,7 @@ export const PricingEngine = {
       // Only consider edges relevant to the selected features
       if (!keySet.has(key) && !keySet.has(depOn)) continue
       if (!depMap.has(key)) depMap.set(key, [])
-      depMap.get(key)!.push(depOn)
+      depMap.get(key)?.push(depOn)
     }
 
     const WHITE = 0 // unvisited
@@ -247,7 +247,7 @@ export const PricingEngine = {
   // Converts a PricingResult into a set of PricingQuoteItem DTOs suitable
   // for persisting to the database. Also returns the quote header fields.
   //
-  // The Application Layer handles the actual DB write â€” the engine only
+  // The Application Layer handles the actual DB write — the engine only
   // constructs the data shape.
   // -------------------------------------------------------------------------
   generateQuote(
@@ -304,7 +304,7 @@ export const PricingEngine = {
 
     for (const snapshot of snapshots) {
       const current = currentPriceMap.get(snapshot.featureKey)
-      if (!current) continue // Feature removed from catalog â€” no notice
+      if (!current) continue // Feature removed from catalog — no notice
 
       const notice = PriceChangeNoticeFactory.create({
         featureKey: snapshot.featureKey,

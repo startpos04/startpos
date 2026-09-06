@@ -50,7 +50,7 @@ export function RecentStockMovements({ inventoryData }: { inventoryData: Invento
                       {m.type === 'IN' ? '+' : '-'}
                       {m.quantity} {m.unit.abbreviation}
                     </span>
-                    <span className='text-[10px] text-muted-foreground'>â€¢</span>
+                    <span className='text-[10px] text-muted-foreground'>•</span>
                     <span className='text-[10px] text-muted-foreground italic'>{m.reason || 'No reason provided'}</span>
                   </div>
 

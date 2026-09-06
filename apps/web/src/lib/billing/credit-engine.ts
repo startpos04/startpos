@@ -1,11 +1,11 @@
 /**
  * credit-engine.ts
  *
- * CreditEngine â€” pure domain engine for prepaid credit management.
+ * CreditEngine — pure domain engine for prepaid credit management.
  *
  * Responsibilities:
  *   - Read the current credit balance from a CreditLedgerSnapshot (the latest
- *     `balanceAfter` value â€” O(1), no SUM query needed).
+ *     `balanceAfter` value — O(1), no SUM query needed).
  *   - Validate that a deduction is possible (balance â‰¥ cost).
  *   - Build new CreditLedgerEntry DTOs for insert by the Application Layer.
  *   - Check whether the balance after a deduction is below the low-balance
@@ -22,8 +22,8 @@
  * Architectural contract (ADR-001):
  *   - No Prisma imports, no collection reads, no HTTP calls.
  *   - All data arrives as plain DTOs from the Application Layer.
- *   - All methods are synchronous â€” safe to call inside dbTransaction callbacks.
- *   - Returns OperationResult â€” callers act on the result, never catch exceptions.
+ *   - All methods are synchronous — safe to call inside dbTransaction callbacks.
+ *   - Returns OperationResult — callers act on the result, never catch exceptions.
  *
  * Known Phase 3 limitation (R2):
  *   Two concurrent checkouts may both pass the balance check before either
@@ -57,16 +57,16 @@ export type CreditLedgerEntryDTO = {
   amount: number
   /** Running balance snapshot after this event. */
   balanceAfter: number
-  /** POS transaction ID â€” only set for CONSUMED / REFUNDED events. NOTE: REFUNDED events are deprecated per current business rules. */
+  /** POS transaction ID — only set for CONSUMED / REFUNDED events. NOTE: REFUNDED events are deprecated per current business rules. */
   transactionId: string | null
-  /** Optional admin note â€” required for ADJUSTMENT events. */
+  /** Optional admin note — required for ADJUSTMENT events. */
   note: string | null
   /** userId of the actor; null = automated / system. */
   actorId: string | null
 }
 
 // ---------------------------------------------------------------------------
-// CreditEventType (domain mirror of Prisma enum â€” no Prisma import needed)
+// CreditEventType (domain mirror of Prisma enum — no Prisma import needed)
 // ---------------------------------------------------------------------------
 export const CreditEventType = {
   PURCHASE: 'PURCHASE',
@@ -81,7 +81,7 @@ export type CreditEventType = (typeof CreditEventType)[keyof typeof CreditEventT
 
 // ---------------------------------------------------------------------------
 // CreditDeductionResult
-// Extended result for deduct() â€” carries the new entry DTO and a flag
+// Extended result for deduct() — carries the new entry DTO and a flag
 // indicating whether the low-balance threshold was crossed.
 // ---------------------------------------------------------------------------
 export type CreditDeductionResult = {
@@ -116,7 +116,7 @@ export const CreditEngine = {
   // Returns opOk with a CreditDeductionResult that includes the new ledger
   // entry DTO and a low-balance flag.
   //
-  // NOTE (R2 â€” Phase 3 known limitation):
+  // NOTE (R2 — Phase 3 known limitation):
   //   This check is optimistic. Two concurrent checkouts on different devices
   //   may both pass this check before either insert commits, allowing the
   //   balance to go temporarily negative. This is acceptable for Phase 3 and
@@ -222,7 +222,7 @@ export const CreditEngine = {
 
   // -------------------------------------------------------------------------
   // isLowBalance
-  // Standalone check â€” used in places that already have the balance and need
+  // Standalone check — used in places that already have the balance and need
   // to check the threshold without building a full deduction result.
   // -------------------------------------------------------------------------
   isLowBalance(balance: CreditBalance.CreditBalance, threshold: number): boolean {

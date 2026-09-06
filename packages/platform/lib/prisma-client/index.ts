@@ -1,27 +1,34 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: allowing any type for flexibility */
+
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 import { PrismaClient } from 'prisma/generated/prisma/client'
 import { buildPostgresUrl } from '../database-url'
-import { multiTenantExtension, type TenantAwareClient } from './multi-tenant-extension'
 import { softDeleteExtension } from './soft-delete-extension'
 
-// Establish the Database Connection
+// ---------------------------------------------------------------------------
+// Base Prisma client — platform responsibility
+//
+// The tenant-aware extension (multiTenantExtension) and getTenantPrisma
+// live in apps/web/src/lib/prisma-client because business/branch tenancy
+// is a web-app concern, not a platform concern.
+// ---------------------------------------------------------------------------
+
 const pool = new pg.Pool({
   connectionString: buildPostgresUrl(),
 })
-const adapter = new PrismaPg(pool)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const adapter = new PrismaPg(pool as any)
 
-// Define the Base Client with Soft Delete
 const createBaseClient = () =>
   new PrismaClient({
     adapter,
     transactionOptions: {
-      maxWait: 5_000, // max time to wait for a connection from the pool (ms)
-      timeout: 20_000, // max time for the interactive transaction itself (ms)
+      maxWait: 5_000,
+      timeout: 20_000,
     },
   }).$extends(softDeleteExtension)
 
-// We use ReturnType to keep the complex Prisma Extension types intact
 type BasePrismaClient = ReturnType<typeof createBaseClient>
 
 const globalForPrisma = global as unknown as { prisma: BasePrismaClient }
@@ -29,13 +36,3 @@ const globalForPrisma = global as unknown as { prisma: BasePrismaClient }
 export const prisma = globalForPrisma.prisma || createBaseClient()
 
 if (process.env['NODE_ENV'] !== 'production') globalForPrisma.prisma = prisma
-
-// Chaining for Multi-Tenancy
-export const getTenantPrisma = (businessId: string, branchId?: string) => {
-  const scopedClient = prisma.$extends(multiTenantExtension(businessId, branchId))
-  // We cast to 'any' first to break the strict link,
-  // then to our intersection type to restore autocomplete.
-  return scopedClient as unknown as TenantAwareClient<typeof scopedClient>
-}
-
-export type TenantPrismaClient = ReturnType<typeof getTenantPrisma>

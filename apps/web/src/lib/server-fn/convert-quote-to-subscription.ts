@@ -9,22 +9,23 @@
  *     1. PricingQuote status â†’ CONVERTED
  *     2. BusinessSubscription create/update (billingModel = COMPOSABLE_FEATURES)
  *     3. BusinessSubscriptionFeature rows (one per FEATURE line item)
- *   If any step fails, the entire transaction rolls back â€” quote status is NOT
+ *   If any step fails, the entire transaction rolls back — quote status is NOT
  *   updated unless all writes succeed.
  *
  * Architecture:
- *   - businessId comes from session context â€” never from the payload.
+ *   - businessId comes from session context — never from the payload.
  *   - Only ACCEPTED quotes may be converted.
  *   - Idempotent for the quote: re-converting an already CONVERTED quote
  *     returns the existing subscription without creating a duplicate.
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 
 // ---------------------------------------------------------------------------
 // Input schema
@@ -46,14 +47,10 @@ export type ConvertQuoteInput = z.infer<typeof ConvertQuoteInputSchema>
 // ---------------------------------------------------------------------------
 
 export const convertQuoteToSubscription = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING), requireTenantContext()])
   .inputValidator((data: ConvertQuoteInput) => ConvertQuoteInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context' }
-    }
-
-    const { businessId } = context.user
+    const { businessId } = getTenantContext(context).user
 
     // Load the quote with its items and catalog version
     const quote = await rootPrisma.pricingQuote.findUnique({
@@ -86,10 +83,10 @@ export const convertQuoteToSubscription = createServerFn({ method: 'POST' })
     }
 
     if (quote.items.length === 0) {
-      return { success: false as const, error: 'Quote has no FEATURE line items â€” cannot create a composable subscription' }
+      return { success: false as const, error: 'Quote has no FEATURE line items — cannot create a composable subscription' }
     }
 
-    // Resolve plan ID â€” if caller passed sentinel 'COMPOSABLE', look up the plan
+    // Resolve plan ID — if caller passed sentinel 'COMPOSABLE', look up the plan
     let resolvedPlanId = data.planId
     if (data.planId === 'COMPOSABLE') {
       const composablePlan = await rootPrisma.subscriptionPlan.findFirst({
@@ -164,8 +161,8 @@ export const convertQuoteToSubscription = createServerFn({ method: 'POST' })
           subscriptionId: subscription.id,
           fromStatus: subscription.status,
           toStatus: 'ACTIVE',
-          reason: `Converted from PricingQuote ${quote.id} â€” composable subscription activated.`,
-          triggeredBy: context!.user!.id,
+          reason: `Converted from PricingQuote ${quote.id} — composable subscription activated.`,
+          triggeredBy: context?.user?.id,
         },
       })
 

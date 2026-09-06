@@ -1,5 +1,3 @@
-import { Link, useNavigate } from '@tanstack/react-router'
-import { Bell, CheckCheck, Loader2 } from 'lucide-react'
 import { Button } from '@platform/components/ui/button'
 import {
   DropdownMenu,
@@ -12,6 +10,8 @@ import {
 import { useNotifications } from '@platform/hooks/use-notifications'
 import dayjs from '@platform/lib/dayjs'
 import { cn } from '@platform/lib/utils'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { Bell, CheckCheck, Loader2 } from 'lucide-react'
 
 export function NotificationButton() {
   const navigate = useNavigate()
@@ -65,17 +65,17 @@ export function NotificationButton() {
             <div className='p-8 text-center text-xs text-muted-foreground'>No notifications yet.</div>
           ) : (
             notifications.map(n => (
-              <Link key={n.id} to={n.link!}>
+              <Link key={n['id']} to={n['link'] || ''}>
                 <DropdownMenuItem
                   className='flex flex-col items-start gap-1 p-4 whitespace-normal cursor-pointer'
-                  onClick={() => (!n.isRead ? markAsRead(n) : navigate({ to: n.link! }))}
+                  onClick={() => (!n['isRead'] ? markAsRead(n) : navigate({ to: n['link'] || '' }))}
                 >
                   <div className='flex justify-between w-full gap-2'>
-                    <span className={cn('text-sm', !n.isRead ? 'font-bold' : 'font-semibold')}>{n.title}</span>
-                    {!n.isRead && <div className='h-2 w-2 rounded-full bg-blue-500 shrink-0 mt-1' />}
+                    <span className={cn('text-sm', !n['isRead'] ? 'font-bold' : 'font-semibold')}>{n['title']}</span>
+                    {!n['isRead'] && <div className='h-2 w-2 rounded-full bg-blue-500 shrink-0 mt-1' />}
                   </div>
-                  <p className='text-xs text-muted-foreground line-clamp-2'>{n.message}</p>
-                  <span className='text-[10px] text-muted-foreground/70 mt-1'>{dayjs(n.createdAt).format('MMM DD, YYYY hh:mm A')}</span>
+                  <p className='text-xs text-muted-foreground line-clamp-2'>{n['message']}</p>
+                  <span className='text-[10px] text-muted-foreground/70 mt-1'>{dayjs(n['createdAt']).format('MMM DD, YYYY hh:mm A')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </Link>

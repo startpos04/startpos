@@ -10,7 +10,7 @@
  * 3. Platform default (Stripe)
  */
 
-import type { BillingProviderAdapter } from './billing-provider'
+import type { BillingProviderAdapter, PaymentProviderId } from './billing-provider'
 import { paymentProviderService } from './payment-provider-service'
 
 /**
@@ -39,7 +39,7 @@ export async function getBillingAdapter(businessId: string): Promise<BillingProv
  * @throws Error if provider is not found or not enabled
  */
 export function getBillingAdapterByProvider(providerId: string): BillingProviderAdapter {
-  const adapter = paymentProviderRegistry.getAdapter(providerId as any)
+  const adapter = paymentProviderRegistry.getAdapter(providerId as PaymentProviderId)
 
   if (!adapter) {
     throw new Error(`Provider ${providerId} is not available or not enabled`)

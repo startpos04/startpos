@@ -12,8 +12,8 @@
  */
 
 import { prisma } from '@platform/lib/prisma-client'
-import type { WebhookEvent, WebhookProcessingResult } from '@/lib/billing/billing-provider'
-import { WebhookOutcome } from '@/lib/billing/types'
+import type { WebhookEvent } from '@/lib/billing/billing-provider'
+import { WebhookOutcome, type WebhookProcessingResult } from '@/lib/billing/types'
 
 /**
  * Webhook processor configuration
@@ -27,7 +27,7 @@ export type WebhookProcessorConfig = {
 /**
  * Generic webhook event handler function signature
  */
-export type WebhookEventHandler<T = any> = (event: WebhookEvent, context: { providerId: string }) => Promise<WebhookProcessingResult>
+export type WebhookEventHandler<_T = unknown> = (event: WebhookEvent, context: { providerId: string }) => Promise<WebhookProcessingResult>
 
 /**
  * Webhook event router - maps event types to handlers
@@ -81,7 +81,7 @@ export class WebhookIdempotencyManager {
   /**
    * Mark webhook event as processed
    */
-  async markProcessed(providerId: string, eventId: string, eventType: string, rawPayload: any, outcome: WebhookOutcome, message?: string): Promise<void> {
+  async markProcessed(providerId: string, eventId: string, eventType: string, rawPayload: unknown, outcome: WebhookOutcome, message?: string): Promise<void> {
     try {
       await prisma.webhookEvent.upsert({
         where: {

@@ -24,11 +24,11 @@
 
 import dayjs from '@platform/lib/dayjs'
 import { prisma } from '@platform/lib/prisma-client'
-import type { BusinessSubscription } from 'prisma/generated/prisma/models'
+import type { BusinessSubscription } from 'prisma/generated/prisma/client'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 import type { SubscriptionSnapshot } from '../billing/types'
 
-// PaymentNotification type â€” inline until Prisma regenerates with new schema
+// PaymentNotification type — inline until Prisma regenerates with new schema
 type PaymentNotification = {
   id: string
   businessId: string
@@ -298,7 +298,7 @@ export class PaymentNotificationService {
       },
     })
 
-    if (!payment || !payment.subscription) {
+    if (!payment?.subscription) {
       console.error(`[PaymentNotificationService] Payment or subscription not found: ${paymentId}`)
       return
     }
@@ -343,7 +343,7 @@ export class PaymentNotificationService {
       },
     })
 
-    if (!payment || !payment.subscription) {
+    if (!payment?.subscription) {
       console.error(`[PaymentNotificationService] Payment or subscription not found: ${paymentId}`)
       return
     }
@@ -510,7 +510,7 @@ Thank you for using StartPOS!`
   /**
    * Build advance payment expiring message
    */
-  private buildAdvanceExpiringMessage(businessName: string, daysRemaining: number, creditsRemaining: number, expiresAt: Date): string {
+  private buildAdvanceExpiringMessage(businessName: string, _daysRemaining: number, creditsRemaining: number, expiresAt: Date): string {
     const formattedDate = dayjs(expiresAt).format('MMMM D, YYYY')
 
     return `Hi ${businessName},
@@ -567,7 +567,7 @@ Thank you for using StartPOS!`
    * Format currency amount
    */
   private formatCurrency(cents: number): string {
-    return `â‚±${(cents / 100).toFixed(2)}`
+    return `₱${(cents / 100).toFixed(2)}`
   }
 }
 

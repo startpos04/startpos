@@ -1,5 +1,5 @@
 /**
- * business/profile â€” Business Profile editor (Phase 4 UI)
+ * business/profile — Business Profile editor (Phase 4 UI)
  *
  * Shows all 34 BusinessCharacteristics fields in plain business language.
  * Each field displays:
@@ -44,7 +44,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/business/profile/')
 
 /** Convert a raw characteristic value to a readable string */
 function formatValue(value: unknown): string {
-  if (value === null || value === undefined) return 'â€”'
+  if (value === null || value === undefined) return '—'
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   if (typeof value === 'string') {
     // Convert snake_case / kebab-case to Title Case
@@ -135,7 +135,7 @@ const SECTIONS: { label: string; fields: string[] }[] = [
 ]
 
 // ---------------------------------------------------------------------------
-// Enum option maps â€” all non-boolean string fields
+// Enum option maps — all non-boolean string fields
 // ---------------------------------------------------------------------------
 
 const ENUM_OPTIONS: Partial<Record<string, string[]>> = {
@@ -215,7 +215,7 @@ function FieldRow({ row, onCorrected }: { row: ProfileFieldRow; onCorrected: () 
         </div>
         <div className='flex items-center gap-2 mt-0.5'>
           <span className={cn('text-xs font-medium', row.source === 'DEFAULT' ? 'text-muted-foreground' : 'text-foreground')}>{displayValue}</span>
-          <span className='text-xs text-muted-foreground'>Â· {row.sourceLabel}</span>
+          <span className='text-xs text-muted-foreground'>· {row.sourceLabel}</span>
         </div>
         {row.evidence && <p className='text-xs text-muted-foreground mt-0.5 italic'>{row.evidence}</p>}
 
@@ -241,7 +241,7 @@ function FieldRow({ row, onCorrected }: { row: ProfileFieldRow; onCorrected: () 
             {/* Special handling for inventoryCriticality with descriptions */}
             {row.field === 'inventoryCriticality' ? (
               <div className='space-y-2'>
-                {enumOptions!.map(opt => {
+                {enumOptions?.map(opt => {
                   const info = INVENTORY_MODE_INFO[opt]
                   return (
                     <button
@@ -267,7 +267,7 @@ function FieldRow({ row, onCorrected }: { row: ProfileFieldRow; onCorrected: () 
             ) : (
               /* Default enum picker for other fields */
               <div className='flex flex-wrap gap-1.5'>
-                {enumOptions!.map(opt => (
+                {enumOptions?.map(opt => (
                   <Button
                     key={opt}
                     size='sm'
@@ -360,7 +360,7 @@ export function BusinessProfilePage() {
         </div>
       )}
 
-      {/* Stale intent prompts â€” shown at top as priority */}
+      {/* Stale intent prompts — shown at top as priority */}
       {(profile?.staleIntentPrompts ?? []).length > 0 && (
         <Card className='border-amber-200 bg-amber-50 dark:bg-amber-950/20'>
           <CardHeader className='pb-2 pt-3 px-4'>
@@ -370,7 +370,7 @@ export function BusinessProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className='px-4 pt-0 pb-3 space-y-3'>
-            {profile!.staleIntentPrompts.map(prompt => (
+            {profile?.staleIntentPrompts.map(prompt => (
               <div key={prompt.field} className='text-sm'>
                 <p className='text-muted-foreground'>{prompt.prompt}</p>
                 <div className='flex gap-2 mt-1.5'>
@@ -380,7 +380,7 @@ export function BusinessProfilePage() {
                     className='h-7 text-xs'
                     onClick={async () => {
                       await correctCharacteristicFn({ data: { field: prompt.field, value: true as never } })
-                      toast.success('Updated â€” still accurate.')
+                      toast.success('Updated — still accurate.')
                       refresh()
                     }}
                   >
@@ -392,7 +392,7 @@ export function BusinessProfilePage() {
                     className='h-7 text-xs'
                     onClick={async () => {
                       await correctCharacteristicFn({ data: { field: prompt.field, value: false as never } })
-                      toast.success('Got it â€” cleared.')
+                      toast.success('Got it — cleared.')
                       refresh()
                     }}
                   >

@@ -1,9 +1,9 @@
 import { Button } from '@platform/components/ui/button'
 import { productCollection, productVariantCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { ArrowLeft, X } from 'lucide-react'
 import { toast } from 'sonner'
-import type { MountProps } from '@platform/lib/mount-manager'
 import { closeIngredientSidebar } from '../-components/ingredient-sidebar'
 import { CreateIngredient, type CreateIngredientFormData } from '../create/-create-ingredients'
 

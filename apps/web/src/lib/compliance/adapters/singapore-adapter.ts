@@ -14,6 +14,17 @@
 import type { Prisma } from 'prisma/generated/prisma/client'
 import type { ComplianceAdapter, ComplianceData, RefundContext, UserContext } from '../compliance-adapter'
 
+type SingaporeComplianceRecord = {
+  gstNumber?: string | null
+  uenNumber?: string | null
+  acraNumber?: string | null
+}
+
+type SingaporeBranchComplianceRecord = {
+  branchUEN?: string | null
+  tradeLicense?: string | null
+}
+
 export class SingaporeComplianceAdapter implements ComplianceAdapter {
   readonly countryCode = 'SG'
 
@@ -21,8 +32,8 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
     const { business, branch } = context
 
     // Extract Singapore-specific compliance data
-    const sgCompliance = (business as any).singaporeCompliance
-    const sgBranchCompliance = (branch as any).singaporeBranchCompliance
+    const sgCompliance = business['singaporeCompliance'] as SingaporeComplianceRecord | null | undefined
+    const sgBranchCompliance = branch['singaporeBranchCompliance'] as SingaporeBranchComplianceRecord | null | undefined
 
     return {
       // Business-level IRAS data
@@ -110,26 +121,25 @@ export class SingaporeComplianceAdapter implements ComplianceAdapter {
 
   copyRefundSnapshot(context: RefundContext): Record<string, unknown> {
     const { originalTransaction, currentUser } = context
-    const original = originalTransaction as any
 
     return {
       // Copy universal fields
-      snapshotBusinessName: original.snapshotBusinessName,
-      snapshotBranchName: original.snapshotBranchName,
-      snapshotBranchAddress: original.snapshotBranchAddress,
-      snapshotBranchSN: original.snapshotBranchSN,
+      snapshotBusinessName: originalTransaction['snapshotBusinessName'],
+      snapshotBranchName: originalTransaction['snapshotBranchName'],
+      snapshotBranchAddress: originalTransaction['snapshotBranchAddress'],
+      snapshotBranchSN: originalTransaction['snapshotBranchSN'],
       snapshotCashierName: currentUser.name, // Current refund processor
-      snapshotCurrency: original.snapshotCurrency,
+      snapshotCurrency: originalTransaction['snapshotCurrency'],
 
       // Copy Singapore-specific IRAS fields
-      snapshotGSTNumber: original.snapshotGSTNumber,
-      snapshotUENNumber: original.snapshotUENNumber,
-      snapshotGSTRate: original.snapshotGSTRate,
-      snapshotIsGSTRegistered: original.snapshotIsGSTRegistered,
+      snapshotGSTNumber: originalTransaction['snapshotGSTNumber'],
+      snapshotUENNumber: originalTransaction['snapshotUENNumber'],
+      snapshotGSTRate: originalTransaction['snapshotGSTRate'],
+      snapshotIsGSTRegistered: originalTransaction['snapshotIsGSTRegistered'],
 
       // Copy customer fields if present
-      ...(original.snapshotCustomerTIN && {
-        snapshotCustomerTIN: original.snapshotCustomerTIN,
+      ...(originalTransaction['snapshotCustomerTIN'] && {
+        snapshotCustomerTIN: originalTransaction['snapshotCustomerTIN'],
       }),
     }
   }

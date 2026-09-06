@@ -13,11 +13,11 @@ import {
   usageCounterCollection,
 } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
-import { sequenceAPI } from '@platform/lib/prisma-client/sequence-api'
 import type { Order, OrderItem } from 'prisma/generated/prisma/browser'
 import type { OrderItemAddon } from 'prisma/generated/prisma/client'
 import { InvoiceType, OrderStatus, OrderType, PaymentMethod, SequenceType, TaxCategory, TaxLineType, TransactionType } from 'prisma/generated/prisma/enums'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
+import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
 import type { PaymentLine } from '@/routes/(private)/pos/-components/payment-dialog'
 import { AuditAction, AuditTargetType } from '../audit/types'
 import { BranchValidationEngine } from '../billing/branch-validation-engine'
@@ -55,17 +55,17 @@ export interface CreateSaleInput {
 }
 
 export const createPosTransaction = async (data: CreateSaleInput, posOrders: posProduct[]) => {
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
   const productIds = data.items.map(item => item.product.id)
 
   // Prefer posOrders (already fetched) but fall back to the item's own product
-  // for any product not found there â€” covers Quick Add products that were just
+  // for any product not found there — covers Quick Add products that were just
   // created and may not yet be in the posOrders snapshot passed from the parent.
   const dbProducts = productIds
     .map(id => {
       const fromQuery = posOrders.find(p => p.id === id)
       if (fromQuery) return fromQuery
-      // Fall back to the item itself â€” it was just created and carries all the
+      // Fall back to the item itself — it was just created and carries all the
       // shape needed for validation (type, variants with inventory: [], components: [])
       const fromCart = data.items.find(i => i.product.id === id)
       return fromCart?.product ?? null
@@ -261,7 +261,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
         selectedAddons: [],
       }
 
-      // selectedAddons is a client-side join field â€” strip it before persisting
+      // selectedAddons is a client-side join field — strip it before persisting
       // to the collection so transactionAPI never sends it to Prisma.
       const { selectedAddons: _sa, ...itemForCollection } = newItem
       orderItemCollection.insert(itemForCollection as OrderItem)
@@ -305,7 +305,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
     // it as the period key. If no counter exists yet (e.g. first TX of a period,
     // or counter not yet synced), we create a stub that will be upserted.
     //
-    // IMPORTANT: This must remain synchronous â€” it runs inside dbTransaction
+    // IMPORTANT: This must remain synchronous — it runs inside dbTransaction
     // which is a synchronous local-first callback (no network I/O).
     // Pattern mirrors InventoryEngine: read from collection â†’ engine call â†’ write to collection.
 
@@ -346,7 +346,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       const incrementResult = UsageEngine.increment(snapshot, includedTxPerMonth, overageBillingEnabled)
 
       if (!incrementResult.ok) {
-        // TX allowance exhausted and overage billing is disabled â€” block the checkout
+        // TX allowance exhausted and overage billing is disabled — block the checkout
         throw new Error(incrementResult.reason)
       }
 
@@ -372,7 +372,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       // The server will handle counter reconciliation when the transaction syncs.
       //
       // FLOW:
-      // â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+      // â”Œ─────────────────────────────────────────────────────────────────────â”
       // â”‚ ONLINE:                                                              â”‚
       // â”‚ 1. Transaction created with usageCounterId = null                   â”‚
       // â”‚ 2. dbTransaction syncs to server via transactionAPI                 â”‚
@@ -389,19 +389,19 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       // â”‚ 4. When back online, pending transactions sync                      â”‚
       // â”‚ 5. Server performs reconciliation for each transaction              â”‚
       // â”‚ 6. All counters updated retroactively                               â”‚
-      // â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      // â””─────────────────────────────────────────────────────────────────────â”˜
       //
       // GUARANTEES:
-      // âœ… Transactions always succeed (never blocked by missing counter)
-      // âœ… Transaction limits enforced at auth time (txRemaining from EntitlementEngine)
-      // âœ… Full offline capability maintained
-      // âœ… Server reconciliation ensures accurate billing
-      // âœ… No client-side ID conflicts (server controls counter IDs)
+      // ✅ Transactions always succeed (never blocked by missing counter)
+      // ✅ Transaction limits enforced at auth time (txRemaining from EntitlementEngine)
+      // ✅ Full offline capability maintained
+      // ✅ Server reconciliation ensures accurate billing
+      // ✅ No client-side ID conflicts (server controls counter IDs)
       //
       // TRADE-OFFS:
-      // âš ï¸  This specific transaction temporarily unlinked until sync
-      // âš ï¸  txRemaining display won't update until next auth refresh
-      // âš ï¸  Usage reports may undercount until sync completes
+      // ⚠️  This specific transaction temporarily unlinked until sync
+      // ⚠️  txRemaining display won't update until next auth refresh
+      // ⚠️  Usage reports may undercount until sync completes
       //
       // These trade-offs are acceptable because:
       // - Transaction limits are enforced via EntitlementEngine (not real-time counter)
@@ -478,16 +478,16 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       })
     }
 
-    // --- 5c. DEDUCT CREDIT (Phase 3 â€” PREPAID_CREDITS billing model only) ---
+    // --- 5c. DEDUCT CREDIT (Phase 3 — PREPAID_CREDITS billing model only) ---
     // Credit deduction is conditional on the billing model. For MONTHLY_SUBSCRIPTION
-    // and HYBRID, this block is skipped entirely â€” zero performance cost.
+    // and HYBRID, this block is skipped entirely — zero performance cost.
     //
     // The collection holds on-demand-synced CreditLedger entries. The latest
-    // entry's balanceAfter is the current balance (O(1) read â€” no SUM query).
+    // entry's balanceAfter is the current balance (O(1) read — no SUM query).
     // The deduction inserts a new CONSUMED entry and posts a low-balance
     // notification asynchronously after the dbTransaction callback returns.
     //
-    // NOTE (R2 â€” Phase 3 known limitation): Two concurrent checkouts may both
+    // NOTE (R2 — Phase 3 known limitation): Two concurrent checkouts may both
     // pass the balance check before either insert commits (race condition).
     // See CreditEngine.deduct() for the full explanation and mitigation note.
 
@@ -523,7 +523,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       )
 
       if (!creditResult.ok) {
-        // Balance is zero â€” block the checkout
+        // Balance is zero — block the checkout
         throw new Error(creditResult.reason)
       }
 
@@ -636,7 +636,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
       providerId: null,
       sessionId: null,
       originalTransactionId: null,
-      // Phase 2 â€” link transaction to its UsageCounter for audit and reporting
+      // Phase 2 — link transaction to its UsageCounter for audit and reporting
       usageCounterId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -820,7 +820,7 @@ export const createPosTransaction = async (data: CreateSaleInput, posOrders: pos
   if (result.value.creditIsLowBalance && result.value.creditBalanceAfter !== null) {
     const rawThreshold = (user.configs as Record<string, unknown>)['CREDIT_LOW_BALANCE_THRESHOLD']
     const lowBalanceThreshold = typeof rawThreshold === 'number' ? rawThreshold : Number(rawThreshold ?? 10)
-    // Fire-and-forget â€” notification failures must not break checkout
+    // Fire-and-forget — notification failures must not break checkout
     NotificationEngine.sendCreditLowBalance(result.value.creditBalanceAfter, lowBalanceThreshold).catch(err =>
       console.warn('[createPosTransaction] Credit low-balance notification failed:', err),
     )
@@ -858,7 +858,7 @@ export const createPosTransactionWithRetry = async (data: CreateSaleInput, posOr
       if (error instanceof ConcurrencyError && attempt < maxAttempts) {
         // Exponential backoff: 100ms, 200ms, 400ms
         const backoffMs = 100 * 2 ** (attempt - 1)
-        console.log(`[createPosTransactionWithRetry] Concurrency conflict detected, ` + `retry ${attempt}/${maxAttempts} after ${backoffMs}ms`)
+        console.log(`[createPosTransactionWithRetry] Concurrency conflict detected, retry ${attempt}/${maxAttempts} after ${backoffMs}ms`)
         await new Promise(resolve => setTimeout(resolve, backoffMs))
         continue
       }

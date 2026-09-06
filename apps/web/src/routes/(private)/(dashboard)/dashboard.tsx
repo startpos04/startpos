@@ -1,21 +1,20 @@
 /**
  * (private)/(dashboard)/index.tsx
  *
- * /dashboard â€” Management overview for ADMIN and SUPERVISOR roles.
+ * /dashboard — Management overview for ADMIN and SUPERVISOR roles.
  *
  * Components:
- *   - FirstRunGuide    â€” profile-aware "how to start selling" guide (new users)
- *   - HealthStageHint   â€” next-step hint based on Business.healthStage (Phase 4)
- *   - RecommendationCards â€” critical/high importance BOS recommendations (Phase 3b)
- *   - SetupChecklist    â€” shown after FirstRunGuide is dismissed/completed
- *   - QuickStatCards    â€” products, team members, transactions today, credits
- *   - QuickActions      â€” add product, invite employee, view billing
- *   - GuidanceBanner    â€” hint corner banner (tutorials handled globally)
+ *   - FirstRunGuide    — profile-aware "how to start selling" guide (new users)
+ *   - HealthStageHint   — next-step hint based on Business.healthStage (Phase 4)
+ *   - RecommendationCards — critical/high importance BOS recommendations (Phase 3b)
+ *   - SetupChecklist    — shown after FirstRunGuide is dismissed/completed
+ *   - QuickStatCards    — products, team members, transactions today, credits
+ *   - QuickActions      — add product, invite employee, view billing
+ *   - GuidanceBanner    — hint corner banner (tutorials handled globally)
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { creditLedgerCollection, hintCollection, orderCollection, productCollection, userCollection } from '@platform/db/collections'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { cn } from '@platform/lib/utils'
 import { useLiveQuery } from '@tanstack/react-db'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -23,6 +22,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { BoxIcon, ChevronLeftIcon, ChevronRightIcon, CreditCardIcon, LifeBuoyIcon, LightbulbIcon, SparklesIcon, UsersIcon, ZapIcon } from 'lucide-react'
 import { useState } from 'react'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { HEALTH_STAGE_HINTS } from '@/lib/evolution/business-health-model'
 import { fetchCapabilityStates } from '@/lib/server-fn/fetch-capability-states'
 import { fetchDashboardHints } from '@/lib/server-fn/fetch-dashboard-hints'
@@ -93,13 +93,13 @@ function DashboardPage() {
 
   // Surface critical and high-importance RECOMMENDED capabilities on the dashboard.
   // importance is derived from score: critical â‰¥ 0.75, high â‰¥ 0.55.
-  // We use recommendationScore as a proxy â€” show top 2 highest-scored RECOMMENDED caps.
+  // We use recommendationScore as a proxy — show top 2 highest-scored RECOMMENDED caps.
   const topRecommendations = (capabilities ?? [])
     .filter(c => c.state === 'RECOMMENDED' && (c.recommendationScore ?? 0) >= 0.55)
     .sort((a, b) => (b.recommendationScore ?? 0) - (a.recommendationScore ?? 0))
     .slice(0, 2)
 
-  // Health stage hint â€” sourced from Business.healthStage written by RecalculationJob
+  // Health stage hint — sourced from Business.healthStage written by RecalculationJob
   const healthStage = user.currentProfile ? null : (user as { healthStage?: string }).healthStage
   const healthHint = healthStage && healthStage in HEALTH_STAGE_HINTS ? HEALTH_STAGE_HINTS[healthStage as keyof typeof HEALTH_STAGE_HINTS] : null
 
@@ -110,7 +110,7 @@ function DashboardPage() {
       {/* Welcome banner */}
       <WelcomeBanner name={user.name} businessName={user.business?.name} />
 
-      {/* Health stage hint â€” contextual next-step based on operational maturity */}
+      {/* Health stage hint — contextual next-step based on operational maturity */}
       {healthHint && (
         <div className={cn('rounded-lg border px-4 py-3 text-sm', 'border-primary/20 bg-primary/5 text-foreground')}>
           <span className='font-medium text-primary mr-1'>Next step:</span>
@@ -126,14 +126,14 @@ function DashboardPage() {
         <StatCard
           icon={<CreditCardIcon className='h-4 w-4' />}
           label={creditBalance !== null ? 'Credits remaining' : 'Subscription'}
-          value={creditBalance !== null ? creditBalance : (user.entitlement?.status ?? 'â€”')}
+          value={creditBalance !== null ? creditBalance : (user.entitlement?.status ?? '—')}
         />
       </div>
 
-      {/* Business Registration Status Card â€” shown after metrics, before recommendations */}
+      {/* Business Registration Status Card — shown after metrics, before recommendations */}
       <RegistrationStatusCard />
 
-      {/* BOS recommendations â€” critical/high importance only */}
+      {/* BOS recommendations — critical/high importance only */}
       {topRecommendations.length > 0 && (
         <div className='space-y-3'>
           <h2 className='text-sm font-semibold text-muted-foreground uppercase tracking-wide'>Recommended for your business</h2>
@@ -156,10 +156,10 @@ function DashboardPage() {
 
       {/* Main content: 2-column layout on wider screens */}
       <div className='grid gap-6 lg:grid-cols-3'>
-        {/* Left column â€” first-run guide (new users) or feature library (returning) */}
+        {/* Left column — first-run guide (new users) or feature library (returning) */}
         <div className='lg:col-span-2'>{firstRunVisible ? <FirstRunGuide /> : <FeatureLibrary />}</div>
 
-        {/* Right column â€” tips carousel */}
+        {/* Right column — tips carousel */}
         <div className='flex flex-col gap-4'>
           <TipsSection hints={dashboardHints} />
         </div>
@@ -169,7 +169,7 @@ function DashboardPage() {
 }
 
 // ---------------------------------------------------------------------------
-// TipsSection â€” carousel with prev/next navigation
+// TipsSection — carousel with prev/next navigation
 // ---------------------------------------------------------------------------
 
 interface HintItem {
@@ -276,7 +276,7 @@ function TipsSection({ hints }: TipsSectionProps) {
 function getGreeting(): { text: string; emoji: string } {
   const hour = new Date().getHours()
   if (hour < 12) return { text: 'Good morning', emoji: 'â˜€ï¸' }
-  if (hour < 17) return { text: 'Good afternoon', emoji: 'ðŸ‘‹' }
+  if (hour < 17) return { text: 'Good afternoon', emoji: '📋‹' }
   return { text: 'Good evening', emoji: 'ðŸŒ™' }
 }
 
@@ -291,7 +291,7 @@ function WelcomeBanner({ name, businessName }: WelcomeBannerProps) {
 
   return (
     <div className='relative overflow-hidden rounded-2xl border bg-card px-6 py-5 shadow-sm'>
-      {/* Decorative blurred orbs â€” emerald tinted, very subtle */}
+      {/* Decorative blurred orbs — emerald tinted, very subtle */}
       <div className='pointer-events-none absolute -top-6 -right-6 h-32 w-32 rounded-full bg-primary/10 blur-2xl' />
       <div className='pointer-events-none absolute bottom-0 left-1/3 h-20 w-20 rounded-full bg-primary/10 blur-2xl' />
       {/* Dot-grid overlay */}
@@ -331,7 +331,7 @@ function WelcomeBanner({ name, businessName }: WelcomeBannerProps) {
       {/* Bottom row: sparkle tagline */}
       <div className='relative mt-4 flex items-center gap-1.5 text-xs text-muted-foreground'>
         <SparklesIcon className='h-3 w-3 text-primary' />
-        <span>30-day free trial with 500 transactions plus 50 credits â€” no card required.</span>
+        <span>30-day free trial with 500 transactions plus 50 credits — no card required.</span>
       </div>
     </div>
   )

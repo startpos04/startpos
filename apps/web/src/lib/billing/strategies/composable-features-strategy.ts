@@ -1,7 +1,7 @@
 /**
  * composable-features-strategy.ts
  *
- * ComposableFeaturesStrategy â€” SubscriptionEngine strategy for businesses
+ * ComposableFeaturesStrategy — SubscriptionEngine strategy for businesses
  * on the COMPOSABLE_FEATURES billing model.
  *
  * Responsibility (at checkout evaluation time):
@@ -20,7 +20,7 @@
  * Architectural contract:
  *   - Zero Prisma/collection/infrastructure imports.
  *   - Data arrives as plain DTOs.
- *   - Returns OperationResult â€” callers act on result, never catch exceptions.
+ *   - Returns OperationResult — callers act on result, never catch exceptions.
  */
 
 import type { CapabilityKey } from '@platform/lib/entitlement/capability-keys'

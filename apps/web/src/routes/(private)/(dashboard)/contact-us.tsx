@@ -1,17 +1,17 @@
 /**
  * contact-us.tsx
  *
- * /contact-us â€” General contact page.
+ * /contact-us — General contact page.
  * Covers support, sales, license inquiries, feature requests, and bug reports.
  */
 
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Separator } from '@platform/components/ui/separator'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { BuildingIcon, ExternalLinkIcon, KeyRoundIcon, LifeBuoyIcon, LightbulbIcon, MailIcon, MessageCircleIcon, ServerIcon } from 'lucide-react'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/contact-us')({
   component: ContactUsPage,
@@ -22,7 +22,7 @@ const SALES_EMAIL = 'sales@start-pos.app'
 const FACEBOOK_URL = 'https://facebook.com/startpos'
 
 // ---------------------------------------------------------------------------
-// Reason tiles â€” shown above the contact channels
+// Reason tiles — shown above the contact channels
 // ---------------------------------------------------------------------------
 
 const REASONS = [
@@ -91,7 +91,7 @@ function ContactUsPage() {
       <div>
         <h1 className='text-2xl font-semibold tracking-tight'>Contact us</h1>
         <p className='text-sm text-muted-foreground mt-1'>
-          Whether you need support, want to explore a license, or have an idea to share â€” we're here. Pick a topic below and we'll get back to you quickly.
+          Whether you need support, want to explore a license, or have an idea to share — we're here. Pick a topic below and we'll get back to you quickly.
         </p>
       </div>
 
@@ -137,8 +137,8 @@ function ContactUsPage() {
                 </a>
               </Button>
               <div className='flex flex-col items-center gap-0.5'>
-                <p className='text-xs text-muted-foreground'>{SUPPORT_EMAIL} â€” support</p>
-                <p className='text-xs text-muted-foreground'>{SALES_EMAIL} â€” sales & licensing</p>
+                <p className='text-xs text-muted-foreground'>{SUPPORT_EMAIL} — support</p>
+                <p className='text-xs text-muted-foreground'>{SALES_EMAIL} — sales & licensing</p>
               </div>
             </CardContent>
           </Card>
@@ -166,7 +166,7 @@ function ContactUsPage() {
         </div>
       </div>
 
-      {/* Bug report tips â€” collapsed to a subtle card, not the page focus */}
+      {/* Bug report tips — collapsed to a subtle card, not the page focus */}
       <Card className='border-dashed'>
         <CardHeader className='pb-2'>
           <CardTitle className='text-sm text-muted-foreground'>Reporting a bug? Help us fix it faster</CardTitle>

@@ -2,7 +2,7 @@
  * billing/types.ts
  *
  * Shared plain-object types for the Billing domain.
- * No infrastructure dependencies â€” safe to import from any layer.
+ * No infrastructure dependencies — safe to import from any layer.
  *
  * All types use the const-object + union pattern (no TypeScript enums)
  * to comply with the project's erasableSyntaxOnly constraint.
@@ -27,7 +27,7 @@ export type BillingModel = (typeof BillingModel)[keyof typeof BillingModel]
 
 // ---------------------------------------------------------------------------
 // SubscriptionTransitionTrigger
-// Named trigger source for status transitions â€” recorded in SubscriptionStatusHistory.
+// Named trigger source for status transitions — recorded in SubscriptionStatusHistory.
 // ---------------------------------------------------------------------------
 export const TransitionTrigger = {
   SYSTEM: 'system', // Automated background job
@@ -42,7 +42,7 @@ export type TransitionTrigger = (typeof TransitionTrigger)[keyof typeof Transiti
 // SubscriptionSnapshot
 // Plain DTO representing the fields needed by SubscriptionEngine and
 // SubscriptionPolicy. Assembled by the Application Layer from a
-// BusinessSubscription Prisma record â€” the engine never touches Prisma types.
+// BusinessSubscription Prisma record — the engine never touches Prisma types.
 // ---------------------------------------------------------------------------
 export type SubscriptionSnapshot = {
   id: string
@@ -93,13 +93,13 @@ export type LifecycleThresholds = {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 2 â€” Usage Tracking + Monthly Billing Foundation
+// Phase 2 — Usage Tracking + Monthly Billing Foundation
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // UsageCounterSnapshot
 // Plain DTO representing a UsageCounter row. Assembled by the Application
-// Layer (job or auth-server) and passed into UsageEngine â€” the engine never
+// Layer (job or auth-server) and passed into UsageEngine — the engine never
 // touches Prisma types directly.
 // ---------------------------------------------------------------------------
 export type UsageCounterSnapshot = {
@@ -143,7 +143,7 @@ export type InvoiceItemType = (typeof InvoiceItemType)[keyof typeof InvoiceItemT
 
 // ---------------------------------------------------------------------------
 // InvoiceItemDTO
-// Plain DTO for a single BillingInvoiceItem line â€” passed in/out of
+// Plain DTO for a single BillingInvoiceItem line — passed in/out of
 // InvoiceEngine without any Prisma type dependencies.
 // ---------------------------------------------------------------------------
 export type InvoiceItemDTO = {
@@ -153,13 +153,13 @@ export type InvoiceItemDTO = {
   quantity: number
   /** Cents per unit */
   unitAmount: number
-  /** quantity Ã— unitAmount (pre-computed) */
+  /** quantity × unitAmount (pre-computed) */
   lineAmount: number
 }
 
 // ---------------------------------------------------------------------------
 // InvoiceDTO
-// Plain DTO representing a BillingInvoice record â€” returned by InvoiceEngine
+// Plain DTO representing a BillingInvoice record — returned by InvoiceEngine
 // so the Application Layer can persist it without the engine touching Prisma.
 // ---------------------------------------------------------------------------
 export type InvoiceDTO = {
@@ -178,7 +178,7 @@ export type InvoiceDTO = {
 
 // ---------------------------------------------------------------------------
 // OveragePolicy
-// Configuration passed into InvoiceEngine â€” read from BusinessConfiguration by the
+// Configuration passed into InvoiceEngine — read from BusinessConfiguration by the
 // Application Layer and injected as a plain object.
 // ---------------------------------------------------------------------------
 export type OveragePolicy = {
@@ -191,7 +191,7 @@ export type OveragePolicy = {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 3 â€” Prepaid Credits
+// Phase 3 — Prepaid Credits
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -211,7 +211,7 @@ export type CreditEventType = (typeof CreditEventType)[keyof typeof CreditEventT
 
 // ---------------------------------------------------------------------------
 // CreditLedgerEntryDTO
-// Plain DTO for a CreditLedger row â€” used by the Application Layer for
+// Plain DTO for a CreditLedger row — used by the Application Layer for
 // persistence and by the UI for ledger history display.
 // ---------------------------------------------------------------------------
 export type CreditLedgerEntryDTO = {
@@ -230,7 +230,7 @@ export type CreditLedgerEntryDTO = {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 4 â€” External Billing Integration
+// Phase 4 — External Billing Integration
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -239,13 +239,13 @@ export type CreditLedgerEntryDTO = {
 // Configured via environment variables / configuration; not stored in the DB.
 // ---------------------------------------------------------------------------
 export type CreditPackage = {
-  /** Internal identifier â€” used as metadata on the Stripe checkout session */
+  /** Internal identifier — used as metadata on the Stripe checkout session */
   id: string
   /** Human-readable label shown to the user */
   label: string
   /** Number of credits included in this package */
   creditAmount: number
-  /** Display price string (e.g. "â‚±500") â€” cosmetic only; actual charge from Stripe price */
+  /** Display price string (e.g. "₱500") — cosmetic only; actual charge from Stripe price */
   displayPrice: string
   /** Stripe Price ID for this package (configured in Stripe Dashboard) */
   stripePriceId: string

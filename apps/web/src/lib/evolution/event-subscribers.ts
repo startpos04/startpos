@@ -1,8 +1,8 @@
 /**
- * event-subscribers.ts â€” Startup-time BusinessEventBus subscriber registration (Phase 6)
+ * event-subscribers.ts — Startup-time BusinessEventBus subscriber registration (Phase 6)
  *
  * This file is the single place where all BusinessEventBus subscribers are
- * registered. It must be imported once at application startup â€” before any
+ * registered. It must be imported once at application startup — before any
  * server function or background job can emit events.
  *
  * Architecture (R3 fix from Principal Architect Review):
@@ -20,15 +20,14 @@
  *   1. Write the handler function in the relevant module
  *   2. Import it here
  *   3. Call BusinessEventBus.registerSubscriber(type, handler)
- *   No other changes needed â€” the EventBus dispatches automatically.
+ *   No other changes needed — the EventBus dispatches automatically.
  *
  * Bootstrap call site: import '@/lib/evolution/event-subscribers' in the
  * app entry point (e.g. app-bootstrap.ts, server startup, or root.tsx).
  */
 
-import type { BusinessEvent } from '@platform/lib/evolution/business-event-bus'
-import { BusinessEventBus } from '@platform/lib/evolution/business-event-bus'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
+import { type BusinessEvent, BusinessEventBus } from './business-event-bus'
 
 // ---------------------------------------------------------------------------
 // CAPABILITY_STATE_CHANGED â†’ BusinessEventLog (Phase 6 analytics)
@@ -96,7 +95,7 @@ async function handleGrowthThresholdCrossed(event: BusinessEvent): Promise<void>
 
 /**
  * Registers all BusinessEventBus subscribers.
- * Call once at application startup â€” idempotent (re-registering the same
+ * Call once at application startup — idempotent (re-registering the same
  * handler is safe; it will be called twice per event, not overwritten).
  *
  * The recommended call site is your app entry point before the HTTP server

@@ -2,12 +2,12 @@ import { AppWrapper } from '@platform/components/custom/app-wrapper'
 import Loading from '@platform/components/custom/loading'
 import { localAuthCollection } from '@platform/db/local-auth'
 import { useIsOnline } from '@platform/hooks/use-is-online'
-import { AuthEngine } from '@platform/lib/better-auth/auth-engine'
-import { authStore } from '@platform/lib/better-auth/auth-store'
+import MountManager from '@platform/lib/mount-manager'
 import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import MountManager from '@platform/lib/mount-manager'
+import { syncServerToLocal } from '@/lib/better-auth/auth-engine'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { TermsUpdateModal } from './-components/terms-update-modal'
 import { WelcomeModal } from './-components/welcome-modal'
 
@@ -44,7 +44,7 @@ function RouteComponent() {
     const exists = localAuths.data.find(u => u.id === localUser.id)
 
     if (exists && isOnline && user) {
-      AuthEngine.syncServerToLocal(user)
+      syncServerToLocal(user)
     }
 
     MountManager.clear()
@@ -57,9 +57,9 @@ function RouteComponent() {
       <div className='flex-1 flex flex-col min-h-0'>
         <Outlet />
       </div>
-      {/* Terms re-acceptance gate â€” shown when CURRENT_TERMS_VERSION > user.termsVersion */}
+      {/* Terms re-acceptance gate — shown when CURRENT_TERMS_VERSION > user.termsVersion */}
       <TermsUpdateModal />
-      {/* Welcome modal â€” fires once on first login after registration */}
+      {/* Welcome modal — fires once on first login after registration */}
       <WelcomeModal />
     </div>
   )

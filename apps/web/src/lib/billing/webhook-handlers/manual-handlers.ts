@@ -9,7 +9,7 @@
  * not through webhooks. This file exists for architectural completeness.
  */
 
-import type { WebhookEvent, WebhookProcessingResult } from '@/lib/billing/billing-provider'
+import type { WebhookEvent } from '@/lib/billing/billing-provider'
 import { WebhookOutcome } from '@/lib/billing/types'
 import type { WebhookEventHandler } from './shared-handlers'
 

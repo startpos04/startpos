@@ -43,7 +43,7 @@ export const sendRegistrationOTP = createServerFn({ method: 'POST' })
   .inputValidator((d: { email: string }) => sendSchema.parse(d))
   .handler(async ({ data }) => {
     // When email verification is disabled via feature flag, skip the OTP entirely.
-    // The verify step is also skipped on the client side â€” this guard ensures the
+    // The verify step is also skipped on the client side — this guard ensures the
     // server function is a no-op even if called directly.
     if (process.env['ENABLE_EMAIL_VERIFICATION'] === 'false') {
       console.log('[sendRegistrationOTP] Email verification disabled via ENABLE_EMAIL_VERIFICATION=false')
@@ -56,7 +56,7 @@ export const sendRegistrationOTP = createServerFn({ method: 'POST' })
     const expiresAt = new Date(Date.now() + OTP_EXPIRES_IN_SECONDS * 1000)
 
     // Delete any previous OTP for this email, then store the new one.
-    // Value format: "<otp>:<attempts>" â€” attempts starts at 0.
+    // Value format: "<otp>:<attempts>" — attempts starts at 0.
     await prisma.verification.deleteMany({ where: { identifier } })
     await prisma.verification.create({
       data: { identifier, value: `${otp}:0`, expiresAt },
@@ -148,7 +148,7 @@ export const verifyRegistrationOTP = createServerFn({ method: 'POST' })
       }
     }
 
-    // OTP matched â€” delete the row so it can't be reused
+    // OTP matched — delete the row so it can't be reused
     await prisma.verification.deleteMany({ where: { identifier } })
     return { success: true as const }
   })

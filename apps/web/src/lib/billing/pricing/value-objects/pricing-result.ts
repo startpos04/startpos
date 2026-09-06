@@ -1,19 +1,19 @@
 /**
  * pricing-result.ts
  *
- * PricingResult â€” immutable value object returned by PricingEngine.calculate().
+ * PricingResult — immutable value object returned by PricingEngine.calculate().
  *
  * Contains the full line-item breakdown, discount details, tax components,
  * annual pricing, and one-time fees for a pricing calculation.
  *
  * Key invariants (per v1-master-plan.md Â§2.17 and Architecture Compliance Gate G10):
- *   - grandTotal does NOT include oneTimeFees â€” they are displayed separately.
- *   - annualGrandTotal = grandTotal Ã— 12 âˆ’ annualSavings (when applicable).
+ *   - grandTotal does NOT include oneTimeFees — they are displayed separately.
+ *   - annualGrandTotal = grandTotal × 12 âˆ’ annualSavings (when applicable).
  *   - All amounts are integers in cents.
  *
  * Architectural contract:
  *   - Zero infrastructure imports.
- *   - Immutable after construction â€” all fields are readonly.
+ *   - Immutable after construction — all fields are readonly.
  *   - Factory function validates the invariants before returning.
  */
 
@@ -25,7 +25,7 @@ import type { TaxBreakdownLine } from './tax-breakdown-line'
 // PricingResult
 // ---------------------------------------------------------------------------
 export type PricingResult = {
-  /** ISO timestamp injected by the caller â€” engine never calls new Date() */
+  /** ISO timestamp injected by the caller — engine never calls new Date() */
   readonly calculatedAt: string
 
   /** The catalog version used for this calculation */
@@ -53,20 +53,20 @@ export type PricingResult = {
   readonly taxBreakdown: readonly TaxBreakdownLine[]
 
   /**
-   * Annual equivalent of grandTotal Ã— 12, minus any annual discount.
+   * Annual equivalent of grandTotal × 12, minus any annual discount.
    * Null when annual pricing was not requested.
    */
   readonly annualGrandTotal: number | null
 
   /**
-   * How much cheaper the annual option is vs 12 Ã— monthly grandTotal (cents).
+   * How much cheaper the annual option is vs 12 × monthly grandTotal (cents).
    * Null when annual pricing was not requested.
    */
   readonly annualSavings: number | null
 
   /**
    * Sum of all ONE_TIME_FEE line items (cents).
-   * Displayed separately from the recurring total â€” NOT included in grandTotal.
+   * Displayed separately from the recurring total — NOT included in grandTotal.
    */
   readonly oneTimeFees: number
 

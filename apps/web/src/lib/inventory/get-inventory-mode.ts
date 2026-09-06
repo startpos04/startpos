@@ -9,7 +9,7 @@
 import { businessCollection } from '@platform/db/collections'
 import { projectToCharacteristics } from '@/lib/evolution/characteristics-engine'
 import { DEFAULT_CHARACTERISTICS } from '@/lib/onboarding/defaults'
-import type { InventoryMode } from '@/lib/onboarding/types'
+import type { InventoryMode } from './inventory-policy'
 
 /**
  * Gets the inventory mode for a business.

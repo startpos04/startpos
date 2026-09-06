@@ -1,8 +1,10 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: allowing any type for flexibility */
+
+import { prisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { err, ok, type Result, ResultAsync } from 'neverthrow'
-import { prisma } from '@platform/lib/prisma-client'
-import { authMiddleware } from '../better-auth/auth-middleware'
+import { platformAuthMiddleware as authMiddleware } from '../better-auth/create-auth-middleware'
+import { getServerContext } from '../better-auth/server-context'
 import { PLATFORM_MODELS, type PlatformModelName } from './core-api'
 import { type DBPayload, executeOperation } from './crud-api'
 
@@ -10,10 +12,10 @@ import { type DBPayload, executeOperation } from './crud-api'
 // coreTransactionAPI
 //
 // Runs a batch of DBPayload operations atomically inside a single
-// rootPrisma.$transaction â€” the platform-level equivalent of transactionAPI.
+// rootPrisma.$transaction — the platform-level equivalent of transactionAPI.
 //
 // All operations must target platform-level models (PLATFORM_MODELS whitelist).
-// Requires an authenticated ADMIN session â€” batch platform mutations are always
+// Requires an authenticated ADMIN session — batch platform mutations are always
 // privileged operations (seeding plans, updating entitlements, etc.).
 // ---------------------------------------------------------------------------
 
@@ -26,13 +28,13 @@ const coreTransactionServerFn = createServerFn({ method: 'POST' })
   .inputValidator((d: CoreTransactionInput) => d)
   .handler(async ({ context, data }): Promise<{ value: any[] } | { error: any }> => {
     // Auth guard
-    if (!context?.user?.id) {
+    if (!getServerContext(context).user?.id) {
       return { error: 'Authentication required for platform transactions.' }
     }
 
-    // Role guard â€” ADMIN only
-    if (context.user.role !== 'ADMIN') {
-      return { error: `Platform transactions require ADMIN role. Current role: ${context.user.role}` }
+    // Role guard — ADMIN only
+    if (getServerContext(context).user.role !== 'ADMIN') {
+      return { error: `Platform transactions require ADMIN role. Current role: ${getServerContext(context).user.role}` }
     }
 
     // Non-empty batch

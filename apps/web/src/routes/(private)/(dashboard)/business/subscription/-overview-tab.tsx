@@ -9,8 +9,8 @@ import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Progress } from '@platform/components/ui/progress'
 import { Separator } from '@platform/components/ui/separator'
-import { authStore, refreshAuthUser } from '@platform/lib/better-auth/auth-store'
 import { SubscriptionStatus } from '@platform/lib/entitlement/entitlement-types'
+import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
@@ -29,9 +29,9 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { authStore, refreshAuthUser } from '@/lib/better-auth/auth-store'
 import { SubscriptionPolicy } from '@/lib/billing/policies/subscription-policy'
 import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
-import MountManager from '@platform/lib/mount-manager'
 import { type AddonCatalogItem, fetchAddonCatalog } from '@/lib/server-fn/purchase-addon-subscription'
 import { AddonDialog, BillingCTAs, formatDate, getStatusBadgeConfig } from './-shared-components'
 
@@ -46,7 +46,7 @@ export function OverviewTab() {
     try {
       await refreshAuthUser()
       toast.success('Subscription details updated')
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to refresh subscription details')
     } finally {
       setIsRefreshing(false)
@@ -149,7 +149,7 @@ export function OverviewTab() {
                   <div className='text-sm'>
                     <p className='font-medium text-destructive'>Subscription cancelled</p>
                     <p className='text-muted-foreground mt-0.5'>
-                      Operational features are currently restricted. Reactivate your subscription to restore access â€” you can pick any plan including your
+                      Operational features are currently restricted. Reactivate your subscription to restore access — you can pick any plan including your
                       previous one.
                     </p>
                   </div>
@@ -308,11 +308,11 @@ function SubscriptionSidebar() {
                 <div className='space-y-1'>
                   <div className='flex items-end justify-between'>
                     <p className={cn('text-2xl font-bold', txRemaining === 0 ? 'text-destructive' : 'text-foreground')}>
-                      {txRemaining !== null && txRemaining !== undefined ? txRemaining.toLocaleString() : 'â€”'}
+                      {txRemaining !== null && txRemaining !== undefined ? txRemaining.toLocaleString() : '—'}
                     </p>
                     <p className='text-xs text-muted-foreground pb-1'>remaining</p>
                   </div>
-                  {txRemaining === 0 && <p className='text-xs text-destructive font-medium'>Allowance exhausted â€” upgrade to continue.</p>}
+                  {txRemaining === 0 && <p className='text-xs text-destructive font-medium'>Allowance exhausted — upgrade to continue.</p>}
                   {txRemaining !== null && txRemaining !== undefined && txRemaining > 0 && (
                     <p className='text-xs text-muted-foreground'>Transactions available this period</p>
                   )}
@@ -346,7 +346,7 @@ function SubscriptionSidebar() {
                   </p>
                   <p className='text-xs text-muted-foreground pb-1'>transactions</p>
                 </div>
-                {entitlement.creditBalance === 0 && <p className='text-xs text-destructive font-medium'>Quota depleted â€” purchase more to continue.</p>}
+                {entitlement.creditBalance === 0 && <p className='text-xs text-destructive font-medium'>Quota depleted — purchase more to continue.</p>}
                 {entitlement.creditBalance > 0 && <p className='text-xs text-muted-foreground'>Available for overflow or prepaid billing</p>}
                 <Button size='sm' variant='outline' className='w-full' asChild>
                   <Link to='/business/subscription/credits'>
@@ -355,7 +355,7 @@ function SubscriptionSidebar() {
                 </Button>
               </>
             ) : (
-              <p className='text-2xl font-bold text-muted-foreground'>â€”</p>
+              <p className='text-2xl font-bold text-muted-foreground'>—</p>
             )}
           </CardContent>
         </Card>
@@ -390,7 +390,7 @@ function ActiveAddons() {
   // Filter: hide employee addon for non-basic/trial plans
   const visibleCatalog = catalog.filter(a => {
     if (a.addonType === 'EMPLOYEE') return isBasicOrTrial
-    // Collapse the three TX packages into one row â€” show tx_1000 as the representative
+    // Collapse the three TX packages into one row — show tx_1000 as the representative
     if (a.id === 'tx_500' || a.id === 'tx_5000') return false
     return true
   })
@@ -407,8 +407,8 @@ function ActiveAddons() {
   function getDescription(item: AddonCatalogItem): string {
     if (item.addonType === 'TX_RECURRING') {
       return txAddonTotal > 0
-        ? `${txAddonTotal.toLocaleString()} extra TX active this period â€” packages from â‚±99/mo.`
-        : 'Add extra monthly transactions on top of your plan. From â‚±99/mo.'
+        ? `${txAddonTotal.toLocaleString()} extra TX active this period — packages from ₱99/mo.`
+        : 'Add extra monthly transactions on top of your plan. From ₱99/mo.'
     }
     if (item.addonType === 'BRANCH') return `Add branches beyond your plan's limit. ${item.displayPrice}${item.priceNote}.`
     if (item.addonType === 'EMPLOYEE') return `Add seats beyond your 1-seat limit. ${item.displayPrice}${item.priceNote}.`

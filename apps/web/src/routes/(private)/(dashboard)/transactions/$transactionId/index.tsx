@@ -12,9 +12,10 @@ import {
   userCollection,
 } from '@platform/db/collections'
 import { useIsOnline } from '@platform/hooks/use-is-online'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import dayjs from '@platform/lib/dayjs'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import type { MountProps } from '@platform/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { downloadCsv } from '@platform/lib/utils/download-csv'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -24,9 +25,8 @@ import { AlertTriangle, Download, Receipt, RotateCcw, X } from 'lucide-react'
 import { TransactionType } from 'prisma/generated/prisma/enums'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import type { MountProps } from '@platform/lib/mount-manager'
-import MountManager from '@platform/lib/mount-manager'
 import { createPosRefund } from '@/lib/queries/create-pos-refund'
 import { downloadTransactionsCSV } from '@/lib/server-fn/download-tranasctions'
 import { fetchTransactionHistory, type TransactionHistoryItem } from '@/lib/server-fn/fetch-transaction-history'
@@ -35,14 +35,14 @@ import { ItemsTab } from './-items-tab'
 import { PaymentsTab } from './-payments-tab'
 import { TaxTab } from './-tax-tab'
 
-// â”€â”€â”€ Route â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Route ───────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute('/(private)/(dashboard)/transactions/$transactionId/')({
   loader: ({ params }) => ({ transactionId: params.transactionId }),
   component: () => <RouteComponent />,
 })
 
-// â”€â”€â”€ Sidebar export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Sidebar export ───────────────────────────────────────────────────────────
 
 interface TransactionDetailsSidebarProps extends MountProps {
   transaction: TransactionHistoryItem
@@ -57,7 +57,7 @@ export function TransactionDetailsSidebar({ open: _open, transaction, onClose }:
   return <RouteComponent transaction={transaction} onClose={onClose} />
 }
 
-// â”€â”€â”€ Refund confirmation dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Refund confirmation dialog ───────────────────────────────────────────────
 
 interface RefundDialogProps extends MountProps {
   transaction: TransactionHistoryItem
@@ -99,13 +99,13 @@ function RefundDialog({ open, onClose, transaction, onConfirm, isPending, canMan
           </div>
         </div>
 
-        {/* Warning â€” inventory restock only shown if user has MANAGE_INVENTORY */}
+        {/* Warning — inventory restock only shown if user has MANAGE_INVENTORY */}
         <div className='flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3'>
           <AlertTriangle className='size-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5' />
           <p className='text-xs text-amber-800 dark:text-amber-300 leading-relaxed'>
             {canManageInventory
               ? 'Inventory will be restocked automatically. The refund will appear as a separate transaction in the history.'
-              : 'The refund will appear as a separate transaction in the history. Inventory will not be adjusted â€” upgrade to Premium or higher to enable automatic restock on refund.'}
+              : 'The refund will appear as a separate transaction in the history. Inventory will not be adjusted — upgrade to Premium or higher to enable automatic restock on refund.'}
           </p>
         </div>
 
@@ -114,7 +114,7 @@ function RefundDialog({ open, onClose, transaction, onConfirm, isPending, canMan
             Cancel
           </Button>
           <Button variant='destructive' onClick={onConfirm} disabled={isPending}>
-            {isPending ? 'Processingâ€¦' : 'Confirm Refund'}
+            {isPending ? 'Processing…' : 'Confirm Refund'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -122,10 +122,10 @@ function RefundDialog({ open, onClose, transaction, onConfirm, isPending, canMan
   )
 }
 
-// â”€â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main component ───────────────────────────────────────────────────────────
 
 function RouteComponent({ transaction: propTransaction, onClose }: RouteComponentProps) {
-  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context â€” used inside MountManager or route component
+  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
   const loaderData = propTransaction ? null : Route.useLoaderData()
   const transactionId = propTransaction ? null : (loaderData?.transactionId ?? '')
   const isOnline = useIsOnline()
@@ -166,6 +166,7 @@ function RouteComponent({ transaction: propTransaction, onClose }: RouteComponen
               .filter(i => i.orderId === order.id)
               .map(item => ({
                 ...item,
+                // biome-ignore lint/suspicious/noExplicitAny: flexibility required
                 variant: null as any, // Skip deep variant/product joins offline
                 selectedAddons: [],
               })),
@@ -183,7 +184,7 @@ function RouteComponent({ transaction: propTransaction, onClose }: RouteComponen
   const transaction = propTransaction ?? (isOnline ? onlineResult?.data?.find(t => t.id === transactionId) : offlineTransaction)
   const isLoading_ = propTransaction ? false : isOnline ? onlineLoading : false
 
-  // Auth â€” check ISSUE_REFUND and MANAGE_INVENTORY capabilities
+  // Auth — check ISSUE_REFUND and MANAGE_INVENTORY capabilities
   const user = useStore(authStore, state => state.user)
   const canRefund = user?.entitlement?.capabilities?.includes(Capabilities.ISSUE_REFUND) ?? false
   const canManageInventory = user?.entitlement?.capabilities?.includes(Capabilities.MANAGE_INVENTORY) ?? false
@@ -192,32 +193,32 @@ function RouteComponent({ transaction: propTransaction, onClose }: RouteComponen
 
   const refundMutation = useMutation({
     mutationFn: () => {
-      // Build a snapshot from the transaction prop â€” avoids the local collection
+      // Build a snapshot from the transaction prop — avoids the local collection
       // lookup that fails because transactionCollection is syncMode: 'on-demand'
       // and the sidebar is fed via crudAPI (server fetch), not the local store.
       const snap = {
-        id: transaction!.id,
-        invoiceNo: transaction!.invoiceNo,
-        totalAmount: transaction!.totalAmount,
-        totalCost: transaction!.totalCost,
-        taxAmount: transaction!.taxAmount,
-        discount: transaction!.discount,
+        id: transaction?.id,
+        invoiceNo: transaction?.invoiceNo,
+        totalAmount: transaction?.totalAmount,
+        totalCost: transaction?.totalCost,
+        taxAmount: transaction?.taxAmount,
+        discount: transaction?.discount,
         // cashierId is NOT NULL on the Transaction table; fall back to
         // the current user's id if somehow missing (shouldn't happen in prod)
-        cashierId: transaction!.cashier?.id ?? user!.id,
-        orderId: transaction!.order?.id ?? null,
-        snapshotCustomerName: transaction!.snapshotCustomerName ?? null,
+        cashierId: transaction?.cashier?.id ?? user?.id,
+        orderId: transaction?.order?.id ?? null,
+        snapshotCustomerName: transaction?.snapshotCustomerName ?? null,
         snapshotBufferRate: ((transaction! as Record<string, unknown>)['snapshotBufferRate'] as number) ?? 0,
         priceConfiguration: ((transaction! as Record<string, unknown>)['priceConfiguration'] as string) ?? 'INCLUSIVE',
         invoiceType: ((transaction! as Record<string, unknown>)['invoiceType'] as string) ?? 'SALES_INVOICE',
-        complianceData: (transaction!.complianceData ?? {}) as unknown as import('@platform/lib/types').TransactionComplianceData,
-        payments: transaction!.payments.map(p => ({
+        complianceData: (transaction?.complianceData ?? {}) as unknown as import('@platform/lib/types').TransactionComplianceData,
+        payments: transaction?.payments.map(p => ({
           id: p.id,
           method: p.method,
           amount: p.amount,
           platform: p.platform ?? null,
         })),
-        taxLines: transaction!.taxLines.map(l => ({
+        taxLines: transaction?.taxLines.map(l => ({
           id: l.id,
           type: l.type,
           category: l.category,
@@ -237,7 +238,7 @@ function RouteComponent({ transaction: propTransaction, onClose }: RouteComponen
         })
         return
       }
-      toast.success(`Refund issued â€” ${result.data}`, { duration: 5000 })
+      toast.success(`Refund issued — ${result.data}`, { duration: 5000 })
       // Invalidate all transaction-history queries so the list refreshes
       queryClient.invalidateQueries({ queryKey: ['transaction-history'] })
       queryClient.invalidateQueries({ queryKey: ['transaction-detail-route'] })
@@ -308,108 +309,106 @@ function RouteComponent({ transaction: propTransaction, onClose }: RouteComponen
   const showRefundButton = isSale && canRefund
 
   return (
-    <>
-      <div className='flex flex-col h-full'>
-        {/* Header */}
-        <div className='flex items-start justify-between p-4 border-b shrink-0'>
-          <div className='flex items-center gap-2.5'>
-            <div className='h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0'>
-              {isRefund ? <RotateCcw className='size-4 text-destructive' /> : <Receipt className='size-4 text-primary' />}
-            </div>
-            <div>
-              <div className='flex items-center gap-2 flex-wrap'>
-                <h2 className='text-base font-semibold leading-tight font-mono'>{transaction.invoiceNo}</h2>
-                <Badge variant={isRefund ? 'destructive' : 'default'} className='text-[10px] py-0 h-4'>
-                  {transaction.type}
+    <div className='flex flex-col h-full'>
+      {/* Header */}
+      <div className='flex items-start justify-between p-4 border-b shrink-0'>
+        <div className='flex items-center gap-2.5'>
+          <div className='h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0'>
+            {isRefund ? <RotateCcw className='size-4 text-destructive' /> : <Receipt className='size-4 text-primary' />}
+          </div>
+          <div>
+            <div className='flex items-center gap-2 flex-wrap'>
+              <h2 className='text-base font-semibold leading-tight font-mono'>{transaction.invoiceNo}</h2>
+              <Badge variant={isRefund ? 'destructive' : 'default'} className='text-[10px] py-0 h-4'>
+                {transaction.type}
+              </Badge>
+              {alreadyRefunded && (
+                <Badge variant='secondary' className='text-[10px] py-0 h-4'>
+                  Refunded
                 </Badge>
-                {alreadyRefunded && (
-                  <Badge variant='secondary' className='text-[10px] py-0 h-4'>
-                    Refunded
-                  </Badge>
-                )}
-              </div>
-              <p className='text-xs text-muted-foreground mt-0.5'>
-                {transaction.cashier?.name ?? 'System'} Â· {dayjs(transaction.createdAt).format('MMM DD, YYYY HH:mm')}
-              </p>
+              )}
             </div>
-          </div>
-          <Button variant='ghost' size='icon' onClick={handleClose} className='h-7 w-7 shrink-0'>
-            <X className='size-4' />
-          </Button>
-        </div>
-
-        {/* Stats row */}
-        <div className='flex items-center gap-4 px-4 py-2.5 border-b bg-muted/20 shrink-0'>
-          <div>
-            <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Total</p>
-            <p className={cn('text-sm font-black font-mono', isRefund ? 'text-destructive' : 'text-primary')}>{PriceEngine.format(transaction.totalAmount)}</p>
-          </div>
-          <div className='w-px h-6 bg-border' />
-          <div>
-            <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Items</p>
-            <p className='text-sm font-black'>{transaction.order?.items?.length ?? 0}</p>
-          </div>
-          <div className='w-px h-6 bg-border' />
-          <div>
-            <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Tax</p>
-            <p className='text-sm font-black font-mono'>{PriceEngine.format(transaction.taxAmount)}</p>
-          </div>
-          {transaction.originalTransaction && (
-            <>
-              <div className='w-px h-6 bg-border' />
-              <div>
-                <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Orig. Invoice</p>
-                <p className='font-mono text-xs font-bold text-muted-foreground'>{transaction.originalTransaction.invoiceNo}</p>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Already-refunded notice */}
-        {alreadyRefunded && (
-          <div className='px-4 py-2 bg-muted/40 border-b shrink-0'>
-            <p className='text-xs text-muted-foreground'>
-              Refunded as{' '}
-              {transaction.refunds!.map(r => (
-                <span key={r.id} className='font-mono font-semibold text-foreground'>
-                  {r.invoiceNo}
-                </span>
-              ))}{' '}
-              Â· {dayjs(transaction.refunds![0]!.createdAt).format('MMM DD, YYYY')}
+            <p className='text-xs text-muted-foreground mt-0.5'>
+              {transaction.cashier?.name ?? 'System'} · {dayjs(transaction.createdAt).format('MMM DD, YYYY HH:mm')}
             </p>
           </div>
-        )}
-
-        {/* Scrollable content */}
-        <div className='flex-1 overflow-y-auto p-4'>
-          <Tab
-            defaultValue='Items'
-            tabs={[
-              { label: 'Items', Component: ItemsTab, transaction },
-              { label: 'Payments', Component: PaymentsTab, transaction },
-              { label: 'Tax', Component: TaxTab, transaction },
-            ]}
-          />
         </div>
-
-        {/* Footer */}
-        <div className='p-4 border-t shrink-0 flex flex-col gap-2'>
-          {showRefundButton && (
-            <Button
-              variant='destructive'
-              className='w-full h-9 gap-2 rounded-xl'
-              onClick={handleRefund}
-              disabled={alreadyRefunded || refundMutation.isPending || !isOnline}
-            >
-              <RotateCcw className='size-3.5' />
-              {alreadyRefunded ? 'Already Refunded' : isOnline ? 'Issue Refund' : 'Refund (Offline)'}
-            </Button>
-          )}
-          <Button variant='outline' className='w-full h-9 gap-2 rounded-xl' onClick={handleExport} disabled={!isOnline}>
-            <Download className='size-3.5' /> Export This Transaction
-          </Button>
-        </div>
+        <Button variant='ghost' size='icon' onClick={handleClose} className='h-7 w-7 shrink-0'>
+          <X className='size-4' />
+        </Button>
       </div>
-    </>
+
+      {/* Stats row */}
+      <div className='flex items-center gap-4 px-4 py-2.5 border-b bg-muted/20 shrink-0'>
+        <div>
+          <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Total</p>
+          <p className={cn('text-sm font-black font-mono', isRefund ? 'text-destructive' : 'text-primary')}>{PriceEngine.format(transaction.totalAmount)}</p>
+        </div>
+        <div className='w-px h-6 bg-border' />
+        <div>
+          <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Items</p>
+          <p className='text-sm font-black'>{transaction.order?.items?.length ?? 0}</p>
+        </div>
+        <div className='w-px h-6 bg-border' />
+        <div>
+          <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Tax</p>
+          <p className='text-sm font-black font-mono'>{PriceEngine.format(transaction.taxAmount)}</p>
+        </div>
+        {transaction.originalTransaction && (
+          <>
+            <div className='w-px h-6 bg-border' />
+            <div>
+              <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Orig. Invoice</p>
+              <p className='font-mono text-xs font-bold text-muted-foreground'>{transaction.originalTransaction.invoiceNo}</p>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Already-refunded notice */}
+      {alreadyRefunded && (
+        <div className='px-4 py-2 bg-muted/40 border-b shrink-0'>
+          <p className='text-xs text-muted-foreground'>
+            Refunded as{' '}
+            {transaction.refunds?.map(r => (
+              <span key={r.id} className='font-mono font-semibold text-foreground'>
+                {r.invoiceNo}
+              </span>
+            ))}{' '}
+            · {dayjs(transaction.refunds?.[0]?.createdAt).format('MMM DD, YYYY')}
+          </p>
+        </div>
+      )}
+
+      {/* Scrollable content */}
+      <div className='flex-1 overflow-y-auto p-4'>
+        <Tab
+          defaultValue='Items'
+          tabs={[
+            { label: 'Items', Component: ItemsTab, transaction },
+            { label: 'Payments', Component: PaymentsTab, transaction },
+            { label: 'Tax', Component: TaxTab, transaction },
+          ]}
+        />
+      </div>
+
+      {/* Footer */}
+      <div className='p-4 border-t shrink-0 flex flex-col gap-2'>
+        {showRefundButton && (
+          <Button
+            variant='destructive'
+            className='w-full h-9 gap-2 rounded-xl'
+            onClick={handleRefund}
+            disabled={alreadyRefunded || refundMutation.isPending || !isOnline}
+          >
+            <RotateCcw className='size-3.5' />
+            {alreadyRefunded ? 'Already Refunded' : isOnline ? 'Issue Refund' : 'Refund (Offline)'}
+          </Button>
+        )}
+        <Button variant='outline' className='w-full h-9 gap-2 rounded-xl' onClick={handleExport} disabled={!isOnline}>
+          <Download className='size-3.5' /> Export This Transaction
+        </Button>
+      </div>
+    </div>
   )
 }

@@ -141,7 +141,7 @@ const MILESTONE_DEFINITIONS: MilestoneDefinition[] = [
   {
     id: 'CATALOGUE_CROSSED_100_ITEMS',
     title: 'Your product catalogue has grown past 100 items',
-    message: 'With over 100 products, catalogue organisation and inventory tracking become much more valuable.',
+    message: 'With over 100 products, catalogue organization and inventory tracking become much more valuable.',
     relatedCapabilityIds: ['MANAGE_INVENTORY', 'VIEW_INVENTORY_REPORTS', 'MANAGE_CATEGORIES'],
     detect: ({ changedFields, characteristics }) => changedFields.includes('catalogueSize') && characteristics.catalogueSize === 'large',
   },

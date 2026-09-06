@@ -35,17 +35,17 @@ export function SuppliersPage() {
 
         h.accessor('taxId', {
           header: 'TIN / Tax ID',
-          cell: info => <span className='font-mono text-xs text-foreground'>{info.getValue() || 'â€”'}</span>,
+          cell: info => <span className='font-mono text-xs text-foreground'>{info.getValue() || '—'}</span>,
         }),
 
         h.accessor('contactNo', {
           header: 'Contact Number',
-          cell: info => <span className='font-mono text-xs text-muted-foreground'>{info.getValue() || 'â€”'}</span>,
+          cell: info => <span className='font-mono text-xs text-muted-foreground'>{info.getValue() || '—'}</span>,
         }),
 
         h.accessor('email', {
           header: 'Email Address',
-          cell: info => <span className='font-mono text-xs text-muted-foreground lowercase'>{info.getValue() || 'â€”'}</span>,
+          cell: info => <span className='font-mono text-xs text-muted-foreground lowercase'>{info.getValue() || '—'}</span>,
         }),
       ]),
     [],

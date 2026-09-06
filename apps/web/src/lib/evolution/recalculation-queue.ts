@@ -1,8 +1,8 @@
 /**
- * recalculation-queue.ts â€” DB-backed recalculation queue types and interface (R1 fix)
+ * recalculation-queue.ts — DB-backed recalculation queue types and interface (R1 fix)
  *
  * Principal Architect Review fix R1:
- *   The RecalculationScheduler must use a DB-backed queue â€” NOT an in-memory Map.
+ *   The RecalculationScheduler must use a DB-backed queue — NOT an in-memory Map.
  *
  *   In-memory problem:
  *     - Jobs are silently lost on server restart
@@ -12,7 +12,7 @@
  *   DB-backed solution:
  *     - One row per businessId with UNIQUE constraint (natural deduplication)
  *     - Scheduler upserts a row; job runner queries WHERE processedAt IS NULL
- *     - On server restart, nothing is lost â€” rows remain until processed
+ *     - On server restart, nothing is lost — rows remain until processed
  *     - Multi-instance: row-level locking (SELECT FOR UPDATE SKIP LOCKED) handles coordination
  *
  * Schema (added to Prisma in the Phase 1 migration):
@@ -57,7 +57,7 @@ export type RecalculationQueueEntry = {
  * Higher numbers are processed first.
  */
 export const RecalculationPriority = {
-  /** Background decay sweep â€” lowest priority */
+  /** Background decay sweep — lowest priority */
   BACKGROUND: 0,
 
   /** Deferred event batching (supplier added, product created, etc.) */
@@ -70,7 +70,7 @@ export const RecalculationPriority = {
 export type RecalculationPriority = (typeof RecalculationPriority)[keyof typeof RecalculationPriority]
 
 // ---------------------------------------------------------------------------
-// Queue interface â€” implemented in Phase 2 using getTenantPrisma
+// Queue interface — implemented in Phase 2 using getTenantPrisma
 // ---------------------------------------------------------------------------
 
 /**
@@ -113,7 +113,7 @@ export interface RecalculationQueuePort {
 // ---------------------------------------------------------------------------
 
 /**
- * No-op queue implementation â€” used in tests and as a safe fallback.
+ * No-op queue implementation — used in tests and as a safe fallback.
  */
 export const NoOpRecalculationQueue: RecalculationQueuePort = {
   async schedule(_businessId: string, _priority: RecalculationPriority): Promise<void> {},
@@ -136,13 +136,13 @@ export const NoOpRecalculationQueue: RecalculationQueuePort = {
  *   so a high-priority request is never downgraded by a later low-priority schedule.
  *
  * - claimBatch() returns the next N pending entries ordered by priority DESC, scheduledAt ASC.
- *   Uses a raw UPDATE â€¦ RETURNING to atomically claim rows and prevent double-processing
+ *   Uses a raw UPDATE … RETURNING to atomically claim rows and prevent double-processing
  *   across multiple job runner instances.
  *
  * - markProcessed() sets processedAt = now().
  * - markFailed() increments attempts and stores the error message.
  *   The row stays with processedAt = null so it is retried on the next run.
- *   After 3 failed attempts the row is left in place â€” an operator must clear it manually.
+ *   After 3 failed attempts the row is left in place — an operator must clear it manually.
  */
 export class PrismaRecalculationQueue implements RecalculationQueuePort {
   constructor(private readonly prisma: PrismaClientLike) {}
@@ -237,7 +237,7 @@ interface PrismaClientLike {
 }
 
 // ---------------------------------------------------------------------------
-// Singleton â€” swap in tests with NoOpRecalculationQueue
+// Singleton — swap in tests with NoOpRecalculationQueue
 // ---------------------------------------------------------------------------
 
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'

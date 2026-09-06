@@ -1,13 +1,13 @@
 import { getColumns } from '@platform/components/custom/data-view'
 import { MultiView } from '@platform/components/custom/data-view/multi-view'
 import { Badge } from '@platform/components/ui/badge'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import dayjs from '@platform/lib/dayjs'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import MountManager from '@platform/lib/mount-manager'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useCallback, useMemo, useState } from 'react'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import MountManager from '@platform/lib/mount-manager'
 import { type fePurchase, fetchPurchases } from '@/lib/queries/fetch-purchases'
 import { getPurchaseStatusUIMetadata } from '@/lib/server-fn/purchase-workflow'
 import { closePurchaseSidebar, PURCHASE_ASIDE_ID, showPurchaseSidebar } from './-components/purchase-sidebar'
@@ -66,7 +66,7 @@ function RouteComponent() {
         h.display({
           id: 'supplier',
           header: 'Supplier',
-          cell: ({ row }) => <span className='font-medium text-sm'>{row.original.supplier?.name ?? 'â€”'}</span>,
+          cell: ({ row }) => <span className='font-medium text-sm'>{row.original.supplier?.name ?? '—'}</span>,
         }),
 
         h.display({
@@ -107,7 +107,7 @@ function RouteComponent() {
           header: 'Reference',
           cell: ({ row }) => {
             const notes = row.original.notes?.replace(/^\[(VOIDED|DELETED)\]\s*/i, '') || null
-            return <span className='text-xs text-muted-foreground truncate max-w-48 block'>{notes ?? 'â€”'}</span>
+            return <span className='text-xs text-muted-foreground truncate max-w-48 block'>{notes ?? '—'}</span>
           },
         }),
       ]),

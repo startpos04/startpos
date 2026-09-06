@@ -12,13 +12,13 @@ import {
   transactionCollection,
   userCollection,
 } from '@platform/db/collections'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { count, eq, toArray, useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute } from '@tanstack/react-router'
 import { Edit, User as UserIcon, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
-import type { MountProps } from '@platform/lib/mount-manager'
 import { writeAudit } from '@/lib/server-fn/write-audit'
 import { closeEmployeeSidebar, showEmployeeSidebar } from '../-components/employee-sidebar'
 import { EditEmployeeSidebar } from './-edit-account'
@@ -44,7 +44,7 @@ export function EmployeeDetailsSidebar({ open: _open, onClose, employeeId }: Emp
 }
 
 function RouteComponent({ employeeId: propId, onClose }: RouteComponentProps) {
-  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context â€” used inside MountManager or route component
+  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
   const employeeId = propId ?? Route.useLoaderData().employeeId
 
   const {

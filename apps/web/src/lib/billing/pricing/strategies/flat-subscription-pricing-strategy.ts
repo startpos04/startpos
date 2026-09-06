@@ -5,7 +5,7 @@
  *
  * Used for standard monthly/annual subscription plans where the price is a
  * single flat fee regardless of which features are used. This is the simplest
- * strategy â€” it produces a single FEATURE line item at the plan's flat rate.
+ * strategy — it produces a single FEATURE line item at the plan's flat rate.
  *
  * When to use: BillingModel = MONTHLY_SUBSCRIPTION plans quoted via the
  * pricing calculator for comparison against composable options.

@@ -1,9 +1,9 @@
-import { CheckCircle2 } from 'lucide-react'
-import type { ReactNode } from 'react'
 import { Button } from '@platform/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
 import type { MountProps } from '@platform/lib/mount-manager'
 import type { Prettify } from '@platform/lib/types'
+import { CheckCircle2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 const successPromptSchema = {
   title: 'Action Successful' as string | ReactNode,

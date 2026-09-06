@@ -47,14 +47,14 @@ export const transactionCols = {
     h.display({
       id: 'cashier',
       header: 'Cashier',
-      cell: ({ row }) => <span className='text-sm'>{row.original.cashier?.name ?? 'â€”'}</span>,
+      cell: ({ row }) => <span className='text-sm'>{row.original.cashier?.name ?? '—'}</span>,
     }),
 
   orderNumber: (h: ColumnHelper<any>) =>
     h.display({
       id: 'order',
       header: 'Order No.',
-      cell: ({ row }) => <span className='font-mono text-xs text-muted-foreground'>{row.original.order?.orderNumber ?? 'â€”'}</span>,
+      cell: ({ row }) => <span className='font-mono text-xs text-muted-foreground'>{row.original.order?.orderNumber ?? '—'}</span>,
     }),
 
   paymentMethod: (h: ColumnHelper<any>) =>
@@ -68,7 +68,7 @@ export const transactionCols = {
             {METHOD_LABELS[method as PaymentMethod] ?? method}
           </Badge>
         ) : (
-          <span className='text-muted-foreground text-xs'>â€”</span>
+          <span className='text-muted-foreground text-xs'>—</span>
         )
       },
     }),

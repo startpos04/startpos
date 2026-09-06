@@ -13,17 +13,17 @@ import {
   userCollection,
 } from '@platform/db/collections'
 import { useIsOnline } from '@platform/hooks/use-is-online'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import dayjs from '@platform/lib/dayjs'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import MountManager from '@platform/lib/mount-manager'
 import { downloadCsv } from '@platform/lib/utils/download-csv'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect, useNavigate, useSearch } from '@tanstack/react-router'
 import { Download, Receipt } from 'lucide-react'
 import type { PaymentMethod, TransactionType } from 'prisma/generated/prisma/enums'
 import { useCallback, useMemo, useState } from 'react'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { transactionCols } from '@/lib/columns/transaction-columns'
-import MountManager from '@platform/lib/mount-manager'
 import { downloadTransactionsCSV } from '@/lib/server-fn/download-tranasctions'
 import { fetchTransactionHistory, type TransactionHistoryItem } from '@/lib/server-fn/fetch-transaction-history'
 import { closeTransactionSidebar, showTransactionSidebar, TRANSACTION_ASIDE_ID } from './-components/transaction-sidebar'
@@ -125,6 +125,7 @@ function RouteComponent() {
                 .filter(i => i.orderId === order.id)
                 .map(item => ({
                   ...item,
+                  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
                   variant: null as any, // Skip deep variant/product joins offline
                   selectedAddons: [],
                 })),

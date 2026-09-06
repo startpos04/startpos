@@ -139,7 +139,7 @@ export const WasteEngine = {
     if (inventoryMode !== 'none') {
       try {
         InventoryPolicy.validateDeduction(variantId, totalAvailable, quantity, inventoryMode)
-      } catch (error) {
+      } catch (_error) {
         // Validation failed (strict mode with insufficient stock)
         throw new Error(`Insufficient finished goods to waste. Available: ${totalAvailable}, Requested: ${quantity}`)
       }

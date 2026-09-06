@@ -1,7 +1,7 @@
 /**
  * audit/record-audit.ts
  *
- * Application Layer helper â€” persists an AuditEntryDTO to the audit_logs table.
+ * Application Layer helper — persists an AuditEntryDTO to the audit_logs table.
  *
  * Architectural position:
  *   AuditEngine (pure domain) â†’ recordAudit (Application Layer) â†’ rootPrisma
@@ -14,7 +14,7 @@
  *
  * Failure behaviour:
  *   Audit logging is best-effort for non-financial actions. If the write fails
- *   (e.g. transient DB hiccup), the error is logged but NOT re-thrown â€” the
+ *   (e.g. transient DB hiccup), the error is logged but NOT re-thrown — the
  *   primary operation must not be rolled back due to an audit failure.
  *
  *   EXCEPTION: For financial actions (TRANSACTION_REFUNDED, PURCHASE_VOIDED),
@@ -35,7 +35,7 @@ import type { AuditEntryDTO } from './types'
 
 // ---------------------------------------------------------------------------
 // recordAudit
-// Standalone write â€” creates a single AuditLog row via rootPrisma.
+// Standalone write — creates a single AuditLog row via rootPrisma.
 // ---------------------------------------------------------------------------
 
 export async function recordAudit(entry: AuditEntryDTO, options: { throwOnFailure?: boolean } = {}): Promise<void> {
@@ -55,7 +55,7 @@ export async function recordAudit(entry: AuditEntryDTO, options: { throwOnFailur
 
 // ---------------------------------------------------------------------------
 // recordAuditWithTx
-// Atomic write â€” participates in an existing Prisma $transaction.
+// Atomic write — participates in an existing Prisma $transaction.
 // Use this when the audit entry must commit or rollback with a primary mutation.
 // ---------------------------------------------------------------------------
 

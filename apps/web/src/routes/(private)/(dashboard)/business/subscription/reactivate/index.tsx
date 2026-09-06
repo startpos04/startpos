@@ -1,7 +1,7 @@
 /**
  * subscription/reactivate/index.tsx
  *
- * /subscription/reactivate â€” Account Reactivation Flow
+ * /subscription/reactivate — Account Reactivation Flow
  *
  * Accessible to businesses in LONG_TERM_INACTIVE, EXPIRED, or CANCELLED status.
  * This route is the designated escape hatch: it must render without any
@@ -14,7 +14,7 @@
  * - Immediate capability restoration upon successful payment
  *
  * Route placement: /subscription/reactivate (outside (private)/(dashboard) so
- * it does NOT inherit the Dashboard sidebar layout â€” full-page escape hatch).
+ * it does NOT inherit the Dashboard sidebar layout — full-page escape hatch).
  */
 
 import { Badge } from '@platform/components/ui/badge'
@@ -22,7 +22,6 @@ import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
 import { Separator } from '@platform/components/ui/separator'
-import { refreshAuthUser } from '@platform/lib/better-auth/auth-store'
 import { APP_NAME } from '@platform/lib/constants'
 import { SubscriptionStatus } from '@platform/lib/entitlement/entitlement-types'
 import { cn } from '@platform/lib/utils'
@@ -41,6 +40,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { refreshAuthUser } from '@/lib/better-auth/auth-store'
 import { BillingModel } from '@/lib/billing/types'
 import { canReactivate, SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
 import { fetchPlans, type PlanWithEntitlements } from '@/lib/server-fn/fetch-plans'
@@ -119,7 +119,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/business/subscripti
 })
 
 // ---------------------------------------------------------------------------
-// What reactivation restores â€” shown as a feature checklist
+// What reactivation restores — shown as a feature checklist
 // ---------------------------------------------------------------------------
 
 const RESTORED_FEATURES = [
@@ -190,9 +190,9 @@ function PlanSelectionDialog({
     if (method === 'annual') {
       const annual = plan.annualPrice ?? Math.round(plan.monthlyPrice * 0.8 * 12)
       const perMonth = Math.round(annual / 12)
-      return `â‚±${(perMonth / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
+      return `₱${(perMonth / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
     }
-    return `â‚±${(plan.monthlyPrice / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
+    return `₱${(plan.monthlyPrice / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
   }
 
   return (
@@ -363,7 +363,7 @@ function ReactivatePage() {
 
   return (
     <div className='min-h-screen bg-background flex flex-col'>
-      {/* Minimal header â€” no sidebar */}
+      {/* Minimal header — no sidebar */}
       <header className='border-b px-6 py-4 flex items-center justify-between'>
         <div className='flex items-center gap-2'>
           <div className='bg-sidebar-primary text-sidebar-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg'>
@@ -388,7 +388,7 @@ function ReactivatePage() {
               <RefreshCwIcon className='h-8 w-8 text-muted-foreground' />
             </div>
             <h1 className='text-2xl font-bold tracking-tight'>Reactivate Your Account</h1>
-            <p className='text-muted-foreground text-sm'>{businessName} â€” restore full access to all your operational features.</p>
+            <p className='text-muted-foreground text-sm'>{businessName} — restore full access to all your operational features.</p>
             <Badge
               variant='outline'
               className={cn(
@@ -400,7 +400,7 @@ function ReactivatePage() {
             </Badge>
           </div>
 
-          {/* Suspended â€” admin-only resolution */}
+          {/* Suspended — admin-only resolution */}
           {isSuspended ? (
             <Card className='border-destructive/30'>
               <CardHeader className='pb-3'>

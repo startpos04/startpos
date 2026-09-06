@@ -1,5 +1,5 @@
 /**
- * require-permission.tsx â€” Per-permission route guard component
+ * require-permission.tsx — Per-permission route guard component
  *
  * Wraps a route or feature section and renders a "not authorized" placeholder
  * when the current user does not have the required permission.
@@ -8,7 +8,7 @@
  * RequirePermission when access depends on role-based or custom-assigned
  * permissions rather than business-wide capability enablement.
  *
- * Usage â€” wrapping a full route:
+ * Usage — wrapping a full route:
  *   function BillingPage() {
  *     return (
  *       <RequirePermission permission={PermissionKeys.BUSINESS.MANAGE_BILLING}>
@@ -17,12 +17,12 @@
  *     )
  *   }
  *
- * Usage â€” wrapping a section (inline):
+ * Usage — wrapping a section (inline):
  *   <RequirePermission permission={PermissionKeys.BUSINESS.EDIT_BUSINESS_PROFILE} inline>
  *     <BusinessProfileForm />
  *   </RequirePermission>
  *
- * Usage â€” require ALL permissions:
+ * Usage — require ALL permissions:
  *   <RequirePermission
  *     permissions={[
  *       PermissionKeys.BUSINESS.MANAGE_BILLING,
@@ -33,7 +33,7 @@
  *     <AdvancedBillingPanel />
  *   </RequirePermission>
  *
- * Usage â€” require ANY permission:
+ * Usage — require ANY permission:
  *   <RequirePermission
  *     permissions={[
  *       PermissionKeys.BUSINESS.MANAGE_BILLING,
@@ -43,7 +43,7 @@
  *     <BillingDashboard />
  *   </RequirePermission>
  *
- * Usage â€” custom fallback:
+ * Usage — custom fallback:
  *   <RequirePermission
  *     permission={PermissionKeys.BUSINESS.DELETE_BRANCH}
  *     fallback={<p>You don't have permission to delete branches.</p>}
@@ -53,18 +53,18 @@
  *
  * Architecture:
  *   - Reads from authStore.authorization.permissions (session-loaded).
- *   - No server call on render â€” purely reactive to the session.
+ *   - No server call on render — purely reactive to the session.
  *   - Does NOT replace server-side checks. Use permission middleware on
  *     server functions that perform mutations.
  */
 
-import { Link } from '@tanstack/react-router'
-import { ShieldAlertIcon } from 'lucide-react'
-import type React from 'react'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { useHasAllPermissions, useHasAnyPermission, usePermission } from '@platform/hooks/use-permission'
 import type { PermissionKey } from '@platform/lib/authorization/permission-keys'
+import { Link } from '@tanstack/react-router'
+import { ShieldAlertIcon } from 'lucide-react'
+import type React from 'react'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -116,7 +116,7 @@ type RequirePermissionProps = RequirePermissionSingleProps | RequirePermissionMu
 // ---------------------------------------------------------------------------
 
 export function RequirePermission({ permission, permissions, requireAll = false, children, fallback, inline = false }: RequirePermissionProps) {
-  const hasSinglePermission = usePermission(permission!)
+  const hasSinglePermission = usePermission(permission ?? ('' as PermissionKey))
   const hasAllPermissions = useHasAllPermissions(permissions ?? [])
   const hasAnyPermission = useHasAnyPermission(permissions ?? [])
 
@@ -202,93 +202,90 @@ function PermissionDeniedInline({
 // ---------------------------------------------------------------------------
 
 const PERMISSION_LABELS: Partial<Record<PermissionKey, string>> = {
-  // Business scope
-  'business:view:business_profile': 'View business profile',
-  'business:edit:business_profile': 'Edit business profile',
-  'business:manage:billing': 'Manage billing',
+  // Business
   'business:view:billing': 'View billing',
+  'business:manage:billing': 'Manage billing',
   'business:manage:subscription': 'Manage subscription',
-  'business:view:reports': 'View reports',
+  'business:view:branches': 'View branches',
+  'business:manage:branches': 'Manage branches',
+  'business:create:branch': 'Create branches',
+  'business:delete:branch': 'Delete branches',
+  'business:view:capabilities': 'View capabilities',
+  'business:manage:capabilities': 'Manage capabilities',
+  'business:view:profile': 'View business profile',
+  'business:manage:profile': 'Edit business profile',
+  'business:view:suppliers': 'View suppliers',
+  'business:manage:suppliers': 'Manage suppliers',
+  'business:view:customers': 'View customers',
+  'business:manage:customers': 'Manage customers',
+  'business:view:users': 'View users',
+  'business:manage:users': 'Manage users',
+  'business:invite:user': 'Invite users',
+  'business:delete:user': 'Delete users',
+  'business:view:analytics': 'View analytics',
   'business:export:data': 'Export data',
-  'business:manage:integrations': 'Manage integrations',
-  'business:view:audit_logs': 'View audit logs',
 
-  // Branch scope
-  'branch:create:branch': 'Create branches',
-  'branch:edit:branch': 'Edit branches',
-  'branch:delete:branch': 'Delete branches',
-  'branch:view:branch': 'View branch details',
-  'branch:manage:branch_settings': 'Manage branch settings',
+  // Branch — employees
+  'branch:view:employees': 'View employees',
+  'branch:manage:employees': 'Manage employees',
+  'branch:create:employee': 'Create employees',
+  'branch:edit:employee': 'Edit employees',
+  'branch:delete:employee': 'Delete employees',
 
-  // User scope
-  'user:create:user': 'Create users',
-  'user:edit:user': 'Edit users',
-  'user:delete:user': 'Delete users',
-  'user:view:user': 'View user details',
-  'user:assign:role': 'Assign roles',
-  'user:manage:permissions': 'Manage permissions',
-  'user:view:activity': 'View user activity',
-
-  // Product scope
+  // Branch — products
+  'branch:view:products': 'View products',
+  'branch:manage:products': 'Manage products',
   'branch:create:product': 'Create products',
   'branch:edit:product': 'Edit products',
   'branch:delete:product': 'Delete products',
-  'branch:view:product': 'View products',
+
+  // Branch — inventory
+  'branch:view:inventory': 'View inventory',
   'branch:manage:inventory': 'Manage inventory',
-  'branch:view:inventory_reports': 'View inventory reports',
+  'branch:adjust:inventory': 'Adjust inventory',
 
-  // Transaction scope
-  'branch:create:transaction': 'Create transactions',
-  'branch:view:transaction': 'View transactions',
-  'branch:void:transaction': 'Void transactions',
-  'branch:refund:transaction': 'Refund transactions',
-
-  // Order scope
+  // Branch — orders
+  'branch:view:orders': 'View orders',
   'branch:create:order': 'Create orders',
   'branch:edit:order': 'Edit orders',
-  'branch:delete:order': 'Delete orders',
-  'branch:view:order': 'View orders',
-  'branch:fulfill:order': 'Fulfill orders',
+  'branch:cancel:order': 'Cancel orders',
+  'branch:refund:order': 'Refund orders',
 
-  // Payment scope
-  'branch:process:payment': 'Process payments',
-  'branch:void:payment': 'Void payments',
-  'branch:refund:payment': 'Refund payments',
-  'branch:view:payment': 'View payments',
+  // Branch — transactions
+  'branch:view:transactions': 'View transactions',
+  'branch:create:transaction': 'Create transactions',
 
-  // Customer scope
-  'branch:create:customer': 'Create customers',
-  'branch:edit:customer': 'Edit customers',
-  'branch:delete:customer': 'Delete customers',
-  'branch:view:customer': 'View customers',
+  // Branch — reports
+  'branch:view:sales-reports': 'View sales reports',
+  'branch:view:inventory-reports': 'View inventory reports',
+  'branch:view:employee-reports': 'View employee reports',
+  'branch:export:reports': 'Export reports',
 
-  // Supplier scope
-  'branch:create:supplier': 'Create suppliers',
-  'branch:edit:supplier': 'Edit suppliers',
-  'branch:delete:supplier': 'Delete suppliers',
-  'branch:view:supplier': 'View suppliers',
-
-  // Purchase scope
-  'branch:create:purchase': 'Create purchases',
-  'branch:edit:purchase': 'Edit purchases',
-  'branch:delete:purchase': 'Delete purchases',
-  'branch:view:purchase': 'View purchases',
-  'branch:approve:purchase': 'Approve purchases',
-
-  // Task scope
-  'branch:create:task': 'Create tasks',
-  'branch:edit:task': 'Edit tasks',
-  'branch:delete:task': 'Delete tasks',
-  'branch:view:task': 'View tasks',
-  'branch:assign:task': 'Assign tasks',
-  'branch:complete:task': 'Complete tasks',
-
-  // Vendor session scope
-  'branch:start:vendor_session': 'Start vendor sessions',
-  'branch:end:vendor_session': 'End vendor sessions',
-  'branch:view:vendor_session': 'View vendor sessions',
-
-  // Settings scope
-  'branch:manage:settings': 'Manage settings',
+  // Branch — settings & billing
   'branch:view:settings': 'View settings',
+  'branch:manage:settings': 'Manage settings',
+  'branch:view:billing': 'View billing',
+  'branch:manage:billing': 'Manage billing',
+
+  // Branch — tasks
+  'branch:view:tasks': 'View tasks',
+  'branch:create:task': 'Create tasks',
+  'branch:manage:tasks': 'Manage tasks',
+
+  // Branch — purchases
+  'branch:view:purchases': 'View purchases',
+  'branch:create:purchase': 'Create purchases',
+  'branch:manage:purchases': 'Manage purchases',
+
+  // Branch — production
+  'branch:view:production': 'View production',
+  'branch:create:production': 'Create production orders',
+  'branch:manage:production': 'Manage production',
+
+  // User
+  'user:view:account': 'View account',
+  'user:manage:account': 'Manage account',
+  'user:change:password': 'Change password',
+  'user:manage:preferences': 'Manage preferences',
+  'user:manage:permissions': 'Manage permissions',
 }

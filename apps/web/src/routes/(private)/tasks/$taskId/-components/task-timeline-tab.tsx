@@ -48,7 +48,7 @@ export function TaskTimelineTab({ task }: TaskTimelineTabProps) {
               />
             )}
 
-            {/* C5: fulfilledAt â€” present once clerk marks the task complete */}
+            {/* C5: fulfilledAt — present once clerk marks the task complete */}
             {task.fulfilledAt && (
               <TimelineItem
                 icon={<FileCheck className='h-3.5 w-3.5' />}
@@ -59,7 +59,7 @@ export function TaskTimelineTab({ task }: TaskTimelineTabProps) {
               />
             )}
 
-            {/* C5: reviewedAt â€” present once a supervisor locks the record */}
+            {/* C5: reviewedAt — present once a supervisor locks the record */}
             {task.reviewedAt && (
               <TimelineItem
                 icon={<Star className='h-3.5 w-3.5' />}
@@ -70,7 +70,7 @@ export function TaskTimelineTab({ task }: TaskTimelineTabProps) {
               />
             )}
 
-            {/* C5: canceledAt â€” present on the terminal CANCELLED path */}
+            {/* C5: canceledAt — present on the terminal CANCELLED path */}
             {task.canceledAt && (
               <TimelineItem
                 icon={<Ban className='h-3.5 w-3.5' />}
@@ -95,7 +95,7 @@ function TimelineItem({ icon, color, title, date, description }: { icon: React.R
       </div>
       <div className='flex flex-col gap-0.5'>
         <span className='text-xs font-semibold'>{title}</span>
-        <span className='text-[10px] font-medium text-slate-400'>{dayjs(date).format('MMM DD, YYYY â€” hh:mm A')}</span>
+        <span className='text-[10px] font-medium text-slate-400'>{dayjs(date).format('MMM DD, YYYY — hh:mm A')}</span>
         <p className='text-xs text-slate-500 mt-1 leading-relaxed'>{description}</p>
       </div>
     </div>

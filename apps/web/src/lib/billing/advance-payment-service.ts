@@ -6,9 +6,9 @@
  */
 
 import { prisma } from '@platform/lib/prisma-client'
-import type { BillingPayment, BusinessSubscription } from '@prisma/client'
+import type { BillingPayment, BusinessSubscription } from 'prisma/generated/prisma/client'
 import { createStripeAdapter } from './adapters/stripe-adapter'
-import { createAdvancePaymentSyncService } from './advance-payment-sync-service'
+import { createAdvancePaymentSyncService, type SyncResult } from './advance-payment-sync-service'
 
 // ---------------------------------------------------------------------------
 // AdvancePaymentService
@@ -67,7 +67,7 @@ export class AdvancePaymentService {
     success: boolean
     subscription: BusinessSubscription
     syncRequired: boolean
-    syncResult?: any
+    syncResult?: SyncResult | null
     error?: string
   }> {
     try {

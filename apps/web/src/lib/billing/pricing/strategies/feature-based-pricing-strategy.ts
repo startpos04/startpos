@@ -46,7 +46,7 @@ export const FeatureBasedPricingStrategy = {
 
     for (const key of selectedFeatureKeys) {
       const fp = featurePriceMap.get(key)
-      if (!fp) continue // Feature not priced in this catalog â€” skip
+      if (!fp) continue // Feature not priced in this catalog — skip
 
       // Negotiated price override (enterprise path uses this)
       const effectivePrice = input.negotiatedPrices?.[key] ?? fp.monthlyPrice
@@ -68,7 +68,7 @@ export const FeatureBasedPricingStrategy = {
     }
 
     // -----------------------------------------------------------------------
-    // Step 2: Bundle detection â€” find the highest-saving qualifying bundle
+    // Step 2: Bundle detection — find the highest-saving qualifying bundle
     // -----------------------------------------------------------------------
     const selectedSet = new Set(selectedFeatureKeys)
     const { bundleKey, discountLine } = detectAndApplyBundle(selectedSet, subtotalBeforeDiscount, catalog.bundleVersions, sortOrder)

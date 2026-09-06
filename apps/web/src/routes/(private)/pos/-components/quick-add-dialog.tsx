@@ -1,11 +1,11 @@
 /**
  * quick-add-dialog.tsx
  *
- * QuickAddDialog â€” lightweight "sell now, catalog later" modal for the POS.
+ * QuickAddDialog — lightweight "sell now, catalog later" modal for the POS.
  *
  * The cashier types a product name and price. On confirm the product is
  * created as a provisional record (SERVICE type, no inventory tracking) and
- * the resulting posItem is handed directly to handleAddToCart â€” the item
+ * the resulting posItem is handed directly to handleAddToCart — the item
  * appears in the cart immediately without any page navigation.
  *
  * Architecture:
@@ -25,22 +25,22 @@ import { Button } from '@platform/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
 import { categoryCollection, productCollection, productVariantCollection, unitCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { useForm, uuid } from '@tanstack/react-form'
 import { useStore } from '@tanstack/react-store'
 import { PackagePlus, X } from 'lucide-react'
 import { ResourceType, TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/browser'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { authStore } from '@/lib/better-auth/auth-store'
 import type { posItem } from '@/lib/conversion/pos-stock-engine'
-import type { MountProps } from '@platform/lib/mount-manager'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 interface QuickAddDialogProps extends MountProps {
-  /** Pre-filled from the search term â€” empty string for the no-catalog state */
+  /** Pre-filled from the search term — empty string for the no-catalog state */
   searchQuery: string
   /** Optional SKU to pre-fill (e.g., from barcode scan) */
   sku?: string
@@ -50,7 +50,7 @@ interface QuickAddDialogProps extends MountProps {
 // ---------------------------------------------------------------------------
 // Default catalog lookup
 // Finds the "General" category and "pcs" unit seeded at registration.
-// Both are guaranteed to exist â€” complete-registration.ts creates them in
+// Both are guaranteed to exist — complete-registration.ts creates them in
 // Step 9. Returns null if somehow not found (shouldn't happen in practice).
 // ---------------------------------------------------------------------------
 
@@ -259,7 +259,7 @@ export function QuickAddDialog({ open, onClose, searchQuery, sku, onConfirm }: Q
             {([canSubmit, isSubmitting]) => (
               <Button type='submit' disabled={!canSubmit} className='w-full gap-2'>
                 <PackagePlus className='w-4 h-4' />
-                {isSubmitting ? 'Addingâ€¦' : 'Add to cart'}
+                {isSubmitting ? 'Adding…' : 'Add to cart'}
               </Button>
             )}
           </form.Subscribe>

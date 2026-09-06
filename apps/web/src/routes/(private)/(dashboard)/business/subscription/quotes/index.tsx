@@ -1,7 +1,7 @@
 /**
  * billing/quotes/index.tsx
  *
- * /billing/quotes â€” Saved Quote List
+ * /billing/quotes — Saved Quote List
  *
  * Displays all PricingQuote records for the business:
  *   - Status badge (DRAFT / CALCULATED / SENT / ACCEPTED / CONVERTED / EXPIRED / CANCELLED)
@@ -10,7 +10,7 @@
  *   - Link to quote detail
  *
  * Architecture compliance:
- *   - No monetary calculations in the component â€” all amounts from the server.
+ *   - No monetary calculations in the component — all amounts from the server.
  *   - MANAGE_BILLING capability required.
  */
 
@@ -162,7 +162,7 @@ function QuotesPage() {
                         </TableCell>
                         <TableCell className='text-right font-mono text-sm tabular-nums'>{formatCents(quote.grandTotal)}</TableCell>
                         <TableCell className='text-sm text-muted-foreground'>
-                          {quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : 'â€”'}
+                          {quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—'}
                         </TableCell>
                         <TableCell className='pr-6 text-right'>
                           <Button variant='ghost' size='sm' asChild>

@@ -1,5 +1,5 @@
 /**
- * require-access.tsx â€” Combined capability + permission guard
+ * require-access.tsx — Combined capability + permission guard
  *
  * Convenience component that combines RequireCapability and RequirePermission
  * into a single gate. Use when access requires BOTH business-level capability
@@ -9,7 +9,7 @@
  * with cleaner syntax and better error messages that distinguish between
  * "feature not enabled" and "permission denied".
  *
- * Usage â€” single permission:
+ * Usage — single permission:
  *   <RequireAccess
  *     capability={Capabilities.MANAGE_BILLING}
  *     permission={PermissionKeys.BUSINESS.MANAGE_BILLING}
@@ -17,7 +17,7 @@
  *     <BillingSettings />
  *   </RequireAccess>
  *
- * Usage â€” multiple permissions (ANY):
+ * Usage — multiple permissions (ANY):
  *   <RequireAccess
  *     capability={Capabilities.MANAGE_INVENTORY}
  *     permissions={[
@@ -28,7 +28,7 @@
  *     <InventoryDashboard />
  *   </RequireAccess>
  *
- * Usage â€” multiple permissions (ALL):
+ * Usage — multiple permissions (ALL):
  *   <RequireAccess
  *     capability={Capabilities.MANAGE_EMPLOYEES}
  *     permissions={[
@@ -40,7 +40,7 @@
  *     <EmployeeManagement />
  *   </RequireAccess>
  *
- * Usage â€” inline mode:
+ * Usage — inline mode:
  *   <RequireAccess
  *     capability={Capabilities.EXPORT_DATA}
  *     permission={PermissionKeys.BUSINESS.EXPORT_DATA}
@@ -61,9 +61,9 @@
  *   - When you need custom fallback for each gate â†’ nest manually
  */
 
-import type React from 'react'
 import type { PermissionKey } from '@platform/lib/authorization/permission-keys'
 import type { CapabilityKey } from '@platform/lib/entitlement/capability-keys'
+import type React from 'react'
 import { RequireCapability } from './require-capability'
 import { RequirePermission } from './require-permission'
 
@@ -123,7 +123,7 @@ export function RequireAccess({ capability, permission, permissions, requireAllP
           {children}
         </RequirePermission>
       ) : (
-        <RequirePermission permissions={permissions!} requireAll={requireAllPermissions} inline={inline}>
+        <RequirePermission permissions={permissions} requireAll={requireAllPermissions} inline={inline}>
           {children}
         </RequirePermission>
       )}

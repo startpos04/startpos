@@ -1,7 +1,7 @@
 /**
  * settings/-security/index.tsx
  *
- * Security tab â€” Phase 1 + Phase 2 legal compliance.
+ * Security tab — Phase 1 + Phase 2 legal compliance.
  *
  * Shows the last 20 login sessions for the current user:
  *   - IP address
@@ -24,7 +24,7 @@ import { fetchLoginHistory, type LoginHistoryEntry } from '@/lib/server-fn/fetch
 import { revokeSession } from '@/lib/server-fn/revoke-session'
 
 // ---------------------------------------------------------------------------
-// User-agent parser â€” lightweight, no library needed
+// User-agent parser — lightweight, no library needed
 // ---------------------------------------------------------------------------
 
 function parseUserAgent(ua: string | null): { label: string; isMobile: boolean } {
@@ -92,7 +92,7 @@ function SessionRow({ session, onRevoked }: { session: LoginHistoryEntry; onRevo
             )}
           </div>
           <p className='text-xs text-muted-foreground'>
-            {session.ipAddress ?? 'IP unknown'} Â· {dayjs(session.createdAt).format('MMM D, YYYY [at] h:mm A')}
+            {session.ipAddress ?? 'IP unknown'} · {dayjs(session.createdAt).format('MMM D, YYYY [at] h:mm A')}
           </p>
           <p className='text-xs text-muted-foreground'>
             {isActive ? `Expires ${dayjs(session.expiresAt).fromNow()}` : `Expired ${dayjs(session.expiresAt).fromNow()}`}
@@ -168,7 +168,7 @@ export function SecurityPage() {
                 <CardTitle className='text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5'>
                   <Shield className='size-3.5' />
                   Active Sessions
-                  <span className='text-muted-foreground/50 font-normal normal-case tracking-normal'>â€” click Ã— to revoke</span>
+                  <span className='text-muted-foreground/50 font-normal normal-case tracking-normal'>— click × to revoke</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className='px-4 pt-0 pb-1'>

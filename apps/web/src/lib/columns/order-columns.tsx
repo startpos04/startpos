@@ -51,7 +51,7 @@ export const orderCols = {
   customerReference: (h: ColumnHelper<any>) =>
     h.accessor('customerReference', {
       header: 'Reference',
-      cell: info => <span className='text-sm text-muted-foreground'>{info.getValue() ?? 'â€”'}</span>,
+      cell: info => <span className='text-sm text-muted-foreground'>{info.getValue() ?? '—'}</span>,
     }),
 
   itemsCount: (h: ColumnHelper<any>) =>
@@ -70,7 +70,7 @@ export const orderCols = {
     h.display({
       id: 'invoice',
       header: 'Invoice',
-      cell: ({ row }) => <span className='font-mono text-xs text-muted-foreground'>{row.original.transaction?.invoiceNo ?? 'â€”'}</span>,
+      cell: ({ row }) => <span className='font-mono text-xs text-muted-foreground'>{row.original.transaction?.invoiceNo ?? '—'}</span>,
     }),
 
   transactionTotal: (h: ColumnHelper<any>) =>
@@ -82,7 +82,7 @@ export const orderCols = {
         return total != null ? (
           <span className='font-mono font-bold text-sm'>{PriceEngine.format(total)}</span>
         ) : (
-          <span className='text-muted-foreground text-xs'>â€”</span>
+          <span className='text-muted-foreground text-xs'>—</span>
         )
       },
     }),

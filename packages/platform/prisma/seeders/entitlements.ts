@@ -1,14 +1,14 @@
 /**
- * entitlements.ts â€” Entitlement Engine seed
+ * entitlements.ts — Entitlement Engine seed
  *
  * Reads all platform-global data from csv/system/:
- *   features.csv              â€” Feature registry
- *   plans.csv                 â€” SubscriptionPlan tiers
- *   plan-entitlements.csv     â€” PlanEntitlement join records
- *   pricing-catalog.csv       â€” PricingCatalog v1 with FeaturePrice records
+ *   features.csv              — Feature registry
+ *   plans.csv                 — SubscriptionPlan tiers
+ *   plan-entitlements.csv     — PlanEntitlement join records
+ *   pricing-catalog.csv       — PricingCatalog v1 with FeaturePrice records
  *
  * All upserts are keyed on stable natural keys so the seed is fully
- * idempotent â€” safe to re-run at any time.
+ * idempotent — safe to re-run at any time.
  *
  * order = 0: runs before all tenant-specific seeders.
  */
@@ -55,8 +55,8 @@ function parseSystemCsv<T>(fileName: string, requiredHeaders: string[]): T[] {
 // ---------------------------------------------------------------------------
 
 export async function Entitlements(prisma: PrismaClient) {
-  // â”€â”€ Step 1: Features â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  console.info('ðŸ” Seeding Feature registry from csv/system/features.csv...')
+  // ── Step 1: Features ──────────────────────────────────────────────────────
+  console.info('🔐 Seeding Feature registry from csv/system/features.csv...')
 
   const featureRows = parseSystemCsv<any>('features.csv', ['key', 'label', 'description', 'isSelectableByCustomer', 'sortOrder'])
 
@@ -84,10 +84,10 @@ export async function Entitlements(prisma: PrismaClient) {
     })
   }
 
-  console.info(`   âœ”  ${featureRows.length} features upserted.`)
+  console.info(`   ✓  ${featureRows.length} features upserted.`)
 
-  // â”€â”€ Step 2: Plans + Entitlements â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  console.info('ðŸ“¦ Seeding SubscriptionPlan tiers from csv/system/plans.csv...')
+  // ── Step 2: Plans + Entitlements ──────────────────────────────────────────
+  console.info('📦 Seeding SubscriptionPlan tiers from csv/system/plans.csv...')
 
   const planRows = parseSystemCsv<any>('plans.csv', ['name', 'monthlyPrice', 'includedTxPerMonth', 'overagePerTx', 'sortOrder'])
   const entitlementRows = parseSystemCsv<any>('plan-entitlements.csv', ['planName', 'featureKey'])
@@ -128,15 +128,15 @@ export async function Entitlements(prisma: PrismaClient) {
       })
     }
 
-    console.info(`   âœ”  Plan "${upsertedPlan.name}" â€” ${planEntitlements.length} entitlements upserted.`)
+    console.info(`   ✓  Plan "${upsertedPlan.name}" — ${planEntitlements.length} entitlements upserted.`)
   }
 
-  // â”€â”€ Step 3: PricingCatalog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  console.info('ðŸ“Š Seeding PricingCatalog from csv/system/pricing-catalog.csv...')
+  // ── Step 3: PricingCatalog ────────────────────────────────────────────────
+  console.info('📊 Seeding PricingCatalog from csv/system/pricing-catalog.csv...')
 
   const catalogRows = parseSystemCsv<any>('pricing-catalog.csv', ['version', 'label', 'status', 'featureKey', 'monthlyPrice', 'isIncludedInBase'])
 
-  // Group rows by catalog version â€” each version = one catalog record
+  // Group rows by catalog version — each version = one catalog record
   const catalogsByVersion = new Map<number, { label: string; status: string; rows: any[] }>()
   for (const row of catalogRows) {
     const version = parseInt(row.version, 10)
@@ -175,13 +175,13 @@ export async function Entitlements(prisma: PrismaClient) {
         })
       }
 
-      console.info(`   âœ”  PricingCatalog v${version} created (${catalog.rows.length} feature prices).`)
+      console.info(`   ✓  PricingCatalog v${version} created (${catalog.rows.length} feature prices).`)
     } else {
-      console.info(`   â€“  PricingCatalog v${version} already exists, skipped.`)
+      console.info(`   –  PricingCatalog v${version} already exists, skipped.`)
     }
   }
 
-  console.info('âœ… Entitlement seed complete.')
+  console.info('✅ Entitlement seed complete.')
 }
 
 export default Entitlements

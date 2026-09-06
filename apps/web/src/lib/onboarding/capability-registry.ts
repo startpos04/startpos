@@ -25,7 +25,7 @@ import type { CapabilityDefinition, CapabilityOutput, RegistryValidationError } 
 // Helper to produce a rollback output (sets key back to 'false' or default)
 // ---------------------------------------------------------------------------
 
-function rollback(key: string, defaultValue = 'false'): CapabilityOutput {
+function _rollback(key: string, defaultValue = 'false'): CapabilityOutput {
   return { key, value: defaultValue }
 }
 

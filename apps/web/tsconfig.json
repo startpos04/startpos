@@ -1,9 +1,8 @@
 {
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "vite-plugin.ts", "prisma.config.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "vite-plugin.ts"],
   "exclude": [
     "node_modules",
     "dist",
-    "prisma/generated",
     "coverage",
     "playwright-report",
     "__tests__",
@@ -21,7 +20,7 @@
     "jsx": "react-jsx",
     "module": "ESNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
-    "types": ["vite/client"],
+    "types": ["vite/client", "@types/web-bluetooth"],
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -46,7 +45,7 @@
     "noErrorTruncation": false,
 
     "paths": {
-      "prisma/*": ["./prisma/*"],
+      "prisma/*": ["../../packages/platform/prisma/*"],
       "@/*": ["./src/*"],
       "@platform/*": ["../../packages/platform/*"]
     }

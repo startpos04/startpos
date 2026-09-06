@@ -89,7 +89,7 @@ export function InventoryHealth({ inventoryData }: { inventoryData: InventoryDat
               topWaste.map(item => (
                 <div key={item.name} className='flex justify-between text-xs text-amber-800 dark:text-amber-300/90'>
                   <span>{item.name}</span>
-                  <span className='font-bold'>â‚±{(item.cost / 100).toLocaleString()} lost</span>
+                  <span className='font-bold'>₱{(item.cost / 100).toLocaleString()} lost</span>
                 </div>
               ))
             ) : (

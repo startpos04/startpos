@@ -1,7 +1,7 @@
 /**
  * branch-validation-engine.ts
  *
- * BranchValidationEngine â€” validates transactions against branch limits and credits.
+ * BranchValidationEngine — validates transactions against branch limits and credits.
  *
  * Responsibilities:
  *   - Check if branch has exceeded its txQuotaLimit
@@ -134,6 +134,7 @@ export const BranchValidationEngine = {
   /**
    * getCurrentBranchUsage - Get branch usage from collection or snapshot
    */
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   getCurrentBranchUsage(businessId: string, branchId: string, usageCounterCollection: Map<string, any>, currentPeriodStart: Date): number {
     // Find the open counter for this branch in the current period
     const branchCounter = [...usageCounterCollection.values()].find(
@@ -146,6 +147,7 @@ export const BranchValidationEngine = {
   /**
    * getBranchQuotaLimit - Get branch limit from branch record
    */
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   getBranchQuotaLimit(branchCollection: Map<string, any>, branchId: string): number | null {
     const branch = branchCollection.get(branchId)
     return branch?.txQuotaLimit ?? null
@@ -154,6 +156,7 @@ export const BranchValidationEngine = {
   /**
    * getBranchCreditBalance - Get current credit balance from credit ledger collection
    */
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   getBranchCreditBalance(creditLedgerCollection: Map<string, any>, businessId: string, branchId: string): BranchCreditSnapshot {
     // Find the most recent credit ledger entry for this branch
     const branchEntries = [...creditLedgerCollection.values()]

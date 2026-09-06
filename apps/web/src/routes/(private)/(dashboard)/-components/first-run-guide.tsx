@@ -1,7 +1,7 @@
 /**
  * first-run-guide.tsx
  *
- * FirstRunGuide â€” profile-aware "how to start selling" card shown on the
+ * FirstRunGuide — profile-aware "how to start selling" card shown on the
  * dashboard for new businesses that haven't completed their first sale yet.
  *
  * Behaviour:
@@ -14,7 +14,7 @@
  *   - Reads currentProfile and enabledCapabilityIds from authStore.
  *   - Reads hasOrders from useLiveQuery on orderCollection (same source as
  *     useTutorialContext, no extra queries).
- *   - Calls resolveFirstRun() â€” pure, no IO.
+ *   - Calls resolveFirstRun() — pure, no IO.
  *   - Dismiss is written to tutorialStore under id 'first-run-guide'.
  */
 
@@ -22,13 +22,13 @@ import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardHeader } from '@platform/components/ui/card'
 import { orderCollection } from '@platform/db/collections'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { cn } from '@platform/lib/utils'
 import { useLiveQuery } from '@tanstack/react-db'
 import { Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { ArrowRightIcon, BookOpenIcon, PackageIcon, ShoppingCartIcon, XIcon } from 'lucide-react'
 import { useEffect } from 'react'
+import { authStore } from '@/lib/better-auth/auth-store'
 import type { FirstRunConfig } from '@/lib/tutorial/first-run-resolver'
 import { resolveFirstRun } from '@/lib/tutorial/first-run-resolver'
 import { dismissTutorial, isTutorialDismissed, tutorialStore } from '@/lib/tutorial/tutorial-store'
@@ -47,7 +47,7 @@ const PATH_ICONS = {
 } as const
 
 // ---------------------------------------------------------------------------
-// useFirstRun â€” assembles all data the guide needs, no props required.
+// useFirstRun — assembles all data the guide needs, no props required.
 // Exported so the dashboard can read isVisible without duplicating logic.
 // ---------------------------------------------------------------------------
 
@@ -76,7 +76,7 @@ export function useFirstRun() {
 }
 
 // ---------------------------------------------------------------------------
-// FirstRunGuide â€” public export
+// FirstRunGuide — public export
 // ---------------------------------------------------------------------------
 
 export function FirstRunGuide() {
@@ -92,7 +92,7 @@ export function FirstRunGuide() {
 }
 
 // ---------------------------------------------------------------------------
-// StepListCard â€” used for QUICK_SELL, ORDER_FIRST, SETUP_FIRST
+// StepListCard — used for QUICK_SELL, ORDER_FIRST, SETUP_FIRST
 // ---------------------------------------------------------------------------
 
 function StepListCard({ config }: { config: FirstRunConfig }) {
@@ -160,7 +160,7 @@ function StepListCard({ config }: { config: FirstRunConfig }) {
 }
 
 // ---------------------------------------------------------------------------
-// ChoosePathCard â€” used for GENERAL profile (two options side by side)
+// ChoosePathCard — used for GENERAL profile (two options side by side)
 // ---------------------------------------------------------------------------
 
 function ChoosePathCard({ config }: { config: FirstRunConfig }) {

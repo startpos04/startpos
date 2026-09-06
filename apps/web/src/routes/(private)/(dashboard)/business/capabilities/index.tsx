@@ -1,16 +1,16 @@
 /**
- * business/capabilities â€” Capability lifecycle management page (Phase 3a UI)
+ * business/capabilities — Capability lifecycle management page (Phase 3a UI)
  *
  * Shows all capabilities in a table view with a drawer for detailed information.
  * For each capability:
- *   ENABLED/CONFIGURED  â€” click row for details and pause action
- *   RECOMMENDED         â€” click row for enable/dismiss actions
- *   PAUSED              â€” click row for restore action
- *   HIDDEN              â€” visible in the list
+ *   ENABLED/CONFIGURED  — click row for details and pause action
+ *   RECOMMENDED         — click row for enable/dismiss actions
+ *   PAUSED              — click row for restore action
+ *   HIDDEN              — visible in the list
  *
  * Data: fetched via fetchCapabilityStates server function on mount.
  * Mutations: acceptCapability / enableCapability / pauseCapability /
- *            restoreCapability / dismissCapability â€” all server functions.
+ *            restoreCapability / dismissCapability — all server functions.
  */
 
 import { getColumns } from '@platform/components/custom/data-view'
@@ -19,13 +19,13 @@ import { RequirePermission } from '@platform/components/custom/guards/require-pe
 import { Card, CardContent } from '@platform/components/ui/card'
 import { Skeleton } from '@platform/components/ui/skeleton'
 import { Permissions } from '@platform/lib/authorization/permission-keys'
+import MountManager from '@platform/lib/mount-manager'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useCallback, useMemo, useState } from 'react'
 import { businessCapabilityCols } from '@/lib/columns/business-capability-columns'
 import { tableCols } from '@/lib/columns/table-columns'
-import MountManager from '@platform/lib/mount-manager'
 import type { CapabilityStateRow } from '@/lib/server-fn/fetch-capability-states'
 import { fetchCapabilityStates } from '@/lib/server-fn/fetch-capability-states'
 import { BusinessCapabilityDetailsSidebar } from './-components/business-capability-details-sidebar'

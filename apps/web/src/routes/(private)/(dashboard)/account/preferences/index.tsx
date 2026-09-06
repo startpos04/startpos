@@ -1,7 +1,7 @@
 /**
  * account/preferences/index.tsx
  *
- * User preferences page â€” Theme, language, and notification settings.
+ * User preferences page — Theme, language, and notification settings.
  * This is a placeholder implementation that will be expanded later.
  */
 

@@ -5,7 +5,7 @@
  *
  * Architectural contract (ADR-009, ADR-010):
  *   - Zero infrastructure imports. No Prisma types, no collections, no SDKs.
- *   - All types are plain objects â€” safe to import from any layer.
+ *   - All types are plain objects — safe to import from any layer.
  *   - PricingEngine receives data exclusively via these DTOs, assembled by
  *     PricingCatalogRepository in the Application Layer.
  *   - Monetary amounts: all integers in cents (or basis points where noted).
@@ -14,7 +14,7 @@
 import type { CapabilityKey } from '@platform/lib/entitlement/capability-keys'
 
 // ---------------------------------------------------------------------------
-// BundlePricingType â€” mirrors the Prisma enum in the domain layer
+// BundlePricingType — mirrors the Prisma enum in the domain layer
 // ---------------------------------------------------------------------------
 export const BundlePricingType = {
   PERCENTAGE_DISCOUNT: 'PERCENTAGE_DISCOUNT',
@@ -24,7 +24,7 @@ export const BundlePricingType = {
 export type BundlePricingType = (typeof BundlePricingType)[keyof typeof BundlePricingType]
 
 // ---------------------------------------------------------------------------
-// QuoteLineType â€” mirrors the Prisma enum in the domain layer
+// QuoteLineType — mirrors the Prisma enum in the domain layer
 // ---------------------------------------------------------------------------
 export const QuoteLineType = {
   FEATURE: 'FEATURE',
@@ -37,7 +37,7 @@ export const QuoteLineType = {
 export type QuoteLineType = (typeof QuoteLineType)[keyof typeof QuoteLineType]
 
 // ---------------------------------------------------------------------------
-// QuoteStatus â€” mirrors the Prisma enum in the domain layer
+// QuoteStatus — mirrors the Prisma enum in the domain layer
 // ---------------------------------------------------------------------------
 export const QuoteStatus = {
   DRAFT: 'DRAFT',
@@ -51,7 +51,7 @@ export const QuoteStatus = {
 export type QuoteStatus = (typeof QuoteStatus)[keyof typeof QuoteStatus]
 
 // ---------------------------------------------------------------------------
-// PricingCategory â€” mirrors the Prisma enum in the domain layer
+// PricingCategory — mirrors the Prisma enum in the domain layer
 // ---------------------------------------------------------------------------
 export const PricingCategory = {
   CORE: 'CORE',
@@ -74,7 +74,7 @@ export type FeaturePriceDTO = {
   monthlyPrice: number
   /**
    * Optional annual price override in cents.
-   * Null = use monthlyPrice Ã— 12 (no annual discount on this feature).
+   * Null = use monthlyPrice × 12 (no annual discount on this feature).
    */
   annualPrice: number | null
   /** true = feature is priced at 0 even in composable subscriptions */
@@ -138,7 +138,7 @@ export type PricingCatalogDTO = {
 // ---------------------------------------------------------------------------
 // PricingConfig
 // Policy configuration injected by the Application Layer.
-// Never fetched inside the engine â€” always passed in as a plain object.
+// Never fetched inside the engine — always passed in as a plain object.
 // ---------------------------------------------------------------------------
 export type PricingConfig = {
   /** Extra monthly charge per branch (cents). 0 = no branch surcharge. */
@@ -183,7 +183,7 @@ export type PricingInput = {
   negotiatedPrices?: Partial<Record<CapabilityKey, number>>
   /**
    * ISO timestamp of when the calculation is being performed.
-   * Injected by the Application Layer â€” engine never calls new Date() internally.
+   * Injected by the Application Layer — engine never calls new Date() internally.
    */
   calculatedAt: string
 }
@@ -212,7 +212,7 @@ export type QuoteLineItemDTO = {
   quantity: number
   /** Cents. Negative for discount lines. */
   unitAmount: number
-  /** quantity Ã— unitAmount */
+  /** quantity × unitAmount */
   lineAmount: number
   /** Optional negotiated override (enterprise/partner quotes) */
   negotiatedPrice: number | null

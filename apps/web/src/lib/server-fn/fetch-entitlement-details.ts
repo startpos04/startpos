@@ -1,5 +1,5 @@
 /**
- * fetch-entitlement-details.ts â€” Fetches detailed entitlement information
+ * fetch-entitlement-details.ts — Fetches detailed entitlement information
  * for the current business including plan entitlements, usage limits, and
  * current usage counts.
  *
@@ -8,11 +8,12 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import type { CapabilityKey } from '@platform/lib/entitlement/capability-keys'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { CAPABILITY_REGISTRY } from '../onboarding/capability-registry'
 import { CATEGORY_LABELS, CATEGORY_ORDER } from '../tutorial/feature-library'
 
@@ -77,22 +78,14 @@ const BUSINESS_LEVEL_CAPABILITIES = new Set([
  * Helper: Convert capability key to config key
  * Example: "CREATE_ORDER" â†’ "ENABLE_CREATE_ORDER"
  */
-function getConfigKey(capabilityKey: CapabilityKey): string {
+function _getConfigKey(capabilityKey: CapabilityKey): string {
   return `ENABLE_${capabilityKey}`
 }
 
 export const fetchEntitlementDetails = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_SETTINGS)])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_SETTINGS), requireTenantContext()])
   .handler(async ({ context }): Promise<EntitlementSummaryData | null> => {
-    const businessId = context?.user?.businessId
-    const branchId = context?.user?.branchId
-
-    console.log('[fetchEntitlementDetails] Starting fetch for business:', businessId, 'branch:', branchId)
-
-    if (!businessId || !branchId) {
-      console.warn('[fetchEntitlementDetails] Missing businessId or branchId')
-      return null
-    }
+    const { businessId, branchId } = getTenantContext(context).user
 
     try {
       console.log('[fetchEntitlementDetails] Step 1: Fetching subscription...')

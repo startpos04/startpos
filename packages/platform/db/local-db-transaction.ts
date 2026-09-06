@@ -1,16 +1,51 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: fix later */
-import type { BusinessEvent } from '@platform/lib/evolution/business-event-bus'
-import type { DBPayload } from '@platform/lib/prisma-client/crud-api'
+
 import { getTransactionAPI } from '@platform/lib/prisma-client/api-registry'
+import type { DBPayload } from '@platform/lib/prisma-client/crud-api'
 import { createTransaction, type Transaction } from '@tanstack/db'
 import { ResultAsync } from 'neverthrow'
+
+// ---------------------------------------------------------------------------
+// BusinessEvent — minimal type definition
+//
+// The full BusinessEvent type and BusinessEventBus live in apps/web/src/lib/evolution.
+// Only the shape that dbTransaction needs to accept as an optional parameter is defined here.
+// ---------------------------------------------------------------------------
+export type BusinessEvent = {
+  type: string
+  businessId: string
+  branchId?: string
+  actorId?: string
+  occurredAt: Date
+  payload?: Record<string, unknown>
+}
+
+// ---------------------------------------------------------------------------
+// Event emitter registry
+//
+// Apps register their event bus emit function at startup so platform never
+// imports from the app layer. If no emitter is registered, events are silently
+// dropped (no crash).
+//
+// Usage (apps/web/src/lib/better-auth/auth-setup.ts):
+//   import { registerEventEmitter } from '@platform/db/local-db-transaction'
+//   import { BusinessEventBus } from '@/lib/evolution/business-event-bus'
+//   registerEventEmitter((events) => events.forEach(e => BusinessEventBus.emit(e)))
+// ---------------------------------------------------------------------------
+
+type EventEmitter = (events: BusinessEvent[]) => void | Promise<void>
+let _eventEmitter: EventEmitter | null = null
+
+export const registerEventEmitter = (emitter: EventEmitter): void => {
+  _eventEmitter = emitter
+}
 
 // ---------------------------------------------------------------------------
 // Event emission extension (ADR-002 / Phase 2)
 // ---------------------------------------------------------------------------
 //
 // dbTransaction accepts an optional `events` array. Each entry is emitted to
-// BusinessEventBus AFTER the DB commit succeeds â€” never on failure or offline.
+// BusinessEventBus AFTER the DB commit succeeds — never on failure or offline.
 //
 // The EventBus import is lazy (dynamic) to avoid loading the full subscriber
 // chain at module-load time (Principal Architect Review R3 requirement).
@@ -20,7 +55,7 @@ import { ResultAsync } from 'neverthrow'
 // The server will emit them when the pending transaction syncs on reconnect.
 // (Full offline-event reconciliation is a Phase 5+ concern.)
 //
-// Error handling: emit errors are caught and logged â€” they must never cause
+// Error handling: emit errors are caught and logged — they must never cause
 // the dbTransaction call-site to throw after a successful DB commit.
 
 type CollectionWriteUtils = {
@@ -149,7 +184,7 @@ export const dbTransaction = <T>(callback: () => T, events?: BusinessEvent[]): R
         mutationFn: async ({ transaction }) => {
           if (isOffline) {
             const results = await applyLocalTransaction(transaction)
-            // Do not emit events in offline mode â€” the server hasn't committed yet
+            // Do not emit events in offline mode — the server hasn't committed yet
             return results
           }
 
@@ -190,20 +225,19 @@ export const dbTransaction = <T>(callback: () => T, events?: BusinessEvent[]): R
 /**
  * Emits events to BusinessEventBus after a successful DB commit.
  * Uses a dynamic import so the event bus module (and its subscribers) are not
- * loaded at module initialisation time â€” R3 compliance.
+ * loaded at module initialization time — R3 compliance.
  *
  * Errors are caught and logged: a broken subscriber must not propagate
  * back to the route component that called dbTransaction.
  */
 function emitEventsAfterCommit(events: BusinessEvent[]): void {
-  // Fire-and-forget: we intentionally do not await this.
-  // The route component already has its result; emission is a side-effect.
+  // Fire-and-forget via the registered emitter (set at app startup).
+  // If no emitter is registered, events are silently dropped — no crash.
+  if (!_eventEmitter) return
+  const emitter = _eventEmitter
   ;(async () => {
     try {
-      const { BusinessEventBus } = await import('@platform/lib/evolution/business-event-bus')
-      for (const event of events) {
-        await BusinessEventBus.emit(event)
-      }
+      await emitter(events)
     } catch (err) {
       console.error('[dbTransaction] Event emission failed after commit:', err)
     }

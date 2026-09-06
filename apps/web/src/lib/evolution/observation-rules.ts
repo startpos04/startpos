@@ -36,7 +36,7 @@
  * Growth threshold aliases (reference existing rules, not extra registry entries):
  *   teamSize small     — first employee hired  (alias of rule 3)
  *   teamSize medium    — team reaches 6 people (alias of rule 4)
- *   locationCount mult — second branch opened  (alias of rule 6)
+ *   locationCount multi — second branch opened  (alias of rule 6)
  *
  * Rules are evaluated by CharacteristicsEngine in OBSERVATION_RULES array order.
  * Multiple rules can update the same field — the highest-confidence value wins

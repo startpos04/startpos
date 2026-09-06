@@ -1,12 +1,12 @@
 /**
  * billing/credits/index.tsx
  *
- * /billing/credits â€” Prepaid Credit Management
+ * /billing/credits — Prepaid Credit Management
  *
  * Displays:
  *   - Current credit balance (large, prominent)
  *   - Low-balance / depleted warning
- *   - Buy Credits dialog â€” three fixed packages, redirects to Stripe Checkout
+ *   - Buy Credits dialog — three fixed packages, redirects to Stripe Checkout
  *   - Paginated CreditLedger history via TableView with columns:
  *     Event, Amount, Balance After, Transaction ID, Cashier, Date
  */
@@ -17,8 +17,9 @@ import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
-import { authStore } from '@platform/lib/better-auth/auth-store'
-import dayjs from '@platform/lib/dayjs'
+import type { MountProps } from '@platform/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
+// import dayjs from '@platform/lib/dayjs'
 import { cn } from '@platform/lib/utils'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
@@ -26,9 +27,8 @@ import { useStore } from '@tanstack/react-store'
 import { AlertTriangleIcon, CheckCircle2Icon, CircleDollarSignIcon, CoinsIcon, ExternalLinkIcon, ShoppingCartIcon, XCircleIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { creditCols } from '@/lib/columns/credit-columns'
-import type { MountProps } from '@platform/lib/mount-manager'
-import MountManager from '@platform/lib/mount-manager'
 import { type CreditLedgerEntry, fetchCreditLedger } from '@/lib/server-fn/fetch-credit-ledger'
 import { type CreditPackageOption, fetchCreditPackages, purchaseCreditPackage } from '@/lib/server-fn/purchase-credit-package'
 import { GCashPaymentGuide } from '../-components/gcash-payment-guide'
@@ -104,7 +104,7 @@ function BuyCreditsDialog({ open, onClose }: BuyCreditsDialogProps) {
           <DialogDescription>Select a package. You'll be redirected to Stripe to complete payment securely.</DialogDescription>
         </DialogHeader>
 
-        {/* GCash payment guide â€” shown here so users know how to pay before selecting a package */}
+        {/* GCash payment guide — shown here so users know how to pay before selecting a package */}
         <GCashPaymentGuide />
 
         <div className='space-y-2 py-2'>
@@ -144,7 +144,7 @@ function BuyCreditsDialog({ open, onClose }: BuyCreditsDialogProps) {
           </Button>
           <Button onClick={handleProceed} disabled={!selectedId || mutation.isPending} className='gap-1.5'>
             {mutation.isPending ? (
-              'Redirectingâ€¦'
+              'Redirecting…'
             ) : (
               <>
                 <ExternalLinkIcon className='h-3.5 w-3.5' />
@@ -225,7 +225,7 @@ function CreditsPage() {
 
   return (
     <div className='flex flex-col gap-6 px-4 pb-6 max-w-4xl h-full'>
-      {/* Purchase result banners â€” shown after Stripe redirects back */}
+      {/* Purchase result banners — shown after Stripe redirects back */}
       {purchase === 'success' && (
         <div
           className={cn(
@@ -306,7 +306,7 @@ function CreditsPage() {
             </span>
             <span className='text-lg text-muted-foreground mb-1'>credit{currentBalance === 1 ? '' : 's'}</span>
           </div>
-          {isEmpty && <p className='text-sm text-destructive'>Balance depleted â€” buy credits to continue processing transactions.</p>}
+          {isEmpty && <p className='text-sm text-destructive'>Balance depleted — buy credits to continue processing transactions.</p>}
           {isLow && !isEmpty && (
             <p className='text-sm text-amber-600 dark:text-amber-400'>
               Balance is below the low-balance threshold of {threshold} credits. Top up soon to avoid checkout interruptions.
@@ -322,7 +322,7 @@ function CreditsPage() {
           <div className='flex items-center justify-between'>
             <div>
               <CardTitle className='text-lg'>Credit History</CardTitle>
-              <CardDescription className='text-xs mt-0.5'>All credit events â€” grants, checkouts, refunds, and adjustments.</CardDescription>
+              <CardDescription className='text-xs mt-0.5'>All credit events — grants, checkouts, refunds, and adjustments.</CardDescription>
             </div>
             <span className='text-xs text-muted-foreground'>
               {totalItems.toLocaleString()} event{totalItems === 1 ? '' : 's'}

@@ -16,11 +16,11 @@ import { Separator } from '@platform/components/ui/separator'
 import { Textarea } from '@platform/components/ui/textarea'
 import type { PermissionKey } from '@platform/lib/authorization/permission-keys'
 import { getDefaultPermissionsForRole } from '@platform/lib/authorization/role-permissions'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Loader2, RotateCcw, Search, Shield, ShieldCheck, ShieldX } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import type { MountProps } from '@platform/lib/mount-manager'
 import {
   fetchAllPermissions,
   grantPermissionToUser,

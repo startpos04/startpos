@@ -1,11 +1,12 @@
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
+import { getServerContext } from '@platform/lib/better-auth/server-context'
 import dayjs from '@platform/lib/dayjs'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { createServerFn } from '@tanstack/react-start'
 import { PaymentMethod, TransactionType } from 'prisma/generated/prisma/enums'
 import z from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
 
 const PAGE_SIZE = 50
 
@@ -31,8 +32,8 @@ export const fetchTransactionHistory = createServerFn({ method: 'POST' })
       to: data.to,
       page: data.page,
       pageSize: data.pageSize,
-      userBusinessId: context.user?.businessId,
-      userBranchId: context.user?.branchId,
+      userBusinessId: getServerContext(context).user?.businessId,
+      userBranchId: getServerContext(context).user?.branchId,
     })
 
     const where = {

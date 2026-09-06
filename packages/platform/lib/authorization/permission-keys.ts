@@ -146,7 +146,7 @@ export type PermissionKey = (typeof Permissions)[keyof typeof Permissions]
  * @example getPermissionScope('business:view:billing') // 'BUSINESS'
  */
 export function getPermissionScope(permission: PermissionKey): 'BUSINESS' | 'BRANCH' | 'USER' {
-  const scope = permission.split(':')[0].toUpperCase()
+  const scope = permission.split(':')[0]?.toUpperCase()
   return scope as 'BUSINESS' | 'BRANCH' | 'USER'
 }
 
@@ -155,7 +155,7 @@ export function getPermissionScope(permission: PermissionKey): 'BUSINESS' | 'BRA
  * @example getPermissionAction('business:view:billing') // 'VIEW'
  */
 export function getPermissionAction(permission: PermissionKey): string {
-  return permission.split(':')[1].toUpperCase()
+  return permission.split(':')[1]?.toUpperCase() || ''
 }
 
 /**
@@ -163,5 +163,5 @@ export function getPermissionAction(permission: PermissionKey): string {
  * @example getPermissionResource('business:view:billing') // 'billing'
  */
 export function getPermissionResource(permission: PermissionKey): string {
-  return permission.split(':')[2]
+  return permission.split(':')[2] || ''
 }

@@ -1,5 +1,5 @@
 /**
- * business/branches â€” Branch management page
+ * business/branches — Branch management page
  *
  * Features:
  *   - List all branches from branchCollection (eager-synced, reactive)
@@ -20,14 +20,14 @@ import { WarningPrompt } from '@platform/components/custom/prompt/warning-prompt
 import { Badge } from '@platform/components/ui/badge'
 import { branchCollection } from '@platform/db/collections'
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import MountManager from '@platform/lib/mount-manager'
 import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute } from '@tanstack/react-router'
 import { Building2, MapPin } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import MountManager from '@platform/lib/mount-manager'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { BRANCH_ASIDE_ID, showBranchSidebar } from './-components/branch-sidebar'
 import { CreateBranchSidebar } from './-components/create-branch-sidebar'
 import { EditBranchSidebar } from './-components/edit-branch-sidebar'
@@ -102,7 +102,7 @@ export function BranchesPage() {
     showBranchSidebar(<EditBranchSidebar branch={branch} />)
   }, [])
 
-  const handleDelete = useCallback(
+  const _handleDelete = useCallback(
     (branch: BranchRow) => {
       // Prevent deleting the only branch
       const activeBranches = data?.filter(b => !b.deletedAt) ?? []
@@ -179,7 +179,7 @@ export function BranchesPage() {
                 {val}
               </span>
             ) : (
-              <span className='text-xs text-muted-foreground/40'>â€”</span>
+              <span className='text-xs text-muted-foreground/40'>—</span>
             )
           },
         }),
@@ -198,7 +198,7 @@ export function BranchesPage() {
           ),
         }),
       ]),
-    [user.branch.id, handleDelete],
+    [user.branch.id],
   )
 
   return (

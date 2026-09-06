@@ -3,18 +3,18 @@
  *
  * Sends, verifies, and applies a 6-digit OTP-based password reset flow.
  *
- * Uses the same pattern as send-registration-otp.ts â€” we own send + verify,
+ * Uses the same pattern as send-registration-otp.ts — we own send + verify,
  * then resetForgotPassword inserts a valid row for better-auth's
  * /email-otp/reset-password endpoint so it can hash and update the password
  * using its own internal hasher.
  */
 
-import { auth } from '@platform/lib/better-auth/auth'
 import { prisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { HEADERS } from '@tanstack/react-start/server'
 import { Resend } from 'resend'
 import { z } from 'zod'
+import { auth } from '@/lib/better-auth/auth'
 
 const OTP_LENGTH = 6
 const OTP_EXPIRES_IN_SECONDS = 600 // 10 minutes
@@ -51,7 +51,7 @@ export const sendForgotPasswordOTP = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const email = data.email.toLowerCase().trim()
 
-    // Silently succeed if user doesn't exist â€” prevents email enumeration
+    // Silently succeed if user doesn't exist — prevents email enumeration
     const user = await prisma.user.findFirst({ where: { email }, select: { id: true } })
     if (!user) {
       console.log('[sendForgotPasswordOTP] User not found, silently succeeding:', email)
@@ -63,7 +63,7 @@ export const sendForgotPasswordOTP = createServerFn({ method: 'POST' })
     const expiresAt = new Date(Date.now() + OTP_EXPIRES_IN_SECONDS * 1000)
 
     // Delete any previous OTP for this email, then store the new one.
-    // Value format: "<otp>:<attempts>" â€” attempts starts at 0.
+    // Value format: "<otp>:<attempts>" — attempts starts at 0.
     await prisma.verification.deleteMany({ where: { identifier } })
     await prisma.verification.create({
       data: { identifier, value: `${otp}:0`, expiresAt },
@@ -149,7 +149,7 @@ export const verifyForgotPasswordOTP = createServerFn({ method: 'POST' })
       }
     }
 
-    // OTP matched â€” delete our row so it can't be reused
+    // OTP matched — delete our row so it can't be reused
     await prisma.verification.deleteMany({ where: { identifier } })
     return { success: true as const }
   })
@@ -168,7 +168,7 @@ export const resetForgotPassword = createServerFn({ method: 'POST' })
     // /email-otp/reset-password endpoint can find and verify it.
     const placeholder = data.otp
     const baIdentifier = betterAuthIdentifier(email)
-    const expiresAt = new Date(Date.now() + 60 * 1000) // 60s â€” just enough for this call
+    const expiresAt = new Date(Date.now() + 60 * 1000) // 60s — just enough for this call
 
     await prisma.verification.deleteMany({ where: { identifier: baIdentifier } })
     await prisma.verification.create({

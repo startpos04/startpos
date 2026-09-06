@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
 import type { MountProps } from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
+import type { ReactNode } from 'react'
 
 interface AsideProps extends MountProps {
   children?: ReactNode

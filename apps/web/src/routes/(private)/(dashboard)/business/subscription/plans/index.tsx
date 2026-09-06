@@ -1,5 +1,5 @@
 /**
- * /business/subscription/plans â€” Plan selection page.
+ * /business/subscription/plans — Plan selection page.
  *
  * Clicking a plan card navigates to /business/subscription/checkout?planId=...
  * The checkout page handles billing interval, payment method, and form.
@@ -9,13 +9,13 @@ import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Separator } from '@platform/components/ui/separator'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { cn } from '@platform/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, ClockIcon, LayersIcon, ServerIcon, SparklesIcon, ZapIcon } from 'lucide-react'
 import { useState } from 'react'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { fetchPlans, type PlanWithEntitlements } from '@/lib/server-fn/fetch-plans'
 import { getPendingManualPayment } from '@/lib/server-fn/get-pending-manual-payment'
 import { GCashPaymentGuide } from '../-components/gcash-payment-guide'
@@ -79,16 +79,26 @@ function getAnnualTotal(plan: PlanWithEntitlements): number {
 
 function getDisplayPrice(plan: PlanWithEntitlements, interval: BillingInterval): string {
   if (plan.monthlyPrice === 0) return 'Free'
-  if (interval === 'annual') {
-    const perMonth = Math.round(getAnnualTotal(plan) / 12)
-    return `â‚±${(perMonth / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
-  }
-  return `â‚±${(plan.monthlyPrice / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`
+
+  const amount = interval === 'annual' ? Math.round(getAnnualTotal(plan) / 12) / 100 : plan.monthlyPrice / 100
+
+  return amount.toLocaleString('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })
 }
 
 function getAnnualSubtext(plan: PlanWithEntitlements): string {
-  const annual = getAnnualTotal(plan)
-  return `â‚±${(annual / 100).toLocaleString('en-PH', { minimumFractionDigits: 0 })} billed annually`
+  const annual = (getAnnualTotal(plan) / 100).toLocaleString('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })
+
+  return `${annual} billed annually`
 }
 
 function getSavingsPct(plan: PlanWithEntitlements): number | null {
@@ -126,7 +136,7 @@ function PlansPage() {
   const pendingPayment = pendingData?.payment ?? null
 
   const handleSelect = (plan: PlanWithEntitlements) => {
-    if (hasPending) return // blocked â€” pending banner handles the UX
+    if (hasPending) return // blocked — pending banner handles the UX
     navigate({
       to: '/business/subscription/checkout' as never,
       search: { planId: plan.id, interval } as never,
@@ -153,7 +163,7 @@ function PlansPage() {
         </div>
       </div>
 
-      {/* GCash guide â€” 2nd element */}
+      {/* GCash guide — 2nd element */}
       <GCashPaymentGuide />
 
       {/* Pending payment banner */}
@@ -163,7 +173,7 @@ function PlansPage() {
           <div className='flex-1 min-w-0'>
             <p className='text-sm font-semibold text-amber-900 dark:text-amber-300'>Payment under review</p>
             <p className='text-xs text-amber-800 dark:text-amber-400 mt-0.5 leading-relaxed'>
-              You have a manual payment of â‚±{((pendingPayment.amount ?? 0) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2 })} submitted on{' '}
+              You have a manual payment of ₱{((pendingPayment.amount ?? 0) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2 })} submitted on{' '}
               {new Date(pendingPayment.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}. Plan selection is locked
               until it is approved or rejected.
             </p>
@@ -171,7 +181,7 @@ function PlansPage() {
         </div>
       )}
 
-      {/* Billing interval toggle â€” centered */}
+      {/* Billing interval toggle — centered */}
       <div className='flex justify-center'>
         <div className='flex items-center gap-1 p-1 bg-muted rounded-lg'>
           <button
@@ -204,7 +214,7 @@ function PlansPage() {
         </div>
       </div>
 
-      {/* Plan cards â€” mt-6 gives room for the absolute badge above cards */}
+      {/* Plan cards — mt-6 gives room for the absolute badge above cards */}
       {isLoading ? (
         <div className='grid gap-4 sm:grid-cols-3 mt-2'>
           {[1, 2, 3].map(i => (
@@ -249,12 +259,12 @@ function PlansPage() {
                     {/* Plan name + tagline */}
                     <CardHeader className='pb-3'>
                       <CardTitle className='text-lg'>{plan.name}</CardTitle>
-                      {details && <p className='text-xs text-muted-foreground leading-relaxed min-h-[2.5rem]'>{details.tagline}</p>}
+                      {details && <p className='text-xs text-muted-foreground leading-relaxed min-h-10'>{details.tagline}</p>}
                     </CardHeader>
 
                     <CardContent className='flex-1 flex flex-col gap-4'>
-                      {/* Price â€” fixed height so all cards align */}
-                      <div className='min-h-[3.5rem]'>
+                      {/* Price — fixed height so all cards align */}
+                      <div className='min-h-14'>
                         <p className='text-3xl font-bold tracking-tight tabular-nums'>
                           {getDisplayPrice(plan, interval)}
                           {plan.monthlyPrice > 0 && <span className='text-sm font-normal text-muted-foreground'>/mo</span>}
@@ -312,7 +322,7 @@ function PlansPage() {
             </div>
             <div>
               <p className='text-sm font-medium'>Need something custom?</p>
-              <p className='text-xs text-muted-foreground'>Build your own plan â€” pick only the features you need.</p>
+              <p className='text-xs text-muted-foreground'>Build your own plan — pick only the features you need.</p>
             </div>
           </div>
           {hasPending ? (

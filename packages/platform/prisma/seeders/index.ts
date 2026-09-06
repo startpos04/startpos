@@ -2,7 +2,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { prisma } from '@/lib/prisma-client'
+import { prisma } from '../../lib/prisma-client'
 import { askQuestion, confirmYesNo, getDatabaseTarget, isProductionDatabaseTarget, resolveSeedFolder } from '../db-script-utils'
 
 const __filename = fileURLToPath(import.meta.url)

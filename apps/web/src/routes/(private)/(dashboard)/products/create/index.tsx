@@ -1,11 +1,11 @@
 import { Button } from '@platform/components/ui/button'
 import { productCollection, productComponentCollection, productVariantCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { createFileRoute } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { closeProductSidebar } from '../-components/product-sidebar'
 import { CreateProduct, type CreateProductFormData } from './-create-product'
 

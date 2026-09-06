@@ -28,12 +28,13 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { SubscriptionStatus } from '@platform/lib/entitlement/entitlement-types'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
 import { type CreateSubscriptionInput, createSubscription } from './create-subscription'
 
@@ -44,9 +45,9 @@ import { type CreateSubscriptionInput, createSubscription } from './create-subsc
 const ReactivateSubscriptionInputSchema = z.object({
   /** The planId to reactivate with (Prisma SubscriptionPlan.id) */
   planId: z.string().min(1),
-  /** Billing interval â€” defaults to monthly */
+  /** Billing interval — defaults to monthly */
   billingInterval: z.enum(['monthly', 'annual']).default('monthly'),
-  /** Billing model override â€” defaults to MONTHLY_SUBSCRIPTION; use PREPAID_CREDITS for credits plan */
+  /** Billing model override — defaults to MONTHLY_SUBSCRIPTION; use PREPAID_CREDITS for credits plan */
   billingModel: z.enum(['MONTHLY_SUBSCRIPTION', 'YEARLY_SUBSCRIPTION', 'PREPAID_CREDITS']).optional(),
 })
 
@@ -57,14 +58,10 @@ export type ReactivateSubscriptionInput = z.infer<typeof ReactivateSubscriptionI
 // ---------------------------------------------------------------------------
 
 export const reactivateSubscription = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING), requireTenantContext()])
   .inputValidator((data: ReactivateSubscriptionInput) => ReactivateSubscriptionInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context' }
-    }
-
-    const { businessId, id: userId } = context.user
+    const { businessId, id: userId } = getTenantContext(context).user
 
     // ------------------------------------------------------------------
     // 1. Validate current subscription state for reactivation

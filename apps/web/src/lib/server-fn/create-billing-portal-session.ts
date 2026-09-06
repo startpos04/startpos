@@ -21,21 +21,18 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import Stripe from 'stripe'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { getBillingAdapter } from '../billing/get-billing-adapter'
 
 export const createBillingPortalSession = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING), requireTenantContext()])
   .handler(async ({ context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context' }
-    }
-
-    const { businessId, email } = context.user
+    const { businessId, email } = getTenantContext(context).user
 
     const secretKey = process.env['STRIPE_SECRET_KEY']
     if (!secretKey) {
@@ -63,7 +60,7 @@ export const createBillingPortalSession = createServerFn({ method: 'POST' })
       if (!customerId && email) {
         const customers = await stripe.customers.list({ email, limit: 1 })
         if (customers.data.length > 0) {
-          customerId = customers.data[0]!.id
+          customerId = customers.data[0]?.id
         }
       }
 

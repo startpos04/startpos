@@ -6,7 +6,7 @@
  *
  * Why a server function is needed here:
  *   Employee disable, role change, and refund are all local-first collection
- *   mutations (dbTransaction / collection.update) â€” they run in the browser.
+ *   mutations (dbTransaction / collection.update) — they run in the browser.
  *   AuditLog is an append-only server-side record that must be written via
  *   Prisma. This server function bridges that gap: the client fires it after
  *   the primary mutation succeeds.
@@ -23,20 +23,20 @@
  *   }).catch(console.error)
  */
 
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { AuditEngine } from '../audit/audit-engine'
 import { recordAudit } from '../audit/record-audit'
 import type { AuditEntryDTO } from '../audit/types'
 
 export const writeAudit = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requireTenantContext()])
   .inputValidator((d: Omit<AuditEntryDTO, 'businessId' | 'actorId'> & { businessId?: string; actorId?: string }) => d)
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
-    // Always use the session-verified actor and business â€” never trust client-provided values.
+    // Always use the session-verified actor and business — never trust client-provided values.
     // This prevents a malicious caller from spoofing the actorId or businessId.
-    const actorId = context.user.id
-    const businessId = context.user.businessId!
+    const { id: actorId, businessId } = getTenantContext(context).user
 
     const entry = AuditEngine.build({
       action: data.action,

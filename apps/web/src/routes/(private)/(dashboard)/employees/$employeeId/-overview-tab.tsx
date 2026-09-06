@@ -11,6 +11,7 @@ import { cn } from '@platform/lib/utils'
 import { Ban, Calendar, Mail, ShieldAlert } from 'lucide-react'
 
 interface OverviewTabProps {
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   employee: any
   isOnline: boolean
   handleRevokeSession: () => void
@@ -64,7 +65,7 @@ export function OverviewTab({ employee, isOnline, handleRevokeSession, handleDis
             <p className='text-sm font-semibold'>{isOnline ? 'Currently active' : 'Offline'}</p>
             {employee.sessions[0] && (
               <p className='text-[10px] text-muted-foreground mt-0.5'>
-                {employee.sessions[0].ipAddress} Â· {dayjs().to(dayjs(employee.sessions[0].expiresAt))}
+                {employee.sessions[0].ipAddress} · {dayjs().to(dayjs(employee.sessions[0].expiresAt))}
               </p>
             )}
           </div>

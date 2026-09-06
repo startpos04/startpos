@@ -13,21 +13,22 @@
  *
  * Architecture:
  *   - Only the adapter is imported; never Stripe directly.
- *   - businessId comes from session context â€” never from client input.
+ *   - businessId comes from session context — never from client input.
  *   - The TX quantity is validated against a known enum; arbitrary values blocked.
  *
  * Environment variables required:
  *   STRIPE_SECRET_KEY
- *   STRIPE_TX_ADDON_500_PRICE_ID   â€” Stripe Price ID for +500 TX package
- *   STRIPE_TX_ADDON_1000_PRICE_ID  â€” Stripe Price ID for +1,000 TX package
- *   STRIPE_TX_ADDON_5000_PRICE_ID  â€” Stripe Price ID for +5,000 TX package
+ *   STRIPE_TX_ADDON_500_PRICE_ID   — Stripe Price ID for +500 TX package
+ *   STRIPE_TX_ADDON_1000_PRICE_ID  — Stripe Price ID for +1,000 TX package
+ *   STRIPE_TX_ADDON_5000_PRICE_ID  — Stripe Price ID for +5,000 TX package
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
 
 // ---------------------------------------------------------------------------
@@ -48,21 +49,21 @@ function buildTxAddonPackages(): TxAddonPackage[] {
       id: 'tx_500',
       label: '+500 Transactions',
       txAmount: 500,
-      displayPrice: 'â‚±99',
+      displayPrice: '₱99',
       stripePriceId: process.env['STRIPE_TX_ADDON_500_PRICE_ID'] ?? '',
     },
     {
       id: 'tx_1000',
       label: '+1,000 Transactions',
       txAmount: 1000,
-      displayPrice: 'â‚±179',
+      displayPrice: '₱179',
       stripePriceId: process.env['STRIPE_TX_ADDON_1000_PRICE_ID'] ?? '',
     },
     {
       id: 'tx_5000',
       label: '+5,000 Transactions',
       txAmount: 5000,
-      displayPrice: 'â‚±799',
+      displayPrice: '₱799',
       stripePriceId: process.env['STRIPE_TX_ADDON_5000_PRICE_ID'] ?? '',
     },
   ]
@@ -79,7 +80,7 @@ const PurchaseTxAddonInputSchema = z.object({
 export type PurchaseTxAddonInput = z.infer<typeof PurchaseTxAddonInputSchema>
 
 // ---------------------------------------------------------------------------
-// fetchTxAddonPackages â€” returns the catalog without Stripe Price IDs
+// fetchTxAddonPackages — returns the catalog without Stripe Price IDs
 // ---------------------------------------------------------------------------
 
 export const fetchTxAddonPackages = createServerFn({ method: 'GET' })
@@ -90,7 +91,7 @@ export const fetchTxAddonPackages = createServerFn({ method: 'GET' })
       label: pkg.label,
       txAmount: pkg.txAmount,
       displayPrice: pkg.displayPrice,
-      // stripePriceId intentionally excluded â€” never expose to client
+      // stripePriceId intentionally excluded — never expose to client
     }))
   })
 
@@ -101,14 +102,10 @@ export type TxAddonPackageOption = Awaited<ReturnType<typeof fetchTxAddonPackage
 // ---------------------------------------------------------------------------
 
 export const purchaseTxAddon = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING), requireTenantContext()])
   .inputValidator((data: PurchaseTxAddonInput) => PurchaseTxAddonInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context' }
-    }
-
-    const { businessId, id: userId } = context.user
+    const { businessId, id: userId } = getTenantContext(context).user
 
     const packages = buildTxAddonPackages()
     const selectedPackage = packages.find(pkg => pkg.id === data.packageId)
@@ -144,7 +141,7 @@ export const purchaseTxAddon = createServerFn({ method: 'POST' })
     const result = await adapter.createCreditPurchaseLink({
       externalCustomerId: subscription.externalId,
       externalPriceId: selectedPackage.stripePriceId,
-      creditAmount: selectedPackage.txAmount, // field reused â€” carries txAmount in metadata
+      creditAmount: selectedPackage.txAmount, // field reused — carries txAmount in metadata
       successUrl: `${appUrl}/billing?addon=tx_success`,
       cancelUrl: `${appUrl}/billing?addon=tx_cancelled`,
       metadata: {

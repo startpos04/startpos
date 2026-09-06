@@ -57,7 +57,7 @@ export function StockLevels({ inventoryData }: { inventoryData: InventoryData })
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className='text-right'>â‚±{(assetValue / 100).toLocaleString()}</TableCell>
+                  <TableCell className='text-right'>₱{(assetValue / 100).toLocaleString()}</TableCell>
                 </TableRow>
               )
             })}

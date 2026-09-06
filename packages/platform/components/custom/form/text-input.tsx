@@ -1,8 +1,8 @@
-import type { AnyFieldApi } from '@tanstack/react-form'
-import type { InputHTMLAttributes, ReactNode } from 'react'
 import { Field } from '@platform/components/ui/field'
 import { Input } from '@platform/components/ui/input'
 import { Label } from '@platform/components/ui/label'
+import type { AnyFieldApi } from '@tanstack/react-form'
+import type { InputHTMLAttributes, ReactNode } from 'react'
 
 interface TextInputProps extends React.DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> {
   label?: string | ReactNode

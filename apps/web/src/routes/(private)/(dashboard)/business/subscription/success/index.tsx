@@ -1,12 +1,12 @@
 /**
  * billing/success/index.tsx
  *
- * /billing/success â€” Post-checkout success screen with V1-ready add-on upsell.
+ * /billing/success — Post-checkout success screen with V1-ready add-on upsell.
  *
  * Reached after Stripe redirects back following a successful plan checkout.
  * Search params:
- *   plan    â€” plan name that was just activated (e.g. "Premium")
- *   billing â€” billing method chosen (monthly | annual | credits)
+ *   plan    — plan name that was just activated (e.g. "Premium")
+ *   billing — billing method chosen (monthly | annual | credits)
  *
  * Flow:
  *   1. Show plan activation confirmation with improved celebration UI.
@@ -25,14 +25,14 @@ import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Separator } from '@platform/components/ui/separator'
-import { getAuthUser } from '@/lib/better-auth/auth-server'
-import { authStore, refreshUser } from '@platform/lib/better-auth/auth-store'
 import { createFileRoute, Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { ArrowRightIcon, BuildingIcon, CheckCircle2Icon, CrownIcon, GitBranchIcon, MinusIcon, PlusIcon, SparklesIcon, UsersIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { getAuthUser } from '@/lib/better-auth/auth-server'
+import { authStore, refreshUser } from '@/lib/better-auth/auth-store'
 import { purchaseAddonSubscription } from '@/lib/server-fn/purchase-addon-subscription'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/success/')({
@@ -49,11 +49,11 @@ export const Route = createFileRoute('/(private)/(dashboard)/business/subscripti
 
 function formatPrice(cents: number): string {
   if (cents === 0) return 'Free'
-  return `â‚±${(cents / 100).toLocaleString(`en-PH`, { minimumFractionDigits: 0 })}/mo`
+  return `₱${(cents / 100).toLocaleString(`en-PH`, { minimumFractionDigits: 0 })}/mo`
 }
 
 function formatAddonTotal(unitPrice: number, qty: number): string {
-  return `â‚±${((unitPrice * qty) / 100).toLocaleString(`en-PH`, { minimumFractionDigits: 0 })}/mo`
+  return `₱${((unitPrice * qty) / 100).toLocaleString(`en-PH`, { minimumFractionDigits: 0 })}/mo`
 }
 
 // ---------------------------------------------------------------------------
@@ -117,7 +117,7 @@ function BillingSuccessPage() {
         const freshUser = await getAuthUser()
         if (freshUser) refreshUser(freshUser)
       } catch {
-        // Non-critical â€” billing page will refresh on its own load
+        // Non-critical — billing page will refresh on its own load
       }
     }, 2000)
     return () => clearTimeout(timer)
@@ -170,7 +170,7 @@ function BillingSuccessPage() {
   }
 
   const getBillingMethodDisplay = () => {
-    if (billingMethod === 'annual') return 'Annual billing â€” save up to 20%'
+    if (billingMethod === 'annual') return 'Annual billing — save up to 20%'
     if (billingMethod === 'credits') return 'Pay per transaction'
     return 'Monthly billing'
   }
@@ -268,7 +268,7 @@ function BillingSuccessPage() {
             </CardFooter>
           </Card>
 
-          {/* Extra Employees â€” Basic tier only */}
+          {/* Extra Employees — Basic tier only */}
           {isBasicPlan && (
             <Card className='relative overflow-hidden border-2 hover:border-blue-200 dark:hover:border-blue-800 transition-all duration-200 hover:shadow-lg group'>
               <div className='absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-blue-600' />

@@ -1,7 +1,7 @@
 /**
  * price-change-notice.ts
  *
- * PriceChangeNotice â€” immutable value object produced by
+ * PriceChangeNotice — immutable value object produced by
  * PricingEngine.validateGrandfatheredPrices().
  *
  * Describes a feature whose catalog price has changed since the business's
@@ -13,7 +13,7 @@
  *
  * Architectural contract:
  *   - Zero infrastructure imports.
- *   - Immutable after construction â€” all fields are readonly.
+ *   - Immutable after construction — all fields are readonly.
  *   - All monetary amounts are integers in cents.
  */
 

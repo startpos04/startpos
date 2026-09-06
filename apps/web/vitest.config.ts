@@ -15,7 +15,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      prisma: path.resolve(__dirname, './prisma'),
+      prisma: path.resolve(__dirname, '../../packages/platform/prisma'),
       '@platform': path.resolve(__dirname, '../../packages/platform'),
       '#tests': path.resolve(__dirname, './__tests__'),
     },

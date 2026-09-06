@@ -1,15 +1,16 @@
 // @ts-nocheck
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import dayjs from '@platform/lib/dayjs'
-import { getTenantPrisma } from '@platform/lib/prisma-client'
 import type { Prettify } from '@platform/lib/types'
 import { createServerFn } from '@tanstack/react-start'
 import Papa from 'papaparse'
 import type { Prisma } from 'prisma/generated/prisma/browser'
 import z from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
+import { getTenantPrisma } from '@/lib/prisma-client'
 import { PriceEngine } from '../conversion/price-engine'
 
 const inventorySearchSchema = z.object({
@@ -18,10 +19,11 @@ const inventorySearchSchema = z.object({
 })
 
 export const downloadInventoryCsv = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_INVENTORY_REPORTS)])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_INVENTORY_REPORTS), requireTenantContext()])
   .inputValidator(d => inventorySearchSchema.parse(d))
   .handler(async ({ context, data }) => {
-    const prisma = getTenantPrisma(context.user.businessId, context.user.branchId!)
+    const { businessId, branchId } = getTenantContext(context).user
+    const prisma = getTenantPrisma(businessId, branchId)
 
     const inventory = (await prisma.inventory.findMany({
       where: {

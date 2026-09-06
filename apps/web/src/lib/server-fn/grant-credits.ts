@@ -1,14 +1,14 @@
 /**
  * grant-credits.ts
  *
- * Admin credit grant server function â€” Phase 3.
+ * Admin credit grant server function — Phase 3.
  *
  * Allows a platform admin (or business ADMIN role) to insert a PROMOTIONAL
  * or ADJUSTMENT CreditLedger entry for a business. No payment provider is
  * involved in Phase 3; Phase 4 will add PURCHASE entries via webhook.
  *
  * Architecture:
- *   - Server function â€” runs on the server, never in the browser bundle.
+ *   - Server function — runs on the server, never in the browser bundle.
  *   - Uses rootPrisma (platform-level) to write to credit_ledger.
  *   - CreditEngine is pure; this function is the Application Layer glue.
  *   - Tenant isolation: businessId is taken from the session context, not
@@ -16,11 +16,12 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { CreditEngine, CreditEventType } from '../billing/credit-engine'
 
 // ---------------------------------------------------------------------------
@@ -40,14 +41,10 @@ export type GrantCreditsInput = z.infer<typeof GrantCreditsInputSchema>
 // ---------------------------------------------------------------------------
 
 export const grantCredits = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING), requireTenantContext()])
   .inputValidator((data: GrantCreditsInput) => GrantCreditsInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context' }
-    }
-
-    const { businessId, id: actorId } = context.user
+    const { businessId, id: actorId } = getTenantContext(context).user
 
     // Fetch the latest ledger snapshot for this business (O(1) balance read).
     const latestEntry = await rootPrisma.creditLedger.findFirst({

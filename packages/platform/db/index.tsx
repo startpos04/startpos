@@ -7,8 +7,8 @@ import {
   type BrowserWASQLiteDatabase,
   createBrowserWASQLitePersistence,
   openBrowserWASQLiteOPFSDatabase,
-  persistedCollectionOptions,
   type PersistedCollectionPersistence,
+  persistedCollectionOptions,
 } from '@tanstack/browser-db-sqlite-persistence'
 import { BasicIndex, type Collection, createCollection, parseLoadSubsetOptions, type SyncMode } from '@tanstack/db'
 import { queryCollectionOptions } from '@tanstack/query-db-collection'
@@ -234,7 +234,7 @@ export function createSyncableCollection<TRecord extends SyncableRecord>(config:
  * tenant. The table names are hashed by the persistence library so we query
  * sqlite_master to discover them rather than hardcoding names.
  *
- * This does NOT delete the database file â€” it just empties all rows so the
+ * This does NOT delete the database file — it just empties all rows so the
  * next login re-syncs fresh data from the server.
  */
 export async function clearLocalDatabase(): Promise<void> {
@@ -249,7 +249,7 @@ export async function clearLocalDatabase(): Promise<void> {
   } catch (err) {
     // OPFS removeEntry errors are expected during cross-origin navigations
     // (e.g. Stripe redirect back) where the browser tears down the OPFS
-    // worker mid-operation. Non-fatal â€” the DB recovers on next load.
+    // worker mid-operation. Non-fatal — the DB recovers on next load.
     const message = err instanceof Error ? err.message : String(err)
     if (!message.includes('removeEntry') && !message.includes('modifications are not allowed')) {
       console.error('[clearLocalDatabase] Failed to clear local DB:', err)

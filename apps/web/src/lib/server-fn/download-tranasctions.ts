@@ -1,16 +1,17 @@
 // @ts-nocheck
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import dayjs from '@platform/lib/dayjs'
-import { getTenantPrisma } from '@platform/lib/prisma-client'
 import type { Prettify } from '@platform/lib/types'
 import { createServerFn } from '@tanstack/react-start'
 import Papa from 'papaparse'
 import type { Prisma } from 'prisma/generated/prisma/browser'
 import { PaymentMethod, TransactionType } from 'prisma/generated/prisma/enums'
 import z from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
+import { getTenantPrisma } from '@/lib/prisma-client'
 import { PriceEngine } from '../conversion/price-engine'
 
 const downloadTransactionsSchema = z.object({
@@ -22,10 +23,11 @@ const downloadTransactionsSchema = z.object({
 })
 
 export const downloadTransactionsCSV = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_TRANSACTIONS)])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_TRANSACTIONS), requireTenantContext()])
   .inputValidator(d => downloadTransactionsSchema.parse(d))
   .handler(async ({ context, data }) => {
-    const prisma = getTenantPrisma(context.user.businessId, context.user.branchId!)
+    const { businessId, branchId } = getTenantContext(context).user
+    const prisma = getTenantPrisma(businessId, branchId)
 
     const transactions = (await prisma.transaction.findMany({
       where: {
@@ -83,7 +85,7 @@ export const downloadTransactionsCSV = createServerFn({ method: 'POST' })
             Date: dayjs(transaction.createdAt).format('YYYY-MM-DD HH:mm'),
             Cashier: transaction.cashier?.name || 'System',
             SKU: 'N/A',
-            Product: 'â€”',
+            Product: '—',
             Variant: '',
             Category: 'N/A',
             Quantity: 0,

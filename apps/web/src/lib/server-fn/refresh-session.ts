@@ -16,11 +16,11 @@
  *   - This function patches the session row so the existing cookie is valid.
  */
 
-import { authClient } from '@platform/lib/better-auth/auth-client'
-import { getAuthUser } from '@/lib/better-auth/auth-server'
 import { prisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
+import { authClient } from '@/lib/better-auth/auth-client'
+import { getAuthUser } from '@/lib/better-auth/auth-server'
 
 export const refreshSession = createServerFn({ method: 'POST' }).handler(async () => {
   // Read the current session from the request cookie

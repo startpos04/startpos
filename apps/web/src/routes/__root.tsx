@@ -3,15 +3,16 @@ import { ThemeProvider } from '@platform/components/custom/theme/theme-provider'
 import { useSw } from '@platform/hooks/use-sw'
 import { getAuthUser } from '@/lib/better-auth/auth-server'
 import { setupAuth } from '@/lib/better-auth/auth-setup'
-import { setUser } from '@platform/lib/better-auth/auth-store'
+import { setUser } from '@/lib/better-auth/auth-store'
 
 // Register app's getAuthUser with the platform package at module load
 setupAuth()
+
 import { APP_NAME } from '@platform/lib/constants'
+import MountManager from '@platform/lib/mount-manager'
 import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { Toaster } from 'sonner'
-import MountManager from '@platform/lib/mount-manager'
 import type { MyRouterContext } from '@/router'
 import appCss from '../styles.css?url'
 

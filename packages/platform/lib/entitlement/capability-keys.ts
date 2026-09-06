@@ -18,7 +18,7 @@
  */
 
 // ---------------------------------------------------------------------------
-// Commerce â€” Operational (blocked on subscription lapse)
+// Commerce — Operational (blocked on subscription lapse)
 // ---------------------------------------------------------------------------
 export const Capabilities = {
   // POS & checkout
@@ -29,15 +29,15 @@ export const Capabilities = {
   PRINT_RECEIPT: 'PRINT_RECEIPT',
   START_VENDOR_SESSION: 'START_VENDOR_SESSION',
 
-  // Inventory & procurement â€” write operations
+  // Inventory & procurement — write operations
   CREATE_PURCHASE: 'CREATE_PURCHASE',
   MANAGE_INVENTORY: 'MANAGE_INVENTORY',
 
-  // Task management â€” write operations
+  // Task management — write operations
   CREATE_TASK: 'CREATE_TASK',
 
   // ---------------------------------------------------------------------------
-  // Management â€” always accessible (read-only when expired)
+  // Management — always accessible (read-only when expired)
   // ---------------------------------------------------------------------------
 
   // Product catalogue
@@ -48,7 +48,7 @@ export const Capabilities = {
   MANAGE_CUSTOMERS: 'MANAGE_CUSTOMERS',
   MANAGE_SUPPLIERS: 'MANAGE_SUPPLIERS',
 
-  // Reporting & history â€” always accessible
+  // Reporting & history — always accessible
   VIEW_SALES_REPORTS: 'VIEW_SALES_REPORTS',
   VIEW_INVENTORY_REPORTS: 'VIEW_INVENTORY_REPORTS',
   VIEW_TRANSACTION_HISTORY: 'VIEW_TRANSACTION_HISTORY',
@@ -64,7 +64,7 @@ export const Capabilities = {
   // Multi-branch (premium)
   MANAGE_BRANCHES: 'MANAGE_BRANCHES',
 
-  // Billing & subscription management â€” always accessible
+  // Billing & subscription management — always accessible
   MANAGE_BILLING: 'MANAGE_BILLING',
   REACTIVATE_SUBSCRIPTION: 'REACTIVATE_SUBSCRIPTION',
 
@@ -72,7 +72,7 @@ export const Capabilities = {
   ACCESS_API: 'ACCESS_API',
 
   // ---------------------------------------------------------------------------
-  // Post-V1 capabilities â€” architecture exists but not exposed in V1 public surfaces
+  // Post-V1 capabilities — architecture exists but not exposed in V1 public surfaces
   // ---------------------------------------------------------------------------
   LOYALTY_POINTS: 'LOYALTY_POINTS',
   KITCHEN_DISPLAY: 'KITCHEN_DISPLAY',
@@ -87,7 +87,7 @@ export const Capabilities = {
 export type CapabilityKey = (typeof Capabilities)[keyof typeof Capabilities]
 
 /**
- * Set of all operational capability keys â€” those that are blocked on subscription lapse.
+ * Set of all operational capability keys — those that are blocked on subscription lapse.
  * Mirrors the `isOperational = true` flag on Feature records.
  * Used by the EntitlementEngine and the seed to mark features correctly.
  */

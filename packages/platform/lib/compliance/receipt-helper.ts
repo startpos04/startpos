@@ -10,7 +10,7 @@
  * Examples: "VAT REG TIN" (PH), "GST REG" (SG), "EIN" (US)
  */
 export function getTaxIdLabel(): string {
-  const country = process.env.DEPLOYMENT_COUNTRY?.toUpperCase() ?? 'PH'
+  const country = process.env['DEPLOYMENT_COUNTRY']?.toUpperCase() ?? 'PH'
 
   switch (country) {
     case 'PH':
@@ -35,7 +35,7 @@ export function getTaxIdValue(compliance: Record<string, string | undefined> | u
   // a standard format where BIR_TIN is used as the primary business tax ID
   // for all countries (it's just named BIR_TIN for backwards compatibility).
   // In a future refactor, we could rename this to just TAX_ID.
-  return compliance.BIR_TIN || 'N/A'
+  return compliance['BIR_TIN'] || 'N/A'
 }
 
 /**
@@ -43,7 +43,7 @@ export function getTaxIdValue(compliance: Record<string, string | undefined> | u
  * Examples: "PTU NO" (PH), "UEN" (SG), "SALES TAX PERMIT" (US)
  */
 export function getPermitLabel(): string {
-  const country = process.env.DEPLOYMENT_COUNTRY?.toUpperCase() ?? 'PH'
+  const country = process.env['DEPLOYMENT_COUNTRY']?.toUpperCase() ?? 'PH'
 
   switch (country) {
     case 'PH':
@@ -63,14 +63,14 @@ export function getPermitLabel(): string {
 export function getPermitValue(compliance: Record<string, string | undefined> | undefined): string | undefined {
   if (!compliance) return undefined
 
-  return compliance.BIR_PTU_NUMBER || undefined
+  return compliance['BIR_PTU_NUMBER'] || undefined
 }
 
 /**
  * Get the tax rate label for receipts (VAT, GST, Sales Tax).
  */
 export function getTaxRateLabel(): string {
-  const country = process.env.DEPLOYMENT_COUNTRY?.toUpperCase() ?? 'PH'
+  const country = process.env['DEPLOYMENT_COUNTRY']?.toUpperCase() ?? 'PH'
 
   switch (country) {
     case 'PH':
@@ -130,7 +130,7 @@ export function getComplianceLines(
  * For UNREGISTERED/PENDING/EXPIRED: Shows sales receipt text (not valid for tax purposes)
  */
 export function getReceiptFooterText(registrationStatus?: string): string[] {
-  const country = process.env.DEPLOYMENT_COUNTRY?.toUpperCase() ?? 'PH'
+  const country = process.env['DEPLOYMENT_COUNTRY']?.toUpperCase() ?? 'PH'
   const isRegistered = registrationStatus === 'REGISTERED'
 
   if (isRegistered) {

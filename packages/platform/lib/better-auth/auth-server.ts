@@ -1,7 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
-import { getTenantPrisma } from '../prisma-client'
-import { auth } from './auth'
-import { authMiddleware } from './auth-middleware'
+import { platformAuthMiddleware } from './create-auth-middleware'
+import type { ServerContextUser } from './server-context'
 
 // ---------------------------------------------------------------------------
 // getSessionUser — Foundation session reader
@@ -11,77 +10,27 @@ import { authMiddleware } from './auth-middleware'
 //
 // Apps extend this by calling getSessionUser() then layering on their own
 // domain context (see apps/web/src/lib/better-auth/auth-server.ts).
+//
+// Uses platformAuthMiddleware — a generic session extractor that reads from
+// whatever auth client the app registered via registerPlatformAuthClient().
 // ---------------------------------------------------------------------------
 export const getSessionUser = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
+  .middleware([platformAuthMiddleware])
   .handler(async ({ context }) => {
-    if (!context?.user?.businessId || !context?.user?.branchId) {
+    const user = context.user as ServerContextUser
+
+    // Only identity is required — tenant IDs are app-layer concerns
+    if (!user?.id) {
       return undefined
     }
 
-    const { id, email, role, businessId, branchId, authorization } = context.user
-
     return {
-      id,
-      email,
-      role,
-      businessId,
-      branchId,
-      authorization,
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      ...(user.businessId != null && { businessId: user.businessId }),
+      ...(user.branchId != null && { branchId: user.branchId }),
     }
   })
 
 export type SessionUser = NonNullable<Awaited<ReturnType<typeof getSessionUser>>>
-
-// ---------------------------------------------------------------------------
-// verifyAuth — Generic password re-verification
-//
-// Used for supervisor re-auth flows (POS feature gating, sensitive actions).
-// Does NOT update the active session — asResponse: true is intentional.
-// ---------------------------------------------------------------------------
-export const verifyAuth = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
-  .inputValidator((data: { email: string; password: string }) => data)
-  .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId || !context?.user?.branchId) {
-      return { success: false, error: 'Context missing' }
-    }
-
-    const { businessId, branchId } = context.user
-    const prisma = getTenantPrisma(businessId, branchId)
-
-    try {
-      const response = await auth.api.signInEmail({
-        body: {
-          email: data.email,
-          password: data.password,
-        },
-        asResponse: true, // Crucial: prevents updating active session headers/cookies
-      })
-
-      if (!response.ok) {
-        return { success: false, error: 'Invalid password.' }
-      }
-
-      const user = await prisma.user.findFirst({
-        where: { email: data.email },
-        select: { id: true, name: true, role: true },
-      })
-
-      if (!user) {
-        return { success: false, error: 'User is not authorized.' }
-      }
-
-      return {
-        success: true,
-        data: {
-          id: user.id,
-          name: user.name,
-          role: user.role,
-        },
-      }
-    } catch (error) {
-      console.error('verification error:', error)
-      return { success: false, error: 'Internal verification failure.' }
-    }
-  })

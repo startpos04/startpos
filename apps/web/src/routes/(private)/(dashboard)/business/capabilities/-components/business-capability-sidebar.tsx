@@ -5,8 +5,8 @@
  */
 
 import { Aside } from '@platform/components/custom/aside'
-import type { ReactNode } from 'react'
 import MountManager from '@platform/lib/mount-manager'
+import type { ReactNode } from 'react'
 
 export const BUSINESS_CAPABILITY_ASIDE_ID = 'business-capability-aside'
 

@@ -1,11 +1,12 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: allowing any type for flexibility */
 
 import { getRequiredPermission } from '@platform/lib/authorization/model-permissions'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
-import { getTenantPrisma } from '@platform/lib/prisma-client'
+import { getServerContext } from '@platform/lib/better-auth/server-context'
 import { type DBPayload, executeOperation } from '@platform/lib/prisma-client/crud-api'
 import { createServerFn } from '@tanstack/react-start'
 import { err, ok, type Result, ResultAsync } from 'neverthrow'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantPrisma } from '@/lib/prisma-client'
 
 interface TransactionInput {
   operations: DBPayload[]
@@ -24,7 +25,7 @@ const transactionServerFn = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .inputValidator((d: TransactionInput) => d)
   .handler(async ({ data, context }): Promise<{ value: any[] } | { error: any }> => {
-    if (!context?.user?.businessId || !context?.user?.branchId) {
+    if (!getServerContext(context).user?.businessId || !getServerContext(context).user?.branchId) {
       return { error: 'Session context missing: businessId or branchId not set.' }
     }
 
@@ -49,7 +50,7 @@ const transactionServerFn = createServerFn({ method: 'POST' })
       return { error: entitlementCheck.reason || 'Subscription limit would be exceeded by this batch' }
     }
 
-    const { businessId, branchId } = context.user
+    const { businessId, branchId } = getServerContext(context).user
     const tenantPrisma = getTenantPrisma(businessId, branchId)
 
     const txResult = await ResultAsync.fromPromise(

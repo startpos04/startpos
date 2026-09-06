@@ -12,29 +12,57 @@
  * - Tax exemption certificate tracking
  */
 
-import type { Prisma } from 'prisma/generated/prisma/client'
+import type { Branch, Business, Prisma, USABranchCompliance, USACompliance } from 'prisma/generated/prisma/client'
 import type { ComplianceAdapter, ComplianceData, RefundContext, UserContext } from '../compliance-adapter'
 
-export class UsaComplianceAdapter implements ComplianceAdapter {
+/** Business shape expected by this adapter — base fields + USA compliance relation */
+type USBusiness = Business & {
+  usaCompliance: USACompliance | null
+}
+
+/** Branch shape expected by this adapter — base fields + USA branch compliance relation */
+type USBranch = Branch & {
+  usaBranchCompliance: USABranchCompliance | null
+}
+
+/**
+ * The subset of USA snapshot fields copied during a refund.
+ * Typed so copyRefundSnapshot never needs `as any` on originalTransaction.
+ */
+interface USTransactionSnapshot {
+  snapshotBusinessName: string
+  snapshotBranchName: string
+  snapshotBranchAddress: string | null
+  snapshotBranchSN: string
+  snapshotCurrency: string
+  snapshotEIN: string | null
+  snapshotStateTaxID: string | null
+  snapshotSalesTaxRate: number | null
+  snapshotIsTaxExempt: boolean | null
+  snapshotCustomerTIN?: string | null
+  snapshotTaxExemptID?: string | null
+}
+
+export class UsaComplianceAdapter implements ComplianceAdapter<USBusiness, USBranch> {
   readonly countryCode = 'US'
 
-  extractComplianceData(context: UserContext): ComplianceData {
+  extractComplianceData(context: UserContext<USBusiness, USBranch>): ComplianceData {
     const { business, branch } = context
 
-    // Extract USA-specific compliance data
-    const usCompliance = (business as any).usaCompliance
-    const usBranchCompliance = (branch as any).usaBranchCompliance
+    // No cast needed — USBusiness and USBranch declare these relations explicitly
+    const usCompliance = business.usaCompliance
+    const usBranchCompliance = branch.usaBranchCompliance
 
     return {
       // Business-level IRS data
-      businessTaxId: usCompliance?.ein ?? '', // EIN is the primary federal tax ID
-      businessPermitNumber: usCompliance?.salesTaxPermit,
-      businessTaxOfficeCode: usCompliance?.stateOfIncorporation, // State as tax office identifier
+      businessTaxId: usCompliance?.ein ?? '',
+      ...(usCompliance?.salesTaxPermit != null && { businessPermitNumber: usCompliance.salesTaxPermit }),
+      ...(usCompliance?.stateOfIncorporation != null && { businessTaxOfficeCode: usCompliance.stateOfIncorporation }),
 
       // Branch-level state/local data
-      branchSerialNumber: usBranchCompliance?.stateTaxID,
+      ...(usBranchCompliance?.stateTaxID != null && { branchSerialNumber: usBranchCompliance.stateTaxID }),
       branchCode: String(branch.branchCode ?? ''),
-      branchPermitNumber: usBranchCompliance?.salesTaxPermit,
+      ...(usBranchCompliance?.salesTaxPermit != null && { branchPermitNumber: usBranchCompliance.salesTaxPermit }),
 
       // Sales tax status (most US states require sales tax)
       isTaxRegistered: usCompliance?.isSalesTaxRegistered ?? false,
@@ -55,19 +83,15 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
     branch: Prisma.BranchInclude
   } {
     return {
-      business: {
-        usaCompliance: true,
-      },
-      branch: {
-        usaBranchCompliance: true,
-      },
+      business: { usaCompliance: true },
+      branch: { usaBranchCompliance: true },
     }
   }
 
   populateTransactionSnapshot(data: {
     compliance: ComplianceData
-    business: UserContext['business']
-    branch: UserContext['branch']
+    business: USBusiness
+    branch: USBranch
     user: UserContext['user']
     currency: string
     customerData?: {
@@ -99,7 +123,7 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
 
       // USA-specific IRS fields
       snapshotEIN: compliance.businessTaxId, // Employer Identification Number
-      snapshotStateTaxID: compliance.metadata?.stateTaxID,
+      snapshotStateTaxID: compliance.metadata?.['stateTaxID'],
       snapshotSalesTaxRate: salesTaxRate, // Rate in cents (e.g., 825 = 8.25%)
       snapshotIsTaxExempt: false, // Default to not exempt (overridden in transaction if needed)
 
@@ -111,8 +135,9 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
   }
 
   copyRefundSnapshot(context: RefundContext): Record<string, unknown> {
-    const { originalTransaction, currentUser } = context
-    const original = originalTransaction as any
+    const { currentUser } = context
+    // Cast through the typed snapshot — all fields are known USA snapshot columns
+    const original = context.originalTransaction as unknown as USTransactionSnapshot
 
     return {
       // Copy universal fields

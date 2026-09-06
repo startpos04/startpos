@@ -5,21 +5,22 @@
  * and page, and records a HintLog entry once the hint is shown.
  *
  * Architecture:
- *   - Server function â€” runs on the server only.
+ *   - Server function — runs on the server only.
  *   - Reads Hint table + HintLog for this user + configuration frequency.
  *   - Delegates selection to HintEngine (pure).
- *   - Writes a HintLog entry after the hint is selected (optimistic â€” the
+ *   - Writes a HintLog entry after the hint is selected (optimistic — the
  *     UI shows the hint, then the log is written asynchronously).
  *   - Returns null if no hint is eligible at this time.
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
-import { ConfigurationEngine } from '@platform/lib/configuration/configuration-engine'
+import { getServerContext } from '@platform/lib/better-auth/server-context'
+import { getDefault as getConfigDefault } from '@platform/lib/configuration/configuration-engine'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 import { HintEngine } from '../hint/hint-engine'
 import type { HintDTO, HintLogDTO } from '../hint/hint-types'
 
@@ -35,13 +36,13 @@ export const fetchEligibleHint = createServerFn({ method: 'POST' })
   .middleware([authMiddleware, requirePermission(Permissions.BRANCH_VIEW_DASHBOARD)])
   .inputValidator((data: FetchEligibleHintInput) => FetchEligibleHintInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.id) return null
+    if (!getServerContext(context).user?.id) return null
 
-    const userId = context.user.id
+    const userId = getServerContext(context).user.id
     const now = new Date()
 
     // Read HINT_FREQUENCY_DAYS from platform-level configuration
-    const frequencyValue = await ConfigurationEngine.get('HINT_FREQUENCY_DAYS', {})
+    const frequencyValue = await getConfigDefault('HINT_FREQUENCY_DAYS')
     const frequencyDays = frequencyValue ? Number.parseFloat(frequencyValue) : DEFAULT_HINT_FREQUENCY_DAYS
 
     // Fetch all active hints
@@ -53,7 +54,7 @@ export const fetchEligibleHint = createServerFn({ method: 'POST' })
 
     const hints: HintDTO[] = rawHints
 
-    // Fetch HintLog entries for this user (only recent â€” within frequencyDays * 2)
+    // Fetch HintLog entries for this user (only recent — within frequencyDays * 2)
     const cutoff = new Date(now.getTime() - frequencyDays * 2 * 24 * 60 * 60 * 1000)
     const rawLogs = await rootPrisma.hintLog.findMany({
       where: { userId, shownAt: { gte: cutoff } },
@@ -70,7 +71,7 @@ export const fetchEligibleHint = createServerFn({ method: 'POST' })
 
     if (!selected) return null
 
-    // Record HintLog (fire-and-forget â€” don't block the response)
+    // Record HintLog (fire-and-forget — don't block the response)
     rootPrisma.hintLog.create({ data: { hintId: selected.id, userId } }).catch((err: unknown) => console.warn('[fetchEligibleHint] HintLog write failed:', err))
 
     return selected

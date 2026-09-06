@@ -5,16 +5,16 @@ import { OfflineIndicator } from '@platform/components/custom/offline-indicator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@platform/components/ui/select'
 import { orderCollection, orderItemCollection, paymentCollection, transactionCollection, userCollection } from '@platform/db/collections'
 import { useIsOnline } from '@platform/hooks/use-is-online'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import dayjs from '@platform/lib/dayjs'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import MountManager from '@platform/lib/mount-manager'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect, useNavigate, useSearch } from '@tanstack/react-router'
 import { ClipboardList } from 'lucide-react'
 import { OrderStatus, type OrderType } from 'prisma/generated/prisma/enums'
 import { useCallback, useMemo, useState } from 'react'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { orderCols } from '@/lib/columns/order-columns'
-import MountManager from '@platform/lib/mount-manager'
 import { fetchOrderHistory, type OrderHistoryItem } from '@/lib/server-fn/fetch-order-history'
 import { closeOrderHistorySidebar, ORDER_HISTORY_ASIDE_ID, showOrderHistorySidebar } from './-components/order-history-sidebar'
 import { OrderDetailsSidebar } from './$orderId'
@@ -97,6 +97,7 @@ function RouteComponent() {
         .filter(i => i.orderId === order.id)
         .map(item => ({
           ...item,
+          // biome-ignore lint/suspicious/noExplicitAny: flexibility required
           variant: null as any, // Skip deep variant/product joins offline
           selectedAddons: [],
         }))

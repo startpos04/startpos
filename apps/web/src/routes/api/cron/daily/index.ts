@@ -1,7 +1,7 @@
 /**
  * api/cron/daily/index.ts
  *
- * Daily cron entry point â€” runs all background jobs in dependency order.
+ * Daily cron entry point — runs all background jobs in dependency order.
  *
  * Security:
  *   Every request must supply the Authorization header:
@@ -15,15 +15,15 @@
  *   Vercel injects the secret automatically on each scheduled invocation.
  *
  * Job execution order (dependency-driven):
- *   1. subscription-lifecycle      â€” TRIAL/GRACE_PERIOD/EXPIRED transitions
- *   2. usage-counter-reset         â€” close open counters; open next period
- *   3. billing-invoice-generation  â€” must run AFTER usage-counter-reset
- *   4. pricing-quote-expiry        â€” independent; no ordering requirement
- *   5. composable-renewal-preview  â€” must run AFTER pricing-quote-expiry
- *   6. subscription-renewal-reminders â€” provider-agnostic renewal reminders
+ *   1. subscription-lifecycle      — TRIAL/GRACE_PERIOD/EXPIRED transitions
+ *   2. usage-counter-reset         — close open counters; open next period
+ *   3. billing-invoice-generation  — must run AFTER usage-counter-reset
+ *   4. pricing-quote-expiry        — independent; no ordering requirement
+ *   5. composable-renewal-preview  — must run AFTER pricing-quote-expiry
+ *   6. subscription-renewal-reminders — provider-agnostic renewal reminders
  *
- *   Jobs 1â€“3 are sequential (3 depends on 2's output).
- *   Jobs 4â€“6 run after 1â€“3 but are independent of each other.
+ *   Jobs 1–3 are sequential (3 depends on 2's output).
+ *   Jobs 4–6 run after 1–3 but are independent of each other.
  *   The overall run is fail-fast per job: if a job returns outcome='error'
  *   it is recorded but subsequent jobs still run (non-fatal isolation).
  *
@@ -31,16 +31,16 @@
  * LifecycleThresholds are read from configuration global defaults.
  * Both fall back to the documented defaults when not configured.
  *
- * The Stripe adapter is constructed only when STRIPE_SECRET_KEY is present â€”
+ * The Stripe adapter is constructed only when STRIPE_SECRET_KEY is present —
  * if it is absent (local dev / CI), invoice generation still runs but skips
  * the Stripe provider push (adapter = null).
  *
- * Trigger: Vercel Cron â€” daily at 00:05 UTC (vercel.json)
+ * Trigger: Vercel Cron — daily at 00:05 UTC (vercel.json)
  * Method: POST (Vercel cron invocations use POST)
- * Timeout: 60 s (Vercel hobby) / 300 s (pro) â€” adjust maxDuration in vercel.json
+ * Timeout: 60 s (Vercel hobby) / 300 s (pro) — adjust maxDuration in vercel.json
  */
 
-import { ConfigurationEngine } from '@platform/lib/configuration/configuration-engine'
+import { getDefault as getConfigDefault } from '@platform/lib/configuration/configuration-engine'
 import { createFileRoute } from '@tanstack/react-router'
 import type { BillingProviderAdapter } from '@/lib/billing/billing-provider'
 import type { JobResult } from '@/lib/jobs'
@@ -56,7 +56,7 @@ import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 // ---------------------------------------------------------------------------
 // Route registration (TanStack Start file-based routing)
 // The route path below must match the file path exactly.
-// FileRoutesByPath is auto-generated â€” this entry will appear after the next
+// FileRoutesByPath is auto-generated — this entry will appear after the next
 // `pnpm dev` or `pnpm build` run that triggers routeTree.gen.ts regeneration.
 // ---------------------------------------------------------------------------
 
@@ -65,12 +65,12 @@ export const Route = createFileRoute('/api/cron/daily/' as never)({
     handlers: {
       POST: async ({ request }) => {
         // -------------------------------------------------------------------
-        // 1. Authentication â€” shared secret check
+        // 1. Authentication — shared secret check
         // -------------------------------------------------------------------
         const cronSecret = process.env['CRON_SECRET']
 
         if (!cronSecret) {
-          // CRON_SECRET not configured â€” reject to prevent accidental open access
+          // CRON_SECRET not configured — reject to prevent accidental open access
           console.error('[cron/daily] CRON_SECRET is not set. Rejecting request.')
           return new Response(JSON.stringify({ error: 'Cron endpoint not configured' }), {
             status: 500,
@@ -94,12 +94,12 @@ export const Route = createFileRoute('/api/cron/daily/' as never)({
         // -------------------------------------------------------------------
 
         // Read platform-level configuration (no businessId context)
-        const overageValue = await ConfigurationEngine.get('OVERAGE_BILLING_ENABLED', {})
-        const vatValue = await ConfigurationEngine.get('COMPOSABLE_TAX_RATE', {})
+        const overageValue = await getConfigDefault('OVERAGE_BILLING_ENABLED')
+        const vatValue = await getConfigDefault('COMPOSABLE_TAX_RATE')
 
         const overagePolicy = {
           overageBillingEnabled: overageValue === 'true',
-          overageRatePerTx: 0, // Per-plan rate â€” InvoiceEngine reads from plan directly
+          overageRatePerTx: 0, // Per-plan rate — InvoiceEngine reads from plan directly
           vatRate: vatValue ? Number(vatValue) / 10000 : 0.12,
         }
 
@@ -110,7 +110,7 @@ export const Route = createFileRoute('/api/cron/daily/' as never)({
         }
 
         // -------------------------------------------------------------------
-        // 3. Build Stripe adapter (optional â€” null disables provider push)
+        // 3. Build Stripe adapter (optional — null disables provider push)
         // -------------------------------------------------------------------
         let stripeAdapter: BillingProviderAdapter | null = null
         const stripeKey = process.env['STRIPE_SECRET_KEY']
@@ -120,7 +120,7 @@ export const Route = createFileRoute('/api/cron/daily/' as never)({
             const { createStripeAdapter } = await import('@/lib/billing/adapters/stripe-adapter')
             stripeAdapter = createStripeAdapter()
           } catch (err) {
-            console.warn('[cron/daily] Failed to initialise Stripe adapter â€” invoice sync disabled:', err)
+            console.warn('[cron/daily] Failed to initialise Stripe adapter — invoice sync disabled:', err)
           }
         }
 
@@ -131,22 +131,22 @@ export const Route = createFileRoute('/api/cron/daily/' as never)({
         const now = new Date()
         const results: JobResult[] = []
 
-        // Job 1 â€” subscription lifecycle transitions
+        // Job 1 — subscription lifecycle transitions
         results.push(await runSubscriptionLifecycleJob(rootPrisma, thresholds, now))
 
-        // Job 2 â€” close expired billing periods and open the next ones
+        // Job 2 — close expired billing periods and open the next ones
         results.push(await runUsageCounterResetJob(rootPrisma, now))
 
-        // Job 3 â€” generate invoices for closed periods (depends on job 2)
+        // Job 3 — generate invoices for closed periods (depends on job 2)
         results.push(await runBillingInvoiceGenerationJob(rootPrisma, overagePolicy, stripeAdapter, now))
 
-        // Job 4 â€” expire stale pricing quotes
+        // Job 4 — expire stale pricing quotes
         results.push(await runPricingQuoteExpiryJob(rootPrisma))
 
-        // Job 5 â€” notify businesses about upcoming composable price changes
+        // Job 5 — notify businesses about upcoming composable price changes
         results.push(await runComposableRenewalPreviewJob(rootPrisma, { previewWindowDays: 7 }))
 
-        // Job 6 â€” send general subscription renewal reminders
+        // Job 6 — send general subscription renewal reminders
         results.push(await runSubscriptionRenewalRemindersJob(rootPrisma, { reminderWindowDays: [7, 3, 1] }))
 
         // -------------------------------------------------------------------

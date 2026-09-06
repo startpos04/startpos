@@ -1,5 +1,5 @@
-import type { AnyFieldApi } from '@tanstack/react-form'
 import { Field } from '@platform/components/ui/field'
+import type { AnyFieldApi } from '@tanstack/react-form'
 import { ImageUploader } from '../image-uploader'
 
 interface ImageInputProps {

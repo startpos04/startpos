@@ -2,12 +2,22 @@
   "name": "@startpos/platform",
   "version": "0.0.0",
   "private": true,
+  "scripts": {
+    "generate": "pnpm exec prisma generate --config prisma.config.ts && tsx prisma/sync-meta.ts",
+    "prisma:generate": "tsx --env-file=../../.env.config prisma/models/generate-schema.ts && pnpm run generate",
+    "db:push": "prisma db push --config prisma.config.ts --accept-data-loss",
+    "db:migrate": "prisma migrate deploy --config prisma.config.ts"
+  },
+  "prisma": {
+    "seed": "tsx --env-file=../../apps/web/.env --env-file=../../.env.config prisma/seeders/index.ts"
+  },
   "exports": {
     "./*": "./*"
   },
   "peerDependencies": {
     "@prisma/adapter-pg": "*",
     "@prisma/client": "*",
+    "@serwist/window": "*",
     "@tanstack/browser-db-sqlite-persistence": "*",
     "@tanstack/db": "*",
     "@tanstack/query-db-collection": "*",
@@ -18,7 +28,6 @@
     "@tanstack/react-start": "*",
     "@tanstack/react-store": "*",
     "@tanstack/react-table": "*",
-    "@serwist/window": "*",
     "better-auth": "*",
     "class-variance-authority": "*",
     "clsx": "*",
@@ -46,11 +55,15 @@
     "zod": "*"
   },
   "devDependencies": {
+    "@prisma/internals": "*",
     "@types/lodash": "*",
+    "@types/pg": "8.11.11",
     "@types/react": "*",
     "@types/react-dom": "*",
     "dotenv": "*",
     "jimp": "*",
+    "prisma": "*",
+    "tsx": "*",
     "typescript": "*"
   }
 }

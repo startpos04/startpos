@@ -1,11 +1,11 @@
 /**
  * forgot-password.tsx
  *
- * /forgot-password â€” Three-step password reset flow.
+ * /forgot-password — Three-step password reset flow.
  *
- *   Step 1 â€” Email: user enters their email address.
- *   Step 2 â€” OTP: 6-digit code sent to that email.
- *   Step 3 â€” New password: user sets their new password.
+ *   Step 1 — Email: user enters their email address.
+ *   Step 2 — OTP: 6-digit code sent to that email.
+ *   Step 3 — New password: user sets their new password.
  *
  * Always shows "If an account exists, a code was sent" on step 1 submit
  * to prevent email enumeration.
@@ -42,7 +42,7 @@ export const Route = createFileRoute('/(public)/forgot-password')({
 })
 
 // ---------------------------------------------------------------------------
-// Step 2 â€” OTP verification
+// Step 2 — OTP verification
 // ---------------------------------------------------------------------------
 
 interface OtpStepProps {
@@ -171,7 +171,7 @@ function OtpStep({ email, onVerified, onBack }: OtpStepProps) {
               disabled={isResending}
               className='font-medium text-primary underline-offset-4 hover:underline disabled:opacity-50'
             >
-              {isResending ? 'Sendingâ€¦' : 'Resend code'}
+              {isResending ? 'Sending…' : 'Resend code'}
             </button>
           )}
         </p>
@@ -187,7 +187,7 @@ function OtpStep({ email, onVerified, onBack }: OtpStepProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Step 3 â€” New password
+// Step 3 — New password
 // ---------------------------------------------------------------------------
 
 const newPasswordSchema = z
@@ -275,7 +275,7 @@ function NewPasswordStep({ email, otp, onBack }: NewPasswordStepProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Step 1 â€” Email form + orchestration
+// Step 1 — Email form + orchestration
 // ---------------------------------------------------------------------------
 
 const emailSchema = z.object({
@@ -298,7 +298,7 @@ function RouteComponent() {
         toast.error('Password reset requires an internet connection.')
         return
       }
-      // Always call â€” silently no-ops for unknown emails to prevent enumeration
+      // Always call — silently no-ops for unknown emails to prevent enumeration
       await sendForgotPasswordOTP({ data: { email: value.email } })
       setEmail(value.email)
       setStep('otp')
@@ -307,7 +307,7 @@ function RouteComponent() {
   })
 
   // ---------------------------------------------------------------------------
-  // Step 2 â€” OTP
+  // Step 2 — OTP
   // ---------------------------------------------------------------------------
 
   if (step === 'otp') {
@@ -326,7 +326,7 @@ function RouteComponent() {
   }
 
   // ---------------------------------------------------------------------------
-  // Step 3 â€” New password
+  // Step 3 — New password
   // ---------------------------------------------------------------------------
 
   if (step === 'new-password') {
@@ -338,7 +338,7 @@ function RouteComponent() {
   }
 
   // ---------------------------------------------------------------------------
-  // Step 1 â€” Email
+  // Step 1 — Email
   // ---------------------------------------------------------------------------
 
   return (

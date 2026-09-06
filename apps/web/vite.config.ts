@@ -14,7 +14,7 @@ const publicPort = Number(process.env['PUBLIC_PORT'] ?? port)
 const dockerDev = process.env['DOCKER_DEV'] === 'true'
 
 // ---------------------------------------------------------------------------
-// Cross-Origin Isolation â€” required for SharedArrayBuffer (SQLite WASM).
+// Cross-Origin Isolation — required for SharedArrayBuffer (SQLite WASM).
 // Present in dev, preview, and production.
 // ---------------------------------------------------------------------------
 const crossOriginIsolationHeaders = {
@@ -24,8 +24,8 @@ const crossOriginIsolationHeaders = {
 }
 
 // ---------------------------------------------------------------------------
-// Security headers â€” Phase 2 Legal Compliance
-// (unchanged â€” see comments in original)
+// Security headers — Phase 2 Legal Compliance
+// (unchanged — see comments in original)
 // ---------------------------------------------------------------------------
 const securityHeaders = {
   'X-Frame-Options': 'DENY',
@@ -56,11 +56,11 @@ const securityHeaders = {
 //
 // This plugin injects the headers via raw connect middleware with
 // `enforce: 'pre'`, which guarantees it runs before Vite's internal static
-// file middleware â€” so every response, including public/ assets, gets them.
+// file middleware — so every response, including public/ assets, gets them.
 // ---------------------------------------------------------------------------
 function crossOriginHeadersPlugin(): Plugin {
   // Routes where Stripe Elements is used — COEP must be removed so the iframe loads
-  const stripeCOEPPaths = ['/business/subscription/checkout', '/business/subscription/credits']
+  const stripeCOEPPaths = ['/business/subscription/checkout', '/business/subscription/credits', '/billing']
 
   const headersFor = (path: string) => {
     const noCoep = stripeCOEPPaths.some(p => path.startsWith(p))
@@ -120,17 +120,17 @@ const config = defineConfig({
     alias: [
       {
         find: /^@platform\/(.*)/,
-        replacement: resolve(__dirname, '../../packages/platform') + '/$1',
+        replacement: `${resolve(__dirname, '../../packages/platform')}/$1`,
       },
       {
         // Allow packages/platform files to resolve @/ imports from apps/web/src
         find: /^@\/(.*)/,
-        replacement: resolve(__dirname, 'src') + '/$1',
+        replacement: `${resolve(__dirname, 'src')}/$1`,
       },
       {
-        // Allow packages/platform files to resolve prisma/generated/... from apps/web/prisma
+        // Allow all packages to resolve prisma/generated/... from packages/platform/prisma
         find: /^prisma\/(.*)/,
-        replacement: resolve(__dirname, 'prisma') + '/$1',
+        replacement: `${resolve(__dirname, '../../packages/platform/prisma')}/$1`,
       },
     ],
   },
@@ -158,6 +158,12 @@ const config = defineConfig({
             'Cross-Origin-Embedder-Policy': 'unsafe-none',
           },
         },
+        '/billing/**': {
+          headers: {
+            ...securityHeaders,
+            'Cross-Origin-Embedder-Policy': 'unsafe-none',
+          },
+        },
       },
     }),
     ...(dockerDev ? [] : [devtools()]),
@@ -180,7 +186,7 @@ const config = defineConfig({
     terserOptions: {
       compress: {
         // Keep console.* calls so server-side errors are visible in preview/production logs.
-        // Flip these to true only when deploying to a platform with centralised log ingestion.
+        // Flip these to true only when deploying to a platform with centralized log ingestion.
         drop_console: !!process.env['CONSOLE_LOG'],
         drop_debugger: true,
       },

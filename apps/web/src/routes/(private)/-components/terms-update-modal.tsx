@@ -1,12 +1,12 @@
 /**
- * terms-update-modal.tsx â€” ToS/Privacy Policy re-acceptance modal
+ * terms-update-modal.tsx — ToS/Privacy Policy re-acceptance modal
  *
  * Shown when a returning merchant's stored termsVersion is older than the
  * current CURRENT_TERMS_VERSION constant. The merchant cannot proceed past
  * the private shell until they accept.
  *
  * Behaviour:
- *   - Blocks navigation â€” no close button, no backdrop dismiss.
+ *   - Blocks navigation — no close button, no backdrop dismiss.
  *   - Calls acceptTerms() server function on confirm.
  *   - Updates authStore so the version check passes immediately without reload.
  *   - The check runs on every (private) route mount so it also fires on
@@ -21,11 +21,11 @@
 import { Button } from '@platform/components/ui/button'
 import { Checkbox } from '@platform/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
-import { authStore, refreshAuthUser } from '@platform/lib/better-auth/auth-store'
 import { useStore } from '@tanstack/react-store'
 import { FileText, Loader2, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { authStore, refreshAuthUser } from '@/lib/better-auth/auth-store'
 import { acceptTerms } from '@/lib/server-fn/accept-terms'
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '@/lib/server-fn/complete-registration'
 
@@ -34,7 +34,7 @@ import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '@/lib/server-fn/
 // ---------------------------------------------------------------------------
 
 export function isTermsOutdated(userTermsVersion: string | null | undefined): boolean {
-  // No version recorded â€” legacy account created before Phase 0.
+  // No version recorded — legacy account created before Phase 0.
   // We require acceptance so we have a proper audit record going forward.
   if (!userTermsVersion) return true
   return userTermsVersion !== CURRENT_TERMS_VERSION
@@ -72,7 +72,7 @@ export function TermsUpdateModal() {
   return (
     <Dialog
       open={needsAcceptance}
-      // Intentionally no onOpenChange â€” this dialog cannot be dismissed
+      // Intentionally no onOpenChange — this dialog cannot be dismissed
       // without accepting. The merchant must accept to continue.
     >
       <DialogContent
@@ -143,7 +143,7 @@ export function TermsUpdateModal() {
           <div className='flex items-center gap-2 w-full'>
             <FileText className='size-3.5 text-muted-foreground shrink-0' />
             <span className='text-xs text-muted-foreground flex-1'>
-              Document versions: ToS {CURRENT_TERMS_VERSION} Â· Privacy {CURRENT_PRIVACY_VERSION}
+              Document versions: ToS {CURRENT_TERMS_VERSION} · Privacy {CURRENT_PRIVACY_VERSION}
             </span>
             <Button onClick={handleAccept} disabled={!accepted || isSaving} size='sm' data-testid='accept-terms-button'>
               {isSaving ? <Loader2 className='size-3.5 mr-1 animate-spin' /> : null}

@@ -24,8 +24,8 @@
  *
  * Architecture contract (ADR-001):
  *   - Uses PaymentProviderRegistry to get provider information
- *   - The job is infrastructure â€” it fetches data, calls services, and persists notifications
- *   - Receives rootPrisma as parameter â€” no globals
+ *   - The job is infrastructure — it fetches data, calls services, and persists notifications
+ *   - Receives rootPrisma as parameter — no globals
  *
  * Usage (called from a cron endpoint or server-side scheduler):
  *   const result = await runSubscriptionRenewalRemindersJob(rootPrisma, { reminderWindowDays: [7, 3, 1] })
@@ -176,6 +176,7 @@ function buildReminderContent(
   renewalDate: Date | null,
   providerId: PaymentProviderId | null,
   providerDisplayName: string,
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   providerCapabilities: any,
 ): { title: string; message: string; link: string } {
   const renewalDateStr = renewalDate ? dayjs(renewalDate).format('MMM D, YYYY') : 'soon'

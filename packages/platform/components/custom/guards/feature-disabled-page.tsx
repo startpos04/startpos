@@ -1,11 +1,10 @@
+import { useAuthenticatedUser } from '@platform/lib/better-auth/auth-store'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { ShieldAlertIcon } from 'lucide-react'
 import { useEffect } from 'react'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 
 export function FeatureDisabledPage() {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const navigate = useNavigate()
 
   useEffect(() => {

@@ -11,7 +11,7 @@ export const fetchVariantOptions = () => {
   return {
     ...result,
     data: result.data?.map(item => ({
-      label: `${item.product?.name ?? 'â€”'} â€” ${item.name ?? 'Default'} (${item.sku ?? ''})`,
+      label: `${item.product?.name ?? '—'} — ${item.name ?? 'Default'} (${item.sku ?? ''})`,
       value: item.id,
       data: item,
     })),

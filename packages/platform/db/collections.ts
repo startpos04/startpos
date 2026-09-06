@@ -1,3 +1,4 @@
+import type { TaskMetadata, TransactionComplianceData } from '@platform/lib/types'
 import type {
   AuditLog,
   Branch,
@@ -44,7 +45,6 @@ import type {
   UserPermission,
   VendorSession,
 } from 'prisma/generated/prisma/browser'
-import type { TaskMetadata, TransactionComplianceData } from '@platform/lib/types'
 import { createSyncableCollection } from '.'
 
 const SCHEMA_VERSION = 3

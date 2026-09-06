@@ -178,7 +178,7 @@ export class PaymentProviderService {
 
     // Manual payment method - get config for setup route
     const config = paymentProviderRegistry.getConfig(preferredProvider)
-    if (config && config.config.setupRoute) {
+    if (config?.config.setupRoute) {
       return {
         type: 'manual-payment',
         redirectUrl: `${config.config.setupRoute}?planId=${planId}`,

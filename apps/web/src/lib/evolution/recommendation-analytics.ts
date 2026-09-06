@@ -1,11 +1,11 @@
 /**
- * recommendation-analytics.ts â€” Recommendation analytics queries (Phase 6)
+ * recommendation-analytics.ts — Recommendation analytics queries (Phase 6)
  *
  * Computes recommendation analytics from BusinessCapabilityState data.
- * Uses crudAPI (Priority 2) â€” server-authoritative reads with aggregation
+ * Uses crudAPI (Priority 2) — server-authoritative reads with aggregation
  * that the local collection cannot satisfy directly.
  *
- * All functions are plain async functions. No createServerFn wrapper â€”
+ * All functions are plain async functions. No createServerFn wrapper —
  * crudAPI has its own server function internally.
  *
  * Metrics tracked (per Phase 6 spec):
@@ -31,11 +31,11 @@ export type CapabilityRecommendationStats = {
   totalAccepted: number
   /** Number of businesses that dismissed (dismissalCount â‰¥ 1 and still not ENABLED) */
   totalDismissed: number
-  /** Number that were recommended but are still not ENABLED or dismissed â€” stagnant */
+  /** Number that were recommended but are still not ENABLED or dismissed — stagnant */
   totalAbandoned: number
-  /** Acceptance rate as a fraction 0.0â€“1.0 (accepted / recommended) */
+  /** Acceptance rate as a fraction 0.0–1.0 (accepted / recommended) */
   acceptanceRate: number
-  /** Dismissal rate as a fraction 0.0â€“1.0 (dismissed / recommended) */
+  /** Dismissal rate as a fraction 0.0–1.0 (dismissed / recommended) */
   dismissalRate: number
   /** Abandonment rate (neither accepted nor dismissed / recommended) */
   abandonmentRate: number
@@ -118,7 +118,7 @@ export async function fetchRecommendationAnalytics(): Promise<RecommendationAnal
     // Average days from recommendedAt to enabledAt for accepted rows
     const enableTimes = acceptedRows
       .filter(r => r.recommendedAt !== null && r.enabledAt !== null)
-      .map(r => (r.enabledAt!.getTime() - r.recommendedAt!.getTime()) / (1000 * 60 * 60 * 24))
+      .map(r => (r.enabledAt?.getTime() - r.recommendedAt?.getTime()) / (1000 * 60 * 60 * 24))
 
     const avgDaysToEnable = enableTimes.length > 0 ? enableTimes.reduce((sum, v) => sum + v, 0) / enableTimes.length : null
 

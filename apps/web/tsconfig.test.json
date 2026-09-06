@@ -8,7 +8,6 @@
   "exclude": [
     "node_modules",
     "dist",
-    "prisma/generated",
     "coverage",
     "playwright-report"
   ],
@@ -22,7 +21,7 @@
 
     /* Path aliases for test files */
     "paths": {
-      "prisma/*": ["./prisma/*"],
+      "prisma/*": ["../../packages/platform/prisma/*"],
       "@/*": ["./src/*"],
       "@platform/*": ["../../packages/platform/*"],
       "#tests/*": ["./__tests__/*"]

@@ -1,7 +1,7 @@
-import { type ColumnDef, flexRender } from '@tanstack/react-table'
 import { Skeleton } from '@platform/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@platform/components/ui/table'
 import { cn } from '@platform/lib/utils'
+import { type ColumnDef, flexRender } from '@tanstack/react-table'
 import type { DataViewProps } from '.'
 import { DataViewPagination } from './pagination'
 import { useDataView } from './use-data-view'

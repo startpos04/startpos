@@ -1,5 +1,5 @@
 /**
- * offline-indicator.tsx â€” Generic offline mode banner for data viewing pages
+ * offline-indicator.tsx — Generic offline mode banner for data viewing pages
  *
  * Displays a banner at the top of pages when offline to inform users they're
  * viewing cached data with limited filtering capabilities.
@@ -9,9 +9,9 @@
  *   <OfflineIndicator message="Custom offline message" />
  */
 
-import { AlertCircle, WifiOff } from 'lucide-react'
 import { Card } from '@platform/components/ui/card'
 import { useIsOnline } from '@platform/hooks/use-is-online'
+import { AlertCircle, WifiOff } from 'lucide-react'
 
 interface OfflineIndicatorProps {
   /**

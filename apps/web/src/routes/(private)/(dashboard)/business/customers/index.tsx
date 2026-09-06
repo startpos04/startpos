@@ -10,7 +10,7 @@ import { useMemo } from 'react'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/customers/')({
   component: () => (
-    <RequireAccess capability={Capabilities.CUSTOMER_PROFILES} permission={Permissions.BUSINESS_VIEW_CUSTOMERS}>
+    <RequireAccess capability={Capabilities.MANAGE_CUSTOMERS} permission={Permissions.BUSINESS_VIEW_CUSTOMERS}>
       <CustomersPage />
     </RequireAccess>
   ),
@@ -36,12 +36,12 @@ export function CustomersPage() {
 
         h.accessor('email', {
           header: 'Email Address',
-          cell: info => <span className='font-mono text-xs text-muted-foreground lowercase'>{info.getValue() || 'â€”'}</span>,
+          cell: info => <span className='font-mono text-xs text-muted-foreground lowercase'>{info.getValue() || '—'}</span>,
         }),
 
         h.accessor('phone', {
           header: 'Phone Number',
-          cell: info => <span className='font-mono text-xs text-muted-foreground'>{info.getValue() || 'â€”'}</span>,
+          cell: info => <span className='font-mono text-xs text-muted-foreground'>{info.getValue() || '—'}</span>,
         }),
       ]),
     [],

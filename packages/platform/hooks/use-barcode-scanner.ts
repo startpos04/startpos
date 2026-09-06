@@ -77,7 +77,7 @@ export function useBarcodeScanner(options: BarcodeScannerOptions) {
       const target = event.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         // Allow if it's specifically marked as barcode input
-        if (!target.dataset.barcodeInput) {
+        if (!target.dataset['barcodeInput']) {
           return
         }
       }

@@ -1,19 +1,19 @@
 /**
  * register.tsx
  *
- * /register â€” Self-serve registration page.
+ * /register — Self-serve registration page.
  *
  * Three-step flow:
- *   Step 1 â€” Account details: name, email, password, business name.
- *   Step 2 â€” Email OTP verification: 6-digit code sent to the entered email.
- *   Step 3 â€” Adaptive survey (Q1â€“Q8) to configure the business.
+ *   Step 1 — Account details: name, email, password, business name.
+ *   Step 2 — Email OTP verification: 6-digit code sent to the entered email.
+ *   Step 3 — Adaptive survey (Q1–Q8) to configure the business.
  *             All survey questions except Q1 can be skipped.
  *
  * On submit:
  *   1. Checks email availability.
  *   2. Sends a 6-digit OTP via authClient.emailOtp.sendVerificationOtp().
  *   3. User enters OTP â†’ verified via authClient.emailOtp.verifyEmail().
- *   4. Calls registerWithSurvey â€” creates the auth user + full tenant record
+ *   4. Calls registerWithSurvey — creates the auth user + full tenant record
  *      atomically. If survey config fails, no user is left orphaned.
  *   6. Signs in to get a session with businessId/branchId.
  *   7. Redirects to /dashboard.
@@ -32,9 +32,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@platform/components/ui/input'
 import { Separator } from '@platform/components/ui/separator'
 import { useIsOnline } from '@platform/hooks/use-is-online'
-import { authClient } from '@platform/lib/better-auth/auth-client'
-import { AuthEngine } from '@platform/lib/better-auth/auth-engine'
-import { setUser } from '@platform/lib/better-auth/auth-store'
 import { cn } from '@platform/lib/utils'
 import { useForm } from '@tanstack/react-form'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
@@ -42,6 +39,9 @@ import { Loader2, Mail } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { authClient } from '@/lib/better-auth/auth-client'
+import { loginOnline } from '@/lib/better-auth/auth-engine'
+import { setUser } from '@/lib/better-auth/auth-store'
 import type { SurveyAnswers } from '@/lib/onboarding/types'
 import { checkEmailAvailable } from '@/lib/server-fn/check-email-available'
 import { registerWithSurvey } from '@/lib/server-fn/complete-registration'
@@ -59,7 +59,7 @@ const accountSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
   businessName: z.string().min(1, 'Business name is required'),
   contactNumber: z.string().min(1, 'Contact number is required'),
-  // Legal consent â€” must be checked to proceed. The checkbox is the user's
+  // Legal consent — must be checked to proceed. The checkbox is the user's
   // binding acceptance of the Terms of Service and Privacy Policy.
   termsAccepted: z.boolean().refine(v => v === true, {
     message: 'You must agree to the Terms of Service and Privacy Policy to continue.',
@@ -69,7 +69,7 @@ const accountSchema = z.object({
 type AccountValues = z.infer<typeof accountSchema>
 
 // ---------------------------------------------------------------------------
-// OTP_LENGTH â€” must match the value configured in auth.ts emailOTP plugin
+// OTP_LENGTH — must match the value configured in auth.ts emailOTP plugin
 // ---------------------------------------------------------------------------
 
 const OTP_LENGTH = 6
@@ -273,7 +273,7 @@ function OtpStep({ email, onVerified, onBack }: OtpStepProps) {
                 disabled={isResending}
                 className='font-medium text-primary underline-offset-4 hover:underline disabled:opacity-50'
               >
-                {isResending ? 'Sendingâ€¦' : 'Resend code'}
+                {isResending ? 'Sending…' : 'Resend code'}
               </button>
             )}
           </p>
@@ -322,14 +322,14 @@ function RouteComponent() {
           return
         }
       } catch {
-        // If the check fails (network hiccup), proceed â€” the real sign-up will catch duplicates
+        // If the check fails (network hiccup), proceed — the real sign-up will catch duplicates
       }
 
       setAccountValues(value)
       setConsentTimestamp(new Date().toISOString())
 
       if (!emailVerificationEnabled) {
-        // Skip OTP step entirely â€” go straight to survey
+        // Skip OTP step entirely — go straight to survey
         setStep('survey')
         return
       }
@@ -360,7 +360,7 @@ function RouteComponent() {
     setIsSubmitting(true)
 
     try {
-      // Single atomic call â€” the Better Auth user + account rows are created
+      // Single atomic call — the Better Auth user + account rows are created
       // inside the same Prisma transaction as the business/branch/membership.
       // If the survey config or any later step fails, zero rows are committed
       // and the user can retry without hitting a "email already exists" error.
@@ -393,7 +393,7 @@ function RouteComponent() {
 
       // Sign in to get a fresh session with businessId/branchId
       try {
-        await AuthEngine.loginOnline(accountValues.email, accountValues.password, freshUser => {
+        await loginOnline(accountValues.email, accountValues.password, freshUser => {
           setUser(freshUser, freshUser.authorization)
           navigate({ to: '/dashboard' })
         })
@@ -420,7 +420,7 @@ function RouteComponent() {
   }
 
   // ---------------------------------------------------------------------------
-  // Step 2 â€” Email OTP verification
+  // Step 2 — Email OTP verification
   // ---------------------------------------------------------------------------
 
   if (step === 'verify-email' && accountValues) {
@@ -428,7 +428,7 @@ function RouteComponent() {
   }
 
   // ---------------------------------------------------------------------------
-  // Step 3 â€” Survey
+  // Step 3 — Survey
   // ---------------------------------------------------------------------------
 
   if (step === 'survey' && accountValues) {
@@ -448,7 +448,7 @@ function RouteComponent() {
   }
 
   // ---------------------------------------------------------------------------
-  // Step 1 â€” Account details
+  // Step 1 — Account details
   // ---------------------------------------------------------------------------
 
   return (
@@ -459,7 +459,7 @@ function RouteComponent() {
             <CardTitle className='text-2xl font-bold'>Create your account</CardTitle>
             <ThemeToggle />
           </div>
-          <CardDescription>30-day free trial with 500 transactions plus 50 credits â€” no card required.</CardDescription>
+          <CardDescription>30-day free trial with 500 transactions plus 50 credits — no card required.</CardDescription>
         </CardHeader>
 
         {/* OAuth buttons */}
@@ -500,7 +500,7 @@ function RouteComponent() {
               children={field => <TextInput field={field} label='Business name' placeholder="Juan's Store" data-testid='business-name-input' />}
             />
 
-            {/* Legal consent checkbox â€” required before proceeding */}
+            {/* Legal consent checkbox — required before proceeding */}
             <form.Field name='termsAccepted'>
               {field => (
                 <div className='space-y-1'>

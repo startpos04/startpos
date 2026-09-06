@@ -1,7 +1,7 @@
 /**
  * feature-disabled.tsx
  *
- * FeatureDisabled â€” full-page placeholder rendered when an operational route
+ * FeatureDisabled — full-page placeholder rendered when an operational route
  * is accessed while the subscription is in a blocked state (EXPIRED,
  * LONG_TERM_INACTIVE, SUSPENDED, CANCELLED).
  *
@@ -19,14 +19,14 @@
  *   if (isOperationallyBlocked(status)) return <FeatureDisabled status={status} />
  */
 
+import { Button } from '@platform/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@platform/components/ui/card'
+import { authStore } from '@platform/lib/better-auth/auth-store'
+import { SubscriptionStatus } from '@platform/lib/entitlement/entitlement-types'
+import { isOperationallyBlocked, SubscriptionStatusVO } from '@platform/lib/entitlement/subscription-status-vo'
 import { useStore } from '@tanstack/react-store'
 import { LockIcon, XCircleIcon } from 'lucide-react'
 import type React from 'react'
-import { Button } from '@platform/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@platform/components/ui/card'
-import { isOperationallyBlocked, SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
-import { SubscriptionStatus } from '@platform/lib/entitlement/entitlement-types'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 
 // ---------------------------------------------------------------------------
 // FeatureDisabledProps
@@ -128,7 +128,7 @@ export function FeatureDisabled({ status, title, description }: FeatureDisabledP
 
 // ---------------------------------------------------------------------------
 // useSubscriptionGate
-// Convenience hook â€” returns a FeatureDisabled element if the subscription
+// Convenience hook — returns a FeatureDisabled element if the subscription
 // is operationally blocked, or null if access should proceed.
 //
 // Usage:

@@ -9,6 +9,7 @@ import { Separator } from '@platform/components/ui/separator'
 import { Package, Receipt, Smartphone } from 'lucide-react'
 
 interface PerformanceTabProps {
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   employee: any
   totalRevenue: number
   targetReached: number
@@ -27,7 +28,7 @@ export function PerformanceTab({ employee, totalRevenue, targetReached }: Perfor
             <p className='text-xs font-medium text-muted-foreground'>Total Revenue</p>
             <Receipt className='h-3.5 w-3.5 text-primary' />
           </div>
-          <p className='text-xl font-bold mt-1'>â‚±{totalRevenue.toLocaleString()}</p>
+          <p className='text-xl font-bold mt-1'>₱{totalRevenue.toLocaleString()}</p>
           <div className='mt-2 space-y-1'>
             <div className='flex justify-between text-[10px] text-muted-foreground'>
               <span>Target Achievement</span>

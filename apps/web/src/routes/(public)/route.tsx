@@ -2,10 +2,10 @@ import { AppWrapper } from '@platform/components/custom/app-wrapper'
 import { LegalFooter } from '@platform/components/custom/legal-footer'
 import { localAuthCollection } from '@platform/db/local-auth'
 import { useIsOnline } from '@platform/hooks/use-is-online'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(public)')({
   component: () => (

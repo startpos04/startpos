@@ -7,12 +7,12 @@ import { Button } from '@platform/components/ui/button'
 import { orderItemCollection, productVariantCollection } from '@platform/db/collections'
 import { useCapability } from '@platform/hooks/use-capability'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { count, eq, useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute } from '@tanstack/react-router'
 import { Box, Edit, X } from 'lucide-react'
 import { type Product, type ProductVariant, type Unit, VariantAttributeType } from 'prisma/generated/prisma/browser'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import type { MountProps } from '@platform/lib/mount-manager'
 import { fetchPosProducts, type posProduct } from '@/lib/queries/fetch-pos-products'
 import { closeProductSidebar, showProductSidebar } from '../-components/product-sidebar'
 import { EditProductSidebar } from './-edit-product'
@@ -40,7 +40,7 @@ export function ProductDetailsSidebar({ open: _open, onClose, productId }: Produ
 }
 
 function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
-  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context â€” used inside MountManager or route component
+  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
   const productId = propId || Route.useLoaderData().productId
   const hasInventory = useCapability(Capabilities.MANAGE_INVENTORY)
   const hasBatchPreparation = useCapability(Capabilities.BATCH_PREPARATION)
@@ -48,7 +48,7 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
   const { data: products, isLoading } = fetchPosProducts({ page: 1, pageSize: 9999, all: true })
   const product = products.find(p => p.id === productId)
 
-  // Per-variant order item counts â€” supplemental live query
+  // Per-variant order item counts — supplemental live query
   const { data: orderItemCounts } = useLiveQuery(
     q =>
       q
@@ -177,7 +177,7 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
         </Button>
       </div>
 
-      {/* Compact info row â€” price, cost & sales, no card clutter */}
+      {/* Compact info row — price, cost & sales, no card clutter */}
       <div className='flex items-center gap-4 px-4 py-2.5 border-b bg-muted/20 shrink-0'>
         <div>
           <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Price</p>
@@ -241,7 +241,7 @@ function RouteComponent({ productId: propId, onClose }: RouteComponentProps) {
         />
       </div>
 
-      {/* Sticky footer â€” edit only */}
+      {/* Sticky footer — edit only */}
       <div className='p-4 border-t shrink-0'>
         <Button variant='outline' className='w-full h-9 gap-2 rounded-xl' onClick={handleEdit}>
           <Edit className='size-3.5' /> Edit Product

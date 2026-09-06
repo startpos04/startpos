@@ -85,7 +85,7 @@ export function DetailsTab({ order }: DetailsTabProps) {
             </div>
             <div>
               <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Cashier</p>
-              <p className='text-xs font-medium'>{tx.cashier?.name ?? 'â€”'}</p>
+              <p className='text-xs font-medium'>{tx.cashier?.name ?? '—'}</p>
             </div>
             <div>
               <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Total</p>
@@ -98,7 +98,7 @@ export function DetailsTab({ order }: DetailsTabProps) {
                   {METHOD_LABELS[tx.payments[0].method as PaymentMethod] ?? tx.payments[0].method}
                 </Badge>
               ) : (
-                <span className='text-xs text-muted-foreground'>â€”</span>
+                <span className='text-xs text-muted-foreground'>—</span>
               )}
             </div>
           </div>

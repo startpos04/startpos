@@ -4,18 +4,17 @@ import { WarningPrompt } from '@platform/components/custom/prompt/warning-prompt
 import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { unitCollection } from '@platform/db/collections'
+import MountManager from '@platform/lib/mount-manager'
 import { useLiveQuery } from '@tanstack/react-db'
-import { Plus, Trash2 } from 'lucide-react'
-import { UnitType } from 'prisma/generated/prisma/enums'
+import { Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import MountManager from '@platform/lib/mount-manager'
 import { CreateUnitSidebar } from './-components/create-unit-sidebar'
 import { showUnitSidebar, UNIT_ASIDE_ID } from './-components/unit-sidebar'
 
 export function UnitsPage() {
   const { data, isLoading } = useLiveQuery(q => q.from({ unit: unitCollection }))
-  const [selectedId, setSelectedId] = useState<string>('')
+  const [_selectedId, setSelectedId] = useState<string>('')
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()

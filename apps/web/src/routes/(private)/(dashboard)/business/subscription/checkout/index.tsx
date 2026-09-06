@@ -4,12 +4,12 @@
  * Unified subscription checkout page.
  *
  * Layout (two-column on desktop, stacked on mobile):
- *   Left  â€” Order summary (plan, billing toggle, price, what's included)
- *   Right â€” Payment method selector + inline payment form
+ *   Left  — Order summary (plan, billing toggle, price, what's included)
+ *   Right — Payment method selector + inline payment form
  *
  * Search params:
- *   planId   â€” required, SubscriptionPlan.id
- *   interval â€” optional, 'monthly' | 'annual', defaults to 'monthly'
+ *   planId   — required, SubscriptionPlan.id
+ *   interval — optional, 'monthly' | 'annual', defaults to 'monthly'
  */
 
 import { Badge } from '@platform/components/ui/badge'
@@ -85,7 +85,7 @@ const PLAN_DETAILS: Record<string, { tagline: string; features: string[] }> = {
 }
 
 function fmt(cents: number) {
-  return `â‚±${(cents / 100).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
+  return `₱${(cents / 100).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
 }
 
 function annualTotal(plan: PlanWithEntitlements) {
@@ -129,7 +129,7 @@ function OrderSummary({
         {details && <p className='text-sm text-muted-foreground mt-1'>{details.tagline}</p>}
       </div>
 
-      {/* Billing interval â€” read only, chosen on plans page */}
+      {/* Billing interval — read only, chosen on plans page */}
       <div className='flex items-center justify-between rounded-lg bg-muted/50 border px-3 py-2.5'>
         <div className='flex items-center gap-2 text-sm'>
           {interval === 'annual' ? <SparklesIcon className='h-3.5 w-3.5 text-primary' /> : <ZapIcon className='h-3.5 w-3.5 text-primary' />}
@@ -148,7 +148,7 @@ function OrderSummary({
       {interval === 'annual' && (
         <p className='text-xs text-muted-foreground -mt-3'>
           Billed as {fmt(annualTotal(plan))} once per year
-          {sav ? ` â€” saves ${fmt(sav.saved)}` : ''}
+          {sav ? ` — saves ${fmt(sav.saved)}` : ''}
         </p>
       )}
 
@@ -228,7 +228,7 @@ function StripeCardForm({ planId, interval, onSuccess }: { planId: string; inter
     hidePostalCode: true,
   }
 
-  // Stripe not configured â€” show setup notice only when key is definitively absent
+  // Stripe not configured — show setup notice only when key is definitively absent
   const stripeKeyMissing = !import.meta.env['VITE_STRIPE_PUBLIC_KEY']
   if (stripeKeyMissing) {
     return (
@@ -348,7 +348,7 @@ function StripeCardForm({ planId, interval, onSuccess }: { planId: string; inter
       <Button type='submit' className='w-full' size='lg' disabled={!canSubmit}>
         {processing ? (
           <>
-            <Loader2 className='mr-2 h-4 w-4 animate-spin' /> Processingâ€¦
+            <Loader2 className='mr-2 h-4 w-4 animate-spin' /> Processing…
           </>
         ) : (
           <>
@@ -450,17 +450,17 @@ function ManualPaymentForm({
           <p className='font-medium'>Payment instructions</p>
           <p>
             <span className='text-muted-foreground'>Account name: </span>
-            {String(manualConfig.config.accountName ?? 'â€”')}
+            {String(manualConfig.config.accountName ?? '—')}
           </p>
           <p>
             <span className='text-muted-foreground'>Account number: </span>
-            {String(manualConfig.config.accountNumber ?? 'â€”')}
+            {String(manualConfig.config.accountNumber ?? '—')}
           </p>
           {manualConfig.config.paymentInstructions && <p className='text-muted-foreground text-xs pt-1'>{String(manualConfig.config.paymentInstructions)}</p>}
         </div>
       )}
 
-      {/* Period selector â€” monthly only */}
+      {/* Period selector — monthly only */}
       {interval === 'monthly' && (
         <div className='space-y-1.5'>
           <Label>
@@ -484,7 +484,7 @@ function ManualPaymentForm({
           </div>
           <p className='text-xs text-muted-foreground'>
             Total: <strong>{fmt(totalCents)}</strong>
-            {periods > 1 && ` â€” covers ${periods} billing periods`}
+            {periods > 1 && ` — covers ${periods} billing periods`}
           </p>
         </div>
       )}
@@ -535,7 +535,7 @@ function ManualPaymentForm({
           {proofImage ? (
             <div className='space-y-1.5 w-full'>
               <img src={proofImage} alt='proof' className='max-h-36 mx-auto rounded-lg object-contain' />
-              <p className='text-xs text-muted-foreground'>{imageFile?.name} â€” click to replace</p>
+              <p className='text-xs text-muted-foreground'>{imageFile?.name} — click to replace</p>
             </div>
           ) : (
             <>
@@ -554,7 +554,7 @@ function ManualPaymentForm({
           Notes
           <span className='ml-1 text-muted-foreground font-normal text-xs'>(optional)</span>
         </Label>
-        <Textarea id='notes' value={notes} onChange={e => setNotes(e.target.value)} placeholder='Any additional detailsâ€¦' rows={2} />
+        <Textarea id='notes' value={notes} onChange={e => setNotes(e.target.value)} placeholder='Any additional details…' rows={2} />
       </div>
 
       <div className='flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 p-3'>
@@ -567,7 +567,7 @@ function ManualPaymentForm({
       <Button type='submit' className='w-full' size='lg' disabled={!proofImage || mutation.isPending}>
         {mutation.isPending ? (
           <>
-            <Loader2 className='mr-2 h-4 w-4 animate-spin' /> Submittingâ€¦
+            <Loader2 className='mr-2 h-4 w-4 animate-spin' /> Submitting…
           </>
         ) : (
           <>
@@ -686,7 +686,7 @@ function CheckoutPage() {
           <div className='rounded-lg border bg-muted/40 divide-y text-sm'>
             <div className='flex items-center justify-between px-4 py-3'>
               <span className='text-muted-foreground'>Amount submitted</span>
-              <span className='font-semibold'>â‚±{((pendingPayment.amount ?? 0) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+              <span className='font-semibold'>₱{((pendingPayment.amount ?? 0) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
             </div>
             <div className='flex items-center justify-between px-4 py-3'>
               <span className='text-muted-foreground'>Periods covered</span>
@@ -742,7 +742,7 @@ function CheckoutPage() {
         </div>
       </div>
 
-      {/* Two-column layout â€” left=payment, right=summary */}
+      {/* Two-column layout — left=payment, right=summary */}
       <div className='grid grid-cols-1 xl:grid-cols-5 gap-5 items-start'>
         <div className='xl:col-span-3 space-y-4'>
           {/* Payment type selector */}
@@ -762,7 +762,7 @@ function CheckoutPage() {
                 </div>
                 <div className='min-w-0 flex-1'>
                   <p className='font-semibold text-sm'>Card</p>
-                  <p className='text-[11px] text-muted-foreground mt-0.5 leading-snug'>Visa, Mastercard â€¢ auto-renews</p>
+                  <p className='text-[11px] text-muted-foreground mt-0.5 leading-snug'>Visa, Mastercard • auto-renews</p>
                   <p className='text-[11px] text-green-600 mt-1 font-medium'>Instant activation</p>
                 </div>
                 <div
@@ -789,7 +789,7 @@ function CheckoutPage() {
                 <div className='min-w-0 flex-1'>
                   <p className='font-semibold text-sm'>GCash / Bank</p>
                   <p className='text-[11px] text-muted-foreground mt-0.5 leading-snug'>
-                    {interval === 'monthly' ? 'Manual transfer â€¢ 1â€“3 months' : 'Manual transfer â€¢ 1 year'}
+                    {interval === 'monthly' ? 'Manual transfer • 1–3 months' : 'Manual transfer • 1 year'}
                   </p>
                   <p className='text-[11px] text-amber-600 mt-1 font-medium'>24h review</p>
                 </div>
@@ -836,7 +836,7 @@ function CheckoutPage() {
           </Card>
         </div>
 
-        {/* Right â€” order summary */}
+        {/* Right — order summary */}
         <div className='xl:col-span-2'>
           <Card>
             <CardContent className='pt-5 pb-5'>

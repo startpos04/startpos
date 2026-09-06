@@ -29,7 +29,7 @@ export function SalesHeatmap({ stats }: { stats: TransactionReportStats }) {
                       <p className='text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1'>Time: {label}</p>
                       <div className='flex items-center gap-2'>
                         <div className='h-2 w-2 rounded-full bg-primary' />
-                        <span className='text-sm font-bold text-foreground'>â‚±{payload[0]?.value?.toLocaleString()}</span>
+                        <span className='text-sm font-bold text-foreground'>₱{payload[0]?.value?.toLocaleString()}</span>
                       </div>
                     </div>
                   )

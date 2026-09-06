@@ -1,11 +1,11 @@
 /**
- * backfill-job.ts â€” One-shot backfill for existing businesses (Phase 4)
+ * backfill-job.ts — One-shot backfill for existing businesses (Phase 4)
  *
  * Populates `livingCharacteristics`, `currentProfile`, and `healthStage`
  * for every existing business that has `livingCharacteristics = NULL`.
  *
  * Run once on staging first, verify with spot-checks, then run on production.
- * Safe to re-run â€” businesses with existing `livingCharacteristics` are skipped.
+ * Safe to re-run — businesses with existing `livingCharacteristics` are skipped.
  *
  * Backfill strategy per business:
  *   1. If `onboardingSurveyAnswers` exists â†’ interpret survey + apply as SURVEY_ANSWER sources
@@ -16,9 +16,9 @@
  *   6. Write all three fields, set `characteristicsVersion = 1`
  *
  * Architecture:
- *   - Uses rootPrisma (platform-level, no tenant isolation needed â€” this is an admin job).
+ *   - Uses rootPrisma (platform-level, no tenant isolation needed — this is an admin job).
  *   - Processes businesses in batches of BATCH_SIZE to avoid memory pressure.
- *   - Each business is committed independently â€” one failure does not block others.
+ *   - Each business is committed independently — one failure does not block others.
  */
 
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
@@ -101,12 +101,12 @@ export async function runBackfill(dryRun = false): Promise<BackfillResult> {
       }
     }
 
-    console.log(`[BackfillJob] Progress â€” processed: ${result.processed}, failed: ${result.failed}`)
+    console.log(`[BackfillJob] Progress — processed: ${result.processed}, failed: ${result.failed}`)
   }
 
   result.durationMs = Date.now() - startedAt
   console.log(
-    `[BackfillJob] Done${dryRun ? ' (DRY RUN)' : ''} â€” ` +
+    `[BackfillJob] Done${dryRun ? ' (DRY RUN)' : ''} — ` +
       `total: ${result.total}, processed: ${result.processed}, ` +
       `skipped: ${result.skipped}, failed: ${result.failed}, ` +
       `duration: ${result.durationMs}ms`,
@@ -131,11 +131,11 @@ async function backfillBusiness(business: BusinessRow, dryRun: boolean): Promise
   let initial: LivingCharacteristics
 
   if (business.onboardingSurveyAnswers && typeof business.onboardingSurveyAnswers === 'object') {
-    // Path A: survey answers present â€” interpret them
+    // Path A: survey answers present — interpret them
     const surveyChars = interpretSurvey(business.onboardingSurveyAnswers as Parameters<typeof interpretSurvey>[0])
     initial = applysurveyAnswers(surveyChars, now)
   } else {
-    // Path B: no survey â€” infer from Configuration settings
+    // Path B: no survey — infer from Configuration settings
     const chars = inferFromConfiguration(business.configurations)
     initial = applysurveyAnswers(chars, now)
   }
@@ -194,7 +194,7 @@ async function backfillBusiness(business: BusinessRow, dryRun: boolean): Promise
 }
 
 // ---------------------------------------------------------------------------
-// Configuration inference (Path B â€” no survey answers)
+// Configuration inference (Path B — no survey answers)
 // ---------------------------------------------------------------------------
 
 /**

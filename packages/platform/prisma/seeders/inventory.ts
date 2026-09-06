@@ -5,8 +5,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import Papa from 'papaparse'
 import { MovementType, type PrismaClient, ResourceType } from 'prisma/generated/prisma/client'
-import { PriceEngine } from '@/lib/conversion/price-engine'
-import { UnitEngine } from '@/lib/conversion/unit-engine'
+import { PriceEngine } from '../../lib/conversion/price-engine'
+import { UnitEngine } from '../../lib/conversion/unit-engine'
 import { getAccounts } from './accounts'
 export const order = 100
 

@@ -2,8 +2,8 @@ import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { inventoryCollection, inventoryMovementCollection, productVariantCollection } from '@platform/db/collections'
 import { useCapability } from '@platform/hooks/use-capability'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, redirect } from '@tanstack/react-router'
@@ -11,7 +11,7 @@ import { useStore } from '@tanstack/react-store'
 import { AlertTriangle, Clock, Lock, Package, ShoppingCart, TrendingUp } from 'lucide-react'
 import numeral from 'numeral'
 import { useMemo } from 'react'
-import MountManager from '@platform/lib/mount-manager'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { FinishedGoodsEngine } from '@/lib/production'
 import { fetchBatchPreparedProducts } from '@/lib/queries/fetch-batch-prepared-products'
 import { PREPARATION_ASIDE_ID, showPreparationSidebar } from './-components/preparation-sidebar'
@@ -51,7 +51,7 @@ function RouteComponent() {
   const { data: batchPreparedProducts = [] } = fetchBatchPreparedProducts()
 
   // Fetch inventory
-  const { data: inventory = [] } = useLiveQuery(q => q.from({ inv: inventoryCollection }), [])
+  const { data: _inventory = [] } = useLiveQuery(q => q.from({ inv: inventoryCollection }), [])
 
   // Fetch inventory movements
   const { data: inventoryMovements = [] } = useLiveQuery(q => q.from({ im: inventoryMovementCollection }), [])
@@ -312,14 +312,14 @@ function RouteComponent() {
                               {summary.preparedToday} {summary.unit}
                             </span>
                           </span>
-                          <span className='text-muted-foreground'>â€¢</span>
+                          <span className='text-muted-foreground'>•</span>
                           <span>
                             <span className='text-muted-foreground'>Sold:</span>{' '}
                             <span className='font-medium'>
                               {summary.soldToday} {summary.unit}
                             </span>
                           </span>
-                          <span className='text-muted-foreground'>â€¢</span>
+                          <span className='text-muted-foreground'>•</span>
                           <span>
                             <span className='text-muted-foreground'>Remaining:</span>{' '}
                             <span className={cn('font-medium', summary.isLowStock ? 'text-orange-600' : 'text-foreground')}>

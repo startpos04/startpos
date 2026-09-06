@@ -97,18 +97,25 @@ export function extractComplianceFromForm(formData: {
   branchCode?: string
   branchPtuNumber?: string
 }): ComplianceData {
+  const rdoCode = formData.rdoCode?.trim()
+  const ptuNumber = formData.ptuNumber?.trim()
+  const ptuIssueDate = formData.ptuIssueDate
+  const branchSerialNumber = formData.branchSerialNumber?.trim()
+  const branchCode = formData.branchCode?.trim()
+  const branchPtuNumber = formData.branchPtuNumber?.trim()
+  const taxRegistrationDate = formData.vatRegistrationDate
+  const dtiSecNumber = formData.dtiSecNumber?.trim()
+
   return {
     businessTaxId: formData.birTin?.trim() ?? '',
-    businessTaxOfficeCode: formData.rdoCode?.trim(),
     isTaxRegistered: formData.isVatRegistered ?? false,
-    taxRegistrationDate: formData.vatRegistrationDate,
-    businessPermitNumber: formData.ptuNumber?.trim(),
-    businessPermitIssuedAt: formData.ptuIssueDate,
-    branchSerialNumber: formData.branchSerialNumber?.trim(),
-    branchCode: formData.branchCode?.trim(),
-    branchPermitNumber: formData.branchPtuNumber?.trim(),
-    metadata: {
-      dtiSecRegistration: formData.dtiSecNumber?.trim(),
-    },
+    ...(rdoCode != null && { businessTaxOfficeCode: rdoCode }),
+    ...(taxRegistrationDate != null && { taxRegistrationDate }),
+    ...(ptuNumber != null && { businessPermitNumber: ptuNumber }),
+    ...(ptuIssueDate != null && { businessPermitIssuedAt: ptuIssueDate }),
+    ...(branchSerialNumber != null && { branchSerialNumber }),
+    ...(branchCode != null && { branchCode }),
+    ...(branchPtuNumber != null && { branchPermitNumber: branchPtuNumber }),
+    ...(dtiSecNumber != null && { metadata: { dtiSecRegistration: dtiSecNumber } }),
   }
 }

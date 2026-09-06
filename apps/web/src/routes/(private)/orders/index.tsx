@@ -16,15 +16,15 @@ import {
 } from '@platform/components/ui/dropdown-menu'
 import { Separator } from '@platform/components/ui/separator'
 import { orderCollection } from '@platform/db/collections'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import MountManager, { type MountProps } from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { Ban, CheckCheck, ChevronDown, Clock, CreditCard, DollarSign, Play, SquarePen, Undo2, User } from 'lucide-react'
 import { OrderStatus } from 'prisma/generated/prisma/browser'
 import { toast } from 'sonner'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import MountManager, { type MountProps } from '@platform/lib/mount-manager'
 import { createPosRefund } from '@/lib/queries/create-pos-refund'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
 import { ActiveOrdersHeader } from './-components/header'
@@ -203,8 +203,8 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
                   orderId: tx.orderId,
                   snapshotCustomerName: tx.snapshotCustomerName ?? null,
                   complianceData: tx.complianceData as import('@platform/lib/types').TransactionComplianceData,
-                  payments: [], // orders page doesn't have payment detail â€” omit
-                  taxLines: [], // orders page doesn't have tax line detail â€” omit
+                  payments: [], // orders page doesn't have payment detail — omit
+                  taxLines: [], // orders page doesn't have tax line detail — omit
                 })
 
                 if (result.error) {
@@ -270,7 +270,7 @@ function RouteComponent({ onClose, onCancel }: RouteComponentProps) {
                               <span>
                                 + {addon.quantity} {addon.addon.product.name} {addon.addon.name ? `(${addon.addon.name})` : ''}
                               </span>
-                              {addon.snapshotUnitPrice > 0 && <span>â‚±{(addon.snapshotUnitPrice / 100).toFixed(2)}</span>}
+                              {addon.snapshotUnitPrice > 0 && <span>₱{(addon.snapshotUnitPrice / 100).toFixed(2)}</span>}
                             </div>
                           ))}
                         </div>

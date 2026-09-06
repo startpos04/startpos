@@ -1,12 +1,12 @@
-import type { ColumnDef, Row } from '@tanstack/react-table'
-import _ from 'lodash'
-import { Grid3X3, Plus, TablePropertiesIcon } from 'lucide-react'
-import { type ChangeEvent, useCallback } from 'react'
 import { GridView } from '@platform/components/custom/data-view/grid-view'
 import { TableView } from '@platform/components/custom/data-view/table-view'
 import { Button } from '@platform/components/ui/button'
 import { ButtonGroup } from '@platform/components/ui/button-group'
 import { Input } from '@platform/components/ui/input'
+import type { ColumnDef, Row } from '@tanstack/react-table'
+import _ from 'lodash'
+import { Grid3X3, Plus, TablePropertiesIcon } from 'lucide-react'
+import { type ChangeEvent, useCallback } from 'react'
 import type { DataViewProps } from '.'
 
 type TableViewConfig<T> = {

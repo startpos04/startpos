@@ -1,10 +1,10 @@
 /**
- * privacy.tsx â€” /privacy
+ * privacy.tsx — /privacy
  *
  * StartPOS Privacy Policy
  * Version: 2026-08-01
  *
- * Publicly accessible â€” no auth required.
+ * Publicly accessible — no auth required.
  * Linked from: registration checkbox, re-acceptance modal, Settings â†’ Account tab.
  */
 
@@ -52,7 +52,7 @@ function PrivacyPage() {
         {/* Title block */}
         <div className='space-y-2'>
           <h1 className='text-2xl font-bold text-foreground'>Privacy Policy</h1>
-          <p className='text-sm text-muted-foreground'>Effective date: {EFFECTIVE_DATE} Â· Version: 2026-08-01</p>
+          <p className='text-sm text-muted-foreground'>Effective date: {EFFECTIVE_DATE} · Version: 2026-08-01</p>
           <p className='text-sm text-muted-foreground'>
             This Privacy Policy explains how {APP_NAME} ("we", "us", "our") collects, uses, stores, and protects personal information in connection with our
             point-of-sale and business management platform. We are committed to compliance with the Philippine Data Privacy Act of 2012 (RA 10173) and its
@@ -89,11 +89,11 @@ function PrivacyPage() {
           <p>{APP_NAME} operates in two distinct data roles under RA 10173:</p>
           <ul className='list-disc list-inside space-y-2 pl-2'>
             <li>
-              <strong className='text-foreground'>Data Controller</strong> â€” for personal information we collect directly about merchants (business owners and
+              <strong className='text-foreground'>Data Controller</strong> — for personal information we collect directly about merchants (business owners and
               their staff who register and use {APP_NAME}). We determine the purposes and means of processing this data.
             </li>
             <li>
-              <strong className='text-foreground'>Data Processor</strong> â€” for personal information that merchants enter about their own customers and
+              <strong className='text-foreground'>Data Processor</strong> — for personal information that merchants enter about their own customers and
               employees. We process this data on the merchant's behalf, under the merchant's instruction, and the merchant is the Data Controller for that data.
             </li>
           </ul>
@@ -207,7 +207,7 @@ function PrivacyPage() {
             <li>To create, authenticate, and manage your user account and session.</li>
             <li>To provide the POS, inventory, employee management, and billing features of the service.</li>
             <li>To generate BIR-format official receipts using the compliance data you provide.</li>
-            <li>To send transactional emails â€” email verification codes, billing notifications, and support responses â€” via Resend.</li>
+            <li>To send transactional emails — email verification codes, billing notifications, and support responses — via Resend.</li>
             <li>To process subscription payments via Stripe (we do not store card data; Stripe handles all card processing).</li>
             <li>To detect and prevent unauthorized access, fraud, and security threats.</li>
             <li>To comply with BIR, NPC, and other applicable regulatory requirements.</li>
@@ -246,15 +246,15 @@ function PrivacyPage() {
               <p>We engage the following third-party service providers who may process personal data on our behalf:</p>
               <ul className='list-disc list-inside space-y-0.5 pl-2 text-xs'>
                 <li>
-                  <strong>Stripe</strong> â€” payment processing. Handles card data; we receive only payment reference numbers. Stripe Privacy Policy:
+                  <strong>Stripe</strong> — payment processing. Handles card data; we receive only payment reference numbers. Stripe Privacy Policy:
                   stripe.com/privacy
                 </li>
                 <li>
-                  <strong>Resend</strong> â€” transactional email delivery. Processes email addresses to deliver verification codes and billing notifications.
+                  <strong>Resend</strong> — transactional email delivery. Processes email addresses to deliver verification codes and billing notifications.
                   Resend Privacy Policy: resend.com/legal/privacy-policy
                 </li>
                 <li>
-                  <strong>Hosting provider</strong> â€” cloud infrastructure and database hosting. Stores all platform data within their data centers.
+                  <strong>Hosting provider</strong> — cloud infrastructure and database hosting. Stores all platform data within their data centers.
                 </li>
               </ul>
               <p className='text-xs mt-1'>
@@ -323,7 +323,7 @@ function PrivacyPage() {
         <Section id='security' title='8. Security Measures'>
           <p>We implement the following technical and organizational security measures:</p>
           <ul className='list-disc list-inside space-y-1 pl-2'>
-            <li>All passwords are hashed using bcrypt â€” we never store plaintext passwords.</li>
+            <li>All passwords are hashed using bcrypt — we never store plaintext passwords.</li>
             <li>Email verification is required at registration via a 6-digit OTP with a 10-minute expiry.</li>
             <li>All data in transit is encrypted using TLS/HTTPS.</li>
             <li>Authentication sessions have defined expiry periods and are enforced by our session management system.</li>
@@ -331,7 +331,7 @@ function PrivacyPage() {
             <li>Administrative access to production systems is restricted and logged.</li>
             <li>Role-based access control (RBAC) limits what each staff member can see and do within the platform.</li>
             <li>All destructive and privilege-elevating actions are recorded in an immutable audit log.</li>
-            <li>Payment card data is never stored â€” all card processing is handled exclusively by Stripe.</li>
+            <li>Payment card data is never stored — all card processing is handled exclusively by Stripe.</li>
           </ul>
           <p>
             No security measure is completely infallible. In the event of a personal data breach that is likely to result in a risk to your rights and freedoms,
@@ -358,7 +358,7 @@ function PrivacyPage() {
               ],
               [
                 'Right to Erasure',
-                'You may request deletion of your personal information. This right is subject to our legal obligation to retain BIR-required transaction records for 10 years (see Section 7). Requests that conflict with this obligation will be partially fulfilled â€” we will delete what we can and explain what we cannot delete and why.',
+                'You may request deletion of your personal information. This right is subject to our legal obligation to retain BIR-required transaction records for 10 years (see Section 7). Requests that conflict with this obligation will be partially fulfilled — we will delete what we can and explain what we cannot delete and why.',
               ],
               [
                 'Right to Restrict Processing',
@@ -395,8 +395,8 @@ function PrivacyPage() {
 
         <Section id='merchant-customers' title='10. A Note for Merchant Customers'>
           <p>
-            If you are a customer of a business using {APP_NAME} â€” for example, if a store recorded your name, phone number, or PWD/SC information during a
-            transaction â€” your data was entered by that merchant, not by {APP_NAME} directly.
+            If you are a customer of a business using {APP_NAME} — for example, if a store recorded your name, phone number, or PWD/SC information during a
+            transaction — your data was entered by that merchant, not by {APP_NAME} directly.
           </p>
           <p>
             The merchant is the Data Controller for your data. Your data subject rights under RA 10173 regarding that information (access, correction, deletion)
@@ -413,12 +413,12 @@ function PrivacyPage() {
           <p>{APP_NAME} uses only the following storage mechanisms:</p>
           <ul className='list-disc list-inside space-y-1 pl-2'>
             <li>
-              <strong className='text-foreground'>Session cookies</strong> â€” strictly necessary for authentication. These cookies contain only a session token
+              <strong className='text-foreground'>Session cookies</strong> — strictly necessary for authentication. These cookies contain only a session token
               used to identify your authenticated session. They are deleted when you sign out or when the session expires. No consent banner is required for
               strictly necessary cookies under applicable guidelines.
             </li>
             <li>
-              <strong className='text-foreground'>LocalStorage</strong> â€” used to store offline-capable data for the local-first POS functionality (product
+              <strong className='text-foreground'>LocalStorage</strong> — used to store offline-capable data for the local-first POS functionality (product
               catalog, inventory, transaction queue) and user interface state (e.g., whether you have dismissed the welcome modal). This data does not leave
               your device except through the normal sync process.
             </li>
@@ -428,8 +428,8 @@ function PrivacyPage() {
 
         <Section id='changes' title='12. Changes to This Policy'>
           <p>
-            We may update this Privacy Policy from time to time. When we make material changes â€” changes that affect your rights, add new data categories, or
-            change how we share data â€” we will display a re-acceptance prompt on your next login to ensure you are informed and have consented to the updated
+            We may update this Privacy Policy from time to time. When we make material changes — changes that affect your rights, add new data categories, or
+            change how we share data — we will display a re-acceptance prompt on your next login to ensure you are informed and have consented to the updated
             policy.
           </p>
           <p>

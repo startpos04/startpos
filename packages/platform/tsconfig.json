@@ -25,7 +25,8 @@
     "noErrorTruncation": false,
 
     "paths": {
-      "@platform/*": ["./*"]
+      "@platform/*": ["./*"],
+      "prisma/*": ["./prisma/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],

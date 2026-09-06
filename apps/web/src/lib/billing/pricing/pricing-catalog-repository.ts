@@ -1,14 +1,14 @@
 /**
  * pricing-catalog-repository.ts
  *
- * PricingCatalogRepository â€” Application Layer interface + implementation.
+ * PricingCatalogRepository — Application Layer interface + implementation.
  *
  * Responsibility: load PricingCatalog data from the database and assemble it
  * into PricingCatalogDTO objects that PricingEngine can consume.
  *
  * Architecture contract (ADR-009):
  *   - This is the ONLY file in the pricing subdomain that imports PrismaClient.
- *   - PricingEngine itself has zero infrastructure imports â€” it receives the DTO.
+ *   - PricingEngine itself has zero infrastructure imports — it receives the DTO.
  *   - The interface is defined here so callers depend on the interface, not the
  *     concrete implementation, which makes unit testing trivial (mock the DTO).
  *
@@ -24,7 +24,7 @@ import type { FeatureBundleVersionDTO, FeatureDependencyDTO, FeaturePriceDTO, Pr
 
 // ---------------------------------------------------------------------------
 // IPricingCatalogRepository
-// The interface callers depend on â€” concrete implementation below.
+// The interface callers depend on — concrete implementation below.
 // ---------------------------------------------------------------------------
 export interface IPricingCatalogRepository {
   /**
@@ -149,7 +149,7 @@ async function assembleCatalogDTO(catalog: any): Promise<PricingCatalogDTO> {
     }),
   )
 
-  // Dependencies are global (not catalog-scoped) â€” load all once
+  // Dependencies are global (not catalog-scoped) — load all once
   // We load them here rather than in each strategy to keep the DTO self-contained.
   // NOTE: In a real implementation you would pass the prisma client in. Since
   // this is assembled from a catalog include, we re-use the catalog id to signal

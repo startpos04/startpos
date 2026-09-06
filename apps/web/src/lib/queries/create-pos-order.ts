@@ -1,15 +1,15 @@
 import { auditLogCollection, orderCollection, orderItemAddonCollection, orderItemCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
-import { sequenceAPI } from '@platform/lib/prisma-client/sequence-api'
 import { OrderStatus, OrderType, SequenceType } from 'prisma/generated/prisma/enums'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
+import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
 import { AuditAction, AuditTargetType } from '../audit/types'
 import type { CreateSaleInput } from './create-pos-transaction'
 import type { posProduct } from './fetch-pos-products'
 import { fetchStructuredId } from './fetch-structured-id'
 
 export const createPosOrder = async (data: CreateSaleInput, posOrders: posProduct[]) => {
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
   const productIds = data.items.map(item => item.product.id)
   const dbProducts = posOrders.filter(p => productIds.includes(p.id)) as posProduct[]
 

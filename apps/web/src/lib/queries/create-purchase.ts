@@ -6,14 +6,14 @@ import {
   purchaseCollection,
   purchaseItemCollection,
 } from '@platform/db/collections'
-// inventoryCollection + inventoryMovementCollection are passed to InventoryEngine â€” kept for the pass-through
+// inventoryCollection + inventoryMovementCollection are passed to InventoryEngine — kept for the pass-through
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
-import { sequenceAPI } from '@platform/lib/prisma-client/sequence-api'
 import { PurchaseStatus, SequenceType } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
+import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
 import { fetchStructuredId } from './fetch-structured-id'
 
 export const createPurchaseLineSchema = z.object({
@@ -32,7 +32,7 @@ export const createPurchaseSchema = z.object({
 export type CreatePurchaseInput = z.infer<typeof createPurchaseSchema>
 
 export const createPurchase = async (data: CreatePurchaseInput) => {
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
 
   // ---------------------------------------------------------------------------
   // PHASE 1 FIX: Allocate purchase sequence SERVER-SIDE before transaction

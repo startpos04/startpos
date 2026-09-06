@@ -18,9 +18,10 @@
  * Rate guard: better-auth rate limiting on the session prevents mass-spamming.
  */
 
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
+import { getServerContext } from '@platform/lib/better-auth/server-context'
 import { createServerFn } from '@tanstack/react-start'
 import { Resend } from 'resend'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 import { AuditEngine } from '../audit/audit-engine'
 import { recordAudit } from '../audit/record-audit'
 import { AuditAction, AuditTargetType } from '../audit/types'
@@ -28,8 +29,8 @@ import { AuditAction, AuditTargetType } from '../audit/types'
 export const requestAccountDeletion = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .handler(async ({ context }): Promise<{ ok: true } | { ok: false; error: string }> => {
-    const { id: actorId, businessId, email, name } = context.user
-    const businessName = context.user.business?.name ?? 'Unknown business'
+    const { id: actorId, businessId, email, name } = getServerContext(context).user
+    const businessName = getServerContext(context).user.business?.name ?? 'Unknown business'
 
     if (!businessId) {
       return { ok: false, error: 'Business context not found. Please reload and try again.' }
@@ -61,7 +62,7 @@ export const requestAccountDeletion = createServerFn({ method: 'POST' })
             </tr>
             <tr style="border-bottom: 1px solid #eee;">
               <td style="padding: 8px 0; color: #888;">Merchant name</td>
-              <td style="padding: 8px 0;">${name ?? 'â€”'}</td>
+              <td style="padding: 8px 0;">${name ?? '—'}</td>
             </tr>
             <tr style="border-bottom: 1px solid #eee;">
               <td style="padding: 8px 0; color: #888;">Email</td>
@@ -97,7 +98,7 @@ export const requestAccountDeletion = createServerFn({ method: 'POST' })
       return { ok: false, error: 'Failed to send deletion request. Please contact support@start-pos.app directly.' }
     }
 
-    // Write the audit entry â€” this is a high-severity action
+    // Write the audit entry — this is a high-severity action
     const entry = AuditEngine.build({
       action: AuditAction.ACCOUNT_DELETION_REQUESTED,
       targetType: AuditTargetType.Business,

@@ -2,7 +2,7 @@
  * inventory-engine.ts
  *
  * Sole owner of all inventory mutations. Every change to inventoryCollection
- * or inventoryMovementCollection flows through this engine â€” no other module
+ * or inventoryMovementCollection flows through this engine — no other module
  * may write to those collections directly.
  *
  * Follows the same architectural contract as EntitlementEngine, FIFOEngine,
@@ -12,7 +12,7 @@
  *   All methods are synchronous. They are designed to be called from inside a
  *   dbTransaction callback. Introducing an async boundary here would break
  *   offline atomicity. If you find yourself wanting to await inside these
- *   methods, the caller â€” not the engine â€” is where async belongs.
+ *   methods, the caller — not the engine — is where async belongs.
  *
  * TENANT CONTEXT:
  *   Methods receive { userId, branchId, businessId } explicitly. The engine
@@ -26,12 +26,11 @@ import type {
   operationalTaskCollection as TaskCollectionType,
 } from '@platform/db/collections'
 import { MovementType, TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
-import { InventoryPolicy } from '@/lib/inventory/inventory-policy'
-import type { InventoryMode } from '@/lib/onboarding/types'
+import { type InventoryMode, InventoryPolicy } from '@/lib/inventory/inventory-policy'
 import type { feTask } from '@/lib/queries/fetch-tasks'
 
 // ---------------------------------------------------------------------------
-// Shared tenant-context type â€” passed explicitly by every caller
+// Shared tenant-context type — passed explicitly by every caller
 // ---------------------------------------------------------------------------
 
 interface TenantContext {
@@ -49,7 +48,7 @@ interface TenantContext {
 }
 
 // ---------------------------------------------------------------------------
-// PurchaseReceipt params â€” mirrors the shape produced by create-purchase.ts
+// PurchaseReceipt params — mirrors the shape produced by create-purchase.ts
 // ---------------------------------------------------------------------------
 
 export interface PurchaseReceiptItem {
@@ -69,7 +68,7 @@ export interface ApplyPurchaseReceiptParams {
 }
 
 // ---------------------------------------------------------------------------
-// PurchaseVoid params â€” mirrors the shape produced by void-purchase.ts
+// PurchaseVoid params — mirrors the shape produced by void-purchase.ts
 // ---------------------------------------------------------------------------
 
 export interface ApplyPurchaseVoidParams {
@@ -91,7 +90,7 @@ export interface ApplyPurchaseVoidParams {
 }
 
 // ---------------------------------------------------------------------------
-// Adjustment params â€” mirrors the shape produced by restock-ingredient.ts
+// Adjustment params — mirrors the shape produced by restock-ingredient.ts
 // ---------------------------------------------------------------------------
 
 export interface ApplyAdjustmentParams {
@@ -111,7 +110,7 @@ export interface ApplyAdjustmentParams {
 }
 
 // ---------------------------------------------------------------------------
-// TaskFulfillment params â€” mirrors inventory side-effects in tasks/$taskId/index.tsx
+// TaskFulfillment params — mirrors inventory side-effects in tasks/$taskId/index.tsx
 // ---------------------------------------------------------------------------
 
 export interface ApplyTaskFulfillmentParams {
@@ -123,7 +122,7 @@ export interface ApplyTaskFulfillmentParams {
 }
 
 // ---------------------------------------------------------------------------
-// LowStockDetected params â€” for the auto-task-creation extracted from NotificationEngine
+// LowStockDetected params — for the auto-task-creation extracted from NotificationEngine
 // ---------------------------------------------------------------------------
 
 export interface HandleLowStockDetectedParams {
@@ -146,7 +145,7 @@ export interface HandleLowStockDetectedParams {
  *
  * Auto-generated SHELF_REFILL tasks produced by a LowStockDetected condition are
  * auto-approved at creation time by default. This is an explicit, named policy
- * exception â€” not a silent bypass of the approval workflow.
+ * exception — not a silent bypass of the approval workflow.
  *
  * Rationale: a low-stock condition represents a confirmed physical reality detected by
  * the system. The reorder decision has already been authorized implicitly by the
@@ -272,7 +271,7 @@ export const InventoryEngine = {
           }
 
           inventoryCollection.update(movement.inventoryId, draft => {
-            // Remove Math.max(0) clamping â€” allow negative in relaxed mode
+            // Remove Math.max(0) clamping — allow negative in relaxed mode
             draft.quantity -= movement.quantity
           })
         }
@@ -300,7 +299,7 @@ export const InventoryEngine = {
       return
     }
 
-    // Fallback: no movement records found â€” use line items with batch lookup
+    // Fallback: no movement records found — use line items with batch lookup
     for (const item of items) {
       const batch = [...inventoryCollection.values()].find(i => i.variantId === item.variantId && i.batchNumber === `PO-${purchaseIdDisplay}`)
       if (!batch) continue
@@ -316,7 +315,7 @@ export const InventoryEngine = {
       })
 
       inventoryCollection.update(batch.id, draft => {
-        // Remove Math.max(0) clamping â€” allow negative in relaxed mode
+        // Remove Math.max(0) clamping — allow negative in relaxed mode
         draft.quantity -= item.quantity
       })
 
@@ -424,10 +423,10 @@ export const InventoryEngine = {
    * Apply inventory side-effects when a task is marked as FULFILLED.
    *
    * Handles four task types:
-   *   SHELF_REFILL      â€” deduct source location batch, credit target location batch
-   *   BRANCH_TRANSFER   â€” deduct sending branch (OUT), credit receiving branch (IN)
-   *   STOCK_COUNT       â€” set batch quantity to physically counted value
-   *   WASTE_DISPOSAL    â€” deduct wasted quantity from batch
+   *   SHELF_REFILL      — deduct source location batch, credit target location batch
+   *   BRANCH_TRANSFER   — deduct sending branch (OUT), credit receiving branch (IN)
+   *   STOCK_COUNT       — set batch quantity to physically counted value
+   *   WASTE_DISPOSAL    — deduct wasted quantity from batch
    *
    * B6 fix applied: WASTE_DISPOSAL uses 'WASTE' movement type (not 'OUT').
    *                 BRANCH_TRANSFER uses 'EXTERNAL_TRANSFER' (not 'ADJUST').
@@ -446,9 +445,9 @@ export const InventoryEngine = {
     const meta = task.metadata
     const variantId = meta?.variantId
     // C4: Use the most specific quantity available.
-    // verifiedQty â€” what the clerk actually moved (recorded at IN_PROGRESS stage)
-    // approvedQty â€” what the manager authorized (recorded at PENDING stage)
-    // suggestedQty â€” the original creator estimate (fallback)
+    // verifiedQty — what the clerk actually moved (recorded at IN_PROGRESS stage)
+    // approvedQty — what the manager authorized (recorded at PENDING stage)
+    // suggestedQty — the original creator estimate (fallback)
     const qty = meta?.verifiedQty ?? meta?.approvedQty ?? meta?.suggestedQty ?? 0
 
     if (!variantId || qty <= 0) return
@@ -484,7 +483,7 @@ export const InventoryEngine = {
         })
 
         inventoryCollection.update(sourceBatch.id, draft => {
-          // Remove Math.min â€” allow negative in relaxed mode
+          // Remove Math.min — allow negative in relaxed mode
           draft.quantity -= qty
         })
       }
@@ -543,7 +542,7 @@ export const InventoryEngine = {
         })
 
         inventoryCollection.update(sourceBatch.id, draft => {
-          // Remove Math.min â€” allow negative in relaxed mode
+          // Remove Math.min — allow negative in relaxed mode
           draft.quantity -= qty
         })
       }
@@ -562,9 +561,9 @@ export const InventoryEngine = {
         inventoryId: sourceBatch?.id ?? crypto.randomUUID(),
       })
 
-      // B7: IN movement on the receiving branch â€” credits destination inventory ledger.
+      // B7: IN movement on the receiving branch — credits destination inventory ledger.
       // branchId is set to targetBranchId so the movement is scoped to the receiving branch.
-      // The inventory record itself is not created here â€” that belongs to the receiving branch's
+      // The inventory record itself is not created here — that belongs to the receiving branch's
       // InventoryEngine.applyAdjustment call when they accept the transfer. The movement record
       // is the cross-branch audit trail entry.
       if (targetBranchId) {
@@ -624,7 +623,7 @@ export const InventoryEngine = {
         })
 
         inventoryCollection.update(batch.id, draft => {
-          // Remove Math.min â€” allow negative in relaxed mode
+          // Remove Math.min — allow negative in relaxed mode
           draft.quantity -= qty
         })
         movementCollection.insert({
@@ -646,7 +645,7 @@ export const InventoryEngine = {
   /**
    * Create the auto-generated SHELF_REFILL task when a LowStockDetected
    * condition is confirmed. This is the task-creation logic extracted from
-   * NotificationEngine.checkLowStock (A6 â€” cross-domain violation fix).
+   * NotificationEngine.checkLowStock (A6 — cross-domain violation fix).
    *
    * The Notification domain retains only the send() call after this method
    * handles the task record insertion.
@@ -659,7 +658,7 @@ export const InventoryEngine = {
   handleLowStockDetected({ variantId, currentTotal, threshold, productLink, operationalTaskCollection, ctx }: HandleLowStockDetectedParams): void {
     const suggestedQty = threshold - currentTotal > 0 ? threshold - currentTotal : 10
     const now = new Date()
-    // Read from configuration â€” defaults to true when not explicitly configured.
+    // Read from configuration — defaults to true when not explicitly configured.
     const autoApprove = ctx.autoApproveLowStockRefill ?? true
 
     operationalTaskCollection.insert({

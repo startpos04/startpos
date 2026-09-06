@@ -6,9 +6,9 @@
  * duplicate submissions while a payment is under review.
  */
 
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { prisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 
 export const getPendingManualPayment = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])

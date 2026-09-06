@@ -55,7 +55,7 @@ export const Route = createFileRoute('/api/billing/webhook/')({
             })
 
             // Process using the new Stripe handler
-            return await StripeRoute.server!.handlers!.POST!({ request: newRequest })
+            return await StripeRoute.server?.handlers?.POST?.({ request: newRequest })
           } catch (error) {
             console.error('[webhook] Failed to delegate to Stripe handler:', error)
 

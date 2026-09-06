@@ -1,7 +1,7 @@
 import Loading from '@platform/components/custom/loading'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(public)/')({
   component: RouteComponent,

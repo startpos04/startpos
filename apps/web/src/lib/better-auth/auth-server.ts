@@ -1,18 +1,21 @@
 import { AuthorizationEngine } from '@platform/lib/authorization/authorization-engine'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { getSessionUser } from '@platform/lib/better-auth/auth-server'
-import { SubscriptionEngine } from '@platform/lib/billing/subscription-engine'
-import { BillingModel, type LifecycleThresholds } from '@platform/lib/billing/types'
+import type { UserContext } from '@platform/lib/compliance'
 import { getComplianceAdapter, getComplianceIncludes } from '@platform/lib/compliance'
 import { Capabilities, type CapabilityKey } from '@platform/lib/entitlement/capability-keys'
 import { EntitlementEngine } from '@platform/lib/entitlement/entitlement-engine'
 import type { EntitlementOverrideDTO } from '@platform/lib/entitlement/entitlement-types'
-import { getTenantPrisma, prisma as rootPrisma } from '@platform/lib/prisma-client'
+import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { ComplianceKeySchema, type ComplianceKeyTypes, ConfigKeySchema, type ConfigKeyTypes } from '@platform/lib/types'
 import { createServerFn } from '@tanstack/react-start'
 import _ from 'lodash'
 import type { Prisma } from 'prisma/generated/prisma/client'
-import { type ComplianceKey, type ConfigurationKey, Role } from 'prisma/generated/prisma/enums'
+import { type ConfigurationKey, Role } from 'prisma/generated/prisma/enums'
+import { SubscriptionEngine } from '@/lib/billing/subscription-engine'
+import { BillingModel, type LifecycleThresholds } from '@/lib/billing/types'
+import { getTenantPrisma } from '@/lib/prisma-client'
+import { auth } from './auth'
+import { authMiddleware } from './auth-middleware'
 
 // ---------------------------------------------------------------------------
 // Role → landing page mapping (web app specific)
@@ -76,10 +79,45 @@ type DBLocalOverrides = Prisma.UserGetPayload<{
 // ---------------------------------------------------------------------------
 export const getAuthUser = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .handler(async ({ context }) => {
+  .handler(async () => {
     // Foundation layer: validate session + extract tenant IDs
     const session = await getSessionUser()
-    if (!session) return undefined
+    if (!session) {
+      console.warn('[getAuthUser] No session found — user is not authenticated or session cookie is missing.')
+      return undefined
+    }
+
+    // The web app always requires tenant context. If the session was created before
+    // the Membership row existed (e.g. db:reset followed by db:seed without clearing
+    // the session cookie), businessId/branchId will be null. Heal it now by looking
+    // up the membership and patching the session in-place — no re-login required.
+    if (!session.businessId || !session.branchId) {
+      const membership = await rootPrisma.membership.findFirst({
+        where: { userId: session.id, deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+        select: { businessId: true, branchId: true },
+      })
+
+      if (!membership?.businessId || !membership.branchId) {
+        console.warn(
+          `[getAuthUser] Session has no tenant context and no Membership exists for user "${session.id}". ` +
+            'Make sure db:seed has been run and the accounts seeder completed successfully.',
+        )
+        return undefined
+      }
+
+      // Patch all live session rows for this user so subsequent requests skip the heal.
+      await rootPrisma.session.updateMany({
+        where: { userId: session.id },
+        data: { businessId: membership.businessId, branchId: membership.branchId },
+      })
+
+      console.info(`[getAuthUser] Healed session for user "${session.id}" → business="${membership.businessId}", branch="${membership.branchId}"`)
+
+      // Reuse the healed values for the rest of this request.
+      session.businessId = membership.businessId
+      session.branchId = membership.branchId
+    }
 
     const { id: userId, businessId, branchId } = session
     const prisma = getTenantPrisma(businessId, branchId)
@@ -136,7 +174,14 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       }),
     ])
 
-    if (!userData || !businessData || !branchData) return undefined
+    if (!userData || !businessData || !branchData) {
+      console.warn(
+        `[getAuthUser] Tenant DB lookup failed for user "${userId}" (business="${businessId}", branch="${branchId}"): ` +
+          `userData=${!!userData}, businessData=${!!businessData}, branchData=${!!branchData}. ` +
+          'Records exist in the session but not in the database — the DB may have been reset without re-seeding.',
+      )
+      return undefined
+    }
 
     const { configurations: userConfigs, ...user } = userData
     const { configurations: businessConfigs, ...business } = businessData
@@ -150,9 +195,9 @@ export const getAuthUser = createServerFn({ method: 'GET' })
     // Compliance — country-agnostic adapter (PH / SG / US)
     const adapter = getComplianceAdapter()
     const complianceData = adapter.extractComplianceData({
-      business: business as any,
-      branch: branch as any,
-      user: user as any,
+      business: business as UserContext['business'],
+      branch: branch as UserContext['branch'],
+      user: user as UserContext['user'],
     })
     const compliance = {
       BIR_TIN: complianceData.businessTaxId,
@@ -413,7 +458,7 @@ export const getAuthUser = createServerFn({ method: 'GET' })
       vendorSession,
       configs: parsedConfigs,
       compliance: (ComplianceKeySchema.safeParse(compliance).data ??
-        ComplianceKeySchema.parse({ BIR_TIN: '', BIR_PTU_NUMBER: '', BIR_PTU_ISSUED_AT: '', ...compliance })) as ComplianceKeyTypes,
+        ComplianceKeySchema.parse({ ...compliance, BIR_TIN: '', BIR_PTU_NUMBER: '', BIR_PTU_ISSUED_AT: '' })) as ComplianceKeyTypes,
       landingPage: RoleLandingPages[userData.role] ?? '/',
       localOverrides: localOverrides ?? [],
       entitlement,
@@ -426,3 +471,58 @@ export const getAuthUser = createServerFn({ method: 'GET' })
   })
 
 export type ServerUser = NonNullable<Awaited<ReturnType<typeof getAuthUser>>>
+
+// ---------------------------------------------------------------------------
+// verifyAuth — Supervisor password re-verification (web app specific)
+//
+// Used for supervisor re-auth flows (POS feature gating, sensitive actions).
+// Does NOT update the active session — asResponse: true is intentional.
+// Lives here (not in platform) because it calls auth.api.signInEmail which
+// is specific to the web tenant auth instance.
+// ---------------------------------------------------------------------------
+export const verifyAuth = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
+  .inputValidator((data: { email: string; password: string }) => data)
+  .handler(async ({ data, context }) => {
+    if (!context?.user?.businessId || !context?.user?.branchId) {
+      return { success: false as const, error: 'Context missing' }
+    }
+
+    const { businessId, branchId } = context.user
+    const prisma = getTenantPrisma(businessId, branchId)
+
+    try {
+      const response = await auth.api.signInEmail({
+        body: {
+          email: data.email,
+          password: data.password,
+        },
+        asResponse: true, // Crucial: prevents updating active session headers/cookies
+      })
+
+      if (!response.ok) {
+        return { success: false as const, error: 'Invalid password.' }
+      }
+
+      const user = await prisma.user.findFirst({
+        where: { email: data.email },
+        select: { id: true, name: true, role: true },
+      })
+
+      if (!user) {
+        return { success: false as const, error: 'User is not authorized.' }
+      }
+
+      return {
+        success: true as const,
+        data: {
+          id: user.id,
+          name: user.name,
+          role: user.role,
+        },
+      }
+    } catch (error) {
+      console.error('verification error:', error)
+      return { success: false as const, error: 'Internal verification failure.' }
+    }
+  })

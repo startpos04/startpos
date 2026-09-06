@@ -1,5 +1,5 @@
 /**
- * fetch-business-profile.ts â€” Fetches living characteristics + health stage
+ * fetch-business-profile.ts — Fetches living characteristics + health stage
  * for the Business Profile settings page.
  *
  * Uses crudAPI (Priority 2) for the server-authoritative read.
@@ -8,10 +8,11 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { getStaleIntentFields } from '../evolution/intent-expiry-checker'
 import type { CharacteristicSource, LivingCharacteristics, SourcedValue } from '../evolution/types'
 import { DEFAULT_CHARACTERISTICS } from '../onboarding/defaults'
@@ -68,14 +69,12 @@ const SOURCE_LABELS: Record<CharacteristicSource | 'DEFAULT', string> = {
 // ---------------------------------------------------------------------------
 
 export const fetchBusinessProfile = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_PROFILE)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_PROFILE), requireTenantContext()])
   .handler(async ({ context }): Promise<BusinessProfileData> => {
-    if (!context?.user?.businessId) {
-      return { characteristics: [], healthStage: null, currentProfile: null, staleIntentPrompts: [] }
-    }
+    const { businessId } = getTenantContext(context).user
 
     const result = await crudAPI.business('findUnique', {
-      where: { id: context.user.businessId },
+      where: { id: businessId },
       select: {
         livingCharacteristics: true,
         healthStage: true,

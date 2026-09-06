@@ -17,7 +17,7 @@ export function LegalFooter() {
     <footer className='py-1 px-2'>
       <div className='w-full flex flex-col sm:flex-row items-center justify-between gap-1 text-[10px] text-muted-foreground'>
         <p>
-          Â© {new Date().getFullYear()} {APP_NAME}. All rights reserved.
+          © {new Date().getFullYear()} {APP_NAME}. All rights reserved.
         </p>
         <div className='flex items-center gap-4'>
           <Link to='/terms' className='hover:underline underline-offset-4'>

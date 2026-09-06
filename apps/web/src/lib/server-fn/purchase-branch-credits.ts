@@ -12,24 +12,25 @@
  *
  * Architecture:
  *   - Only the adapter is imported; never Stripe directly.
- *   - businessId and branchId come from session context â€” never from client input.
+ *   - businessId and branchId come from session context — never from client input.
  *   - Credit amount validated against a known set of packages; arbitrary amounts blocked.
- *   - Credits are branch-specific â€” can only be used at the purchasing branch.
+ *   - Credits are branch-specific — can only be used at the purchasing branch.
  *
  * Environment variables required:
  *   STRIPE_SECRET_KEY
- *   STRIPE_BRANCH_CREDIT_10_PRICE_ID  â€” Stripe Price ID for 10-credit package
- *   STRIPE_BRANCH_CREDIT_50_PRICE_ID  â€” Stripe Price ID for 50-credit package
- *   STRIPE_BRANCH_CREDIT_100_PRICE_ID â€” Stripe Price ID for 100-credit package
- *   STRIPE_BRANCH_CREDIT_500_PRICE_ID â€” Stripe Price ID for 500-credit package
- *   APP_URL (or VITE_APP_URL) â€” Base URL for success/cancel redirects
+ *   STRIPE_BRANCH_CREDIT_10_PRICE_ID  — Stripe Price ID for 10-credit package
+ *   STRIPE_BRANCH_CREDIT_50_PRICE_ID  — Stripe Price ID for 50-credit package
+ *   STRIPE_BRANCH_CREDIT_100_PRICE_ID — Stripe Price ID for 100-credit package
+ *   STRIPE_BRANCH_CREDIT_500_PRICE_ID — Stripe Price ID for 500-credit package
+ *   APP_URL (or VITE_APP_URL) — Base URL for success/cancel redirects
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
 
 // ---------------------------------------------------------------------------
@@ -52,41 +53,41 @@ function buildBranchCreditPackages(): BranchCreditPackage[] {
       id: 'branch_credits_10',
       label: '10 Credits',
       creditAmount: 10,
-      displayPrice: 'â‚±5',
+      displayPrice: '₱5',
       stripePriceId: process.env['STRIPE_BRANCH_CREDIT_10_PRICE_ID'] ?? '',
     },
     {
       id: 'branch_credits_50',
       label: '50 Credits',
       creditAmount: 50,
-      displayPrice: 'â‚±20',
+      displayPrice: '₱20',
       stripePriceId: process.env['STRIPE_BRANCH_CREDIT_50_PRICE_ID'] ?? '',
       recommended: true,
-      savings: 'â‚±10 savings',
+      savings: '₱10 savings',
     },
     {
       id: 'branch_credits_100',
       label: '100 Credits',
       creditAmount: 100,
-      displayPrice: 'â‚±35',
+      displayPrice: '₱35',
       stripePriceId: process.env['STRIPE_BRANCH_CREDIT_100_PRICE_ID'] ?? '',
-      savings: 'â‚±15 savings',
+      savings: '₱15 savings',
     },
     {
       id: 'branch_credits_500',
       label: '500 Credits',
       creditAmount: 500,
-      displayPrice: 'â‚±150',
+      displayPrice: '₱150',
       stripePriceId: process.env['STRIPE_BRANCH_CREDIT_500_PRICE_ID'] ?? '',
-      savings: 'â‚±100 savings',
+      savings: '₱100 savings',
     },
     {
       id: 'branch_credits_1000',
       label: '1000 Credits',
       creditAmount: 1000,
-      displayPrice: 'â‚±250',
+      displayPrice: '₱250',
       stripePriceId: process.env['STRIPE_BRANCH_CREDIT_1000_PRICE_ID'] ?? '',
-      savings: 'â‚±250 savings',
+      savings: '₱250 savings',
     },
   ]
 }
@@ -102,7 +103,7 @@ const PurchaseBranchCreditsInputSchema = z.object({
 export type PurchaseBranchCreditsInput = z.infer<typeof PurchaseBranchCreditsInputSchema>
 
 // ---------------------------------------------------------------------------
-// fetchBranchCreditPackages â€” returns the catalog without Stripe Price IDs
+// fetchBranchCreditPackages — returns the catalog without Stripe Price IDs
 // ---------------------------------------------------------------------------
 
 export const fetchBranchCreditPackages = createServerFn({ method: 'GET' })
@@ -115,7 +116,7 @@ export const fetchBranchCreditPackages = createServerFn({ method: 'GET' })
       displayPrice: pkg.displayPrice,
       recommended: pkg.recommended,
       savings: pkg.savings,
-      // stripePriceId intentionally excluded â€” never expose to client
+      // stripePriceId intentionally excluded — never expose to client
     }))
   })
 
@@ -126,14 +127,10 @@ export type BranchCreditPackageOption = Awaited<ReturnType<typeof fetchBranchCre
 // ---------------------------------------------------------------------------
 
 export const purchaseBranchCredits = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_MANAGE_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_MANAGE_BILLING), requireTenantContext()])
   .inputValidator((data: PurchaseBranchCreditsInput) => PurchaseBranchCreditsInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId || !context?.user?.branchId) {
-      return { success: false as const, error: 'No business or branch context' }
-    }
-
-    const { businessId, branchId, id: userId } = context.user
+    const { businessId, branchId, id: userId } = getTenantContext(context).user
 
     const packages = buildBranchCreditPackages()
     const selectedPackage = packages.find(pkg => pkg.id === data.packageId)

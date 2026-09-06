@@ -1,19 +1,20 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: seeder tx type */
+
 /**
- * permissions.ts â€” Authorization System seed (Phase 0)
+ * permissions.ts — Authorization System seed (Phase 0)
  *
  * Seeds all permission definitions and role default permissions.
  * This is platform-global data that must exist in every environment.
  *
  * All upserts are keyed on stable natural keys (permission.key, role + permissionId)
- * so the seed is fully idempotent â€” safe to re-run at any time.
+ * so the seed is fully idempotent — safe to re-run at any time.
  *
  * order = 0: runs before all tenant-specific seeders.
  */
 
-/** biome-ignore-all lint/suspicious/noExplicitAny: seeder tx type */
-import type { PrismaClient } from 'prisma/generated/prisma/client'
 import { getPermissionAction, getPermissionResource, getPermissionScope, Permissions } from '@platform/lib/authorization/permission-keys'
 import { RolePermissions } from '@platform/lib/authorization/role-permissions'
+import type { PrismaClient } from 'prisma/generated/prisma/client'
 
 export const order = 0
 
@@ -369,9 +370,9 @@ const PermissionMetadata: Record<string, { name: string; description: string; ca
 // ---------------------------------------------------------------------------
 
 export async function PermissionsSeed(prisma: PrismaClient) {
-  console.info('ðŸ” Seeding Permission registry...')
+  console.info('🔐 Seeding Permission registry...')
 
-  // â”€â”€ Step 1: Seed all permissions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Step 1: Seed all permissions ─────────────────────────────────────────
   const permissionKeys = Object.values(Permissions)
   let upsertedCount = 0
 
@@ -407,10 +408,10 @@ export async function PermissionsSeed(prisma: PrismaClient) {
     upsertedCount++
   }
 
-  console.info(`   âœ”  ${upsertedCount} permissions upserted.`)
+  console.info(`   ✓  ${upsertedCount} permissions upserted.`)
 
-  // â”€â”€ Step 2: Seed role default permissions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  console.info('ðŸ“¦ Seeding RoleDefaultPermission records...')
+  // ── Step 2: Seed role default permissions ────────────────────────────────
+  console.info('📦 Seeding RoleDefaultPermission records...')
 
   let rolePermissionCount = 0
 
@@ -421,7 +422,7 @@ export async function PermissionsSeed(prisma: PrismaClient) {
       })
 
       if (!permission) {
-        console.warn(`   âš ï¸  Permission "${permissionKey}" not found for role "${role}", skipping.`)
+        console.warn(`   ⚠️  Permission "${permissionKey}" not found for role "${role}", skipping.`)
         continue
       }
 
@@ -441,11 +442,11 @@ export async function PermissionsSeed(prisma: PrismaClient) {
       rolePermissionCount++
     }
 
-    console.info(`   âœ”  Role "${role}" â€” ${permissionKeys.length} default permissions upserted.`)
+    console.info(`   ✓  Role "${role}" — ${permissionKeys.length} default permissions upserted.`)
   }
 
-  console.info(`   âœ”  Total ${rolePermissionCount} role default permissions upserted.`)
-  console.info('âœ… Permission seed complete.')
+  console.info(`   ✓  Total ${rolePermissionCount} role default permissions upserted.`)
+  console.info('✅ Permission seed complete.')
 }
 
 export default PermissionsSeed

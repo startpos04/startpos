@@ -1,9 +1,9 @@
 import { operationalTaskCollection } from '@platform/db/collections'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { closeTaskSidebar } from '../-components/task-sidebar'
 import { CreateTask, type CreateTaskFormData } from './-create-task'
 
@@ -20,7 +20,7 @@ export function CreateTaskSidebar() {
     try {
       operationalTaskCollection.insert({
         id: crypto.randomUUID(),
-        // C1: Tasks start as DRAFT â€” creator must submit for approval explicitly.
+        // C1: Tasks start as DRAFT — creator must submit for approval explicitly.
         // The DRAFTâ†’PENDING transition is already wired in task-workflow.ts with
         // buttonLabel "Submit for Approval" and is available to all roles.
         status: TaskStatus.DRAFT,

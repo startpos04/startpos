@@ -5,11 +5,11 @@ import { Label } from '@platform/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@platform/components/ui/select'
 import { Separator } from '@platform/components/ui/separator'
 import { Switch } from '@platform/components/ui/switch'
-import { authStore, refreshAuthUser } from '@platform/lib/better-auth/auth-store'
 import { useStore } from '@tanstack/react-store'
 import { AlertCircleIcon, CheckCircleIcon, SaveIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { authStore, refreshAuthUser } from '@/lib/better-auth/auth-store'
 import { extractComplianceFromForm, getComplianceErrorMessage, validateComplianceData } from '@/lib/compliance'
 import { fetchComplianceData } from '@/lib/server-fn/fetch-compliance-data'
 import { saveComplianceData } from '@/lib/server-fn/save-compliance-data'
@@ -247,10 +247,10 @@ export function CompliancePage() {
                     <SelectValue placeholder='Select status' />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value='UNREGISTERED'>Unregistered â€” Not registered with government yet</SelectItem>
-                    <SelectItem value='PENDING'>Pending â€” Registration in progress</SelectItem>
-                    <SelectItem value='REGISTERED'>Registered â€” Fully registered (fill data below)</SelectItem>
-                    <SelectItem value='EXPIRED'>Expired â€” Registration has expired</SelectItem>
+                    <SelectItem value='UNREGISTERED'>Unregistered — Not registered with government yet</SelectItem>
+                    <SelectItem value='PENDING'>Pending — Registration in progress</SelectItem>
+                    <SelectItem value='REGISTERED'>Registered — Fully registered (fill data below)</SelectItem>
+                    <SelectItem value='EXPIRED'>Expired — Registration has expired</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

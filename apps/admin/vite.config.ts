@@ -1,9 +1,9 @@
+import { resolve } from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { nitro } from 'nitro/vite'
-import { resolve } from 'node:path'
 import type { Plugin } from 'vite'
 import { defineConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
@@ -75,15 +75,15 @@ export default defineConfig({
     alias: [
       {
         find: /^@platform\/(.*)/,
-        replacement: resolve(__dirname, '../../packages/platform') + '/$1',
+        replacement: `${resolve(__dirname, '../../packages/platform')}/$1`,
       },
       {
         find: /^@\/(.*)/,
-        replacement: resolve(__dirname, 'src') + '/$1',
+        replacement: `${resolve(__dirname, 'src')}/$1`,
       },
       {
         find: /^prisma\/(.*)/,
-        replacement: resolve(__dirname, '../web/prisma') + '/$1',
+        replacement: `${resolve(__dirname, '../../packages/platform/prisma')}/$1`,
       },
     ],
   },

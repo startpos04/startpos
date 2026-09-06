@@ -1,17 +1,19 @@
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { getSessionUser } from '@platform/lib/better-auth/auth-server'
+import { platformAuthMiddleware } from '@platform/lib/better-auth/create-auth-middleware'
 import { createServerFn } from '@tanstack/react-start'
 
 // ---------------------------------------------------------------------------
-// getAuthUser — Admin auth context
+// getAuthUser — Admin auth context (interim)
 //
-// Admins access platform-level data directly — no tenant scoping,
-// no entitlement layer, no compliance. Just the session user.
+// TODO: Replace with a dedicated adminAuth instance and adminAuthMiddleware
+// once the AdminUser table and separate betterAuth instance are implemented.
+// Currently this re-uses the tenant session flow which will return undefined
+// for admin accounts that have no Membership record.
 //
-// Extend this when admin-specific context is needed (e.g. admin role check).
+// Tracked as: "Wire up apps/admin with its own auth trio" (task 4 deferred)
 // ---------------------------------------------------------------------------
 export const getAuthUser = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware])
+  .middleware([platformAuthMiddleware])
   .handler(async () => {
     return await getSessionUser()
   })

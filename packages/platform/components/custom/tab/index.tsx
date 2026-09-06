@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: TODO: fix */
-import type { ComponentType } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@platform/components/ui/tabs'
 import { cn } from '@platform/lib/utils'
+import type { ComponentType } from 'react'
 
 interface TabProps {
   defaultValue?: string

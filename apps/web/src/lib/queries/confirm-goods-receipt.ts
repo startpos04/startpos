@@ -11,12 +11,12 @@
  *   - GRN must be in PENDING status (receiptWorkflow.canTransition guard)
  *   - User must be SUPERVISOR or ADMIN (receiptWorkflow guard)
  *   - Inventory is credited using receivedQty (what was physically counted),
- *     not orderedQty (what was on the PO) â€” satisfying TASK-3 equivalent for receipts
+ *     not orderedQty (what was on the PO) — satisfying TASK-3 equivalent for receipts
  *   - The parent Purchase advances to RECEIVED after the GRN is confirmed
  *   - Variant reference costs are updated (same as quick-receive path)
  *   - All mutations are atomic inside one dbTransaction
  *
- * Parallel to the quick-receive path in create-purchase.ts â€” same
+ * Parallel to the quick-receive path in create-purchase.ts — same
  * InventoryEngine.applyPurchaseReceipt call, different trigger point.
  */
 
@@ -29,13 +29,13 @@ import {
   purchaseCollection,
 } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { GoodsReceiptStatus, PurchaseStatus } from 'prisma/generated/prisma/enums'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import { receiptWorkflow } from '@/lib/server-fn/receipt-workflow'
 
 export const confirmGoodsReceipt = async (receiptId: string) => {
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
 
   // Pre-check: workflow guard (same pattern as B1 server-side task transition guard)
   const receipt = goodsReceiptCollection.get(receiptId)
@@ -67,7 +67,7 @@ export const confirmGoodsReceipt = async (receiptId: string) => {
     })
 
     // 2. Credit inventory using receivedQty (actual counted quantity, not PO qty)
-    //    Uses the same engine path as the quick-receive flow â€” single code path.
+    //    Uses the same engine path as the quick-receive flow — single code path.
     InventoryEngine.applyPurchaseReceipt({
       purchaseId: grn.purchaseId,
       structuredId: purchase.purchaseId,
@@ -115,11 +115,11 @@ export const confirmGoodsReceipt = async (receiptId: string) => {
 }
 
 // ---------------------------------------------------------------------------
-// Dispute a GRN â€” marks as DISPUTED, no inventory credit, purchase stays APPROVED
+// Dispute a GRN — marks as DISPUTED, no inventory credit, purchase stays APPROVED
 // ---------------------------------------------------------------------------
 
 export const disputeGoodsReceipt = async (receiptId: string, reason?: string) => {
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
 
   const receipt = goodsReceiptCollection.get(receiptId)
   if (!receipt) return { data: null, error: new Error('Goods receipt not found') }
@@ -143,7 +143,7 @@ export const disputeGoodsReceipt = async (receiptId: string, reason?: string) =>
       draft.updatedAt = new Date()
     })
 
-    // Purchase stays APPROVED â€” supplier must resolve and a new GRN will be created
+    // Purchase stays APPROVED — supplier must resolve and a new GRN will be created
     return { receiptId, purchaseId: grn.purchaseId }
   })
 

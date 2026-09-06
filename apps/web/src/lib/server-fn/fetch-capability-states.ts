@@ -1,16 +1,17 @@
 /**
- * fetch-capability-states.ts â€” Fetches BusinessCapabilityState rows for the
+ * fetch-capability-states.ts — Fetches BusinessCapabilityState rows for the
  * current business along with the matching registry definition for each.
  *
- * Uses crudAPI (Priority 2) â€” server-authoritative read with deep select.
+ * Uses crudAPI (Priority 2) — server-authoritative read with deep select.
  * Returns a merged shape ready for the Capabilities settings page.
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { isAlwaysOn } from '../evolution/capability-lifecycle'
 import { CAPABILITY_REGISTRY } from '../onboarding/capability-registry'
 import type { CapabilityLifecycleState } from '../onboarding/types'
@@ -44,12 +45,12 @@ export type CapabilityStateRow = {
 // ---------------------------------------------------------------------------
 
 export const fetchCapabilityStates = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_CAPABILITIES)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_CAPABILITIES), requireTenantContext()])
   .handler(async ({ context }): Promise<CapabilityStateRow[]> => {
-    if (!context?.user?.businessId) return []
+    const { businessId } = getTenantContext(context).user
 
     const result = await crudAPI.businessCapabilityState('findMany', {
-      where: { businessId: context.user.businessId },
+      where: { businessId },
       select: {
         capabilityId: true,
         state: true,
@@ -80,9 +81,9 @@ export const fetchCapabilityStates = createServerFn({ method: 'GET' })
     const rowMap = new Map(rows.map(r => [r.capabilityId, r]))
 
     // Only surface capabilities that are user-configurable:
-    //   - Skip always-on caps (checkout, products, settings, etc.) â€” always enabled, no action available.
-    //   - Skip future caps (not yet built) â€” confusing to show something users can't use.
-    //   - Skip auto-managed caps that follow a parent â€” VIEW_INVENTORY_REPORTS follows MANAGE_INVENTORY,
+    //   - Skip always-on caps (checkout, products, settings, etc.) — always enabled, no action available.
+    //   - Skip future caps (not yet built) — confusing to show something users can't use.
+    //   - Skip auto-managed caps that follow a parent — VIEW_INVENTORY_REPORTS follows MANAGE_INVENTORY,
     //     VIEW_ORDER_HISTORY follows CREATE_ORDER. Users can't configure these independently.
     const FUTURE_IDS = new Set(['LOYALTY_POINTS', 'KITCHEN_DISPLAY', 'DELIVERY_MANAGEMENT'])
     const AUTO_MANAGED_IDS = new Set(['VIEW_INVENTORY_REPORTS', 'VIEW_ORDER_HISTORY'])
@@ -94,7 +95,7 @@ export const fetchCapabilityStates = createServerFn({ method: 'GET' })
       const row = rowMap.get(def.id)
 
       // Determine the effective state for capabilities with no DB row yet.
-      // These show as HIDDEN â€” the "Show hidden" toggle makes them available to enable manually.
+      // These show as HIDDEN — the "Show hidden" toggle makes them available to enable manually.
       const state: CapabilityLifecycleState = row ? (row.state as CapabilityLifecycleState) : 'HIDDEN'
 
       return [

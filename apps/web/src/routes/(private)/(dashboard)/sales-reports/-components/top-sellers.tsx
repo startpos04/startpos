@@ -19,7 +19,7 @@ export function TopSellers({ stats }: { stats: TransactionReportStats }) {
                 <p className='text-sm font-medium leading-none'>{product.name}</p>
                 <p className='text-xs text-muted-foreground'>{product.qty} units</p>
               </div>
-              <div className='text-sm font-bold text-emerald-600'>â‚±{product.revenue.toLocaleString()}</div>
+              <div className='text-sm font-bold text-emerald-600'>₱{product.revenue.toLocaleString()}</div>
             </div>
           ))}
         </div>

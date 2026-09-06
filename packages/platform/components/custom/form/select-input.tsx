@@ -1,6 +1,3 @@
-import type { AnyFieldApi } from '@tanstack/react-form'
-import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react'
-import * as React from 'react'
 import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@platform/components/ui/command'
@@ -8,6 +5,9 @@ import { Field } from '@platform/components/ui/field'
 import { Label } from '@platform/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@platform/components/ui/popover'
 import { cn } from '@platform/lib/utils'
+import type { AnyFieldApi } from '@tanstack/react-form'
+import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react'
+import * as React from 'react'
 
 interface SelectInputProps<T> extends Omit<SelectProps<T>, 'value' | 'onChange'> {
   label?: string

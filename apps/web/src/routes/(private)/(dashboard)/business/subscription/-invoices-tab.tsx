@@ -6,7 +6,7 @@
 
 import { getColumns } from '@platform/components/custom/data-view'
 import { TableView } from '@platform/components/custom/data-view/table-view'
-import { Button } from '@platform/components/ui/button'
+// import { Button } from '@platform/components/ui/button'
 import { invoiceCols } from '@/lib/columns/invoice-columns'
 
 export function InvoicesTab() {

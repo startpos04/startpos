@@ -1,12 +1,12 @@
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@platform/components/ui/card'
-import { authStore } from '@platform/lib/better-auth/auth-store'
-import { cn } from '@platform/lib/utils'
 import { Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
-import { AlertCircleIcon, CheckCircleIcon, CircleDashedIcon, ExternalLinkIcon, XCircleIcon } from 'lucide-react'
+import { AlertCircleIcon, CircleDashedIcon, ExternalLinkIcon, XCircleIcon } from 'lucide-react'
 import { Role } from 'prisma/generated/prisma/enums'
 import * as React from 'react'
+import { authStore } from '@/lib/better-auth/auth-store'
+import type { UserContext } from '@/lib/compliance'
 import { getComplianceAdapter } from '@/lib/compliance'
 
 /**
@@ -30,28 +30,28 @@ export function RegistrationStatusCard() {
 
   // Only show for ADMIN and OWNER roles
   const canSee = user?.role === Role.ADMIN || user?.role === Role.OWNER
-  if (!canSee) return null
 
   // Get registration status from business
   const registrationStatus = user?.business?.registrationStatus ?? 'UNREGISTERED'
 
   // Check if compliance data is complete (for REGISTERED status)
+  // Hooks must run before any conditional return
   const isComplianceComplete = React.useMemo(() => {
-    if (!user?.business || registrationStatus !== 'REGISTERED') return true
+    if (!canSee || !user?.business || registrationStatus !== 'REGISTERED') return true
 
     try {
       const adapter = getComplianceAdapter(user.business.countryCode)
       const complianceData = adapter.extractComplianceData({
-        business: user.business as any,
-        branch: user.branch as any,
-        user: user as any,
+        business: user.business as UserContext['business'],
+        branch: user.branch as UserContext['branch'],
+        user: user as UserContext['user'],
       })
       const missingFields = adapter.validateCompliance(complianceData)
       return missingFields.length === 0
     } catch {
       return false
     }
-  }, [user, registrationStatus])
+  }, [canSee, user, registrationStatus])
 
   // Check localStorage for dismissal (only for UNREGISTERED status)
   React.useEffect(() => {
@@ -60,6 +60,8 @@ export function RegistrationStatusCard() {
       setDismissed(isDismissed)
     }
   }, [registrationStatus])
+
+  if (!canSee) return null
 
   // Handle dismissal
   const handleDismiss = () => {
@@ -90,7 +92,7 @@ export function RegistrationStatusCard() {
 }
 
 // ---------------------------------------------------------------------------
-// UnregisteredCard â€” Business not officially registered yet
+// UnregisteredCard — Business not officially registered yet
 // ---------------------------------------------------------------------------
 
 interface UnregisteredCardProps {
@@ -147,7 +149,7 @@ function UnregisteredCard({ onDismiss }: UnregisteredCardProps) {
 }
 
 // ---------------------------------------------------------------------------
-// PendingCard â€” Registration in progress
+// PendingCard — Registration in progress
 // ---------------------------------------------------------------------------
 
 function PendingCard() {
@@ -160,8 +162,11 @@ function PendingCard() {
     try {
       const adapter = getComplianceAdapter(user.business.countryCode)
       const complianceData = adapter.extractComplianceData({
+        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
         business: user.business as any,
+        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
         branch: user.branch as any,
+        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
         user: user as any,
       })
       return adapter.validateCompliance(complianceData)
@@ -201,7 +206,7 @@ function PendingCard() {
 }
 
 // ---------------------------------------------------------------------------
-// RegisteredIncompleteCard â€” Marked as registered but data is missing
+// RegisteredIncompleteCard — Marked as registered but data is missing
 // ---------------------------------------------------------------------------
 
 function RegisteredIncompleteCard() {
@@ -214,8 +219,11 @@ function RegisteredIncompleteCard() {
     try {
       const adapter = getComplianceAdapter(user.business.countryCode)
       const complianceData = adapter.extractComplianceData({
+        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
         business: user.business as any,
+        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
         branch: user.branch as any,
+        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
         user: user as any,
       })
       return adapter.validateCompliance(complianceData)
@@ -260,7 +268,7 @@ function RegisteredIncompleteCard() {
 }
 
 // ---------------------------------------------------------------------------
-// ExpiredCard â€” Registration expired (renewal needed)
+// ExpiredCard — Registration expired (renewal needed)
 // ---------------------------------------------------------------------------
 
 function ExpiredCard() {

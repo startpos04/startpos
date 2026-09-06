@@ -10,29 +10,29 @@
  */
 
 import { AlertPrompt } from '@platform/components/custom/prompt/alert-prompt'
-import { Badge } from '@platform/components/ui/badge'
+// import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Input } from '@platform/components/ui/input'
 import { Label } from '@platform/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@platform/components/ui/select'
 import { Textarea } from '@platform/components/ui/textarea'
-import { authStore } from '@platform/lib/better-auth/auth-store'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import MountManager from '@platform/lib/mount-manager'
+import { useMutation } from '@tanstack/react-query'
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { ArrowLeftIcon, CreditCardIcon, InfoIcon, UploadIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { paymentProviderRegistry } from '@/lib/billing/payment-provider-registry'
-import MountManager from '@platform/lib/mount-manager'
 import { submitManualPayment } from '@/lib/server-fn/submit-manual-payment'
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing/manual-payment')({
   validateSearch: (search: Record<string, unknown>) => ({
     planId: (search['planId'] as string) || '',
-    amount: search['amount'] ? parseInt(search['amount'] as string) : 0,
-    periodsAdvancePaid: search['periodsAdvancePaid'] ? Math.min(3, Math.max(1, parseInt(search['periodsAdvancePaid'] as string))) : 1,
+    amount: search['amount'] ? parseInt(search['amount'] as string, 10) : 0,
+    periodsAdvancePaid: search['periodsAdvancePaid'] ? Math.min(3, Math.max(1, parseInt(search['periodsAdvancePaid'] as string, 10))) : 1,
   }),
   component: ManualPaymentPage,
 })
@@ -200,7 +200,7 @@ function ManualPaymentPage() {
                     min='1'
                     max='3'
                     value={periodsAdvancePaid}
-                    onChange={e => handlePeriodsChange(Number.parseInt(e.target.value))}
+                    onChange={e => handlePeriodsChange(Number.parseInt(e.target.value, 10))}
                     className='w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer dark:bg-blue-700'
                   />
                 </div>
@@ -232,7 +232,7 @@ function ManualPaymentPage() {
           <div className='grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg'>
             <div>
               <p className='text-sm text-muted-foreground'>Monthly Rate</p>
-              <p className='text-lg font-semibold'>â‚±{(amount / 100).toFixed(2)}</p>
+              <p className='text-lg font-semibold'>₱{(amount / 100).toFixed(2)}</p>
             </div>
             <div>
               <p className='text-sm text-muted-foreground'>Periods Selected</p>
@@ -242,10 +242,10 @@ function ManualPaymentPage() {
             </div>
             <div className='col-span-2 pt-3 border-t'>
               <p className='text-sm text-muted-foreground mb-1'>Total Amount to Pay</p>
-              <p className='text-3xl font-bold text-primary'>â‚±{(calculatedAmount / 100).toFixed(2)}</p>
+              <p className='text-3xl font-bold text-primary'>₱{(calculatedAmount / 100).toFixed(2)}</p>
               {periodsAdvancePaid > 1 && (
                 <p className='text-xs text-green-600 dark:text-green-400 mt-1'>
-                  âœ“ Covers {periodsAdvancePaid} billing periods â€¢ No payments needed until{' '}
+                  âœ“ Covers {periodsAdvancePaid} billing periods • No payments needed until{' '}
                   {new Date(Date.now() + periodsAdvancePaid * 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
                 </p>
               )}
@@ -278,7 +278,7 @@ function ManualPaymentPage() {
                 {periodsAdvancePaid > 1 && (
                   <div className='mt-3 pt-3 border-t border-blue-300 dark:border-blue-700'>
                     <p className='text-blue-800 dark:text-blue-200'>
-                      <strong>ðŸ’¡ Advance Payment:</strong> You're paying for {periodsAdvancePaid} months. Make sure to transfer the full amount of â‚±
+                      <strong>ðŸ’¡ Advance Payment:</strong> You're paying for {periodsAdvancePaid} months. Make sure to transfer the full amount of ₱
                       {(calculatedAmount / 100).toFixed(2)}.
                     </p>
                   </div>
@@ -300,7 +300,7 @@ function ManualPaymentPage() {
             {/* Payment Method */}
             <div className='space-y-2'>
               <Label htmlFor='paymentMethod'>Payment Method *</Label>
-              <Select value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
+              <Select value={paymentMethod} onValueChange={(value: 'GCASH' | 'BANK_TRANSFER' | 'MAYA') => setPaymentMethod(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -382,7 +382,8 @@ function ManualPaymentPage() {
                 </p>
                 {user?.business?.preferredPaymentProvider === 'stripe' && periodsAdvancePaid > 1 && (
                   <p className='mt-2 text-blue-700 dark:text-blue-300'>
-                    ðŸ”„ <strong>Auto-sync enabled:</strong> Your advance payment will be synced to Stripe to prevent duplicate charges during the advance period.
+                    ðŸ”„ <strong>Auto-sync enabled:</strong> Your advance payment will be synced to Stripe to prevent duplicate charges during the advance
+                    period.
                   </p>
                 )}
               </div>

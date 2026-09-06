@@ -20,12 +20,13 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { SubscriptionStatus } from '@platform/lib/entitlement/entitlement-types'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { getBillingAdapter } from '../billing/get-billing-adapter'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 
@@ -47,14 +48,10 @@ export type CancelSubscriptionInput = z.infer<typeof CancelSubscriptionInputSche
 // ---------------------------------------------------------------------------
 
 export const cancelSubscription = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING), requireTenantContext()])
   .inputValidator((data: CancelSubscriptionInput) => CancelSubscriptionInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context' }
-    }
-
-    const { businessId, id: userId } = context.user
+    const { businessId, id: userId } = getTenantContext(context).user
 
     const subscription = await rootPrisma.businessSubscription.findUnique({
       where: { businessId },
@@ -112,7 +109,7 @@ export const cancelSubscription = createServerFn({ method: 'POST' })
       }
     }
 
-    // For non-immediate cancellations, keep access until period end â€”
+    // For non-immediate cancellations, keep access until period end —
     // status stays as-is (ACTIVE/GRACE_PERIOD); we set cancelledAt only.
     // For immediate cancellations, transition to CANCELLED now.
     const newStatus = data.immediate ? SubscriptionStatus.CANCELLED : subscription.status // Access continues; the lifecycle job handles the final transition

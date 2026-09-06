@@ -29,12 +29,12 @@ export function ItemsTab({ transaction }: ItemsTabProps) {
           items.map(item => (
             <TableRow key={item.id}>
               <TableCell className='py-2'>
-                <p className='text-xs font-medium leading-tight'>{item.variant?.product?.name ?? 'â€”'}</p>
+                <p className='text-xs font-medium leading-tight'>{item.variant?.product?.name ?? '—'}</p>
                 {item.variant?.name && <p className='text-[10px] text-muted-foreground font-mono mt-0.5'>{item.variant.name}</p>}
                 {item.variant?.sku && <p className='text-[10px] text-muted-foreground font-mono'>SKU: {item.variant.sku}</p>}
                 {item.selectedAddons?.map(addon => (
                   <p key={addon.id} className='text-[10px] text-muted-foreground ml-2 mt-0.5'>
-                    + {addon.addon?.product?.name} ({addon.quantity}Ã—)
+                    + {addon.addon?.product?.name} ({addon.quantity}×)
                   </p>
                 ))}
               </TableCell>

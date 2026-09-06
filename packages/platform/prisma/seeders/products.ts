@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url'
 import Papa from 'papaparse'
 import type { PrismaClient } from 'prisma/generated/prisma/client'
 import { ResourceType, TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
-import { PriceEngine } from '@/lib/conversion/price-engine'
-import { getCroppedImg } from '@/lib/utils/crop-image'
+import { PriceEngine } from '../../lib/conversion/price-engine'
+import { getCroppedImg } from '../../lib/utils/crop-image'
 import { getAccounts } from './accounts'
 export const order = 3
 

@@ -4,18 +4,18 @@ import { Button } from '@platform/components/ui/button'
 import { Dialog, DialogContent } from '@platform/components/ui/dialog'
 import { withForm } from '@platform/hooks/form'
 import { useCapability } from '@platform/hooks/use-capability'
-import { usePOS } from '@platform/hooks/use-pos'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import MountManager, { type MountProps } from '@platform/lib/mount-manager'
 import { useStore } from '@tanstack/react-form'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import _ from 'lodash'
 import { PackagePlus, PackageSearch, Plus, ShoppingCart } from 'lucide-react'
 import { useMemo } from 'react'
+import { usePOS } from '@/hooks/use-pos'
 import { productCols } from '@/lib/columns/product-columns'
 import { tableCols } from '@/lib/columns/table-columns'
 import { PosStockEngine, type posItem, stockResultToNumber } from '@/lib/conversion/pos-stock-engine'
-import MountManager, { type MountProps } from '@platform/lib/mount-manager'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { SearchInput } from '../../orders/-components/search-input'
 import { posFormOpts } from '..'
@@ -120,7 +120,7 @@ export const Products = withForm({
       })
     }
 
-    // â”€â”€ Empty catalog (no search active, no products at all) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Empty catalog (no search active, no products at all) ──────────────────
     if (!isLoading && posProducts.length === 0 && !search) {
       return (
         <div className='flex flex-col items-center justify-center flex-1 gap-6 py-16 px-6 text-center'>
@@ -154,7 +154,7 @@ export const Products = withForm({
       )
     }
 
-    // â”€â”€ Search with no results â€” Quick Add entry point â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Search with no results — Quick Add entry point ────────────────────────
     if (!isLoading && posProducts.length === 0 && search) {
       return (
         <div className='flex flex-col items-center justify-center flex-1 gap-5 py-16 px-6 text-center'>
@@ -164,7 +164,7 @@ export const Products = withForm({
           <div className='space-y-1.5 max-w-sm'>
             <p className='text-base font-semibold text-foreground'>No results for "{search}"</p>
             <p className='text-sm text-muted-foreground leading-snug'>
-              This product isn't in your catalog yet. Quick Add it to sell now â€” you can complete its details later.
+              This product isn't in your catalog yet. Quick Add it to sell now — you can complete its details later.
             </p>
           </div>
           <Button

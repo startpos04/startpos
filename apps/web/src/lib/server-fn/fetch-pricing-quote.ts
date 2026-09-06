@@ -20,11 +20,12 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 
 // ---------------------------------------------------------------------------
 // Input validation schema
@@ -41,11 +42,10 @@ export type FetchPricingQuoteInput = z.infer<typeof FetchPricingQuoteInputSchema
 // ---------------------------------------------------------------------------
 
 export const fetchPricingQuote = createServerFn({ method: 'GET' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_VIEW_BILLING), requireTenantContext()])
   .inputValidator((data: FetchPricingQuoteInput) => FetchPricingQuoteInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    // authMiddleware guarantees user context exists
-    const { businessId } = context.user
+    const { businessId } = getTenantContext(context).user
 
     // Fetch quote scoped to the business (tenant isolation)
     return rootPrisma.pricingQuote.findFirst({

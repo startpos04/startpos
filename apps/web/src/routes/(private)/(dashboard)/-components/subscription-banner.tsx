@@ -1,33 +1,33 @@
 /**
  * subscription-banner.tsx
  *
- * SubscriptionBanner â€” renders a context-aware banner based on the current
+ * SubscriptionBanner — renders a context-aware banner based on the current
  * subscription status. Shown inside the (private) layout so it appears on
  * every authenticated page.
  *
  * Severity levels:
- *   GRACE_PERIOD       â†’ amber warning â€” "Payment overdue, X days left"
- *   EXPIRED            â†’ red error     â€” "Subscription expired, operational features blocked"
- *   LONG_TERM_INACTIVE â†’ red error     â€” "Account inactive, reactivate to continue"
- *   CANCELLED          â†’ red error     â€” "Subscription cancelled"
- *   SUSPENDED          â†’ red error     â€” "Account suspended, contact support"
- *   TRIAL (last 7d)    â†’ blue info     â€” "X days left in your trial"
+ *   GRACE_PERIOD       â†’ amber warning — "Payment overdue, X days left"
+ *   EXPIRED            â†’ red error     — "Subscription expired, operational features blocked"
+ *   LONG_TERM_INACTIVE â†’ red error     — "Account inactive, reactivate to continue"
+ *   CANCELLED          â†’ red error     — "Subscription cancelled"
+ *   SUSPENDED          â†’ red error     — "Account suspended, contact support"
+ *   TRIAL (last 7d)    â†’ blue info     — "X days left in your trial"
  *   All others         â†’ null (no banner)
  *
- * The banner is non-dismissable â€” it stays until the subscription state
+ * The banner is non-dismissable — it stays until the subscription state
  * changes or the user navigates to /billing to resolve it.
  */
 
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { SubscriptionStatus } from '@platform/lib/entitlement/entitlement-types'
 import { cn } from '@platform/lib/utils'
 import { Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { AlertTriangleIcon, ClockIcon, XCircleIcon } from 'lucide-react'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { SubscriptionPolicy } from '@/lib/billing/policies/subscription-policy'
 
 // ---------------------------------------------------------------------------
-// Trial warning threshold â€” show the trial banner in the last N days
+// Trial warning threshold — show the trial banner in the last N days
 // ---------------------------------------------------------------------------
 const TRIAL_WARNING_DAYS = 7
 
@@ -48,7 +48,7 @@ export function SubscriptionBanner() {
     return (
       <Banner variant='warning' icon={<AlertTriangleIcon className='h-4 w-4 shrink-0' />}>
         <span>
-          <strong>Payment overdue.</strong> Your account is in the grace period â€” operational features are still active. Please{' '}
+          <strong>Payment overdue.</strong> Your account is in the grace period — operational features are still active. Please{' '}
           <BannerLink to='/business/subscription' variant='warning'>
             update your payment method
           </BannerLink>{' '}

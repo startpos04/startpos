@@ -1,5 +1,5 @@
 /**
- * capability-control.ts â€” Application Layer: user-directed capability state changes (Phase 3a)
+ * capability-control.ts — Application Layer: user-directed capability state changes (Phase 3a)
  *
  * Owns all IO for capability lifecycle management:
  *   - Reads `BusinessCapabilityState` from DB
@@ -11,31 +11,31 @@
  *   - Emits CAPABILITY_STATE_CHANGED via BusinessEventBus
  *
  * Public API:
- *   accept(businessId, capabilityId, actorId)  â€” RECOMMENDED â†’ ENABLED + apply outputs
- *   enable(businessId, capabilityId, actorId)  â€” HIDDEN|RECOMMENDED â†’ ENABLED + apply outputs
- *   pause(businessId, capabilityId, actorId)   â€” ENABLED|CONFIGURED â†’ PAUSED + rollback outputs
- *   restore(businessId, capabilityId, actorId) â€” PAUSED â†’ ENABLED + re-apply outputs
- *   dismiss(businessId, capabilityId, actorId) â€” RECOMMENDED â†’ HIDDEN (30-day cooldown)
- *   advance(businessId, capabilityId)          â€” ENABLED â†’ CONFIGURED (system-triggered)
+ *   accept(businessId, capabilityId, actorId)  — RECOMMENDED â†’ ENABLED + apply outputs
+ *   enable(businessId, capabilityId, actorId)  — HIDDEN|RECOMMENDED â†’ ENABLED + apply outputs
+ *   pause(businessId, capabilityId, actorId)   — ENABLED|CONFIGURED â†’ PAUSED + rollback outputs
+ *   restore(businessId, capabilityId, actorId) — PAUSED â†’ ENABLED + re-apply outputs
+ *   dismiss(businessId, capabilityId, actorId) — RECOMMENDED â†’ HIDDEN (30-day cooldown)
+ *   advance(businessId, capabilityId)          — ENABLED â†’ CONFIGURED (system-triggered)
  *
  * Error model:
- *   All methods return `OperationResult` â€” never throw to the caller.
+ *   All methods return `OperationResult` — never throw to the caller.
  *   Invalid transitions return `{ ok: false, code: 'INVALID_TRANSITION' }`.
  *   Missing capability state returns `{ ok: false, code: 'NOT_FOUND' }`.
- *   Always-on capabilities cannot be paused â€” returns `{ ok: false, code: 'PRECONDITION_FAILED' }`.
+ *   Always-on capabilities cannot be paused — returns `{ ok: false, code: 'PRECONDITION_FAILED' }`.
  *
  * Architecture:
  *   - Uses rootPrisma for all DB writes (BusinessCapabilityState + Configuration).
  *   - Config outputs are written as Configuration rows at BUSINESS scope.
- *   - Does not call EntitlementEngine â€” that is runtime access gating, not setup.
+ *   - Does not call EntitlementEngine — that is runtime access gating, not setup.
  */
 
-import { BusinessEventBus } from '@platform/lib/evolution/business-event-bus'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import type { ConfigurationKey } from 'prisma/generated/prisma/enums'
 import { CAPABILITY_REGISTRY } from '../onboarding/capability-registry'
 import { DEFAULT_CHARACTERISTICS } from '../onboarding/defaults'
 import type { CapabilityDefinition, CapabilityOutput } from '../onboarding/types'
+import { BusinessEventBus } from './business-event-bus'
 import { assertTransition, type CapabilityLifecycleState, getTargetState, InvalidTransitionError, isAlwaysOn } from './capability-lifecycle'
 import { projectToCharacteristics } from './characteristics-engine'
 import { RecalculationPriority, recalculationQueue } from './recalculation-queue'
@@ -123,7 +123,7 @@ export async function dismiss(businessId: string, capabilityId: string, actorId:
 /**
  * Advance a capability from ENABLED â†’ CONFIGURED.
  * Called by the RecalculationJob when configuredSignal returns true.
- * No config changes â€” the capability is already enabled and configured.
+ * No config changes — the capability is already enabled and configured.
  */
 export async function advance(businessId: string, capabilityId: string): Promise<ControlResult> {
   return transition(businessId, capabilityId, 'system', 'SYSTEM_ADVANCE', {})
@@ -243,8 +243,8 @@ async function transition(
         // Phase 6 analytics: stamp timestamps on first entry into key states.
         // Only set if the field is not already populated (use null-coalescing via
         // updateMany is not available here, so we use conditional spread):
-        // recommendedAt â€” set when capability first enters RECOMMENDED
-        // enabledAt     â€” set when capability first enters ENABLED
+        // recommendedAt — set when capability first enters RECOMMENDED
+        // enabledAt     — set when capability first enters ENABLED
         ...(targetState === 'RECOMMENDED' && !stateRow.recommendedAt ? { recommendedAt: now } : {}),
         ...(targetState === 'ENABLED' && !stateRow.enabledAt ? { enabledAt: now } : {}),
       },
@@ -293,7 +293,7 @@ async function applyConfigOutputs(businessId: string, outputs: CapabilityOutput[
   for (const output of outputs) {
     if (!output.key) continue
 
-    // Map the string key to the ConfigurationKey enum value â€” cast is safe because
+    // Map the string key to the ConfigurationKey enum value — cast is safe because
     // capability outputs use the same key names as the ConfigurationKey enum.
     await prisma.configuration.upsert({
       where: {
@@ -348,14 +348,14 @@ function buildUpdatedHistory(
 }
 
 // ---------------------------------------------------------------------------
-// Phase 4: correctCharacteristic â€” ADMIN_DECISION source
+// Phase 4: correctCharacteristic — ADMIN_DECISION source
 // ---------------------------------------------------------------------------
 
 export type CorrectCharacteristicResult = { ok: true } | { ok: false; code: 'INVALID_FIELD' | 'INTERNAL_ERROR'; reason: string }
 
 /**
  * Allows a business admin to explicitly correct a characteristic.
- * Writes with ADMIN_DECISION source â€” the highest priority, cannot be
+ * Writes with ADMIN_DECISION source — the highest priority, cannot be
  * overridden by any automated observation rule.
  *
  * After writing, schedules an IMMEDIATE recalculation so the
@@ -410,7 +410,7 @@ export async function correctCharacteristic(
       },
     })
 
-    // Schedule IMMEDIATE recalculation â€” characteristics changed, re-evaluate everything
+    // Schedule IMMEDIATE recalculation — characteristics changed, re-evaluate everything
     await recalculationQueue.schedule(businessId, RecalculationPriority.IMMEDIATE)
 
     // Emit CONFIG_CHANGED so subscribers know characteristics were manually updated

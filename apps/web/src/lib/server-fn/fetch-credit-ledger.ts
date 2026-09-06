@@ -1,10 +1,10 @@
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
 
 const fetchCreditLedgerSchema = z.object({
   page: z.number().int().min(1).default(1),
@@ -19,7 +19,7 @@ export type FetchCreditLedgerInput = z.infer<typeof fetchCreditLedgerSchema>
 // ordered newest-first, plus the current running balance and actor names.
 //
 // Wrapped in createServerFn so that both the crudAPI calls and the
-// rootPrisma user lookup run exclusively on the server â€” importing
+// rootPrisma user lookup run exclusively on the server — importing
 // rootPrisma in a plain async function would pull the Prisma client
 // (which uses the Node.js Buffer global) into the browser bundle.
 // ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ export const fetchCreditLedger = createServerFn({ method: 'POST' })
 
     const entries = entriesResult.value
 
-    // Resolve actor names â€” actorId has no @relation on CreditLedger, so we
+    // Resolve actor names — actorId has no @relation on CreditLedger, so we
     // do a secondary lookup keyed by the unique set of actor IDs on this page.
     const actorIds = [...new Set(entries.map(e => e.actorId).filter((id): id is string => !!id))]
     const actorMap = new Map<string, string>()

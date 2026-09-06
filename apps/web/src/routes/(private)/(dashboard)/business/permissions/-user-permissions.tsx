@@ -10,9 +10,9 @@ import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Separator } from '@platform/components/ui/separator'
+import MountManager from '@platform/lib/mount-manager'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Crown, Plus, Shield, ShieldCheck, ShieldX, User } from 'lucide-react'
-import MountManager from '@platform/lib/mount-manager'
 import { fetchUsersWithPermissions, type UserWithPermissions } from '@/lib/queries/permission-management'
 import { PermissionAssignmentDialog } from './-permission-assignment-dialog'
 
@@ -95,7 +95,7 @@ function UserPermissionCard({ user, onManage }: { user: UserWithPermissions; onM
             </div>
             <div className='flex items-center gap-2 text-sm text-muted-foreground'>
               <span>{user.email}</span>
-              <span>â€¢</span>
+              <span>•</span>
               <Badge variant='outline'>{user.role}</Badge>
             </div>
           </div>

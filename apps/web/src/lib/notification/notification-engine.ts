@@ -7,9 +7,9 @@ import {
   productVariantCollection,
 } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { safeJsonStringify } from '@platform/lib/json-utils'
 import { NotificationPriority, NotificationType, Role } from 'prisma/generated/prisma/enums'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import { type NotificationMetadata, NotificationMetadataSchema } from './notification-types'
 import type { ThresholdSeverity, UsageNotificationResult } from './usage-notification-types'
@@ -95,7 +95,7 @@ export const NotificationEngine = {
 
           const taskId = crypto.randomUUID()
           await dbTransaction(() => {
-            // Task creation belongs to the Inventory domain (A6 â€” cross-domain violation fix).
+            // Task creation belongs to the Inventory domain (A6 — cross-domain violation fix).
             // NotificationEngine retains only the send() call below.
             InventoryEngine.handleLowStockDetected({
               variantId: variant.id,
@@ -130,7 +130,7 @@ export const NotificationEngine = {
   },
 
   /**
-   * Phase 3 â€” Send a CREDIT_LOW_BALANCE notification to all ADMIN members
+   * Phase 3 — Send a CREDIT_LOW_BALANCE notification to all ADMIN members
    * of the business when the credit balance drops below the configured threshold.
    *
    * Called by createPosTransaction after a PREPAID_CREDITS deduction when
@@ -146,7 +146,7 @@ export const NotificationEngine = {
         {
           type: NotificationType.CREDIT_LOW_BALANCE,
           title: 'Low Credit Balance',
-          message: `Your credit balance has dropped to ${currentBalance} credit${currentBalance === 1 ? '' : 's'} â€” below the threshold of ${threshold}. Top up to avoid checkout interruptions.`,
+          message: `Your credit balance has dropped to ${currentBalance} credit${currentBalance === 1 ? '' : 's'} — below the threshold of ${threshold}. Top up to avoid checkout interruptions.`,
           metadata: { currentBalance, threshold },
           link: '/billing/credits',
           priority: NotificationPriority.HIGH,

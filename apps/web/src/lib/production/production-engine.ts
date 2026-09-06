@@ -22,11 +22,11 @@ import type {
   productionOrderItemCollection as ProductionOrderItemCollectionType,
   productVariantCollection as ProductVariantCollectionType,
 } from '@platform/db/collections'
+import { UnitEngine } from '@platform/lib/conversion/unit-engine'
 import type { OperationResult } from '@platform/lib/result'
 import { opFail, opOk } from '@platform/lib/result'
 import type { ProductComponent, Unit } from 'prisma/generated/prisma/browser'
 import { InventoryType, MovementType, ProductionStatus } from 'prisma/generated/prisma/enums'
-import { UnitEngine } from '@/lib/conversion/unit-engine'
 import { FIFOEngine } from '@/lib/costing/fifo-engine'
 import { getInventoryMode, InventoryPolicy } from '@/lib/inventory'
 
@@ -127,7 +127,7 @@ export const ProductionEngine = {
    * For recipe-based: validates that variant has components
    * For recipe-free: just records the intention to prepare
    *
-   * Does NOT consume raw materials yet â€” that happens in startProduction()
+   * Does NOT consume raw materials yet — that happens in startProduction()
    */
   createProductionOrder(
     params: CreateProductionOrderParams,
@@ -502,7 +502,7 @@ export const ProductionEngine = {
    * Once IN_PROGRESS, must complete the production even if output is 0.
    */
   cancelProduction(params: CancelProductionParams): OperationResult<void> {
-    const { orderId, reason, productionOrderCollection, ctx } = params
+    const { orderId, reason, productionOrderCollection, ctx: _ctx } = params
 
     const order = productionOrderCollection.get(orderId)
     if (!order) {
@@ -512,7 +512,7 @@ export const ProductionEngine = {
     if (order.status !== ProductionStatus.DRAFT) {
       return opFail(
         'PRECONDITION_FAILED',
-        `Can only cancel DRAFT orders. Order is ${order.status}. ` + `For IN_PROGRESS orders, complete with actualQuantity = 0 instead.`,
+        `Can only cancel DRAFT orders. Order is ${order.status}. For IN_PROGRESS orders, complete with actualQuantity = 0 instead.`,
       )
     }
 

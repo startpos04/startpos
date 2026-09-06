@@ -4,11 +4,11 @@ import { WarningPrompt } from '@platform/components/custom/prompt/warning-prompt
 import { Avatar, AvatarFallback, AvatarImage } from '@platform/components/ui/avatar'
 import { Button } from '@platform/components/ui/button'
 import { userCollection } from '@platform/db/collections'
+import MountManager from '@platform/lib/mount-manager'
 import type { ColumnHelper } from '@tanstack/react-table'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
-import MountManager from '@platform/lib/mount-manager'
 import { writeAudit } from '@/lib/server-fn/write-audit'
 
 export const employeeCols = {
@@ -63,7 +63,7 @@ export const employeeCols = {
                   draft.deletedAt = new Date()
                 })
                 toast.success('Employee archived successfully')
-                // Fire-and-forget audit write â€” does not block the success path
+                // Fire-and-forget audit write — does not block the success path
                 writeAudit({
                   data: {
                     action: AuditAction.EMPLOYEE_DISABLED,

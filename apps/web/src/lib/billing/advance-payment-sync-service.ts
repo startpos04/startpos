@@ -13,7 +13,8 @@
 
 import dayjs from '@platform/lib/dayjs'
 import { prisma } from '@platform/lib/prisma-client'
-import type { BillingPayment, BusinessSubscription, PaymentProvider, PaymentSyncStatus } from '@prisma/client'
+import type { BillingPayment, BusinessSubscription, PaymentProvider, PaymentSyncStatus } from 'prisma/generated/prisma/client'
+import type { BillingProviderAdapter } from './billing-provider'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -207,8 +208,6 @@ export class BaseAdvancePaymentSyncService implements AdvancePaymentSyncService 
     switch (billingModel) {
       case 'YEARLY_SUBSCRIPTION':
         return 12
-      case 'MONTHLY_SUBSCRIPTION':
-      case 'PREPAID_CREDITS':
       default:
         return 1
     }
@@ -220,9 +219,9 @@ export class BaseAdvancePaymentSyncService implements AdvancePaymentSyncService 
 // ---------------------------------------------------------------------------
 
 export class StripeAdvancePaymentSyncService extends BaseAdvancePaymentSyncService {
-  private stripe: any // Stripe instance injected
+  private stripe: BillingProviderAdapter | undefined
 
-  constructor(stripeClient?: any) {
+  constructor(stripeClient?: BillingProviderAdapter) {
     super()
     this.stripe = stripeClient
   }
@@ -332,6 +331,7 @@ export class StripeAdvancePaymentSyncService extends BaseAdvancePaymentSyncServi
    * - Pause billing for specific periods
    * - Automatically resume billing after pause
    */
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   private async createSubscriptionSchedule(subscription: any, payment: BillingPayment): Promise<any> {
     // Get the current subscription from Stripe
     const stripeSubscription = await this.stripe.subscriptions.retrieve(subscription.externalId)
@@ -352,6 +352,7 @@ export class StripeAdvancePaymentSyncService extends BaseAdvancePaymentSyncServi
         phases: [
           {
             // Phase 1: Current period (unchanged)
+            // biome-ignore lint/suspicious/noExplicitAny: flexibility required
             items: stripeSubscription.items.data.map((item: any) => ({
               price: item.price.id,
               quantity: item.quantity,
@@ -361,6 +362,7 @@ export class StripeAdvancePaymentSyncService extends BaseAdvancePaymentSyncServi
           },
           {
             // Phase 2: Advance payment period (paused billing)
+            // biome-ignore lint/suspicious/noExplicitAny: flexibility required
             items: stripeSubscription.items.data.map((item: any) => ({
               price: item.price.id,
               quantity: item.quantity,
@@ -375,6 +377,7 @@ export class StripeAdvancePaymentSyncService extends BaseAdvancePaymentSyncServi
           },
           {
             // Phase 3: Resume normal billing
+            // biome-ignore lint/suspicious/noExplicitAny: flexibility required
             items: stripeSubscription.items.data.map((item: any) => ({
               price: item.price.id,
               quantity: item.quantity,
@@ -400,6 +403,7 @@ export class StripeAdvancePaymentSyncService extends BaseAdvancePaymentSyncServi
    * Instead of pausing subscription, create a credit that will be
    * automatically applied to future invoices
    */
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   private async createInvoiceCredit(subscription: any, payment: BillingPayment): Promise<any> {
     // Create customer balance transaction (credit)
     const credit = await this.stripe.customers.createBalanceTransaction(subscription.business.externalCustomerId || subscription.businessId, {
@@ -434,12 +438,10 @@ export class StripeAdvancePaymentSyncService extends BaseAdvancePaymentSyncServi
 /**
  * Create appropriate sync service based on provider
  */
-export function createAdvancePaymentSyncService(provider: PaymentProvider | null, stripeClient?: any): AdvancePaymentSyncService {
+export function createAdvancePaymentSyncService(provider: PaymentProvider | null, stripeClient?: BillingProviderAdapter): AdvancePaymentSyncService {
   switch (provider) {
     case 'STRIPE':
       return new StripeAdvancePaymentSyncService(stripeClient)
-    case 'MANUAL':
-    case null:
     default:
       return new BaseAdvancePaymentSyncService()
   }

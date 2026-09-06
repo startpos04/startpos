@@ -4,16 +4,16 @@ import { Button } from '@platform/components/ui/button'
 import { inventoryCollection, inventoryMovementCollection, operationalTaskCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
 import { useAppForm } from '@platform/hooks/form'
-import { authStore } from '@platform/lib/better-auth/auth-store'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { AlertCircle, CheckCircle2, ClipboardList, FileCheck, Play, ShieldAlert, X } from 'lucide-react'
 import { TaskStatus } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { getInventoryMode } from '@/lib/inventory'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
-import type { MountProps } from '@platform/lib/mount-manager'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
 import { validateTaskTransition } from '@/lib/server-fn/validate-task-transition'
@@ -42,7 +42,7 @@ export function TaskDetailsSidebar({ open: _open, onClose, taskId }: TaskDetails
 }
 
 function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
-  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context â€” used inside MountManager or route component
+  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
   const taskId = propId ?? Route.useLoaderData().taskId
   const user = useStore(authStore, state => state.user)
 
@@ -54,10 +54,10 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
   const handleStatusChange = async ({ nextStatus }: { nextStatus: TaskStatus }) => {
     if (!task || !user) return
 
-    // B1 â€” Server-side transition validator (Architecture Compliance Phase 6).
+    // B1 — Server-side transition validator (Architecture Compliance Phase 6).
     //
     // Calls a TanStack Start server function that:
-    //   1. Reads the task's CURRENT state from Prisma (server-authoritative â€” not from
+    //   1. Reads the task's CURRENT state from Prisma (server-authoritative — not from
     //      client state, preventing spoofed currentStatus attacks).
     //   2. Asserts tenant isolation (task.businessId === session.businessId).
     //   3. Calls checkWorkflowPermission with the server-fetched state.
@@ -114,7 +114,7 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
       })
 
       // --- INVENTORY SIDE EFFECTS ON FULFILLED ---
-      // Delegated to InventoryEngine â€” single owner of all inventory mutations.
+      // Delegated to InventoryEngine — single owner of all inventory mutations.
       if (nextStatus === TaskStatus.FULFILLED && task) {
         InventoryEngine.applyTaskFulfillment({
           task,
@@ -130,7 +130,7 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
       }
     })
 
-    // C6: TASK_ASSIGNED notification â€” sent after the transaction commits so
+    // C6: TASK_ASSIGNED notification — sent after the transaction commits so
     // the clerk's record is guaranteed to be written before the notification
     // is delivered. Only fires when transitioning to IN_PROGRESS and the
     // assigned clerk is a different person from the one performing the action
@@ -215,7 +215,7 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
         </Button>
       </div>
 
-      {/* Tab content â€” fills remaining height */}
+      {/* Tab content — fills remaining height */}
       <div className='flex-1 overflow-hidden flex flex-col'>
         <Tab
           defaultValue='Task Details'
@@ -228,7 +228,7 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
         />
       </div>
 
-      {/* Sticky footer â€” action buttons */}
+      {/* Sticky footer — action buttons */}
       {viableActions.length > 0 && (
         <div className='p-4 border-t shrink-0 flex flex-wrap gap-2'>
           {viableActions.map(action => (

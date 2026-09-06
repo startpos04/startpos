@@ -4,11 +4,11 @@ import { Label } from '@platform/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@platform/components/ui/select'
 import { Switch } from '@platform/components/ui/switch'
 import { unitCollection } from '@platform/db/collections'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { Plus, X } from 'lucide-react'
 import { UnitType } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { closeUnitSidebar } from './unit-sidebar'
 
 const defaultForm: { name: string; abbreviation: string; type: UnitType; conversionFactor: number; isBaseUnit: boolean } = {

@@ -1,15 +1,13 @@
 import { Form } from '@platform/components/custom/form'
 import { MoneyInput } from '@platform/components/custom/form/money-input'
 import { TextAreaInput } from '@platform/components/custom/form/text-area-input'
-import { AuthPrompt } from '@platform/components/custom/prompt/auth-prompt'
 import { Button } from '@platform/components/ui/button'
 import { Skeleton } from '@platform/components/ui/skeleton'
 import { membershipCollection, operationalTaskCollection, transactionCollection, vendorSessionCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
 import { useAppForm } from '@platform/hooks/form'
-import { AuthEngine } from '@platform/lib/better-auth/auth-engine'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import dayjs from '@platform/lib/dayjs'
+import MountManager, { type MountProps } from '@platform/lib/mount-manager'
 import { and, count, eq, gte, inArray, lte, sum, useLiveQuery } from '@tanstack/react-db'
 import { formOptions, useStore } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
@@ -17,8 +15,10 @@ import { AlertCircle, ShieldCheck } from 'lucide-react'
 import { Role, SessionStatus, TaskStatus } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { AuthPrompt } from '@/components/custom/prompt/auth-prompt'
+import { logout } from '@/lib/better-auth/auth-engine'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import MountManager, { type MountProps } from '@platform/lib/mount-manager'
 
 export const closeSessionFormOpts = formOptions({
   defaultValues: {
@@ -76,7 +76,7 @@ export function ReconcileNow({ onClose }: MountProps) {
         const verifiedCash = Number(value.closingCash)
         const variance = verifiedCash - expectedCash
 
-        // B4: task moves to FULFILLED (not REVIEWED directly â€” supervisor reviews via the task workflow)
+        // B4: task moves to FULFILLED (not REVIEWED directly — supervisor reviews via the task workflow)
         operationalTaskCollection.update(session.operationalTaskId, draft => {
           draft.status = TaskStatus.FULFILLED
           draft.notes = value.notes || `Reconciliation for session ${session.id}`
@@ -103,7 +103,7 @@ export function ReconcileNow({ onClose }: MountProps) {
       }
 
       toast.success('Shift ended successfully')
-      AuthEngine.logout({ onSuccess: () => navigate({ to: '/login' }) })
+      logout({ onSuccess: () => navigate({ to: '/login' }) })
 
       onClose()
     },

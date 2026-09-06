@@ -4,10 +4,10 @@
  * Shared job runner infrastructure for background jobs.
  *
  * All background jobs follow the same pattern:
- *   1. Accept a database client (rootPrisma) as a dependency â€” never import it directly.
- *   2. Read configuration from the caller â€” never read configuration themselves.
- *   3. Return a JobResult describing what was done â€” never throw on expected failures.
- *   4. Be idempotent â€” running twice for the same period must not produce duplicate effects.
+ *   1. Accept a database client (rootPrisma) as a dependency — never import it directly.
+ *   2. Read configuration from the caller — never read configuration themselves.
+ *   3. Return a JobResult describing what was done — never throw on expected failures.
+ *   4. Be idempotent — running twice for the same period must not produce duplicate effects.
  *
  * Registered jobs:
  *   subscription-lifecycle      â†’ src/lib/jobs/subscription-lifecycle.ts
@@ -53,7 +53,7 @@
  */
 
 // ---------------------------------------------------------------------------
-// JobResult â€” structured outcome for all background jobs
+// JobResult — structured outcome for all background jobs
 // ---------------------------------------------------------------------------
 
 export type JobOutcome = 'success' | 'partial' | 'noop' | 'error'
@@ -88,7 +88,7 @@ export function jobSuccess(job: string, processed: number, skipped: number, warn
 }
 
 /**
- * Build a JobResult for a fatal error â€” job could not complete.
+ * Build a JobResult for a fatal error — job could not complete.
  */
 export function jobError(job: string, error: unknown): JobResult {
   const message = error instanceof Error ? error.message : String(error)

@@ -22,7 +22,7 @@ const LocalAuthSchema = z.object({
   id: z.string(),
   email: z.email(),
   hashedPassword: z.string(),
-  profile: z.object({}) as unknown as z.ZodType<LocalUser>,
+  profile: z.object({}) as unknown as z.ZodType<BaseUser>,
   expiresAt: z.number(),
 })
 

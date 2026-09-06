@@ -7,17 +7,17 @@ import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { purchaseCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import dayjs from '@platform/lib/dayjs'
+import type { MountProps } from '@platform/lib/mount-manager'
+import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { CheckCircle2, Package, ShoppingCart, Undo2, X } from 'lucide-react'
 import { PurchaseStatus } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import type { MountProps } from '@platform/lib/mount-manager'
-import MountManager from '@platform/lib/mount-manager'
 import { createGoodsReceipt } from '@/lib/queries/create-goods-receipt'
 import { type fePurchase, fetchPurchases } from '@/lib/queries/fetch-purchases'
 import { voidPurchase } from '@/lib/queries/void-purchase'
@@ -27,14 +27,14 @@ import { DetailsTab } from './-details-tab'
 import { ItemsTab } from './-items-tab'
 import { ReceiptsTab } from './-receipts-tab'
 
-// â”€â”€â”€ Route â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Route ───────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute('/(private)/(dashboard)/purchases/$purchaseId/' as any)({
   loader: ({ params }: { params: { purchaseId: string } }) => ({ purchaseId: params.purchaseId }),
   component: () => <RouteComponent />,
 })
 
-// â”€â”€â”€ Sidebar export (used by list page) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Sidebar export (used by list page) ──────────────────────────────────────
 
 interface PurchaseDetailsSidebarProps extends Omit<MountProps, 'onClose'> {
   purchaseId: string
@@ -45,7 +45,7 @@ export function PurchaseDetailsSidebar({ open: _open, purchaseId, onClose }: Pur
   return <RouteComponent purchaseId={purchaseId} onClose={onClose} />
 }
 
-// â”€â”€â”€ Workflow action handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Workflow action handler ──────────────────────────────────────────────────
 
 async function handlePurchaseTransition(purchase: fePurchase, targetStatus: PurchaseStatus, user: { id: string; role: string }): Promise<boolean> {
   // Re-validate with purchaseWorkflow before entering the transaction
@@ -85,7 +85,7 @@ async function handlePurchaseTransition(purchase: fePurchase, targetStatus: Purc
       })
       return false
     }
-    toast.success(`Goods receipt created for ${purchase.purchaseId} â€” confirm it to credit inventory`)
+    toast.success(`Goods receipt created for ${purchase.purchaseId} — confirm it to credit inventory`)
     return true
   }
 
@@ -109,7 +109,7 @@ async function handlePurchaseTransition(purchase: fePurchase, targetStatus: Purc
   return true
 }
 
-// â”€â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main component ───────────────────────────────────────────────────────────
 
 interface RouteComponentProps {
   purchaseId?: string
@@ -174,7 +174,7 @@ function RouteComponent({ purchaseId: propId, onClose }: RouteComponentProps) {
   const primaryActions = allowedActions.filter(a => a.meta.variant !== 'destructive')
   const destructiveActions = allowedActions.filter(a => a.meta.variant === 'destructive')
 
-  // Build tab list â€” show Receipts tab whenever the purchase is APPROVED or beyond
+  // Build tab list — show Receipts tab whenever the purchase is APPROVED or beyond
   const showReceiptsTab =
     purchase.status === PurchaseStatus.APPROVED || purchase.status === PurchaseStatus.RECEIVED || purchase.status === PurchaseStatus.CLOSED
 
@@ -200,7 +200,7 @@ function RouteComponent({ purchaseId: propId, onClose }: RouteComponentProps) {
               </Badge>
             </div>
             <p className='text-xs text-muted-foreground mt-0.5'>
-              {purchase.supplier?.name ?? 'No supplier'} Â· {dayjs(purchase.createdAt).format('MMM DD, YYYY')}
+              {purchase.supplier?.name ?? 'No supplier'} · {dayjs(purchase.createdAt).format('MMM DD, YYYY')}
             </p>
           </div>
         </div>
@@ -238,7 +238,7 @@ function RouteComponent({ purchaseId: propId, onClose }: RouteComponentProps) {
         <Tab defaultValue='Items' tabs={tabs} />
       </div>
 
-      {/* Footer â€” workflow action buttons */}
+      {/* Footer — workflow action buttons */}
       {!isTerminal && allowedActions.length > 0 && (
         <div className='p-4 border-t shrink-0 space-y-2'>
           {primaryActions.map(action => (

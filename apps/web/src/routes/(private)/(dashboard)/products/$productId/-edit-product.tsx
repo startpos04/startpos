@@ -1,11 +1,11 @@
 import { Button } from '@platform/components/ui/button'
 import { productCollection, productComponentCollection, productVariantCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { ArrowLeft, X } from 'lucide-react'
 import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import type { MountProps } from '@platform/lib/mount-manager'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { closeProductSidebar } from '../-components/product-sidebar'
 import { CreateProduct, type CreateProductFormData } from '../create/-create-product'
 
@@ -165,7 +165,7 @@ export function EditProductSidebar({ productId, variantId, defaultValues, open: 
         </Button>
       </div>
 
-      {/* Form â€” flex-1 min-h-0 lets it fill remaining height inside flex-col */}
+      {/* Form — flex-1 min-h-0 lets it fill remaining height inside flex-col */}
       <div className='flex-1 min-h-0'>
         <CreateProduct
           variantId={variantId}

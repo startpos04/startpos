@@ -17,10 +17,10 @@
  *     businessId + period already exists (checked before insert).
  *
  * Architecture contract (ADR-001, ADR-009):
- *   - PricingEngine has zero infrastructure imports â€” receives data as DTOs.
+ *   - PricingEngine has zero infrastructure imports — receives data as DTOs.
  *   - Uses PaymentProviderRegistry to get provider-specific guidance
  *   - This job is the infrastructure layer: fetches data, calls engines, persists output.
- *   - Receives rootPrisma as parameter â€” no globals.
+ *   - Receives rootPrisma as parameter — no globals.
  *
  * Usage:
  *   const result = await runComposableRenewalPreviewJob(rootPrisma, { previewWindowDays: 7 })
@@ -100,7 +100,7 @@ export async function runComposableRenewalPreviewJob(
     const activeCatalog = await repo.loadActive()
 
     if (!activeCatalog) {
-      return jobSuccess(JOB_NAME, 0, subscriptions.length, ['No active PricingCatalog found â€” skipping all businesses'])
+      return jobSuccess(JOB_NAME, 0, subscriptions.length, ['No active PricingCatalog found — skipping all businesses'])
     }
 
     let processed = 0
@@ -121,7 +121,7 @@ export async function runComposableRenewalPreviewJob(
         catalogVersion: f.catalogVersion,
       }))
 
-      // Call PricingEngine â€” pure, no DB access
+      // Call PricingEngine — pure, no DB access
       const notices = PricingEngine.validateGrandfatheredPrices(snapshots, activeCatalog)
 
       if (notices.length === 0) {
@@ -186,7 +186,7 @@ export async function runComposableRenewalPreviewJob(
       // Build notification message
       const changeList = notices
         .map(n => {
-          const delta = n.priceDelta > 0 ? `+â‚±${(n.priceDelta / 100).toFixed(2)}` : `-â‚±${(Math.abs(n.priceDelta) / 100).toFixed(2)}`
+          const delta = n.priceDelta > 0 ? `+₱${(n.priceDelta / 100).toFixed(2)}` : `-₱${(Math.abs(n.priceDelta) / 100).toFixed(2)}`
           return `${n.featureLabel}: ${delta}/mo`
         })
         .join(', ')

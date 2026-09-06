@@ -92,8 +92,8 @@ export function loadProviderConfigs(): ProviderConfigMap {
       accountName: process.env['MANUAL_ACCOUNT_NAME'] ?? 'StartPOS Business',
       accountNumber: process.env['MANUAL_ACCOUNT_NUMBER'] ?? '09171234567',
       paymentInstructions: process.env['MANUAL_PAYMENT_INSTRUCTIONS'] ?? 'Transfer to the account above and upload proof of payment.',
-      gracePeriodDays: parseInt(process.env['MANUAL_GRACE_PERIOD_DAYS'] ?? '7'),
-      autoExpireDays: parseInt(process.env['MANUAL_AUTO_EXPIRE_DAYS'] ?? '7'),
+      gracePeriodDays: parseInt(process.env['MANUAL_GRACE_PERIOD_DAYS'] ?? '7', 10),
+      autoExpireDays: parseInt(process.env['MANUAL_AUTO_EXPIRE_DAYS'] ?? '7', 10),
       setupRoute: '/billing/manual-payment',
     },
     // Future providers can be added here
@@ -165,7 +165,6 @@ export function getProviderConfig<T extends keyof ProviderConfigMap>(providerId:
  * @returns Array of enabled provider configs with their IDs
  */
 export function getEnabledProviderConfigs(): Array<{ providerId: PaymentProviderId; config: ProviderConfigMap[keyof ProviderConfigMap] }> {
-  const configs = loadProviderConfigs()
   const enabled: Array<{ providerId: PaymentProviderId; config: ProviderConfigMap[keyof ProviderConfigMap] }> = []
 
   // Check each provider

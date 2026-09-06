@@ -13,7 +13,7 @@
  *
  * Idempotency:
  *   - If BusinessSubscription.externalId already exists, this function is a
- *     no-op â€” the subscription was already created by a prior call.
+ *     no-op — the subscription was already created by a prior call.
  *
  * Architecture:
  *   - Uses PaymentProviderService for provider selection and routing
@@ -21,13 +21,14 @@
  *   - Supports multiple payment providers through provider registry
  */
 
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { SubscriptionStatus } from '@platform/lib/entitlement/entitlement-types'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { getBillingAdapter } from '../billing/get-billing-adapter'
-import { paymentProviderService } from '../billing/payment-provider-service'
+// import { paymentProviderService } from '../billing/payment-provider-service'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 
 // ---------------------------------------------------------------------------
@@ -66,9 +67,9 @@ const CreateSubscriptionInputSchema = z.object({
   planId: z.string().min(1),
   /** Payment provider ID to use for this subscription */
   providerId: z.string().min(1).default('stripe'),
-  /** Billing interval â€” defaults to monthly */
+  /** Billing interval — defaults to monthly */
   billingInterval: z.enum(['monthly', 'annual']).default('monthly'),
-  /** Billing model override â€” defaults to MONTHLY_SUBSCRIPTION; use PREPAID_CREDITS for credits plan */
+  /** Billing model override — defaults to MONTHLY_SUBSCRIPTION; use PREPAID_CREDITS for credits plan */
   billingModel: z.enum(['MONTHLY_SUBSCRIPTION', 'YEARLY_SUBSCRIPTION', 'PREPAID_CREDITS']).optional(),
 })
 
@@ -79,14 +80,10 @@ export type CreateSubscriptionInput = z.infer<typeof CreateSubscriptionInputSche
 // ---------------------------------------------------------------------------
 
 export const createSubscription = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requireTenantContext()])
   .inputValidator((data: CreateSubscriptionInput) => CreateSubscriptionInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context' }
-    }
-
-    const { businessId, id: userId } = context.user
+    const { businessId, id: userId } = getTenantContext(context).user
 
     // Fetch current subscription and target plan in parallel
     const [existingSubscription, targetPlan, business] = await Promise.all([
@@ -122,7 +119,7 @@ export const createSubscription = createServerFn({ method: 'POST' })
     }
 
     // Idempotency: if externalId already exists, a provider subscription is already live.
-    // Return success â€” the subscription is already created.
+    // Return success — the subscription is already created.
     if (existingSubscription.externalId) {
       return {
         success: true as const,
@@ -160,7 +157,7 @@ export const createSubscription = createServerFn({ method: 'POST' })
     const effectivePriceId = providerPriceId || 'dynamic-pricing'
 
     // Create a Stripe customer for this business (required before creating subscription)
-    const userEmail = context.user.email ?? `billing+${businessId}@startpos.app`
+    const userEmail = getTenantContext(context).user.email ?? `billing+${businessId}@startpos.app`
     const customer = await adapter.createCustomer({
       businessId,
       businessName: business.name,
@@ -210,7 +207,7 @@ export const createSubscription = createServerFn({ method: 'POST' })
     }
 
     // Atomically update the subscription record and write a history entry.
-    // externalId is intentionally NOT set here for hosted checkout flows â€”
+    // externalId is intentionally NOT set here for hosted checkout flows —
     // the real Stripe subscription ID arrives via the customer.subscription.updated
     // webhook after payment, which writes externalId at that point.
     const now = new Date()

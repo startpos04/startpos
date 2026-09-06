@@ -7,4 +7,4 @@
 // This file re-exports the shared primitives that both the app's server function
 // and the local db sync engine (db/local-db-transaction.ts) need.
 
-export { executeOperation, type DBPayload } from './crud-api'
+export { type DBPayload, executeOperation } from './crud-api'

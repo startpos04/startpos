@@ -11,12 +11,13 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import type { Role } from 'prisma/generated/prisma/enums'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 
 export const CreateEmployeeInputSchema = z.object({
   name: z.string().min(1).max(100),
@@ -28,14 +29,10 @@ export const CreateEmployeeInputSchema = z.object({
 export type CreateEmployeeInput = z.infer<typeof CreateEmployeeInputSchema>
 
 export const createEmployee = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_CREATE_EMPLOYEE)])
+  .middleware([authMiddleware, requirePermission(Permissions.BRANCH_CREATE_EMPLOYEE), requireTenantContext()])
   .inputValidator((data: CreateEmployeeInput) => CreateEmployeeInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId || !context?.user?.branchId) {
-      return { success: false as const, error: 'Not authenticated or missing business/branch context' }
-    }
-
-    const { businessId, branchId } = context.user
+    const { businessId, branchId } = getTenantContext(context).user
 
     // Check if email is already in use
     const existingUser = await rootPrisma.user.findUnique({

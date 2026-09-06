@@ -7,11 +7,11 @@
 import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { useNavigate } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { AlertCircleIcon, Banknote, CheckCircleIcon, CreditCardIcon, SettingsIcon, ShieldCheckIcon, ZapIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { paymentProviderRegistry } from '@/lib/billing/payment-provider-registry'
 import { getEnabledProviderConfigs } from '@/lib/billing/provider-config'
 
@@ -34,6 +34,7 @@ export function OverviewTab() {
     }
   }
 
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   const getProviderDescription = (providerId: string, config: any) => {
     switch (providerId) {
       case 'stripe':

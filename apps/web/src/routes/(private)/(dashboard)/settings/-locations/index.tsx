@@ -24,17 +24,17 @@ export function LocationsPage() {
 
         h.accessor('description', {
           header: 'Description',
-          cell: info => <span className='text-xs text-muted-foreground'>{info.getValue() || 'â€”'}</span>,
+          cell: info => <span className='text-xs text-muted-foreground'>{info.getValue() || '—'}</span>,
         }),
 
         h.accessor('contact', {
           header: 'Contact Info',
-          cell: info => <span className='font-mono text-xs text-foreground'>{info.getValue() || 'â€”'}</span>,
+          cell: info => <span className='font-mono text-xs text-foreground'>{info.getValue() || '—'}</span>,
         }),
 
         h.accessor('address', {
           header: 'Specific Address',
-          cell: info => <span className='text-xs text-foreground'>{info.getValue() || 'â€”'}</span>,
+          cell: info => <span className='text-xs text-foreground'>{info.getValue() || '—'}</span>,
         }),
       ]),
     [],

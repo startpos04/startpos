@@ -22,10 +22,10 @@ import { SubscriptionStatus } from '@platform/lib/entitlement/entitlement-types'
 import { prisma } from '@platform/lib/prisma-client'
 import type { SubscriptionStatus as SubscriptionStatusEnum } from 'prisma/generated/prisma/enums'
 import { advancePaymentService } from '@/lib/billing/advance-payment-service'
-import type { WebhookEvent, WebhookProcessingResult } from '@/lib/billing/billing-provider'
+import type { WebhookEvent } from '@/lib/billing/billing-provider'
 import { CreditEngine, CreditEventType } from '@/lib/billing/credit-engine'
 import { SubscriptionEngine } from '@/lib/billing/subscription-engine'
-import { TransitionTrigger, WebhookOutcome } from '@/lib/billing/types'
+import { TransitionTrigger, WebhookOutcome, type WebhookProcessingResult } from '@/lib/billing/types'
 import type { WebhookEventHandler } from './shared-handlers'
 
 // ---------------------------------------------------------------------------
@@ -311,7 +311,7 @@ export const handleSubscriptionUpdated: WebhookEventHandler = async (event: Webh
     return handleAddonSubscriptionUpdated(event, sub, addonRow)
   }
 
-  // Check if metadata identifies this as a new addon activation (first time â€”
+  // Check if metadata identifies this as a new addon activation (first time —
   // externalSubscriptionId not yet written to BusinessSubscriptionAddon).
   if (sub.metadata['source'] === 'addon_subscription') {
     return handleAddonSubscriptionUpdated(event, sub, null)
@@ -323,7 +323,7 @@ export const handleSubscriptionUpdated: WebhookEventHandler = async (event: Webh
     select: { id: true, status: true, businessId: true, currentPeriodEnd: true },
   })
 
-  // Fallback 1: first-time activation â€” externalId not yet written.
+  // Fallback 1: first-time activation — externalId not yet written.
   // create-subscription.ts stores businessId in subscription metadata.
   if (!subscription && sub.metadata['businessId']) {
     subscription = await prisma.businessSubscription.findFirst({
@@ -332,7 +332,7 @@ export const handleSubscriptionUpdated: WebhookEventHandler = async (event: Webh
     })
   }
 
-  // Fallback 2: portal payment retry â€” metadata may be empty.
+  // Fallback 2: portal payment retry — metadata may be empty.
   // Stripe puts businessId on the customer record too (createCustomer in the adapter).
   // Look it up from the customer metadata via the Stripe API.
   if (!subscription && sub.externalCustomerId) {
@@ -537,22 +537,30 @@ async function handleCreditPurchase(event: WebhookEvent, session: NonNullable<We
 // Following the same pattern as the original webhook file.
 // For brevity, I'm focusing on the core handlers that demonstrate the architecture.
 
-async function handleTxAddonPurchase(event: WebhookEvent, session: NonNullable<WebhookEvent['checkoutSession']>): Promise<WebhookProcessingResult> {
+async function handleTxAddonPurchase(event: WebhookEvent, _session: NonNullable<WebhookEvent['checkoutSession']>): Promise<WebhookProcessingResult> {
   // Implementation moved from original webhook handler
   return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: 'TX addon purchase handler not fully implemented' }
 }
 
-async function handleBranchCreditPurchase(event: WebhookEvent, session: NonNullable<WebhookEvent['checkoutSession']>): Promise<WebhookProcessingResult> {
+async function handleBranchCreditPurchase(event: WebhookEvent, _session: NonNullable<WebhookEvent['checkoutSession']>): Promise<WebhookProcessingResult> {
   // Implementation moved from original webhook handler
   return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: 'Branch credit purchase handler not fully implemented' }
 }
 
-async function handleAddonSubscriptionCancelled(event: WebhookEvent, sub: any, addonRow: any): Promise<WebhookProcessingResult> {
+async function handleAddonSubscriptionCancelled(
+  event: WebhookEvent,
+  _sub: NonNullable<WebhookEvent['subscription']>,
+  _addonRow: { id: string; businessId: string; addonType: string } | null,
+): Promise<WebhookProcessingResult> {
   // Implementation moved from original webhook handler
   return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: 'Addon cancellation handler not fully implemented' }
 }
 
-async function handleAddonSubscriptionUpdated(event: WebhookEvent, sub: any, addonRow: any): Promise<WebhookProcessingResult> {
+async function handleAddonSubscriptionUpdated(
+  event: WebhookEvent,
+  _sub: NonNullable<WebhookEvent['subscription']>,
+  _addonRow: { id: string; businessId: string; addonType: string } | null,
+): Promise<WebhookProcessingResult> {
   // Implementation moved from original webhook handler
   return { eventId: event.id, eventType: event.type, outcome: WebhookOutcome.SKIPPED, message: 'Addon update handler not fully implemented' }
 }

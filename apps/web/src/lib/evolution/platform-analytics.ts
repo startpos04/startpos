@@ -1,9 +1,9 @@
 /**
- * platform-analytics.ts â€” Internal platform analytics queries (Phase 6)
+ * platform-analytics.ts — Internal platform analytics queries (Phase 6)
  *
  * Admin-facing aggregation queries for the internal analytics dashboard.
  * All functions are plain async functions (crudAPI/coreAPI have their own
- * server functions internally â€” no createServerFn wrapper).
+ * server functions internally — no createServerFn wrapper).
  *
  * Aggregations (per Phase 6 spec 6.3):
  *   - Health stage distribution across all businesses
@@ -13,7 +13,7 @@
  *   - Milestone frequency (GROWTH_THRESHOLD_CROSSED events by milestoneId)
  *
  * Data access: crudAPI for tenant data (Business, BusinessEventLog).
- * These are platform-level reporting queries â€” they read across all businesses.
+ * These are platform-level reporting queries — they read across all businesses.
  * They should only be called from admin-authenticated server paths.
  */
 

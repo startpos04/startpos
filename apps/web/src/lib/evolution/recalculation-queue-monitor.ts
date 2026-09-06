@@ -1,18 +1,18 @@
 /**
- * recalculation-queue-monitor.ts â€” Phase 7 production health monitoring
+ * recalculation-queue-monitor.ts — Phase 7 production health monitoring
  *
  * Functions that read the CharacteristicsRecalculationQueue table to surface
  * operational health signals. Used by the Phase 7 performance baseline
  * (7.3) and ongoing production monitoring.
  *
  * All functions are plain async functions using rootPrisma directly.
- * No createServerFn wrapper â€” these are operator/admin tools called from
+ * No createServerFn wrapper — these are operator/admin tools called from
  * scheduled jobs or admin dashboards, not from user-facing server functions.
  *
  * Key health signals (per roadmap 7.3):
  *   - Queue depth: how many businesses are waiting for recalculation
  *   - Stale claims: entries that have been claimed (attempts > 0) but
- *     not yet processed â€” indicates job runner issues
+ *     not yet processed — indicates job runner issues
  *   - Oldest pending entry age: how long the backlog has been building
  *   - Failed entries: entries that have exceeded MAX_ATTEMPTS
  *   - Throughput: entries processed in the last N minutes (derived from
@@ -110,11 +110,11 @@ export async function getQueueHealthReport(): Promise<QueueHealthReport> {
 
   let status: string
   if (pendingCount === 0) {
-    status = 'Queue is empty â€” all businesses are up to date.'
+    status = 'Queue is empty — all businesses are up to date.'
   } else if (failedCount > 0) {
     status = `${failedCount} entr${failedCount === 1 ? 'y' : 'ies'} have failed after ${MAX_ATTEMPTS} attempts and require operator inspection.`
   } else if (isStale) {
-    status = `Oldest pending entry is ${oldestPendingAgeMinutes!.toFixed(1)} minutes old â€” exceeds the ${QUEUE_STALE_THRESHOLD_MINUTES}-minute target. Job runner may be stalled.`
+    status = `Oldest pending entry is ${oldestPendingAgeMinutes?.toFixed(1)} minutes old — exceeds the ${QUEUE_STALE_THRESHOLD_MINUTES}-minute target. Job runner may be stalled.`
   } else {
     status = `${pendingCount} entr${pendingCount === 1 ? 'y' : 'ies'} pending. Queue is processing normally.`
   }

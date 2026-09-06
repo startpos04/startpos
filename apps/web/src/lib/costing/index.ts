@@ -1,5 +1,5 @@
+import { UnitEngine } from '@platform/lib/conversion/unit-engine'
 import type { Inventory } from 'prisma/generated/prisma/client'
-import { UnitEngine } from '../conversion/unit-engine'
 import { FIFOEngine } from './fifo-engine'
 import { MovingAverageEngine } from './moving-average-engine'
 import { SpecificEngine } from './specific-engine'

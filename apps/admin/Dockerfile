@@ -26,10 +26,10 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update -y \
   && apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
   && rm -rf /var/lib/apt/lists/*
 COPY . .
-RUN touch apps/admin/.env apps/admin/.env.local
+RUN touch apps/admin/.env apps/admin/.env.local .env.config
 ENV SCHEMA_AUTO_CONFIRM=yes
 ENV DEPLOYMENT_COUNTRY=PH
-RUN pnpm --filter @startpos/admin run prisma:generate:docker
+RUN pnpm --filter @startpos/platform run prisma:generate
 ENV NODE_ENV=development
 EXPOSE 3001
 CMD ["pnpm", "--filter", "@startpos/admin", "run", "dev:docker"]
@@ -37,9 +37,10 @@ CMD ["pnpm", "--filter", "@startpos/admin", "run", "dev:docker"]
 # ---------- Production build ----------
 FROM install AS builder
 COPY . .
+RUN touch .env.config
 ENV SCHEMA_AUTO_CONFIRM=yes
 ENV DEPLOYMENT_COUNTRY=PH
-RUN pnpm --filter @startpos/admin run prisma:generate:docker
+RUN pnpm --filter @startpos/platform run prisma:generate
 RUN pnpm --filter @startpos/admin run build
 
 # ---------- Production runtime ----------

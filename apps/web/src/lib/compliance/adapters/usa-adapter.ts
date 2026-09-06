@@ -15,6 +15,17 @@
 import type { Prisma } from 'prisma/generated/prisma/client'
 import type { ComplianceAdapter, ComplianceData, RefundContext, UserContext } from '../compliance-adapter'
 
+type USAComplianceRecord = {
+  ein?: string | null
+  salesTaxPermit?: string | null
+  stateOfIncorporation?: string | null
+}
+
+type USABranchComplianceRecord = {
+  stateTaxID?: string | null
+  salesTaxPermit?: string | null
+}
+
 export class UsaComplianceAdapter implements ComplianceAdapter {
   readonly countryCode = 'US'
 
@@ -22,8 +33,8 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
     const { business, branch } = context
 
     // Extract USA-specific compliance data
-    const usCompliance = (business as any).usaCompliance
-    const usBranchCompliance = (branch as any).usaBranchCompliance
+    const usCompliance = business['usaCompliance'] as USAComplianceRecord | null | undefined
+    const usBranchCompliance = branch['usaBranchCompliance'] as USABranchComplianceRecord | null | undefined
 
     return {
       // Business-level IRS data
@@ -112,31 +123,30 @@ export class UsaComplianceAdapter implements ComplianceAdapter {
 
   copyRefundSnapshot(context: RefundContext): Record<string, unknown> {
     const { originalTransaction, currentUser } = context
-    const original = originalTransaction as any
 
     return {
       // Copy universal fields
-      snapshotBusinessName: original.snapshotBusinessName,
-      snapshotBranchName: original.snapshotBranchName,
-      snapshotBranchAddress: original.snapshotBranchAddress,
-      snapshotBranchSN: original.snapshotBranchSN,
+      snapshotBusinessName: originalTransaction['snapshotBusinessName'],
+      snapshotBranchName: originalTransaction['snapshotBranchName'],
+      snapshotBranchAddress: originalTransaction['snapshotBranchAddress'],
+      snapshotBranchSN: originalTransaction['snapshotBranchSN'],
       snapshotCashierName: currentUser.name, // Current refund processor
-      snapshotCurrency: original.snapshotCurrency,
+      snapshotCurrency: originalTransaction['snapshotCurrency'],
 
       // Copy USA-specific IRS fields
-      snapshotEIN: original.snapshotEIN,
-      snapshotStateTaxID: original.snapshotStateTaxID,
-      snapshotSalesTaxRate: original.snapshotSalesTaxRate,
-      snapshotIsTaxExempt: original.snapshotIsTaxExempt,
+      snapshotEIN: originalTransaction['snapshotEIN'],
+      snapshotStateTaxID: originalTransaction['snapshotStateTaxID'],
+      snapshotSalesTaxRate: originalTransaction['snapshotSalesTaxRate'],
+      snapshotIsTaxExempt: originalTransaction['snapshotIsTaxExempt'],
 
       // Copy customer fields if present
-      ...(original.snapshotCustomerTIN && {
-        snapshotCustomerTIN: original.snapshotCustomerTIN,
+      ...(originalTransaction['snapshotCustomerTIN'] && {
+        snapshotCustomerTIN: originalTransaction['snapshotCustomerTIN'],
       }),
 
       // Copy tax exemption ID if present
-      ...(original.snapshotTaxExemptID && {
-        snapshotTaxExemptID: original.snapshotTaxExemptID,
+      ...(originalTransaction['snapshotTaxExemptID'] && {
+        snapshotTaxExemptID: originalTransaction['snapshotTaxExemptID'],
       }),
     }
   }

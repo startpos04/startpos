@@ -1,5 +1,5 @@
 /**
- * offline-mode-indicator.tsx â€” Phase 2 offline checkout status indicator
+ * offline-mode-indicator.tsx — Phase 2 offline checkout status indicator
  *
  * Displays at the top of the POS page when the device is offline, showing:
  *   - Green badge: User CAN checkout offline (designated terminal)
@@ -12,10 +12,10 @@
 
 import { Badge } from '@platform/components/ui/badge'
 import { Card } from '@platform/components/ui/card'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { useStore } from '@tanstack/react-store'
 import { AlertCircle, CheckCircle, WifiOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export function OfflineModeIndicator() {
   const [isOffline, setIsOffline] = useState(false)

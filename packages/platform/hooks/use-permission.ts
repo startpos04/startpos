@@ -1,8 +1,8 @@
 /**
- * use-permission.ts â€” Client-side permission access hooks
+ * use-permission.ts — Client-side permission access hooks
  *
  * Reads from authStore.authorization (populated at session load by
- * AuthorizationEngine.buildSummary). No server call on every render â€”
+ * AuthorizationEngine.buildSummary). No server call on every render —
  * the permission list is already in the session.
  *
  * OFFLINE SUPPORT: AuthorizationEngine.buildSummary reads from collections,
@@ -39,10 +39,10 @@
  *   independently of what the client sends.
  */
 
-import { useStore } from '@tanstack/react-store'
-import type { Role } from 'prisma/generated/prisma/enums'
 import type { PermissionKey } from '@platform/lib/authorization/permission-keys'
 import { authStore } from '@platform/lib/better-auth/auth-store'
+import { useStore } from '@tanstack/react-store'
+import type { Role } from 'prisma/generated/prisma/enums'
 
 // ---------------------------------------------------------------------------
 // Single permission check
@@ -61,7 +61,7 @@ export function usePermission(permission: PermissionKey): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Multiple permission check (batch â€” avoids multiple store subscriptions)
+// Multiple permission check (batch — avoids multiple store subscriptions)
 // ---------------------------------------------------------------------------
 
 /**

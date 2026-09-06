@@ -1,14 +1,6 @@
 {
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "prisma.config.ts"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "coverage",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx"
-  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
+  "exclude": ["node_modules", "dist", "coverage", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",
@@ -35,7 +27,7 @@
     "exactOptionalPropertyTypes": true,
 
     "paths": {
-      "prisma/*": ["../web/prisma/*"],
+      "prisma/*": ["../../packages/platform/prisma/*"],
       "@/*": ["./src/*"],
       "@platform/*": ["../../packages/platform/*"]
     }

@@ -1,14 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { branchCollection, userCollection } from '@platform/db/collections'
-import { useCapability } from '@platform/hooks/use-capability'
 import { usePermission } from '@platform/hooks/use-permission'
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authStore } from '@platform/lib/better-auth/auth-store'
-import { Capabilities } from '@platform/lib/entitlement/capability-keys'
 import { useLiveQuery } from '@tanstack/react-db'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { Building2, CreditCard, Shield, Sparkles, Users } from 'lucide-react'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/')({
   component: BusinessOverview,

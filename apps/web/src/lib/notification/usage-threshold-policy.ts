@@ -4,7 +4,7 @@ import { z } from 'zod'
 /**
  * usage-threshold-policy.ts
  *
- * UsageThresholdPolicy â€” pure helper functions that answer policy questions
+ * UsageThresholdPolicy — pure helper functions that answer policy questions
  * about usage thresholds. No side effects, no infrastructure dependencies.
  *
  * Responsibilities:
@@ -17,7 +17,7 @@ import { z } from 'zod'
  * Architecture contract (ADR-001):
  *   - Zero infrastructure imports.
  *   - All inputs arrive as plain values.
- *   - Returns plain values â€” callers persist results.
+ *   - Returns plain values — callers persist results.
  *
  * Threshold-crossing semantics:
  *   A threshold T is "crossed" on a usage event when:
@@ -30,7 +30,7 @@ import { USAGE_THRESHOLDS_ASC, UsagePeriodKind, type UsageResource, type UsageTh
 
 // ---------------------------------------------------------------------------
 // computePercent
-// Returns 0â€“100 (integer, rounded down) representing how much of the limit
+// Returns 0–100 (integer, rounded down) representing how much of the limit
 // has been consumed. Returns null for unlimited plans (limit = -1).
 // ---------------------------------------------------------------------------
 export function computePercent(currentUsage: number, limit: number): number | null {
@@ -127,7 +127,7 @@ export function buildPeriodKey(periodKind: UsagePeriodKind, resource: UsageResou
 
 // ---------------------------------------------------------------------------
 // serializeNotifiedThresholds / deserializeNotifiedThresholds
-// Helpers for persisting the notified-threshold set to a JSON-serialisable
+// Helpers for persisting the notified-threshold set to a JSON-serializable
 // format (e.g. a BusinessConfiguration value or a JSON metadata field).
 //
 // Format: JSON array of numbers, e.g. [50, 80]

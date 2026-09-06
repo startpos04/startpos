@@ -3,16 +3,17 @@
  *
  * Fetches paginated billing invoice history for the session's business.
  *
- * Uses crudAPI â€” BillingInvoice has a `business` relation so getTenantPrisma
- * automatically scopes all queries to context.user.businessId.
+ * Uses crudAPI — BillingInvoice has a `business` relation so getTenantPrisma
+ * automatically scopes all queries to getServerContext(context).user.businessId.
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
+// import { getServerContext } from '@platform/lib/better-auth/server-context'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
 import type { InvoiceSummaryDTO } from '../billing/types'
 
 const FetchInvoicesSchema = z.object({

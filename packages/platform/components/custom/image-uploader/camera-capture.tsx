@@ -1,6 +1,6 @@
+import { Button } from '@platform/components/ui/button'
 import { Camera, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Button } from '@platform/components/ui/button'
 
 export function CameraCapture({ onCapture, onCancel }: { onCapture: (img: string) => void; onCancel: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null)

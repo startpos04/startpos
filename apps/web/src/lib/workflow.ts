@@ -4,7 +4,7 @@
  * Generic state-machine factory for aggregates with defined lifecycles,
  * named states, and role-guarded transitions.
  *
- * ADR-002: Accepted â€” Activated at Phase D.
+ * ADR-002: Accepted — Activated at Phase D.
  * The activation condition (two consumers simultaneously) is now met:
  *   - purchaseWorkflow  (Phase D, first consumer)
  *   - taskWorkflow      (Phase D, migrated from task-workflow.ts)
@@ -12,7 +12,7 @@
  * Design constraints:
  *   - Pure: no infrastructure imports, no side effects.
  *   - O(1) transition lookup via pre-built maps constructed at createWorkflow() time.
- *   - Uses OperationResult from result.ts â€” no exceptions for expected business conditions.
+ *   - Uses OperationResult from result.ts — no exceptions for expected business conditions.
  *   - Generic over State (string union) and Context (caller-supplied identity + role bag).
  *
  * Usage:
@@ -30,7 +30,7 @@ import { type OperationResult, opFail, opOk } from '@platform/lib/result'
 
 /**
  * A guard function returns null on success or a denial reason string on failure.
- * Multiple guards are ANDed â€” all must pass.
+ * Multiple guards are ANDed — all must pass.
  */
 export type TransitionGuard<C> = (context: C) => string | null
 
@@ -108,7 +108,7 @@ export interface Workflow<S extends string, C> {
 /**
  * Build a Workflow object from a declarative config.
  *
- * All lookup structures are built once at call time â€” canTransition and
+ * All lookup structures are built once at call time — canTransition and
  * allowedTransitions are O(guards) at runtime, not O(transitions).
  */
 export function createWorkflow<S extends string, C>(config: WorkflowConfig<S, C>): Workflow<S, C> {

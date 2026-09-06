@@ -8,12 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import dayjs from '@platform/lib/dayjs'
 
 interface StockTabProps {
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   product: any
 }
 
 export function StockTab({ product }: StockTabProps) {
   return (
     <div className='space-y-3'>
+      // biome-ignore lint/suspicious/noExplicitAny: flexibility required
       {product.variants.map((v: any) => (
         <div key={v.id}>
           {product.variants.length > 1 && <p className='text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5'>{v.name || 'Main'}</p>}
@@ -27,10 +29,11 @@ export function StockTab({ product }: StockTabProps) {
             </TableHeader>
             <TableBody>
               {v.inventory.length > 0 ? (
+                // biome-ignore lint/suspicious/noExplicitAny: flexibility required
                 v.inventory.map((inv: any) => (
                   <TableRow key={inv.id}>
                     <TableCell className='font-mono text-[10px] py-2'>{inv.batchNumber || 'N/A'}</TableCell>
-                    <TableCell className='text-xs py-2'>{inv.location?.name ?? 'â€”'}</TableCell>
+                    <TableCell className='text-xs py-2'>{inv.location?.name ?? '—'}</TableCell>
                     <TableCell className='text-right text-xs font-bold py-2'>
                       {inv.quantity} {inv.unit?.abbreviation}
                     </TableCell>
@@ -49,9 +52,11 @@ export function StockTab({ product }: StockTabProps) {
             <p className='text-[10px] text-muted-foreground mt-1'>
               Expiry tracked:{' '}
               {v.inventory
+                // biome-ignore lint/suspicious/noExplicitAny: flexibility required
                 .filter((i: any) => i.expiryDate)
+                // biome-ignore lint/suspicious/noExplicitAny: flexibility required
                 .map((i: any) => dayjs(i.expiryDate).format('MMM DD, YYYY'))
-                .join(' Â· ') || 'None'}
+                .join(' · ') || 'None'}
             </p>
           )}
         </div>

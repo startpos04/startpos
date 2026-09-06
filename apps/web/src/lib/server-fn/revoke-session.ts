@@ -8,21 +8,22 @@
  * Called from the Security settings tab when a merchant revokes an
  * individual session from their login history.
  *
- * Uses rootPrisma â€” Session has no businessId/branchId; getTenantPrisma
- * would add incorrect WHERE clauses. Scoped to context.user.id instead.
+ * Uses rootPrisma — Session has no businessId/branchId; getTenantPrisma
+ * would add incorrect WHERE clauses. Scoped to getServerContext(context).user.id instead.
  */
 
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
+import { getServerContext } from '@platform/lib/better-auth/server-context'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 
 export const revokeSession = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .inputValidator((d: { sessionId: string }) => d)
   .handler(async ({ data, context }): Promise<{ ok: true } | { ok: false; error: string }> => {
-    const userId = context.user.id
+    const userId = getServerContext(context).user.id
 
-    // Delete only if the session belongs to this user â€” prevents cross-user revocation
+    // Delete only if the session belongs to this user — prevents cross-user revocation
     const result = await rootPrisma.session.deleteMany({
       where: { id: data.sessionId, userId },
     })

@@ -22,7 +22,7 @@ export function StaffPerformance({ stats }: { stats: TransactionReportStats }) {
             <div className='flex-1 space-y-1'>
               <div className='flex items-center justify-between'>
                 <p className='text-sm font-bold'>{cashier.name}</p>
-                <span className='text-xs font-medium'>â‚±{cashier.total.toLocaleString()}</span>
+                <span className='text-xs font-medium'>₱{cashier.total.toLocaleString()}</span>
               </div>
               <Progress value={(cashier.total / (stats.topCashiers[0]?.total || 0) || 0) * 100} className='h-1' />
               <p className='text-[10px] text-muted-foreground'>{cashier.count} transactions</p>

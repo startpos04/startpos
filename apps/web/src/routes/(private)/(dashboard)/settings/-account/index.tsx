@@ -1,7 +1,7 @@
 /**
  * settings/-account/index.tsx
  *
- * Account tab â€” Phase 1 legal compliance.
+ * Account tab — Phase 1 legal compliance.
  *
  * Surfaces:
  *   - Consent record (when the merchant accepted the ToS/Privacy Policy)
@@ -18,12 +18,12 @@ import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Separator } from '@platform/components/ui/separator'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import dayjs from '@platform/lib/dayjs'
+import MountManager from '@platform/lib/mount-manager'
 import { AlertTriangle, FileText, Loader2, ShieldAlert, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import MountManager from '@platform/lib/mount-manager'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { requestAccountDeletion } from '@/lib/server-fn/request-account-deletion'
 
 export function AccountPage() {
@@ -100,7 +100,7 @@ export function AccountPage() {
                   </Badge>
                   <span className='text-xs text-muted-foreground'>
                     {dayjs(user.termsAcceptedAt).format('MMM D, YYYY')}
-                    {user.termsVersion ? ` Â· v${user.termsVersion}` : ''}
+                    {user.termsVersion ? ` · v${user.termsVersion}` : ''}
                   </span>
                 </div>
               </div>
@@ -112,7 +112,7 @@ export function AccountPage() {
                   </Badge>
                   <span className='text-xs text-muted-foreground'>
                     {user.privacyAcceptedAt ? dayjs(user.privacyAcceptedAt).format('MMM D, YYYY') : dayjs(user.termsAcceptedAt).format('MMM D, YYYY')}
-                    {user.privacyVersion ? ` Â· v${user.privacyVersion}` : ''}
+                    {user.privacyVersion ? ` · v${user.privacyVersion}` : ''}
                   </span>
                 </div>
               </div>

@@ -13,35 +13,70 @@
  * - Official Receipt buyer information for B2B transactions
  */
 
-import type { Prisma } from 'prisma/generated/prisma/client'
+import type { Branch, Business, PhilippinesBranchCompliance, PhilippinesCompliance, Prisma } from 'prisma/generated/prisma/client'
 import type { ComplianceAdapter, ComplianceData, RefundContext, UserContext } from '../compliance-adapter'
 
-export class PhilippinesComplianceAdapter implements ComplianceAdapter {
+/** Business shape expected by this adapter — base fields + PH compliance relation */
+type PHBusiness = Business & {
+  philippinesCompliance: PhilippinesCompliance | null
+}
+
+/** Branch shape expected by this adapter — base fields + PH branch compliance relation */
+type PHBranch = Branch & {
+  philippinesBranchCompliance: PhilippinesBranchCompliance | null
+}
+
+/**
+ * The subset of PH snapshot fields copied during a refund.
+ * Typed so copyRefundSnapshot never needs `as any` on originalTransaction.
+ */
+interface PHTransactionSnapshot {
+  snapshotBusinessName: string
+  snapshotBranchName: string
+  snapshotBranchAddress: string | null
+  snapshotBranchSN: string
+  snapshotCurrency: string
+  snapshotBusinessTIN: string | null
+  snapshotBranchCode: string | null
+  snapshotIsVATRegistered: boolean | null
+  snapshotPTUNumber: string | null
+  snapshotRDOCode: string | null
+  snapshotCustomerTIN: string | null
+  snapshotBuyerName: string | null
+  snapshotBuyerTIN: string | null
+  snapshotBuyerAddress: string | null
+  snapshotBuyerBusinessStyle: string | null
+  snapshotScPwdId: string | null
+  snapshotScPwdName: string | null
+  snapshotScPwdDiscount: number | null
+}
+
+export class PhilippinesComplianceAdapter implements ComplianceAdapter<PHBusiness, PHBranch> {
   readonly countryCode = 'PH'
 
-  extractComplianceData(context: UserContext): ComplianceData {
+  extractComplianceData(context: UserContext<PHBusiness, PHBranch>): ComplianceData {
     const { business, branch } = context
 
-    // Extract Philippines-specific compliance data
-    const phCompliance = (business as any).philippinesCompliance
-    const phBranchCompliance = (branch as any).philippinesBranchCompliance
+    // No cast needed — PHBusiness and PHBranch declare these relations explicitly
+    const phCompliance = business.philippinesCompliance
+    const phBranchCompliance = branch.philippinesBranchCompliance
 
     return {
       // Business-level BIR data
       businessTaxId: phCompliance?.birTin ?? '',
-      businessPermitNumber: phCompliance?.birPtuNumber,
-      businessPermitIssuedAt: phCompliance?.birPtuIssuedAt?.toISOString(),
-      businessTaxOfficeCode: phCompliance?.birRdoCode,
+      ...(phCompliance?.birPtuNumber != null && { businessPermitNumber: phCompliance.birPtuNumber }),
+      ...(phCompliance?.birPtuIssuedAt != null && { businessPermitIssuedAt: phCompliance.birPtuIssuedAt.toISOString() }),
+      ...(phCompliance?.birRdoCode != null && { businessTaxOfficeCode: phCompliance.birRdoCode }),
 
       // Branch-level BIR data
-      branchSerialNumber: phBranchCompliance?.branchSerialNumber,
+      ...(phBranchCompliance?.branchSerialNumber != null && { branchSerialNumber: phBranchCompliance.branchSerialNumber }),
       branchCode: String(phBranchCompliance?.branchCode ?? branch.branchCode ?? ''),
-      branchPermitNumber: phBranchCompliance?.ptuNumber,
-      branchTaxOfficeCode: phBranchCompliance?.rdoCode,
+      ...(phBranchCompliance?.ptuNumber != null && { branchPermitNumber: phBranchCompliance.ptuNumber }),
+      ...(phBranchCompliance?.rdoCode != null && { branchTaxOfficeCode: phBranchCompliance.rdoCode }),
 
       // VAT status
       isTaxRegistered: !!phCompliance?.vatRegistrationDate,
-      taxRegistrationDate: phCompliance?.vatRegistrationDate?.toISOString(),
+      ...(phCompliance?.vatRegistrationDate != null && { taxRegistrationDate: phCompliance.vatRegistrationDate.toISOString() }),
 
       // Additional Philippines metadata
       metadata: {
@@ -57,19 +92,15 @@ export class PhilippinesComplianceAdapter implements ComplianceAdapter {
     branch: Prisma.BranchInclude
   } {
     return {
-      business: {
-        philippinesCompliance: true,
-      },
-      branch: {
-        philippinesBranchCompliance: true,
-      },
+      business: { philippinesCompliance: true },
+      branch: { philippinesBranchCompliance: true },
     }
   }
 
   populateTransactionSnapshot(data: {
     compliance: ComplianceData
-    business: UserContext['business']
-    branch: UserContext['branch']
+    business: PHBusiness
+    branch: PHBranch
     user: UserContext['user']
     currency: string
     customerData?: {
@@ -117,8 +148,9 @@ export class PhilippinesComplianceAdapter implements ComplianceAdapter {
   }
 
   copyRefundSnapshot(context: RefundContext): Record<string, unknown> {
-    const { originalTransaction, currentUser } = context
-    const original = originalTransaction as any
+    const { currentUser } = context
+    // Cast through the typed snapshot — all fields are known PH snapshot columns
+    const original = context.originalTransaction as unknown as PHTransactionSnapshot
 
     return {
       // Copy universal fields (but use current cashier for refund processor)
@@ -143,12 +175,13 @@ export class PhilippinesComplianceAdapter implements ComplianceAdapter {
       snapshotBuyerAddress: original.snapshotBuyerAddress,
       snapshotBuyerBusinessStyle: original.snapshotBuyerBusinessStyle,
 
-      // Copy SC/PWD fields (invert discount amount - refund gives back the discount)
+      // Copy SC/PWD fields (invert discount amount — refund gives back the discount)
       snapshotScPwdId: original.snapshotScPwdId,
       snapshotScPwdName: original.snapshotScPwdName,
-      snapshotScPwdDiscount: original.snapshotScPwdDiscount
-        ? -original.snapshotScPwdDiscount // Invert to negative (refund)
-        : null,
+      snapshotScPwdDiscount:
+        original.snapshotScPwdDiscount != null
+          ? -original.snapshotScPwdDiscount // Invert to negative (refund)
+          : null,
     }
   }
 

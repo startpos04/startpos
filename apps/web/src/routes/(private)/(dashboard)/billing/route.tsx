@@ -6,11 +6,11 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/billing')({
-  beforeLoad: ({ context }) => {
+  beforeLoad: ({ context: _context }) => {
     const { authorization } = authStore.state
 
     // Check if user has branch billing view permission

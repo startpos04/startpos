@@ -1,10 +1,10 @@
 /**
- * terms.tsx â€” /terms
+ * terms.tsx — /terms
  *
  * StartPOS Terms of Service
  * Version: 2026-08-01
  *
- * Publicly accessible â€” no auth required.
+ * Publicly accessible — no auth required.
  * Linked from: registration checkbox, re-acceptance modal, Settings â†’ Account tab.
  */
 
@@ -52,7 +52,7 @@ function TermsPage() {
         {/* Title block */}
         <div className='space-y-2'>
           <h1 className='text-2xl font-bold text-foreground'>Terms of Service</h1>
-          <p className='text-sm text-muted-foreground'>Effective date: {EFFECTIVE_DATE} Â· Version: 2026-08-01</p>
+          <p className='text-sm text-muted-foreground'>Effective date: {EFFECTIVE_DATE} · Version: 2026-08-01</p>
           <p className='text-sm text-muted-foreground'>
             These Terms of Service ("Terms") govern your access to and use of {APP_NAME} ("we", "us", "our"), a cloud-based point-of-sale and business
             management platform. By creating an account or using the service, you agree to be bound by these Terms. If you do not agree, do not use the service.
@@ -119,7 +119,7 @@ function TermsPage() {
           </p>
           <p>
             Once the 50-transaction limit is reached, the POS checkout function will be blocked. You will not be able to process new sales transactions until
-            you upgrade to a paid subscription. All existing data â€” your products, customers, employees, and transaction history â€” remains intact and accessible
+            you upgrade to a paid subscription. All existing data — your products, customers, employees, and transaction history — remains intact and accessible
             after the limit is reached.
           </p>
           <p>
@@ -160,15 +160,15 @@ function TermsPage() {
           <p>Under the Philippine Data Privacy Act of 2012 (RA 10173) and its Implementing Rules and Regulations, the following data roles apply:</p>
           <ul className='list-disc list-inside space-y-1 pl-2'>
             <li>
-              <strong className='text-foreground'>{APP_NAME} as Data Controller</strong> â€” for data we collect about you (the merchant): your account
+              <strong className='text-foreground'>{APP_NAME} as Data Controller</strong> — for data we collect about you (the merchant): your account
               information, subscription records, billing history, and platform usage analytics.
             </li>
             <li>
-              <strong className='text-foreground'>{APP_NAME} as Data Processor</strong> â€” for data about your employees and your customers that you enter into
+              <strong className='text-foreground'>{APP_NAME} as Data Processor</strong> — for data about your employees and your customers that you enter into
               the platform. We process this data on your behalf and under your instruction.
             </li>
             <li>
-              <strong className='text-foreground'>You as Data Controller</strong> â€” for your employees' personal information and for your customers' personal
+              <strong className='text-foreground'>You as Data Controller</strong> — for your employees' personal information and for your customers' personal
               information recorded through the POS. You are responsible for obtaining all necessary consents from your employees and customers before entering
               their data into {APP_NAME}.
             </li>
@@ -189,8 +189,8 @@ function TermsPage() {
             <strong className='text-foreground'>ten (10) years</strong> from the date of the transaction.
           </p>
           <p>
-            Transaction records in {APP_NAME} that contain BIR-required data â€” including official receipt (OR) numbers, TIN information, SC/PWD beneficiary
-            names and ID numbers, and transaction amounts â€” cannot be permanently deleted on request, even if you request account deletion or cancellation.
+            Transaction records in {APP_NAME} that contain BIR-required data — including official receipt (OR) numbers, TIN information, SC/PWD beneficiary
+            names and ID numbers, and transaction amounts — cannot be permanently deleted on request, even if you request account deletion or cancellation.
           </p>
           <p>
             <strong className='text-foreground'>Account deletion means access termination, not data erasure.</strong> When your account is deleted, your login
@@ -302,8 +302,8 @@ function TermsPage() {
 
         <Section id='changes' title='13. Changes to These Terms'>
           <p>
-            We may update these Terms from time to time. When we make material changes â€” changes to data retention policy, new data categories collected,
-            changed merchant obligations, or changed billing terms â€” we will notify you through the platform by displaying a re-acceptance prompt on your next
+            We may update these Terms from time to time. When we make material changes — changes to data retention policy, new data categories collected,
+            changed merchant obligations, or changed billing terms — we will notify you through the platform by displaying a re-acceptance prompt on your next
             login. Your continued use of the service after accepting the updated Terms constitutes your agreement to the new Terms.
           </p>
           <p>

@@ -1,10 +1,10 @@
 /**
  * validate-task-transition.ts
  *
- * Server-side task transition validator â€” resolves Architecture Compliance
+ * Server-side task transition validator — resolves Architecture Compliance
  * Deviation 1 (B1, medium severity).
  *
- * Architecture Compliance â€” Phase 6 (Section 6.1, Deferred Item B1):
+ * Architecture Compliance — Phase 6 (Section 6.1, Deferred Item B1):
  *   "B1 server-side task authorization: when entitlement middleware is added to
  *    server functions in Phase 2, the same infrastructure can be used to implement
  *    the task authorization server function."
@@ -20,12 +20,12 @@
  *   This file IS that server function.
  *
  * What it does:
- *   1. Reads the task record from the server (authoritative â€” not from client state).
+ *   1. Reads the task record from the server (authoritative — not from client state).
  *   2. Calls `checkWorkflowPermission` with the server-fetched task state.
  *   3. Returns { permitted: true } or { permitted: false, reason: string }.
  *
  * Why a separate server function (not inline in the transition handler):
- *   The `dbTransaction` callback is synchronous and offline-first â€” it cannot
+ *   The `dbTransaction` callback is synchronous and offline-first — it cannot
  *   make async server calls. The validation must happen BEFORE the dbTransaction
  *   begins. Separating the validation call from the local write is the correct
  *   pattern for server-authoritative checks combined with offline-first writes.
@@ -36,9 +36,9 @@
  *   3. If `result.permitted === true`, proceed to `dbTransaction(...)`.
  *
  * Security properties:
- *   - Reads task state from Prisma (not from client-provided payload) â€” prevents
+ *   - Reads task state from Prisma (not from client-provided payload) — prevents
  *     spoofed currentStatus attacks where the client sends a different `from` state.
- *   - Runs inside `authMiddleware` â€” the session user's businessId and branchId
+ *   - Runs inside `authMiddleware` — the session user's businessId and branchId
  *     are injected by the server, not trusted from the client.
  *   - Returns a structured result (not a thrown error) so the caller can display
  *     the specific denial reason rather than catching a generic exception.
@@ -46,16 +46,17 @@
  * Entitlement check:
  *   Task transitions that involve OPERATIONAL capabilities (CREATE_TASK) are also
  *   checked via entitlementMiddleware. Transitions that are purely workflow-level
- *   (PENDING â†’ APPROVED, etc.) are workflow-permission checks only â€” the
+ *   (PENDING â†’ APPROVED, etc.) are workflow-permission checks only — the
  *   CREATE_TASK capability gate applies at task creation, not status updates.
  *   The entitlement check for CREATE_TASK is intentionally not applied here because
  *   all post-creation transitions are management operations, not new creation events.
  */
 
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
-import { getTenantPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { TaskStatus } from 'prisma/generated/prisma/enums'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
+import { getTenantPrisma } from '@/lib/prisma-client'
 import { checkWorkflowPermission } from '../../routes/(private)/tasks/$taskId/-components/task-workflow'
 
 // ---------------------------------------------------------------------------
@@ -74,14 +75,10 @@ export type ValidateTaskTransitionResult = { permitted: true } | { permitted: fa
 // ---------------------------------------------------------------------------
 
 export const validateTaskTransition = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([authMiddleware, requireTenantContext()])
   .inputValidator((d: ValidateTaskTransitionInput) => d)
   .handler(async ({ data, context }): Promise<ValidateTaskTransitionResult> => {
-    if (!context?.user?.businessId || !context?.user?.branchId) {
-      return { permitted: false, reason: 'Session context missing. Please refresh and try again.' }
-    }
-
-    const { businessId, branchId, id: userId, role: userRole } = context.user
+    const { businessId, branchId, id: userId, role: userRole } = getTenantContext(context).user
 
     const prisma = getTenantPrisma(businessId, branchId)
 
@@ -109,7 +106,7 @@ export const validateTaskTransition = createServerFn({ method: 'POST' })
     }
 
     // -----------------------------------------------------------------------
-    // 2. Tenant isolation â€” confirm the task belongs to the session's business.
+    // 2. Tenant isolation — confirm the task belongs to the session's business.
     //    getTenantPrisma already scopes queries to businessId + branchId, but
     //    we assert explicitly as an additional defence-in-depth check.
     // -----------------------------------------------------------------------
@@ -128,7 +125,7 @@ export const validateTaskTransition = createServerFn({ method: 'POST' })
 
     // -----------------------------------------------------------------------
     // 4. Run the workflow permission check with server-fetched task state.
-    //    `checkWorkflowPermission` is a pure function from task-workflow.ts â€”
+    //    `checkWorkflowPermission` is a pure function from task-workflow.ts —
     //    it does not touch Prisma or any collection. It is safe to call here.
     // -----------------------------------------------------------------------
     const permitted = checkWorkflowPermission({
@@ -158,7 +155,7 @@ export const validateTaskTransition = createServerFn({ method: 'POST' })
   })
 
 // ---------------------------------------------------------------------------
-// Internal helper â€” build a readable denial message from transition context
+// Internal helper — build a readable denial message from transition context
 // ---------------------------------------------------------------------------
 
 function buildDenialReason(args: { currentStatus: TaskStatus; targetStatus: TaskStatus; userRole: string }): string {

@@ -16,6 +16,25 @@
 import type { Prisma } from 'prisma/generated/prisma/client'
 import type { ComplianceAdapter, ComplianceData, RefundContext, UserContext } from '../compliance-adapter'
 
+// Country-specific compliance record shapes (Prisma relation data)
+type PhilippinesComplianceRecord = {
+  birTin?: string | null
+  birPtuNumber?: string | null
+  birPtuIssuedAt?: Date | null
+  birRdoCode?: string | null
+  vatRegistrationDate?: Date | null
+  secRegistration?: string | null
+  mayorPermit?: string | null
+  dtiRegistration?: string | null
+}
+
+type PhilippinesBranchComplianceRecord = {
+  branchSerialNumber?: string | null
+  branchCode?: string | null
+  ptuNumber?: string | null
+  rdoCode?: string | null
+}
+
 export class PhilippinesComplianceAdapter implements ComplianceAdapter {
   readonly countryCode = 'PH'
 
@@ -23,8 +42,8 @@ export class PhilippinesComplianceAdapter implements ComplianceAdapter {
     const { business, branch } = context
 
     // Extract Philippines-specific compliance data
-    const phCompliance = (business as any).philippinesCompliance
-    const phBranchCompliance = (branch as any).philippinesBranchCompliance
+    const phCompliance = business['philippinesCompliance'] as PhilippinesComplianceRecord | null | undefined
+    const phBranchCompliance = branch['philippinesBranchCompliance'] as PhilippinesBranchComplianceRecord | null | undefined
 
     return {
       // Business-level BIR data
@@ -118,36 +137,35 @@ export class PhilippinesComplianceAdapter implements ComplianceAdapter {
 
   copyRefundSnapshot(context: RefundContext): Record<string, unknown> {
     const { originalTransaction, currentUser } = context
-    const original = originalTransaction as any
 
     return {
       // Copy universal fields (but use current cashier for refund processor)
-      snapshotBusinessName: original.snapshotBusinessName,
-      snapshotBranchName: original.snapshotBranchName,
-      snapshotBranchAddress: original.snapshotBranchAddress,
-      snapshotBranchSN: original.snapshotBranchSN,
+      snapshotBusinessName: originalTransaction['snapshotBusinessName'],
+      snapshotBranchName: originalTransaction['snapshotBranchName'],
+      snapshotBranchAddress: originalTransaction['snapshotBranchAddress'],
+      snapshotBranchSN: originalTransaction['snapshotBranchSN'],
       snapshotCashierName: currentUser.name, // Current refund processor, not original cashier
-      snapshotCurrency: original.snapshotCurrency,
+      snapshotCurrency: originalTransaction['snapshotCurrency'],
 
       // Copy Philippines-specific BIR fields
-      snapshotBusinessTIN: original.snapshotBusinessTIN,
-      snapshotBranchCode: original.snapshotBranchCode,
-      snapshotIsVATRegistered: original.snapshotIsVATRegistered,
-      snapshotPTUNumber: original.snapshotPTUNumber,
-      snapshotRDOCode: original.snapshotRDOCode,
+      snapshotBusinessTIN: originalTransaction['snapshotBusinessTIN'],
+      snapshotBranchCode: originalTransaction['snapshotBranchCode'],
+      snapshotIsVATRegistered: originalTransaction['snapshotIsVATRegistered'],
+      snapshotPTUNumber: originalTransaction['snapshotPTUNumber'],
+      snapshotRDOCode: originalTransaction['snapshotRDOCode'],
 
       // Copy customer/buyer fields
-      snapshotCustomerTIN: original.snapshotCustomerTIN,
-      snapshotBuyerName: original.snapshotBuyerName,
-      snapshotBuyerTIN: original.snapshotBuyerTIN,
-      snapshotBuyerAddress: original.snapshotBuyerAddress,
-      snapshotBuyerBusinessStyle: original.snapshotBuyerBusinessStyle,
+      snapshotCustomerTIN: originalTransaction['snapshotCustomerTIN'],
+      snapshotBuyerName: originalTransaction['snapshotBuyerName'],
+      snapshotBuyerTIN: originalTransaction['snapshotBuyerTIN'],
+      snapshotBuyerAddress: originalTransaction['snapshotBuyerAddress'],
+      snapshotBuyerBusinessStyle: originalTransaction['snapshotBuyerBusinessStyle'],
 
       // Copy SC/PWD fields (invert discount amount - refund gives back the discount)
-      snapshotScPwdId: original.snapshotScPwdId,
-      snapshotScPwdName: original.snapshotScPwdName,
-      snapshotScPwdDiscount: original.snapshotScPwdDiscount
-        ? -original.snapshotScPwdDiscount // Invert to negative (refund)
+      snapshotScPwdId: originalTransaction['snapshotScPwdId'],
+      snapshotScPwdName: originalTransaction['snapshotScPwdName'],
+      snapshotScPwdDiscount: originalTransaction['snapshotScPwdDiscount']
+        ? -(originalTransaction['snapshotScPwdDiscount'] as number) // Invert to negative (refund)
         : null,
     }
   }

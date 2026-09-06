@@ -12,23 +12,24 @@
  *
  * Architecture:
  *   - Only the adapter is imported from the adapter directory; never Stripe directly.
- *   - businessId comes from session context â€” never from client input.
+ *   - businessId comes from session context — never from client input.
  *   - The credit amount is validated against a known set of packages; clients
  *     cannot request arbitrary amounts.
  *
  * Environment variables required:
- *   STRIPE_SECRET_KEY         â€” Stripe secret key
- *   STRIPE_CREDIT_PKG_10_PRICE_ID  â€” Stripe Price ID for 10-credit package
- *   STRIPE_CREDIT_PKG_50_PRICE_ID  â€” Stripe Price ID for 50-credit package
- *   STRIPE_CREDIT_PKG_100_PRICE_ID â€” Stripe Price ID for 100-credit package
- *   NEXT_PUBLIC_APP_URL (or APP_URL) â€” Base URL for success/cancel redirects
+ *   STRIPE_SECRET_KEY         — Stripe secret key
+ *   STRIPE_CREDIT_PKG_10_PRICE_ID  — Stripe Price ID for 10-credit package
+ *   STRIPE_CREDIT_PKG_50_PRICE_ID  — Stripe Price ID for 50-credit package
+ *   STRIPE_CREDIT_PKG_100_PRICE_ID — Stripe Price ID for 100-credit package
+ *   NEXT_PUBLIC_APP_URL (or APP_URL) — Base URL for success/cancel redirects
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
 import type { CreditPackage } from '../billing/types'
 
@@ -44,21 +45,21 @@ function buildCreditPackages(): CreditPackage[] {
       id: 'credits_10',
       label: '10 Credits',
       creditAmount: 10,
-      displayPrice: 'â‚±50',
+      displayPrice: '₱50',
       stripePriceId: process.env['STRIPE_CREDIT_PKG_10_PRICE_ID'] ?? '',
     },
     {
       id: 'credits_50',
       label: '50 Credits',
       creditAmount: 50,
-      displayPrice: 'â‚±220',
+      displayPrice: '₱220',
       stripePriceId: process.env['STRIPE_CREDIT_PKG_50_PRICE_ID'] ?? '',
     },
     {
       id: 'credits_100',
       label: '100 Credits',
       creditAmount: 100,
-      displayPrice: 'â‚±400',
+      displayPrice: '₱400',
       stripePriceId: process.env['STRIPE_CREDIT_PKG_100_PRICE_ID'] ?? '',
     },
   ]
@@ -99,14 +100,10 @@ export type CreditPackageOption = Awaited<ReturnType<typeof fetchCreditPackages>
 // ---------------------------------------------------------------------------
 
 export const purchaseCreditPackage = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING), requireTenantContext()])
   .inputValidator((data: PurchaseCreditPackageInput) => PurchaseCreditPackageInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context' }
-    }
-
-    const { businessId, id: userId } = context.user
+    const { businessId, id: userId } = getTenantContext(context).user
 
     const packages = buildCreditPackages()
     const selectedPackage = packages.find(pkg => pkg.id === data.packageId)

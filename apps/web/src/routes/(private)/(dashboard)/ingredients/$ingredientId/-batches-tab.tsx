@@ -10,12 +10,14 @@ import { cn } from '@platform/lib/utils'
 import { MapPin } from 'lucide-react'
 
 interface BatchesTabProps {
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   primaryVariant: any
 }
 
 export function BatchesTab({ primaryVariant }: BatchesTabProps) {
   return (
     <div className='space-y-2'>
+      // biome-ignore lint/suspicious/noExplicitAny: flexibility required
       {primaryVariant?.inventory?.map((batch: any) => (
         <Card key={batch.id} className='border-border/50 hover:border-primary/30 transition-colors'>
           <CardContent className='p-3'>

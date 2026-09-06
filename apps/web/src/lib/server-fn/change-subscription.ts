@@ -2,32 +2,32 @@
  * change-subscription.ts
  *
  * Server function: switch an existing active subscription to a different plan,
- * billing interval, or billing model â€” immediately.
+ * billing interval, or billing model — immediately.
  *
  * Three switching paths:
  *
- * PATH A â€” Same billing model, different plan or interval
+ * PATH A — Same billing model, different plan or interval
  *   (e.g. Monthly Basic â†’ Monthly Enterprise, Monthly Basic â†’ Annual Basic)
  *   Uses adapter.updateSubscription() to swap the Stripe price inline with
  *   proration_behavior: 'always_invoice'. No cancel+recreate, no redirect.
  *   The prorated difference is charged/credited immediately on the customer's
  *   card on file. DB is updated atomically with the new planId + billingModel.
  *
- * PATH B â€” Any subscription model â†’ Credits
+ * PATH B — Any subscription model â†’ Credits
  *   (MONTHLY_SUBSCRIPTION | YEARLY_SUBSCRIPTION â†’ PREPAID_CREDITS)
  *   Cancels the current Stripe subscription immediately. Clears externalId.
  *   Sets billingModel = PREPAID_CREDITS. Existing credit balance is preserved
- *   as a buffer â€” the business can continue using credits for transactions.
+ *   as a buffer — the business can continue using credits for transactions.
  *   No new Stripe subscription created.
  *
- * PATH C â€” Credits â†’ Subscription model
+ * PATH C — Credits â†’ Subscription model
  *   (PREPAID_CREDITS â†’ MONTHLY_SUBSCRIPTION | YEARLY_SUBSCRIPTION)
  *   Creates a new Stripe Checkout Session for the target plan.
- *   Returns a checkoutUrl â€” the client redirects to Stripe to complete payment.
+ *   Returns a checkoutUrl — the client redirects to Stripe to complete payment.
  *   Credit balance is preserved as a buffer (used for overage TX when
  *   billingModel = HYBRID, or just sits unused until explicitly consumed).
  *   billingModel is updated to HYBRID if credits remain, otherwise to the
- *   target model. The webhook (invoice.paid) finalises the DB update.
+ *   target model. The webhook (invoice.paid) finalizes the DB update.
  *
  * Addon policy (all paths):
  *   Addons (BusinessSubscriptionAddon) are independent of BusinessSubscription.
@@ -35,7 +35,7 @@
  *   Each addon has its own externalSubscriptionId; the business owner can
  *   manage them through the Stripe portal or the /billing add-ons section.
  *   Addons that are incompatible with the new plan tier continue to bill but
- *   their EntitlementOverride will no longer grant the capability â€” this is
+ *   their EntitlementOverride will no longer grant the capability — this is
  *   surfaced in the UI as "addon active but not applicable to current plan".
  *   A future cleanup job can detect and cancel orphaned addons.
  *
@@ -45,17 +45,18 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { SubscriptionStatus } from '@platform/lib/entitlement/entitlement-types'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { createStripeAdapter } from '../billing/adapters/stripe-adapter'
 import { BillingModel } from '../billing/types'
 
 // ---------------------------------------------------------------------------
-// Price ID resolution â€” same helper as create-subscription.ts
+// Price ID resolution — same helper as create-subscription.ts
 // ---------------------------------------------------------------------------
 
 function getStripePriceId(planName: string, interval: 'monthly' | 'annual'): string | null {
@@ -94,7 +95,7 @@ const ChangeSubscriptionInputSchema = z.object({
    * MONTHLY_SUBSCRIPTION / YEARLY_SUBSCRIPTION = subscription (PATH A or C).
    */
   billingModel: z.enum(['MONTHLY_SUBSCRIPTION', 'YEARLY_SUBSCRIPTION', 'PREPAID_CREDITS']),
-  /** Billing interval â€” only relevant for subscription models */
+  /** Billing interval — only relevant for subscription models */
   billingInterval: z.enum(['monthly', 'annual']).default('monthly'),
 })
 
@@ -105,14 +106,10 @@ export type ChangeSubscriptionInput = z.infer<typeof ChangeSubscriptionInputSche
 // ---------------------------------------------------------------------------
 
 export const changeSubscription = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING), requireTenantContext()])
   .inputValidator((data: ChangeSubscriptionInput) => ChangeSubscriptionInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context.' }
-    }
-
-    const { businessId, id: userId } = context.user
+    const { businessId, id: userId } = getTenantContext(context).user
 
     // ------------------------------------------------------------------
     // 1. Load current state
@@ -166,7 +163,7 @@ export const changeSubscription = createServerFn({ method: 'POST' })
     const appUrl = process.env['CANONICAL_URL'] ?? process.env['APP_URL'] ?? 'http://localhost:3000'
 
     // ------------------------------------------------------------------
-    // PATH B â€” Any subscription â†’ PREPAID_CREDITS
+    // PATH B — Any subscription â†’ PREPAID_CREDITS
     // Cancel Stripe sub immediately; preserve credit balance as buffer.
     // ------------------------------------------------------------------
 
@@ -192,7 +189,7 @@ export const changeSubscription = createServerFn({ method: 'POST' })
             planId: data.planId,
             billingModel: 'PREPAID_CREDITS',
             status: SubscriptionStatus.ACTIVE,
-            // Clear Stripe subscription reference â€” credits are one-time purchases
+            // Clear Stripe subscription reference — credits are one-time purchases
             externalId: null,
             cancelledAt: null,
             cancelReason: null,
@@ -223,7 +220,7 @@ export const changeSubscription = createServerFn({ method: 'POST' })
     }
 
     // ------------------------------------------------------------------
-    // PATH C â€” PREPAID_CREDITS â†’ Subscription
+    // PATH C — PREPAID_CREDITS â†’ Subscription
     // Create a new Stripe checkout session. Credit balance becomes a buffer.
     // ------------------------------------------------------------------
 
@@ -238,7 +235,7 @@ export const changeSubscription = createServerFn({ method: 'POST' })
         }
       }
 
-      const userEmail = context.user.email ?? `billing+${businessId}@startpos.app`
+      const userEmail = getTenantContext(context).user.email ?? `billing+${businessId}@startpos.app`
       const customer = await adapter.createCustomer({ businessId, businessName: business.name, email: userEmail })
 
       const resolvedModel = resolveTargetBillingModel(
@@ -257,7 +254,7 @@ export const changeSubscription = createServerFn({ method: 'POST' })
         cancelUrl: `${appUrl}/billing/plans`,
       })
 
-      // Update DB to reflect the pending switch â€” status GRACE_PERIOD until
+      // Update DB to reflect the pending switch — status GRACE_PERIOD until
       // invoice.paid webhook promotes to ACTIVE. billingModel updated now so
       // the session reflects HYBRID if credits remain.
       await rootPrisma.$transaction([
@@ -294,7 +291,7 @@ export const changeSubscription = createServerFn({ method: 'POST' })
     }
 
     // ------------------------------------------------------------------
-    // PATH A â€” Subscription â†’ Subscription (plan or interval change)
+    // PATH A — Subscription â†’ Subscription (plan or interval change)
     // Use updateSubscription (inline price swap) if externalId exists.
     // If no externalId (e.g. checkout was abandoned), fall back to a new
     // checkout session identical to create-subscription flow.
@@ -357,8 +354,8 @@ export const changeSubscription = createServerFn({ method: 'POST' })
       }
     }
 
-    // Fallback: no externalId (checkout was never completed) â€” treat as a new checkout
-    const userEmail = context.user.email ?? `billing+${businessId}@startpos.app`
+    // Fallback: no externalId (checkout was never completed) — treat as a new checkout
+    const userEmail = getTenantContext(context).user.email ?? `billing+${businessId}@startpos.app`
     const customer = await adapter.createCustomer({ businessId, businessName: business.name, email: userEmail })
 
     const successUrl = `${appUrl}/billing/success?plan=${encodeURIComponent(targetPlan.name)}&billing=${data.billingInterval}`

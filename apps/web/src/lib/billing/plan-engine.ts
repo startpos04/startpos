@@ -1,13 +1,13 @@
 /**
  * plan-engine.ts
  *
- * PlanEngine â€” pure domain engine for plan comparison, upgrade eligibility,
+ * PlanEngine — pure domain engine for plan comparison, upgrade eligibility,
  * and upgrade path resolution.
  *
  * Architectural contract (ADR-001):
  *   - No Prisma imports, no DB calls, no side effects.
  *   - All plan data arrives as DTOs from the Application Layer.
- *   - Returns plain values or OperationResult â€” no exceptions.
+ *   - Returns plain values or OperationResult — no exceptions.
  *
  * Usage:
  *   const plans = await rootPrisma.subscriptionPlan.findMany(...)
@@ -20,7 +20,7 @@ import { SubscriptionStatusVO } from './value-objects/subscription-status'
 
 // ---------------------------------------------------------------------------
 // PlanDTO
-// Plain representation of a SubscriptionPlan â€” safe to use in the domain layer.
+// Plain representation of a SubscriptionPlan — safe to use in the domain layer.
 // ---------------------------------------------------------------------------
 export type PlanDTO = {
   id: string
@@ -28,7 +28,7 @@ export type PlanDTO = {
   description: string
   sortOrder: number
   monthlyPrice: number // cents
-  /** Annual fee in cents. null = no annual discount set; use monthlyPrice Ã— 12. */
+  /** Annual fee in cents. null = no annual discount set; use monthlyPrice × 12. */
   annualPrice: number | null
   includedTxPerMonth: number // -1 = unlimited
   isActive: boolean
@@ -78,36 +78,51 @@ export const PlanEngine = {
 
   /**
    * Formats a monthly price in cents to a human-readable string.
-   * e.g., 49900 â†’ "â‚±499/mo"
+   * e.g., 49900 → "₱499.00/mo"
    */
   formatMonthlyPrice(cents: number): string {
     if (cents === 0) return 'Free'
-    const amount = (cents / 100).toFixed(2)
-    return `â‚±${Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}/mo`
+    const formatted = (cents / 100).toLocaleString('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    return `${formatted}/mo`
   },
 
   /**
    * Formats an annual price in cents to a human-readable string.
-   * Falls back to monthlyPrice Ã— 12 when annualPrice is null.
-   * e.g., 479040 â†’ "â‚±4,790.40/yr"
+   * Falls back to monthlyPrice × 12 when annualPrice is null.
+   * e.g., 479040 → "₱4,790.40/yr"
    */
   formatAnnualPrice(monthlyPrice: number, annualPrice: number | null): string {
     if (monthlyPrice === 0) return 'Free'
     const total = annualPrice ?? monthlyPrice * 12
-    const amount = (total / 100).toFixed(2)
-    return `â‚±${Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}/yr`
+    const formatted = (total / 100).toLocaleString('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    return `${formatted}/yr`
   },
 
   /**
    * Returns the effective per-month equivalent of the annual price (for display).
-   * e.g., annualPrice=479040 â†’ 39920 cents/mo â†’ "â‚±399.20/mo"
+   * e.g., annualPrice=479040 → 39920 cents/mo → "₱399.20/mo"
    */
   formatAnnualMonthlyEquivalent(monthlyPrice: number, annualPrice: number | null): string {
     if (monthlyPrice === 0) return 'Free'
     const annual = annualPrice ?? monthlyPrice * 12
     const perMonth = Math.round(annual / 12)
-    const amount = (perMonth / 100).toFixed(2)
-    return `â‚±${Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}/mo`
+    const formatted = (perMonth / 100).toLocaleString('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    return `${formatted}/mo`
   },
 
   /**

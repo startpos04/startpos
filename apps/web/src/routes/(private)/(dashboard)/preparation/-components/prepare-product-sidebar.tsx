@@ -11,13 +11,13 @@ import {
   productVariantCollection,
 } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
-import { sequenceAPI } from '@platform/lib/prisma-client/sequence-api'
-import { AlertTriangle, Check, Loader2, Package, X } from 'lucide-react'
+import type { MountProps } from '@platform/lib/mount-manager'
+import { AlertTriangle, Check, Loader2, X } from 'lucide-react'
 import { SequenceType } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import type { MountProps } from '@platform/lib/mount-manager'
+import { authStore } from '@/lib/better-auth/auth-store'
+import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
 import { ProductionEngine } from '@/lib/production'
 import type { BatchPreparedProduct } from '@/lib/queries/fetch-batch-prepared-products'
 import { fetchStructuredId } from '@/lib/queries/fetch-structured-id'
@@ -309,7 +309,7 @@ export function PrepareProductSidebar({ products, preSelectedVariantId, open: _o
                       <span className={mat.sufficient ? 'text-muted-foreground' : 'text-red-600'}>
                         {mat.required} {mat.unit} required
                       </span>
-                      <span className='text-muted-foreground'> â€¢ </span>
+                      <span className='text-muted-foreground'> • </span>
                       <span className={mat.sufficient ? 'text-foreground' : 'text-red-600 font-medium'}>
                         {mat.available} {mat.unit} available
                       </span>

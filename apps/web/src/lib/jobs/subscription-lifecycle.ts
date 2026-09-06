@@ -18,9 +18,9 @@
  *
  * Architecture contract (ADR-001):
  *   - The engine (SubscriptionEngine) contains zero infrastructure imports.
- *   - This job is infrastructure â€” it fetches data, calls the engine, and
+ *   - This job is infrastructure — it fetches data, calls the engine, and
  *     persists the engine's output.
- *   - The job receives rootPrisma and thresholds as parameters â€” no globals.
+ *   - The job receives rootPrisma and thresholds as parameters — no globals.
  *
  * Usage (called from a cron endpoint or server-side scheduler):
  *   const result = await runSubscriptionLifecycleJob(rootPrisma, thresholds)
@@ -34,7 +34,7 @@ import type { BillingModel, LifecycleThresholds, SubscriptionSnapshot } from '..
 import { type JobResult, jobError, jobSuccess } from './index'
 
 // ---------------------------------------------------------------------------
-// Prisma select shape â€” minimum fields needed for lifecycle evaluation
+// Prisma select shape — minimum fields needed for lifecycle evaluation
 // ---------------------------------------------------------------------------
 const SUBSCRIPTION_SELECT = {
   id: true,
@@ -61,14 +61,14 @@ const SUBSCRIPTION_SELECT = {
  *
  * @param rootPrisma - The root Prisma client (platform-level, not tenant-scoped)
  * @param thresholds - Policy thresholds loaded from configuration by the caller
- * @param now - Current time â€” passed explicitly for determinism; defaults to new Date()
+ * @param now - Current time — passed explicitly for determinism; defaults to new Date()
  */
 export async function runSubscriptionLifecycleJob(rootPrisma: PrismaClient, thresholds: LifecycleThresholds, now: Date = new Date()): Promise<JobResult> {
   const JOB_NAME = 'subscription-lifecycle'
 
   try {
     // Fetch all subscriptions that could have a pending automated transition.
-    // We limit to TRIAL, GRACE_PERIOD, and EXPIRED â€” the only source states
+    // We limit to TRIAL, GRACE_PERIOD, and EXPIRED — the only source states
     // for automated transitions. ACTIVE, SUSPENDED, LONG_TERM_INACTIVE, and
     // CANCELLED are never transitioned by this job.
     const candidates = await rootPrisma.businessSubscription.findMany({
@@ -83,7 +83,7 @@ export async function runSubscriptionLifecycleJob(rootPrisma: PrismaClient, thre
     const warnings: string[] = []
 
     for (const row of candidates) {
-      // Cast Prisma row to the domain DTO â€” same string values, safe cast
+      // Cast Prisma row to the domain DTO — same string values, safe cast
       const snapshot: SubscriptionSnapshot = {
         id: row.id,
         businessId: row.businessId,
@@ -113,7 +113,7 @@ export async function runSubscriptionLifecycleJob(rootPrisma: PrismaClient, thre
       let transitioned = false
       for (const evalResult of evaluations) {
         if (!evalResult.ok) {
-          // Engine returned a business error â€” log as warning and continue
+          // Engine returned a business error — log as warning and continue
           warnings.push(`[${snapshot.businessId}] Engine evaluation error: ${evalResult.reason}`)
           continue
         }

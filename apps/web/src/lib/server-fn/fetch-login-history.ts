@@ -5,19 +5,20 @@
  * Security settings page.
  *
  * Why not crudAPI?
- *   The Session model has no businessId / branchId columns â€” it belongs to
+ *   The Session model has no businessId / branchId columns — it belongs to
  *   a User, not a tenant. getTenantPrisma injects businessId WHERE clauses
  *   which would fail on the Session model. rootPrisma is required, and the
- *   query is scoped to context.user.id (the session-verified actor).
+ *   query is scoped to getServerContext(context).user.id (the session-verified actor).
  *   This is a narrow Priority 4 exception per the API-layer-priority rule:
  *   server-side read that cannot be expressed as crudAPI.
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
+import { getServerContext } from '@platform/lib/better-auth/server-context'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 
 export type LoginHistoryEntry = {
   id: string
@@ -31,7 +32,7 @@ export type LoginHistoryEntry = {
 export const fetchLoginHistory = createServerFn({ method: 'GET' })
   .middleware([authMiddleware, requirePermission(Permissions.USER_VIEW_LOGIN_HISTORY)])
   .handler(async ({ context }): Promise<LoginHistoryEntry[]> => {
-    const userId = context.user.id
+    const userId = getServerContext(context).user.id
 
     const sessions = await rootPrisma.session.findMany({
       where: { userId },
@@ -51,7 +52,7 @@ export const fetchLoginHistory = createServerFn({ method: 'GET' })
       ...s,
       // Mark sessions still within their expiry window as potentially active.
       // We can't identify the exact current session token server-side without
-      // forwarding it through the middleware â€” this is sufficient for Phase 1.
+      // forwarding it through the middleware — this is sufficient for Phase 1.
       isCurrent: s.expiresAt > now,
     }))
   })

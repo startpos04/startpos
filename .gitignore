@@ -27,9 +27,9 @@ apps/stripe/env/
 .vinxi
 .fallow/
 
-# ─── Prisma generated (app-specific) ─────────────────────────────────────────
-apps/web/prisma/generated
-apps/web/prisma/schema.prisma
+# ─── Prisma generated (centralized in packages/platform) ──────────────────────
+packages/platform/prisma/generated
+packages/platform/prisma/schema.prisma
 
 # ─── Test artifacts ───────────────────────────────────────────────────────────
 coverage/

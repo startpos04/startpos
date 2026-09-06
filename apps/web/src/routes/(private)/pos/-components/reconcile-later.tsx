@@ -6,10 +6,9 @@ import { membershipCollection, operationalTaskCollection, transactionCollection,
 import { dbTransaction } from '@platform/db/local-db-transaction'
 import { useAppForm } from '@platform/hooks/form'
 import { useCapability } from '@platform/hooks/use-capability'
-import { AuthEngine } from '@platform/lib/better-auth/auth-engine'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import dayjs from '@platform/lib/dayjs'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { and, count, eq, gte, inArray, lte, sum, useLiveQuery } from '@tanstack/react-db'
 import { formOptions, useStore } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
@@ -18,8 +17,9 @@ import type { VendorSession } from 'prisma/generated/prisma/browser'
 import { NotificationType, Role, SessionStatus, TaskStatus } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { logout } from '@/lib/better-auth/auth-engine'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import type { MountProps } from '@platform/lib/mount-manager'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
 
 export const closeSessionFormOpts = formOptions({
@@ -131,7 +131,7 @@ export function ReconcileLater({ onClose }: MountProps) {
       toast.success('Shift ended successfully')
 
       onClose()
-      if (user.role === Role.CASHIER) AuthEngine.logout({ onSuccess: () => navigate({ to: '/login' }) })
+      if (user.role === Role.CASHIER) logout({ onSuccess: () => navigate({ to: '/login' }) })
       else navigate({ to: user.landingPage })
     },
   })

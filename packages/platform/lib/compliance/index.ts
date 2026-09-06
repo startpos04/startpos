@@ -81,6 +81,8 @@ export { SingaporeComplianceAdapter } from './adapters/singapore-adapter'
 export { UsaComplianceAdapter } from './adapters/usa-adapter'
 // Core types and interfaces
 export type {
+  BaseBranch,
+  BaseBusiness,
   ComplianceAdapter,
   ComplianceAdapterFactory,
   ComplianceData,

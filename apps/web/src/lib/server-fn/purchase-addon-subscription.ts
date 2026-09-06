@@ -4,11 +4,11 @@
  * Server function: initiate a monthly recurring addon subscription via Stripe.
  *
  * Supported addons:
- *   branch       â€” Extra Branch (â‚±199/mo per branch, qty = number of branches)
- *   employee     â€” Extra Employee (â‚±49/mo per seat, qty = number of seats)
- *   tx_500       â€” +500 TX/mo recurring (â‚±99/mo)
- *   tx_1000      â€” +1,000 TX/mo recurring (â‚±179/mo)
- *   tx_5000      â€” +5,000 TX/mo recurring (â‚±799/mo)
+ *   branch       — Extra Branch (₱199/mo per branch, qty = number of branches)
+ *   employee     — Extra Employee (₱49/mo per seat, qty = number of seats)
+ *   tx_500       — +500 TX/mo recurring (₱99/mo)
+ *   tx_1000      — +1,000 TX/mo recurring (₱179/mo)
+ *   tx_5000      — +5,000 TX/mo recurring (₱799/mo)
  *
  * Flow:
  *   1. User selects an addon on /billing.
@@ -27,10 +27,11 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { getTenantContext, requireTenantContext } from '@/lib/better-auth/server-context'
 import { getBillingAdapter } from '../billing/get-billing-adapter'
 
 // ---------------------------------------------------------------------------
@@ -43,7 +44,7 @@ type AddonCatalogEntry = {
   id: AddonId
   label: string
   addonType: string // matches AddonType enum value in schema
-  featureKey?: string // for capability addons â€” written to EntitlementOverride on activation
+  featureKey?: string // for capability addons — written to EntitlementOverride on activation
   txAmount?: number // for TX recurring addons
   displayPrice: string
   priceNote: string
@@ -56,7 +57,7 @@ export const ADDON_CATALOG: AddonCatalogEntry[] = [
     id: 'branch',
     label: 'Extra Branch',
     addonType: 'BRANCH',
-    displayPrice: 'â‚±199',
+    displayPrice: '₱199',
     priceNote: '/branch/mo',
     stripePriceIdEnvKey: 'STRIPE_ADDON_BRANCH_PRICE_ID',
     perUnit: true,
@@ -65,7 +66,7 @@ export const ADDON_CATALOG: AddonCatalogEntry[] = [
     id: 'employee',
     label: 'Extra Employee',
     addonType: 'EMPLOYEE',
-    displayPrice: 'â‚±49',
+    displayPrice: '₱49',
     priceNote: '/seat/mo',
     stripePriceIdEnvKey: 'STRIPE_ADDON_EMPLOYEE_PRICE_ID',
     perUnit: true,
@@ -75,7 +76,7 @@ export const ADDON_CATALOG: AddonCatalogEntry[] = [
     label: '+500 Transactions/mo',
     addonType: 'TX_RECURRING',
     txAmount: 500,
-    displayPrice: 'â‚±99',
+    displayPrice: '₱99',
     priceNote: '/mo',
     stripePriceIdEnvKey: 'STRIPE_ADDON_TX_RECURRING_500_PRICE_ID',
     perUnit: false,
@@ -85,7 +86,7 @@ export const ADDON_CATALOG: AddonCatalogEntry[] = [
     label: '+1,000 Transactions/mo',
     addonType: 'TX_RECURRING',
     txAmount: 1000,
-    displayPrice: 'â‚±179',
+    displayPrice: '₱179',
     priceNote: '/mo',
     stripePriceIdEnvKey: 'STRIPE_ADDON_TX_RECURRING_1000_PRICE_ID',
     perUnit: false,
@@ -95,7 +96,7 @@ export const ADDON_CATALOG: AddonCatalogEntry[] = [
     label: '+5,000 Transactions/mo',
     addonType: 'TX_RECURRING',
     txAmount: 5000,
-    displayPrice: 'â‚±799',
+    displayPrice: '₱799',
     priceNote: '/mo',
     stripePriceIdEnvKey: 'STRIPE_ADDON_TX_RECURRING_5000_PRICE_ID',
     perUnit: false,
@@ -107,7 +108,7 @@ function getStripePriceId(envKey: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// fetchAddonCatalog â€” safe for client (no Price IDs exposed)
+// fetchAddonCatalog — safe for client (no Price IDs exposed)
 // ---------------------------------------------------------------------------
 
 export const fetchAddonCatalog = createServerFn({ method: 'GET' })
@@ -134,21 +135,17 @@ export type AddonCatalogItem = Awaited<ReturnType<typeof fetchAddonCatalog>>[num
 
 const PurchaseAddonInputSchema = z.object({
   addonId: z.enum(['branch', 'employee', 'tx_500', 'tx_1000', 'tx_5000']),
-  /** For per-unit addons (branch, employee) â€” how many units to subscribe to */
+  /** For per-unit addons (branch, employee) — how many units to subscribe to */
   quantity: z.number().int().min(1).max(50).default(1),
 })
 
 export type PurchaseAddonInput = z.infer<typeof PurchaseAddonInputSchema>
 
 export const purchaseAddonSubscription = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING)])
+  .middleware([authMiddleware, requirePermission(Permissions.BUSINESS_MANAGE_BILLING), requireTenantContext()])
   .inputValidator((data: PurchaseAddonInput) => PurchaseAddonInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.businessId) {
-      return { success: false as const, error: 'No business context' }
-    }
-
-    const { businessId, id: userId } = context.user
+    const { businessId, id: userId } = getTenantContext(context).user
 
     const entry = ADDON_CATALOG.find(a => a.id === data.addonId)
     if (!entry) {

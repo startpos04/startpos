@@ -1,13 +1,13 @@
 /**
  * business-setup.tsx
  *
- * /register/business-setup â€” OAuth interstitial screen.
+ * /register/business-setup — OAuth interstitial screen.
  *
  * Shown only to OAuth users (Google / Facebook) immediately after their
  * provider callback, before the app loads. OAuth provides name + email but
  * not business name. This screen collects:
  *   - Business name (required)
- *   - Adaptive survey Q1â€“Q8 (Q1 required, rest skippable)
+ *   - Adaptive survey Q1–Q8 (Q1 required, rest skippable)
  *
  * If the user already has a Membership, they are redirected to /dashboard.
  */
@@ -16,13 +16,13 @@ import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Input } from '@platform/components/ui/input'
 import { Label } from '@platform/components/ui/label'
-import { authStore, setUser } from '@platform/lib/better-auth/auth-store'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { authStore, setUser } from '@/lib/better-auth/auth-store'
 import type { SurveyAnswers } from '@/lib/onboarding/types'
 import { completeRegistration } from '@/lib/server-fn/complete-registration'
 import { refreshSession } from '@/lib/server-fn/refresh-session'
@@ -89,7 +89,7 @@ function RouteComponent() {
   }
 
   // ---------------------------------------------------------------------------
-  // Step 2 â€” Survey
+  // Step 2 — Survey
   // ---------------------------------------------------------------------------
 
   if (step === 'survey') {
@@ -105,7 +105,7 @@ function RouteComponent() {
   }
 
   // ---------------------------------------------------------------------------
-  // Step 1 â€” Business name
+  // Step 1 — Business name
   // ---------------------------------------------------------------------------
 
   return (
@@ -137,7 +137,7 @@ function RouteComponent() {
             {isSubmitting ? (
               <>
                 <Loader2 className='size-4 mr-2 animate-spin' />
-                Setting upâ€¦
+                Setting up…
               </>
             ) : (
               'Continue â†’'

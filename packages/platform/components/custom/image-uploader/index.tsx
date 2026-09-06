@@ -1,9 +1,9 @@
-import { Camera, Image as ImageIcon, Upload, X } from 'lucide-react'
-import { type MouseEvent, useCallback, useState } from 'react'
-import { useDropzone } from 'react-dropzone'
 import { Button } from '@platform/components/ui/button'
 import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
+import { Camera, Image as ImageIcon, Upload, X } from 'lucide-react'
+import { type MouseEvent, useCallback, useState } from 'react'
+import { useDropzone } from 'react-dropzone'
 import { CameraCapture } from './camera-capture'
 import { CropImage } from './crop-image'
 

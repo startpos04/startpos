@@ -1,5 +1,5 @@
 /**
- * require-capability.tsx â€” Per-capability route guard component
+ * require-capability.tsx — Per-capability route guard component
  *
  * Wraps a route or feature section and renders a "not available" placeholder
  * when the current session does not have the required capability.
@@ -9,7 +9,7 @@
  * specific feature may be unavailable depending on the business's plan or
  * BOS capability state.
  *
- * Usage â€” wrapping a full route:
+ * Usage — wrapping a full route:
  *   function OrdersPage() {
  *     return (
  *       <RequireCapability cap={Capabilities.CREATE_ORDER}>
@@ -18,12 +18,12 @@
  *     )
  *   }
  *
- * Usage â€” wrapping a section (inline):
+ * Usage — wrapping a section (inline):
  *   <RequireCapability cap={Capabilities.MANAGE_INVENTORY} inline>
  *     <InventoryTable />
  *   </RequireCapability>
  *
- * Usage â€” custom fallback:
+ * Usage — custom fallback:
  *   <RequireCapability
  *     cap={Capabilities.VIEW_ANALYTICS}
  *     fallback={<p>Analytics not available on your plan.</p>}
@@ -31,7 +31,7 @@
  *     <AnalyticsDashboard />
  *   </RequireCapability>
  *
- * Usage â€” nested with RequirePermission for dual gating:
+ * Usage — nested with RequirePermission for dual gating:
  *   <RequireCapability cap={Capabilities.MANAGE_BILLING}>
  *     <RequirePermission permission={PermissionKeys.BUSINESS.MANAGE_BILLING}>
  *       <BillingSettings />
@@ -55,18 +55,18 @@
  *
  * Architecture:
  *   - Reads from authStore.user.entitlement.capabilities (session-loaded).
- *   - No server call on render â€” purely reactive to the session.
+ *   - No server call on render — purely reactive to the session.
  *   - Does NOT replace server-side checks. Use entitlementMiddleware on
  *     server functions that perform mutations.
  */
 
-import { Link } from '@tanstack/react-router'
-import { LockIcon } from 'lucide-react'
-import type React from 'react'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { useCapability } from '@platform/hooks/use-capability'
 import type { CapabilityKey } from '@platform/lib/entitlement/capability-keys'
+import { Link } from '@tanstack/react-router'
+import { LockIcon } from 'lucide-react'
+import type React from 'react'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -164,7 +164,6 @@ function CapabilityLockedInline({ cap }: { cap: CapabilityKey }) {
 const CAPABILITY_LABELS: Partial<Record<CapabilityKey, string>> = {
   COMPLETE_CHECKOUT: 'POS Checkout',
   CREATE_ORDER: 'Order Queue',
-  EDIT_ACTIVE_ORDER: 'Order Editing',
   RECORD_PAYMENT: 'Payment Recording',
   ISSUE_REFUND: 'Refunds',
   PRINT_RECEIPT: 'Receipt Printing',

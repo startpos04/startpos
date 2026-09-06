@@ -13,10 +13,10 @@
 
 import Tab from '@platform/components/custom/tab'
 import { Button } from '@platform/components/ui/button'
+import MountManager from '@platform/lib/mount-manager'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowLeftIcon } from 'lucide-react'
 import { z } from 'zod'
-import MountManager from '@platform/lib/mount-manager'
 import { OverviewTab } from './payment-methods/-overview-tab'
 import { ProvidersTab } from './payment-methods/-providers-tab'
 

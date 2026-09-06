@@ -1,5 +1,5 @@
 /**
- * permission-management.ts â€” Server functions for permission management
+ * permission-management.ts — Server functions for permission management
  *
  * Provides functions for admins to:
  * - List all users with their permissions
@@ -11,12 +11,13 @@
  */
 
 import { Permissions } from '@platform/lib/authorization/permission-keys'
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
 import { requirePermission } from '@platform/lib/better-auth/permission-middleware'
+import { getServerContext } from '@platform/lib/better-auth/server-context'
 import { coreAPI } from '@platform/lib/prisma-client/core-api'
-import { crudAPI } from '@/lib/prisma-client/crud-api'
 import { createServerFn } from '@tanstack/react-start'
 import type { UserPermission } from 'prisma/generated/prisma/browser'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
+import { crudAPI } from '@/lib/prisma-client/crud-api'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -126,7 +127,7 @@ export interface PermissionWithEmployees {
 export const fetchPermissionsWithEmployees = createServerFn({ method: 'GET' })
   .middleware([authMiddleware, requirePermission(Permissions.USER_MANAGE_PERMISSIONS)])
   .handler(async ({ context }): Promise<{ permissions: PermissionWithEmployees[] }> => {
-    const { businessId, branchId } = context.user
+    const { businessId, branchId } = getServerContext(context).user
 
     // Fetch all permissions
     const permissionsResult = await coreAPI.permission('findMany', {
@@ -235,7 +236,7 @@ export const fetchPermissionsWithEmployees = createServerFn({ method: 'GET' })
 export const fetchUsersWithPermissions = createServerFn({ method: 'GET' })
   .middleware([authMiddleware, requirePermission(Permissions.USER_MANAGE_PERMISSIONS)])
   .handler(async ({ context }): Promise<{ users: UserWithPermissions[] }> => {
-    const { businessId, branchId } = context.user
+    const { businessId, branchId } = getServerContext(context).user
 
     // Fetch all users in the business
     const usersResult = await crudAPI.user('findMany', {
@@ -359,7 +360,7 @@ export interface PermissionAuditEntry {
 export const fetchPermissionAuditLog = createServerFn({ method: 'GET' })
   .middleware([authMiddleware, requirePermission(Permissions.USER_MANAGE_PERMISSIONS)])
   .handler(async ({ context }): Promise<{ entries: PermissionAuditEntry[] }> => {
-    const { businessId } = context.user
+    const { businessId } = getServerContext(context).user
 
     // Fetch audit log entries for permission actions
     const auditResult = await crudAPI.auditLog('findMany', {
@@ -439,10 +440,10 @@ export const grantPermissionToUser = createServerFn({ method: 'POST' })
   .middleware([authMiddleware, requirePermission(Permissions.USER_MANAGE_PERMISSIONS)])
   .inputValidator((data: { userId: string; permissionKey: string; reason?: string }) => data)
   .handler(async ({ data, context }): Promise<{ success: boolean; message: string }> => {
-    const { id: grantedBy, businessId } = context.user
+    const { id: grantedBy, businessId } = getServerContext(context).user
     const { userId, permissionKey, reason } = data
 
-    console.log('[grantPermissionToUser] Context user:', context.user)
+    console.log('[grantPermissionToUser] Context user:', getServerContext(context).user)
     console.log('[grantPermissionToUser] GrantedBy (actorId):', grantedBy)
 
     // Verify target user exists
@@ -549,7 +550,7 @@ export const revokePermissionFromUser = createServerFn({ method: 'POST' })
   .middleware([authMiddleware, requirePermission(Permissions.USER_MANAGE_PERMISSIONS)])
   .inputValidator((data: { userId: string; permissionKey: string; reason?: string }) => data)
   .handler(async ({ data, context }): Promise<{ success: boolean; message: string }> => {
-    const { id: revokedBy, businessId } = context.user
+    const { id: revokedBy, businessId } = getServerContext(context).user
     const { userId, permissionKey, reason } = data
 
     // Verify target user exists
@@ -651,7 +652,7 @@ export const removePermissionOverride = createServerFn({ method: 'POST' })
   .inputValidator((data: { userId: string; permissionKey: string }) => data)
   .handler(async ({ data, context }): Promise<{ success: boolean; message: string }> => {
     const { userId, permissionKey } = data
-    const { businessId, id: actorId } = context.user
+    const { businessId, id: actorId } = getServerContext(context).user
 
     // Verify target user exists
     const userResult = await crudAPI.user('findUnique', {

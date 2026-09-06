@@ -49,14 +49,14 @@ export function RevenueVsCostTrend({ stats }: { stats: TransactionReportStats })
                             <div className='h-2 w-2 rounded-full bg-emerald-500' />
                             <span className='text-xs text-muted-foreground'>Revenue</span>
                           </div>
-                          <span className='text-xs font-bold text-foreground'>â‚±{payload[0]?.value?.toLocaleString()}</span>
+                          <span className='text-xs font-bold text-foreground'>₱{payload[0]?.value?.toLocaleString()}</span>
                         </div>
                         <div className='flex items-center justify-between gap-8'>
                           <div className='flex items-center gap-2'>
                             <div className='h-2 w-2 rounded-full bg-rose-500' />
                             <span className='text-xs text-muted-foreground'>Cost</span>
                           </div>
-                          <span className='text-xs font-bold text-foreground'>â‚±{payload[1]?.value?.toLocaleString()}</span>
+                          <span className='text-xs font-bold text-foreground'>₱{payload[1]?.value?.toLocaleString()}</span>
                         </div>
                       </div>
                     </div>

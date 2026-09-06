@@ -1,15 +1,15 @@
 /**
  * billing/pricing/index.tsx
  *
- * /business/subscription/pricing â€” Composable Pricing Calculator
+ * /business/subscription/pricing — Composable Pricing Calculator
  *
  * Allows a business to select features Ã  la carte, see a live price breakdown
  * driven entirely by server-side PricingEngine.calculate(), and generate a quote.
  *
  * Architecture compliance:
- *   - Zero client-side price arithmetic â€” all calculations are server-side only.
+ *   - Zero client-side price arithmetic — all calculations are server-side only.
  *   - Feature selection â†’ server mutation â†’ PricingResult displayed.
- *   - No PricingEngine imports in this file (G10 â€” engine is infrastructure-free).
+ *   - No PricingEngine imports in this file (G10 — engine is infrastructure-free).
  *   - MANAGE_BILLING capability required.
  */
 
@@ -44,7 +44,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/business/subscripti
 // ---------------------------------------------------------------------------
 // Feature catalogue display structure
 // This mirrors the pricingCategory + sortOrder in the database.
-// Used only for grouping UI â€” prices come from the server.
+// Used only for grouping UI — prices come from the server.
 // ---------------------------------------------------------------------------
 
 type FeatureOption = {
@@ -381,7 +381,7 @@ function PricingCalculatorPage() {
                     {calculateMutation.isPending ? (
                       <>
                         <Loader2Icon className='h-3.5 w-3.5 mr-1.5 animate-spin' />
-                        Calculatingâ€¦
+                        Calculating…
                       </>
                     ) : (
                       <>

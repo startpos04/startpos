@@ -5,15 +5,15 @@ import { Button } from '@platform/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
 import { operationalTaskCollection, vendorSessionCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { AuthEngine } from '@platform/lib/better-auth/auth-engine'
-import { authStore } from '@platform/lib/better-auth/auth-store'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { useForm, useStore } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 import { Info, LayoutDashboard, LogOut, PlayCircle } from 'lucide-react'
 import { Role, SessionStatus, TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import type { MountProps } from '@platform/lib/mount-manager'
+import { logout } from '@/lib/better-auth/auth-engine'
+import { authStore } from '@/lib/better-auth/auth-store'
 
 export const createSessionSchema = z
   .object({
@@ -39,7 +39,7 @@ export function OpenSessionDialog({ open, onClose }: MountProps) {
 
   const form = useForm({
     defaultValues: {
-      openingCash: 100000, // Common starting float in PH (â‚±1,000)
+      openingCash: 100000, // Common starting float in PH (₱1,000)
       notes: '',
     },
     validators: {
@@ -100,7 +100,7 @@ export function OpenSessionDialog({ open, onClose }: MountProps) {
         return
       }
 
-      // Update auth store AFTER the transaction confirms â€” moving this inside
+      // Update auth store AFTER the transaction confirms — moving this inside
       // the dbTransaction callback fired it prematurely, causing the POS guard
       // useEffect to re-run with a stale user reference and re-show the dialog.
       authStore.setState(state => {
@@ -154,7 +154,7 @@ export function OpenSessionDialog({ open, onClose }: MountProps) {
             variant='ghost'
             className='w-full h-12 text-muted-foreground font-bold hover:text-foreground hover:bg-muted rounded-xl flex items-center justify-center gap-2'
             onClick={() => {
-              user.role === Role.CASHIER ? AuthEngine.logout({ onSuccess: () => navigate({ to: '/login' }) }) : navigate({ to: user.landingPage })
+              user.role === Role.CASHIER ? logout({ onSuccess: () => navigate({ to: '/login' }) }) : navigate({ to: user.landingPage })
               onClose()
             }}
           >

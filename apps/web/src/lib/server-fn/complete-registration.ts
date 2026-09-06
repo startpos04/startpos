@@ -10,7 +10,7 @@
  *   2. Branch (Main Branch)
  *   3. Membership (userId â†” businessId â†” branchId, role = ADMIN)
  *   3b. User.role promoted to ADMIN
- *   4. BusinessConfiguration defaults (from ConfigurationEngine â€” capability-derived)
+ *   4. BusinessConfiguration defaults (from ConfigurationEngine — capability-derived)
  *   5. BusinessSubscription (TRIAL via SubscriptionEngine.buildInitialSubscription)
  *   6. SubscriptionStatusHistory (initial TRIAL record)
  *   7. CreditLedger (50 complimentary PROMOTIONAL transactions)
@@ -21,9 +21,9 @@
  * returns the existing businessId/branchId.
  *
  * Architecture:
- *   - Server function â€” never runs in the browser bundle.
+ *   - Server function — never runs in the browser bundle.
  *   - Uses rootPrisma for platform-level writes (Business, Branch, etc.).
- *   - SubscriptionEngine and CreditEngine are pure â€” called for their DTOs.
+ *   - SubscriptionEngine and CreditEngine are pure — called for their DTOs.
  *   - No infrastructure imports inside the engines.
  *
  * Shadow-running retired (ADR-004):
@@ -32,35 +32,35 @@
  *   See docs/decisions/ADR-004-remove-v1-onboarding-path.md.
  */
 
-import { authMiddleware } from '@platform/lib/better-auth/auth-middleware'
+import { getServerContext } from '@platform/lib/better-auth/server-context'
 import { prisma as rootPrisma } from '@platform/lib/prisma-client'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import { authMiddleware } from '@/lib/better-auth/auth-middleware'
 import { CreditEventType } from '../billing/credit-engine'
 import { SubscriptionEngine } from '../billing/subscription-engine'
 import { BillingModel, type LifecycleThresholds } from '../billing/types'
 import { CAPABILITY_REGISTRY } from '../onboarding/capability-registry'
 import { resolveCapabilities } from '../onboarding/capability-resolver'
 import { buildConfiguration } from '../onboarding/configuration-engine'
-import { suggestPlan } from '../onboarding/plan-advisor'
 import { classifyProfile } from '../onboarding/profile-classifier'
 import { extractRegistrationStatus, interpretSurvey } from '../onboarding/survey-interpreter'
 import type { SurveyAnswers } from '../onboarding/types'
 
 // ---------------------------------------------------------------------------
-// Input schema â€” v2 only (adaptive survey path)
+// Input schema — v2 only (adaptive survey path)
 // Phase 6: v1 businessType-only path removed (ADR-004).
 // ---------------------------------------------------------------------------
 
 /**
- * v2 input schema â€” adaptive survey path.
+ * v2 input schema — adaptive survey path.
  * Q1 (business type) is required; all other answers are optional.
- * businessType is accepted but unused â€” kept for graceful handling of
+ * businessType is accepted but unused — kept for graceful handling of
  * any legacy clients still sending the field during the rollout window.
  * The businessType column on Business is deprecated (do not use for logic).
  */
 // ---------------------------------------------------------------------------
-// Legal consent versioning â€” Phase 0
+// Legal consent versioning — Phase 0
 // Bump these strings whenever the ToS or Privacy Policy is materially changed.
 // "Material change" means: new data categories, changed retention periods,
 // altered merchant obligations, or changed billing terms.
@@ -73,7 +73,7 @@ const CompleteRegistrationInputSchema = z.object({
   displayName: z.string().min(1, 'Name is required'),
   businessName: z.string().min(1, 'Business name is required').max(100),
   contactNumber: z.string().optional(),
-  /** Deprecated â€” kept for backward-compat with legacy clients. Not used for config. */
+  /** Deprecated — kept for backward-compat with legacy clients. Not used for config. */
   businessType: z.enum(['RESTAURANT', 'GROCERY', 'RETAIL']).optional(),
   surveyAnswers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
   /** ISO timestamp of when the user checked the ToS/Privacy checkbox. */
@@ -103,7 +103,7 @@ const GLOBAL_BRANCH_CONFIGS: ConfigDefault[] = [
 const COMPLIMENTARY_CREDITS = 50
 
 // ---------------------------------------------------------------------------
-// Slug generator â€” appends -2, -3, etc. on collision
+// Slug generator — appends -2, -3, etc. on collision
 // ---------------------------------------------------------------------------
 
 async function generateUniqueSlug(baseName: string): Promise<string> {
@@ -137,13 +137,13 @@ export const completeRegistration = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .inputValidator((data: CompleteRegistrationInput) => CompleteRegistrationInputSchema.parse(data))
   .handler(async ({ data, context }) => {
-    if (!context?.user?.id) {
+    if (!getServerContext(context).user?.id) {
       return { success: false as const, error: 'Not authenticated' }
     }
 
-    const userId = context.user.id
+    const userId = getServerContext(context).user.id
 
-    // Fetch the Trial plan â€” new registrants start on Trial with PREPAID_CREDITS billing
+    // Fetch the Trial plan — new registrants start on Trial with PREPAID_CREDITS billing
     const trialPlan = await rootPrisma.subscriptionPlan.findFirst({
       where: { name: 'Trial', isActive: true },
       select: { id: true },
@@ -162,7 +162,7 @@ export const completeRegistration = createServerFn({ method: 'POST' })
     const now = new Date()
 
     // -----------------------------------------------------------------------
-    // Resolve v2 configuration from survey answers (pure functions â€” no IO)
+    // Resolve v2 configuration from survey answers (pure functions — no IO)
     // -----------------------------------------------------------------------
     const rawAnswers = data.surveyAnswers as SurveyAnswers
     const characteristics = interpretSurvey(rawAnswers)
@@ -173,8 +173,7 @@ export const completeRegistration = createServerFn({ method: 'POST' })
     // Extract registration status from Q12 survey answer
     const registrationStatus = extractRegistrationStatus(rawAnswers)
 
-    // Log the suggested plan (informational â€” not enforced at registration)
-    const _suggestedPlan = suggestPlan(characteristics, profile)
+    // Log the suggested plan (informational — not enforced at registration)
 
     try {
       const slug = await generateUniqueSlug(data.businessName)
@@ -184,7 +183,7 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         // Step 1: Create Business
         // Store survey answers and BOS profile in the onboarding columns.
         // businessType is written for backward-compat with existing queries
-        // that still read it â€” defaulting to 'RETAIL' if not supplied.
+        // that still read it — defaulting to 'RETAIL' if not supplied.
         // The column is deprecated; do not use it for any new logic.
         // registrationStatus is set from Q12 survey answer (defaults to UNREGISTERED).
         // ------------------------------------------------------------------
@@ -193,7 +192,7 @@ export const completeRegistration = createServerFn({ method: 'POST' })
           data: {
             name: data.businessName,
             slug,
-            // Deprecated column â€” kept for query compat. Phase 7 may drop it.
+            // Deprecated column — kept for query compat. Phase 7 may drop it.
             businessType: legacyBusinessType as import('prisma/generated/prisma/enums').BusinessType,
             onboardingSurveyAnswers: data.surveyAnswers as Record<string, unknown>,
             onboardingProfile: v2Config.operationalProfile,
@@ -245,7 +244,7 @@ export const completeRegistration = createServerFn({ method: 'POST' })
           data: {
             role: 'OWNER' as import('prisma/generated/prisma/enums').Role,
             ...(data.contactNumber ? { contactNumber: data.contactNumber } : {}),
-            // Legal consent â€” record the version and timestamp so we have
+            // Legal consent — record the version and timestamp so we have
             // a per-user audit trail of exactly what they agreed to and when.
             ...(data.termsAcceptedAt
               ? {
@@ -365,8 +364,8 @@ export const completeRegistration = createServerFn({ method: 'POST' })
         // Step 9: Seed default catalog scaffolding
         //
         // Every business gets:
-        //   - One "General" category     â€” used by Quick Add as the fallback
-        //   - Four common units          â€” pcs, kg, L, hr
+        //   - One "General" category     — used by Quick Add as the fallback
+        //   - Four common units          — pcs, kg, L, hr
         //     (Quick Add uses pcs; the rest cover the most common physical and
         //      service-based businesses without forcing manual setup upfront)
         //
@@ -431,11 +430,11 @@ export const completeRegistration = createServerFn({ method: 'POST' })
   })
 
 // ---------------------------------------------------------------------------
-// registerWithSurvey â€” email/password registration path
+// registerWithSurvey — email/password registration path
 //
 // Creates the Better Auth user + account rows AND the full tenant record
 // inside a single $transaction. If anything fails (survey config, capability
-// seeding, subscription provisioning) the entire transaction rolls back â€”
+// seeding, subscription provisioning) the entire transaction rolls back —
 // no orphaned auth user is left behind.
 //
 // The OAuth path continues to use completeRegistration above (user already
@@ -443,11 +442,11 @@ export const completeRegistration = createServerFn({ method: 'POST' })
 // ---------------------------------------------------------------------------
 
 const RegisterWithSurveyInputSchema = z.object({
-  // Auth credentials â€” used to create the Better Auth user + account rows
+  // Auth credentials — used to create the Better Auth user + account rows
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   name: z.string().min(1, 'Name is required'),
-  // Business + survey â€” same as CompleteRegistrationInputSchema
+  // Business + survey — same as CompleteRegistrationInputSchema
   displayName: z.string().min(1),
   businessName: z.string().min(1).max(100),
   contactNumber: z.string().optional(),
@@ -459,16 +458,16 @@ const RegisterWithSurveyInputSchema = z.object({
 export type RegisterWithSurveyInput = z.infer<typeof RegisterWithSurveyInputSchema>
 
 export const registerWithSurvey = createServerFn({ method: 'POST' })
-  // No authMiddleware â€” the user does not exist yet at call time.
+  // No authMiddleware — the user does not exist yet at call time.
   .inputValidator((data: RegisterWithSurveyInput) => RegisterWithSurveyInputSchema.parse(data))
   .handler(async ({ data }) => {
-    // Import here to keep the server bundle lean â€” never ships to the client.
+    // Import here to keep the server bundle lean — never ships to the client.
     const { hashPassword } = await import('better-auth/crypto')
 
     const createId = () => crypto.randomUUID().replace(/-/g, '')
 
     // ------------------------------------------------------------------
-    // Pre-flight checks (outside the transaction â€” cheap reads first)
+    // Pre-flight checks (outside the transaction — cheap reads first)
     // ------------------------------------------------------------------
     const trialPlan = await rootPrisma.subscriptionPlan.findFirst({
       where: { name: 'Trial', isActive: true },
@@ -496,7 +495,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
 
     const now = new Date()
 
-    // Pure survey interpretation â€” no IO, safe to run before the transaction.
+    // Pure survey interpretation — no IO, safe to run before the transaction.
     const rawAnswers = data.surveyAnswers as SurveyAnswers
     const characteristics = interpretSurvey(rawAnswers)
     const resolved = resolveCapabilities(characteristics, CAPABILITY_REGISTRY)
@@ -506,8 +505,6 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
     // Extract registration status from Q12 survey answer
     const registrationStatus = extractRegistrationStatus(rawAnswers)
 
-    const _suggestedPlan = suggestPlan(characteristics, profile)
-
     try {
       const slug = await generateUniqueSlug(data.businessName)
       const hashedPwd = await hashPassword(data.password)
@@ -516,7 +513,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
       const legacyType = (data.businessType ?? 'RETAIL') as import('prisma/generated/prisma/enums').BusinessType
 
       const result = await rootPrisma.$transaction(async tx => {
-        // â”€â”€ Step 0: Create Better Auth user + credential account â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Step 0: Create Better Auth user + credential account ──────────
         // Both rows live in the same Postgres DB so they are fully covered
         // by this transaction. If any later step throws, they are rolled back.
         const user = await tx.user.create({
@@ -549,7 +546,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
           },
         })
 
-        // â”€â”€ Step 1: Business â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Step 1: Business ──────────────────────────────────────────────
         const business = await tx.business.create({
           data: {
             name: data.businessName,
@@ -566,7 +563,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
           select: { id: true },
         })
 
-        // â”€â”€ Step 2: Branch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Step 2: Branch ────────────────────────────────────────────────
         const branch = await tx.branch.create({
           data: {
             name: 'Main Branch',
@@ -580,7 +577,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
           select: { id: true },
         })
 
-        // â”€â”€ Step 3: Membership â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Step 3: Membership ────────────────────────────────────────────
         await tx.membership.create({
           data: {
             userId: user.id,
@@ -590,7 +587,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
           },
         })
 
-        // â”€â”€ Step 4: BusinessConfiguration defaults â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Step 4: BusinessConfiguration defaults ─────────────────────────────────
         const configs: ConfigDefault[] = v2Config.configs.map(c => ({ key: c.key, value: c.value }))
 
         for (const cfg of [...configs, ...GLOBAL_BUSINESS_CONFIGS]) {
@@ -616,7 +613,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
           })
         }
 
-        // â”€â”€ Step 5 + 6: Subscription + status history â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Step 5 + 6: Subscription + status history ─────────────────────
         const initialData = SubscriptionEngine.buildInitialSubscription(business.id, trialPlan.id, BillingModel.PREPAID_CREDITS, thresholds, now)
 
         const subscription = await tx.businessSubscription.create({
@@ -640,7 +637,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
           },
         })
 
-        // â”€â”€ Step 7: Complimentary credits â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Step 7: Complimentary credits ─────────────────────────────────
         await tx.creditLedger.create({
           data: {
             businessId: business.id,
@@ -654,7 +651,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
           },
         })
 
-        // â”€â”€ Step 8: BusinessCapabilityState rows â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Step 8: BusinessCapabilityState rows ──────────────────────────
         for (const capId of v2Config.enabledCapabilities) {
           await tx.businessCapabilityState.create({
             data: {
@@ -680,7 +677,7 @@ export const registerWithSurvey = createServerFn({ method: 'POST' })
           })
         }
 
-        // â”€â”€ Step 9: Default catalog scaffolding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Step 9: Default catalog scaffolding ───────────────────────────
         await tx.category.create({
           data: { name: 'General', businessId: business.id },
         })

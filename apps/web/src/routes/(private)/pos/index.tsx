@@ -1,4 +1,3 @@
-import { pdf } from '@react-pdf/renderer'
 import { useSubscriptionGate } from '@platform/components/custom/guards/feature-disabled'
 import Loading from '@platform/components/custom/loading'
 import { AlertPrompt } from '@platform/components/custom/prompt/alert-prompt'
@@ -9,9 +8,9 @@ import { useAppForm } from '@platform/hooks/form'
 import { useBarcodeScanner } from '@platform/hooks/use-barcode-scanner'
 import { useCapability } from '@platform/hooks/use-capability'
 import { useIsMobile } from '@platform/hooks/use-mobile'
-import { AuthEngine } from '@platform/lib/better-auth/auth-engine'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
+import MountManager from '@platform/lib/mount-manager'
+import { pdf } from '@react-pdf/renderer'
 import { useLiveQuery } from '@tanstack/react-db'
 import { formOptions, useStore, uuid } from '@tanstack/react-form'
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
@@ -19,9 +18,10 @@ import { type Order, Role, SessionStatus } from 'prisma/generated/prisma/browser
 import { useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { handleBarcodeScan, mergeCartItem } from '@/lib/barcode-handler'
+import { logout } from '@/lib/better-auth/auth-engine'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { getBluetoothPrinter } from '@/lib/bluetooth-printer'
 import type { posItem } from '@/lib/conversion/pos-stock-engine'
-import MountManager from '@platform/lib/mount-manager'
 import { createPosOrder } from '@/lib/queries/create-pos-order'
 import { createPosTransaction } from '@/lib/queries/create-pos-transaction'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
@@ -58,7 +58,7 @@ export const Route = createFileRoute('/(private)/pos/')({
   component: POSPageGate,
 })
 
-// Subscription gate wrapper â€” hooks must always be called unconditionally,
+// Subscription gate wrapper — hooks must always be called unconditionally,
 // so we split the gate check into its own component that renders before POSPage.
 function POSPageGate() {
   const gate = useSubscriptionGate()
@@ -137,7 +137,7 @@ function POSPage() {
       return
     }
 
-    // Always show success and reset â€” print is a non-blocking side effect
+    // Always show success and reset — print is a non-blocking side effect
     MountManager.show(SuccessPrompt, {
       title: 'Transaction Completed',
       description: 'Payment processed and order logged.',
@@ -162,7 +162,7 @@ function POSPage() {
       }
     }
 
-    // Attempt to print receipt â€” failure must never block or revert the completed sale
+    // Attempt to print receipt — failure must never block or revert the completed sale
     // Print if the capability is granted
     if (canPrintReceipt) {
       try {
@@ -265,7 +265,7 @@ function POSPage() {
     onSubmit: async ({ value }) => {
       // Only gate on vendor session when cash reconciliation is enabled.
       // Businesses without the START_VENDOR_SESSION capability don't create
-      // sessions, so vendorSession is null â€” skipping this check for them.
+      // sessions, so vendorSession is null — skipping this check for them.
       if (canReconcile && user.vendorSession?.status !== SessionStatus.OPEN) return
       if (value.payments.length > 0) await handleConfirm(value, value.compliance)
       else await handlePayLater(value)
@@ -318,7 +318,7 @@ function POSPage() {
 
       // Enhanced success feedback with product details
       toast.success(`Added ${result.item.product.name}`, {
-        description: `${result.item.quantity}x ${result.item.variant.name} â€¢ SKU: ${barcode}`,
+        description: `${result.item.quantity}x ${result.item.variant.name} • SKU: ${barcode}`,
         duration: 2000,
       })
     } else if (result.action === 'show-dialog' && result.product) {
@@ -380,7 +380,7 @@ function POSPage() {
         description: 'The previous shift was ended without a verified cash count. Please reconcile the drawer before proceeding with a new shift.',
         btnText: user.role === Role.CASHIER ? 'Logout' : 'Go to Dashboard',
         onClick: () => {
-          if (user.role === Role.CASHIER) AuthEngine.logout({ onSuccess: () => navigate({ to: '/login' }) })
+          if (user.role === Role.CASHIER) logout({ onSuccess: () => navigate({ to: '/login' }) })
           else navigate({ to: user.landingPage })
         },
       })

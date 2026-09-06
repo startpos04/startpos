@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@platform/components/ui/input'
 import { Label } from '@platform/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@platform/components/ui/select'
+import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { useForm } from '@tanstack/react-form'
 import { useStore } from '@tanstack/react-store'
@@ -13,7 +14,6 @@ import { PaymentMethod } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import z from 'zod'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import MountManager from '@platform/lib/mount-manager'
 
 export const PAYMENT_PLATFORMS = {
   CASH: { id: 'cash', name: 'Cash', type: PaymentMethod.CASH },
@@ -94,7 +94,7 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
   const paymentsState = useStore(form.store, state => state.values.payments)
   const isFormValid = useStore(form.store, state => state.isValid)
 
-  // Live aggregated computations â€” use effectiveTotal (post SC/PWD discount)
+  // Live aggregated computations — use effectiveTotal (post SC/PWD discount)
   const totalPaidCombined = paymentsState.reduce((sum, item) => sum + item.tendered, 0)
   const remainingDue = effectiveTotal - totalPaidCombined
   const isOverpaid = remainingDue < 0
@@ -269,7 +269,7 @@ export function PaymentDialog({ open, onClose, total, onConfirm }: PaymentDialog
 
           <hr className='border-border/60 my-2' />
 
-          {/* SC/PWD Discount â€” BIR-required compliance section */}
+          {/* SC/PWD Discount — BIR-required compliance section */}
           <Collapsible open={scPwdOpen} onOpenChange={setScPwdOpen}>
             <CollapsibleTrigger asChild>
               <Button

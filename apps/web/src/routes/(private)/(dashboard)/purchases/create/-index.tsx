@@ -35,8 +35,8 @@ type CreatePurchaseFormData = z.infer<typeof createPurchaseFormSchema>
 
 /**
  * Two submission modes:
- *  'quick-receive'    â€” goods in hand, inventory credited immediately (RECEIVED)
- *  'request-approval' â€” above-threshold or delegated, goes to PENDING_APPROVAL first
+ *  'quick-receive'    — goods in hand, inventory credited immediately (RECEIVED)
+ *  'request-approval' — above-threshold or delegated, goes to PENDING_APPROVAL first
  */
 type SubmitMode = 'quick-receive' | 'request-approval'
 

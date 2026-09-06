@@ -22,10 +22,12 @@ services:
 
   db-init:
     image: postgres:15-alpine
-    env_file:
-      - apps/web/.env
     environment:
       POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ./packages/platform/prisma/models/ensure-database.sh:/ensure-database.sh:ro
     entrypoint: ['/bin/sh', '/ensure-database.sh']
@@ -36,7 +38,7 @@ services:
     networks:
       - app-network
 
-  app:
+  web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -53,7 +55,7 @@ services:
       DOCKER_DEV: "true"
     shm_size: '1gb'
     volumes:
-      - app_output:/app/apps/web/.output
+      - web_output:/app/apps/web/.output
       - ./apps/web/.env:/app/apps/web/.env:ro
     command: ['pnpm', '--filter', '@startpos/web', 'run', 'dev:docker']
     networks:
@@ -149,7 +151,7 @@ services:
         condition: service_completed_successfully
     environment:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
-      STRIPE_WEBHOOK_FORWARD_URL: ${STRIPE_WEBHOOK_FORWARD_URL:-http://app:3000/api/stripe/webhook}
+      STRIPE_WEBHOOK_FORWARD_URL: ${STRIPE_WEBHOOK_FORWARD_URL:-http://web:3000/api/stripe/webhook}
     volumes:
       - stripe_config:/root/.config/stripe
       - ./apps/stripe/env:/stripe-env
@@ -159,7 +161,7 @@ services:
 
 volumes:
   postgres_data:
-  app_output:
+  web_output:
   admin_output:
   stripe_config:
 

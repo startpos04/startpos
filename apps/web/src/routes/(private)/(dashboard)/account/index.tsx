@@ -1,7 +1,7 @@
 /**
  * account/index.tsx
  *
- * User account page â€” Personal profile and legal consent record.
+ * User account page — Personal profile and legal consent record.
  *
  * Surfaces:
  *   - User profile information (name, email, role)
@@ -19,13 +19,13 @@ import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Separator } from '@platform/components/ui/separator'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import dayjs from '@platform/lib/dayjs'
+import MountManager from '@platform/lib/mount-manager'
 import { createFileRoute } from '@tanstack/react-router'
 import { AlertTriangle, FileText, Loader2, ShieldAlert, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import MountManager from '@platform/lib/mount-manager'
+import { authStore } from '@/lib/better-auth/auth-store'
 import { requestAccountDeletion } from '@/lib/server-fn/request-account-deletion'
 
 export const Route = createFileRoute('/(private)/(dashboard)/account/')({
@@ -141,7 +141,7 @@ function AccountPage() {
                   </Badge>
                   <span className='text-xs text-muted-foreground'>
                     {dayjs(user.termsAcceptedAt).format('MMM D, YYYY')}
-                    {user.termsVersion ? ` Â· v${user.termsVersion}` : ''}
+                    {user.termsVersion ? ` · v${user.termsVersion}` : ''}
                   </span>
                 </div>
               </div>
@@ -153,7 +153,7 @@ function AccountPage() {
                   </Badge>
                   <span className='text-xs text-muted-foreground'>
                     {user.privacyAcceptedAt ? dayjs(user.privacyAcceptedAt).format('MMM D, YYYY') : dayjs(user.termsAcceptedAt).format('MMM D, YYYY')}
-                    {user.privacyVersion ? ` Â· v${user.privacyVersion}` : ''}
+                    {user.privacyVersion ? ` · v${user.privacyVersion}` : ''}
                   </span>
                 </div>
               </div>

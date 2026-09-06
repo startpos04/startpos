@@ -1,7 +1,7 @@
 /**
  * billing/quotes/$quoteId/index.tsx
  *
- * /billing/quotes/:quoteId â€” Quote Detail
+ * /billing/quotes/:quoteId — Quote Detail
  *
  * Displays the full line-item breakdown of a PricingQuote and allows:
  *   - Accept: transitions quote CALCULATED/SENT â†’ ACCEPTED
@@ -75,7 +75,7 @@ function QuoteDetailPage() {
   const convertMutation = useMutation({
     mutationFn: async () => {
       // For Phase 5 initial implementation, look up the composable plan server-side.
-      // The planId is resolved in the server function â€” pass a sentinel here.
+      // The planId is resolved in the server function — pass a sentinel here.
       return convertQuoteToSubscription({ data: { quoteId, planId: 'COMPOSABLE' } })
     },
     onSuccess: result => {
@@ -127,7 +127,7 @@ function QuoteDetailPage() {
             <StatusBadge status={status} />
           </div>
           <p className='text-muted-foreground text-sm mt-0.5'>
-            {quote.catalog.label} Â· Generated {new Date(quote.createdAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
+            {quote.catalog.label} · Generated {new Date(quote.createdAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
       </div>
@@ -218,7 +218,7 @@ function QuoteDetailPage() {
               <div className='px-6 py-3 space-y-1 bg-emerald-50/50 dark:bg-emerald-900/10'>
                 <LineItemRow description='Annual Total' amount={quote.annualTotal} large />
                 {quote.annualSavings !== null && quote.annualSavings > 0 && (
-                  <p className='text-xs text-emerald-600 dark:text-emerald-400 text-right'>Save {formatCents(quote.annualSavings)} vs 12Ã— monthly</p>
+                  <p className='text-xs text-emerald-600 dark:text-emerald-400 text-right'>Save {formatCents(quote.annualSavings)} vs 12× monthly</p>
                 )}
               </div>
             </>
@@ -255,7 +255,7 @@ function QuoteDetailPage() {
               {acceptMutation.isPending ? (
                 <>
                   <Loader2Icon className='h-4 w-4 mr-1.5 animate-spin' />
-                  Acceptingâ€¦
+                  Accepting…
                 </>
               ) : (
                 <>
@@ -285,7 +285,7 @@ function QuoteDetailPage() {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={() => convertMutation.mutate()} disabled={convertMutation.isPending}>
-                    {convertMutation.isPending ? 'Activatingâ€¦' : 'Yes, activate'}
+                    {convertMutation.isPending ? 'Activating…' : 'Yes, activate'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -313,7 +313,7 @@ function QuoteDetailPage() {
                     onClick={() => cancelMutation.mutate()}
                     disabled={cancelMutation.isPending}
                   >
-                    {cancelMutation.isPending ? 'Decliningâ€¦' : 'Yes, decline'}
+                    {cancelMutation.isPending ? 'Declining…' : 'Yes, decline'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

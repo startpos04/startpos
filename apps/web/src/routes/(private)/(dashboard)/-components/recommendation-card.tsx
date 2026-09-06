@@ -1,5 +1,5 @@
 /**
- * recommendation-card.tsx â€” Inline recommendation card (Phase 3b UI)
+ * recommendation-card.tsx — Inline recommendation card (Phase 3b UI)
  *
  * Renders a single capability recommendation with:
  *   - Business value text

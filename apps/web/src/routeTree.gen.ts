@@ -86,6 +86,7 @@ import { Route as privatedashboardBusinessSubscriptionInvoicesIndexRouteImport }
 import { Route as privatedashboardBusinessSubscriptionCreditsIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/credits/index'
 import { Route as privatedashboardBusinessSubscriptionCheckoutIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/checkout/index'
 import { Route as privatedashboardBusinessPermissionsAuditIndexRouteImport } from './routes/(private)/(dashboard)/business/permissions/audit/index'
+import { Route as privatedashboardBillingCreditsCheckoutIndexRouteImport } from './routes/(private)/(dashboard)/billing/credits/checkout/index'
 import { Route as privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRouteImport } from './routes/(private)/(dashboard)/business/subscription/quotes/$quoteId/index'
 
 const publicRouteRoute = publicRouteRouteImport.update({
@@ -525,6 +526,12 @@ const privatedashboardBusinessPermissionsAuditIndexRoute =
     path: '/permissions/audit/',
     getParentRoute: () => privatedashboardBusinessRouteRoute,
   } as any)
+const privatedashboardBillingCreditsCheckoutIndexRoute =
+  privatedashboardBillingCreditsCheckoutIndexRouteImport.update({
+    id: '/credits/checkout/',
+    path: '/credits/checkout/',
+    getParentRoute: () => privatedashboardBillingRouteRoute,
+  } as any)
 const privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRoute =
   privatedashboardBusinessSubscriptionQuotesQuoteIdIndexRouteImport.update({
     id: '/quotes/$quoteId/',
@@ -597,6 +604,7 @@ export interface FileRoutesByFullPath {
   '/products/create/': typeof privatedashboardProductsCreateIndexRoute
   '/purchases/$purchaseId/': typeof privatedashboardPurchasesPurchaseIdIndexRoute
   '/transactions/$transactionId/': typeof privatedashboardTransactionsTransactionIdIndexRoute
+  '/billing/credits/checkout/': typeof privatedashboardBillingCreditsCheckoutIndexRoute
   '/business/permissions/audit/': typeof privatedashboardBusinessPermissionsAuditIndexRoute
   '/business/subscription/checkout/': typeof privatedashboardBusinessSubscriptionCheckoutIndexRoute
   '/business/subscription/credits/': typeof privatedashboardBusinessSubscriptionCreditsIndexRoute
@@ -665,6 +673,7 @@ export interface FileRoutesByTo {
   '/products/create': typeof privatedashboardProductsCreateIndexRoute
   '/purchases/$purchaseId': typeof privatedashboardPurchasesPurchaseIdIndexRoute
   '/transactions/$transactionId': typeof privatedashboardTransactionsTransactionIdIndexRoute
+  '/billing/credits/checkout': typeof privatedashboardBillingCreditsCheckoutIndexRoute
   '/business/permissions/audit': typeof privatedashboardBusinessPermissionsAuditIndexRoute
   '/business/subscription/checkout': typeof privatedashboardBusinessSubscriptionCheckoutIndexRoute
   '/business/subscription/credits': typeof privatedashboardBusinessSubscriptionCreditsIndexRoute
@@ -746,6 +755,7 @@ export interface FileRoutesById {
   '/(private)/(dashboard)/products/create/': typeof privatedashboardProductsCreateIndexRoute
   '/(private)/(dashboard)/purchases/$purchaseId/': typeof privatedashboardPurchasesPurchaseIdIndexRoute
   '/(private)/(dashboard)/transactions/$transactionId/': typeof privatedashboardTransactionsTransactionIdIndexRoute
+  '/(private)/(dashboard)/billing/credits/checkout/': typeof privatedashboardBillingCreditsCheckoutIndexRoute
   '/(private)/(dashboard)/business/permissions/audit/': typeof privatedashboardBusinessPermissionsAuditIndexRoute
   '/(private)/(dashboard)/business/subscription/checkout/': typeof privatedashboardBusinessSubscriptionCheckoutIndexRoute
   '/(private)/(dashboard)/business/subscription/credits/': typeof privatedashboardBusinessSubscriptionCreditsIndexRoute
@@ -824,6 +834,7 @@ export interface FileRouteTypes {
     | '/products/create/'
     | '/purchases/$purchaseId/'
     | '/transactions/$transactionId/'
+    | '/billing/credits/checkout/'
     | '/business/permissions/audit/'
     | '/business/subscription/checkout/'
     | '/business/subscription/credits/'
@@ -892,6 +903,7 @@ export interface FileRouteTypes {
     | '/products/create'
     | '/purchases/$purchaseId'
     | '/transactions/$transactionId'
+    | '/billing/credits/checkout'
     | '/business/permissions/audit'
     | '/business/subscription/checkout'
     | '/business/subscription/credits'
@@ -972,6 +984,7 @@ export interface FileRouteTypes {
     | '/(private)/(dashboard)/products/create/'
     | '/(private)/(dashboard)/purchases/$purchaseId/'
     | '/(private)/(dashboard)/transactions/$transactionId/'
+    | '/(private)/(dashboard)/billing/credits/checkout/'
     | '/(private)/(dashboard)/business/permissions/audit/'
     | '/(private)/(dashboard)/business/subscription/checkout/'
     | '/(private)/(dashboard)/business/subscription/credits/'
@@ -1536,6 +1549,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privatedashboardBusinessPermissionsAuditIndexRouteImport
       parentRoute: typeof privatedashboardBusinessRouteRoute
     }
+    '/(private)/(dashboard)/billing/credits/checkout/': {
+      id: '/(private)/(dashboard)/billing/credits/checkout/'
+      path: '/credits/checkout'
+      fullPath: '/billing/credits/checkout/'
+      preLoaderRoute: typeof privatedashboardBillingCreditsCheckoutIndexRouteImport
+      parentRoute: typeof privatedashboardBillingRouteRoute
+    }
     '/(private)/(dashboard)/business/subscription/quotes/$quoteId/': {
       id: '/(private)/(dashboard)/business/subscription/quotes/$quoteId/'
       path: '/quotes/$quoteId'
@@ -1585,6 +1605,7 @@ const privatedashboardAccountRouteRouteWithChildren =
 interface privatedashboardBillingRouteRouteChildren {
   privatedashboardBillingManualPaymentRoute: typeof privatedashboardBillingManualPaymentRoute
   privatedashboardBillingIndexRoute: typeof privatedashboardBillingIndexRoute
+  privatedashboardBillingCreditsCheckoutIndexRoute: typeof privatedashboardBillingCreditsCheckoutIndexRoute
 }
 
 const privatedashboardBillingRouteRouteChildren: privatedashboardBillingRouteRouteChildren =
@@ -1592,6 +1613,8 @@ const privatedashboardBillingRouteRouteChildren: privatedashboardBillingRouteRou
     privatedashboardBillingManualPaymentRoute:
       privatedashboardBillingManualPaymentRoute,
     privatedashboardBillingIndexRoute: privatedashboardBillingIndexRoute,
+    privatedashboardBillingCreditsCheckoutIndexRoute:
+      privatedashboardBillingCreditsCheckoutIndexRoute,
   }
 
 const privatedashboardBillingRouteRouteWithChildren =

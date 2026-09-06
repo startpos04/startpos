@@ -1,13 +1,13 @@
 /**
  * subscription-engine.ts
  *
- * SubscriptionEngine â€” pure domain engine governing subscription lifecycle
+ * SubscriptionEngine — pure domain engine governing subscription lifecycle
  * state transitions. All transition rules live here.
  *
  * Architectural contract (ADR-001, ADR-002):
  *   - No Prisma imports, no collection reads, no HTTP calls.
  *   - Deterministic: same inputs â†’ same output.
- *   - Returns OperationResult â€” callers act on the result, never catch exceptions.
+ *   - Returns OperationResult — callers act on the result, never catch exceptions.
  *   - All data arrives as DTOs via SubscriptionSnapshot from the Application Layer.
  *
  * State machine (from v1-master-plan.md Â§2.5):
@@ -106,7 +106,7 @@ export const SubscriptionEngine = {
   // -------------------------------------------------------------------------
   // buildTransitionRecord
   // Builds the StatusTransitionRecord to be persisted by the Application Layer.
-  // Does not write to the database â€” returns the record to the caller.
+  // Does not write to the database — returns the record to the caller.
   // -------------------------------------------------------------------------
   buildTransitionRecord(
     snapshot: SubscriptionSnapshot,
@@ -135,7 +135,7 @@ export const SubscriptionEngine = {
   // -------------------------------------------------------------------------
   evaluateTrialExpiry(snapshot: SubscriptionSnapshot, _thresholds: LifecycleThresholds, now: Date): OperationResult<StatusTransitionRecord | null> {
     if (snapshot.status !== SubscriptionStatus.TRIAL) {
-      return opOk(null) // Not in trial â€” nothing to do
+      return opOk(null) // Not in trial — nothing to do
     }
 
     if (!SubscriptionPolicy.isTrialEnded(snapshot.trialEndsAt, now)) {
@@ -215,7 +215,7 @@ export const SubscriptionEngine = {
   // buildInitialSubscription
   // Returns the data shape for a new TRIAL BusinessSubscription record.
   // Called by trial auto-provisioning in the Application Layer.
-  // Does not write to the DB â€” returns the creation data to the caller.
+  // Does not write to the DB — returns the creation data to the caller.
   // -------------------------------------------------------------------------
   buildInitialSubscription(
     businessId: string,

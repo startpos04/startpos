@@ -3,17 +3,17 @@ import { MultiView } from '@platform/components/custom/data-view/multi-view'
 import { WarningPrompt } from '@platform/components/custom/prompt/warning-prompt'
 import { Button } from '@platform/components/ui/button'
 import { categoryCollection } from '@platform/db/collections'
+import MountManager from '@platform/lib/mount-manager'
 import { useLiveQuery } from '@tanstack/react-db'
-import { Plus, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import MountManager from '@platform/lib/mount-manager'
 import { CATEGORY_ASIDE_ID, showCategorySidebar } from './-components/category-sidebar'
 import { CreateCategorySidebar } from './-components/create-category-sidebar'
 
 export function CategoriesPage() {
   const { data, isLoading } = useLiveQuery(q => q.from({ category: categoryCollection }))
-  const [selectedId, setSelectedId] = useState<string>('')
+  const [_selectedId, setSelectedId] = useState<string>('')
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()

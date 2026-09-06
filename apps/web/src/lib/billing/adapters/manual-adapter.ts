@@ -1,7 +1,7 @@
 /**
  * manual-adapter.ts
  *
- * ManualPaymentAdapter â€” concrete implementation of BillingProviderAdapter
+ * ManualPaymentAdapter — concrete implementation of BillingProviderAdapter
  * for manual payment methods (GCash, Bank Transfer, Maya, etc.)
  *
  * Design principles:
@@ -96,8 +96,8 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
 
     const businessId = params.externalCustomerId // For manual, customerId = businessId
     const planId = params.metadata.planId
-    const amount = parseInt(params.metadata.amount || '0')
-    const periodsAdvancePaid = parseInt(params.metadata.periodsAdvancePaid || '1')
+    const amount = parseInt(params.metadata.amount || '0', 10)
+    const periodsAdvancePaid = parseInt(params.metadata.periodsAdvancePaid || '1', 10)
     const referenceNo = params.metadata.referenceNo
     const proofImageUrl = params.metadata.proofImageUrl
     const notes = params.metadata.notes
@@ -117,7 +117,7 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
       data: {
         businessId,
         provider: 'MANUAL',
-        paymentMethod: this.config.paymentMethod as any, // Map to PaymentMethod2 enum
+        paymentMethod: this.config.paymentMethod as PaymentMethod2, // Map to PaymentMethod2 enum
         amount,
         currency: 'PHP',
         status: 'PENDING_APPROVAL',
@@ -151,7 +151,7 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
     }
   }
 
-  async updateSubscription(params: {
+  async updateSubscription(_params: {
     externalSubscriptionId: string
     externalPriceId: string
     metadata: Record<string, string>
@@ -163,7 +163,7 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
     throw new Error('[ManualAdapter] Manual payment subscriptions cannot be updated directly. Create a new payment submission instead.')
   }
 
-  async cancelSubscription(params: { externalSubscriptionId: string; cancelImmediately: boolean; reason?: string }): Promise<CancelSubscriptionResult> {
+  async cancelSubscription(_params: { externalSubscriptionId: string; cancelImmediately: boolean; reason?: string }): Promise<CancelSubscriptionResult> {
     // Manual subscriptions don't have external cancellation
     // Just return immediate cancellation
     return {
@@ -188,8 +188,8 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
     // Return a URL to the manual payment submission page
 
     const businessId = params.externalCustomerId
-    const amount = parseInt(params.metadata.amount || '0')
-    const periodsAdvancePaid = parseInt(params.metadata.periodsAdvancePaid || '1')
+    const amount = parseInt(params.metadata.amount || '0', 10)
+    const periodsAdvancePaid = parseInt(params.metadata.periodsAdvancePaid || '1', 10)
 
     if (!amount) {
       throw new Error('[ManualAdapter] amount is required in metadata for credit purchase')
@@ -204,7 +204,7 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
       data: {
         businessId,
         provider: 'MANUAL',
-        paymentMethod: this.config.paymentMethod as any,
+        paymentMethod: this.config.paymentMethod as PaymentMethod2,
         amount,
         currency: 'PHP',
         status: 'PENDING_APPROVAL',
@@ -242,8 +242,8 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
   }): Promise<CreatePaymentLinkResult> {
     // Similar to credit purchase but for addon subscriptions
     const businessId = params.externalCustomerId
-    const amount = parseInt(params.metadata.amount || '0')
-    const periodsAdvancePaid = parseInt(params.metadata.periodsAdvancePaid || '1')
+    const amount = parseInt(params.metadata.amount || '0', 10)
+    const periodsAdvancePaid = parseInt(params.metadata.periodsAdvancePaid || '1', 10)
 
     if (!amount) {
       throw new Error('[ManualAdapter] amount is required in metadata for addon subscription')
@@ -258,7 +258,7 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
       data: {
         businessId,
         provider: 'MANUAL',
-        paymentMethod: this.config.paymentMethod as any,
+        paymentMethod: this.config.paymentMethod as PaymentMethod2,
         amount,
         currency: 'PHP',
         status: 'PENDING_APPROVAL',
@@ -291,7 +291,7 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
   // Customer Portal (Not Supported)
   // -------------------------------------------------------------------------
 
-  async createCustomerPortalSession(params: { externalCustomerId: string; returnUrl: string }): Promise<{ url: string }> {
+  async createCustomerPortalSession(_params: { externalCustomerId: string; returnUrl: string }): Promise<{ url: string }> {
     // Manual providers don't have customer portals
     // Redirect to billing dashboard instead
     return { url: '/billing' }
@@ -301,7 +301,7 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
   // Invoice Management (Not Supported)
   // -------------------------------------------------------------------------
 
-  async getInvoice(externalInvoiceId: string): Promise<ProviderInvoice> {
+  async getInvoice(_externalInvoiceId: string): Promise<ProviderInvoice> {
     // Manual providers don't have external invoices
     throw new Error('[ManualAdapter] Manual payment provider does not support external invoices')
   }
@@ -310,7 +310,7 @@ class ManualPaymentAdapter implements BillingProviderAdapter {
   // Webhook Handling (Not Supported)
   // -------------------------------------------------------------------------
 
-  async verifyWebhookSignature(params: { rawBody: string | Buffer; signature: string; secret: string }): Promise<WebhookEvent> {
+  async verifyWebhookSignature(_params: { rawBody: string | Buffer; signature: string; secret: string }): Promise<WebhookEvent> {
     // Manual providers don't have webhooks
     throw new Error('[ManualAdapter] Manual payment provider does not support webhooks')
   }

@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import Cropper, { type Area } from 'react-easy-crop'
 import { Button } from '@platform/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
 import { Slider } from '@platform/components/ui/slider' // Shadcn Slider
 import type { MountProps } from '@platform/lib/mount-manager'
 import { getCroppedImg } from '@platform/lib/utils/crop-image'
+import { useState } from 'react'
+import Cropper, { type Area } from 'react-easy-crop'
 
 interface CropImageProps extends MountProps {
   tempImage: string

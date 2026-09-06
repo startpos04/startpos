@@ -1,7 +1,7 @@
 /**
  * usage-engine.ts
  *
- * UsageEngine â€” pure domain engine for transaction usage tracking.
+ * UsageEngine — pure domain engine for transaction usage tracking.
  *
  * Responsibilities:
  *   - Compute txRemaining from a UsageCounterSnapshot and a plan allowance
@@ -12,8 +12,8 @@
  * Architectural contract (ADR-001):
  *   - No Prisma imports, no collection reads, no HTTP calls.
  *   - All data arrives as plain DTOs from the Application Layer.
- *   - All methods are synchronous â€” safe to call inside dbTransaction callbacks.
- *   - Returns OperationResult â€” callers act on the result, never catch exceptions.
+ *   - All methods are synchronous — safe to call inside dbTransaction callbacks.
+ *   - Returns OperationResult — callers act on the result, never catch exceptions.
  *
  * Usage (inside createPosTransaction â†’ dbTransaction):
  *   const counter = usageCounterCollection.findOpenForPeriod(businessId, periodStart)
@@ -90,7 +90,7 @@ export const UsageEngine = {
     }
 
     if (exhausted && overageBillingEnabled) {
-      // Overage billing path â€” increment overageTxCount, also increment txCount
+      // Overage billing path — increment overageTxCount, also increment txCount
       // so the total count is always accurate.
       return opOk({
         ...snapshot,
@@ -99,7 +99,7 @@ export const UsageEngine = {
       })
     }
 
-    // Normal path â€” within allowance
+    // Normal path — within allowance
     return opOk({
       ...snapshot,
       txCount: snapshot.txCount + 1,
@@ -109,7 +109,7 @@ export const UsageEngine = {
   // -------------------------------------------------------------------------
   // buildNewCounter
   // Constructs an initial UsageCounterSnapshot for a new billing period.
-  // The id is a sentinel ('__NEW__') â€” the Application Layer replaces it
+  // The id is a sentinel ('__NEW__') — the Application Layer replaces it
   // after the DB insert returns the generated id.
   // -------------------------------------------------------------------------
   buildNewCounter(businessId: string, billingPeriodStart: Date, billingPeriodEnd: Date): UsageCounterSnapshot {

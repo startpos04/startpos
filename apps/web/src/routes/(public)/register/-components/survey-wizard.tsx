@@ -1,11 +1,11 @@
 /**
- * survey-wizard.tsx â€” Adaptive onboarding survey UI (Phase 1.4)
+ * survey-wizard.tsx — Adaptive onboarding survey UI (Phase 1.4)
  *
  * Multi-step adaptive question tree: Q1 â†’ Q8 with conditional branching.
- * - Q1 (business type) is required â€” the submit button is disabled without it.
+ * - Q1 (business type) is required — the submit button is disabled without it.
  * - All other questions can be skipped; safe defaults apply.
  * - Progress indicator shows approximate steps remaining.
- * - No intermediate server calls â€” answers accumulate in local state.
+ * - No intermediate server calls — answers accumulate in local state.
  * - Mobile-responsive single-column layout.
  *
  * Branching rules (mirrors survey-interpreter.ts logic):
@@ -131,8 +131,8 @@ const Q4: QuestionConfig = {
   type: 'single',
   title: 'Do you track how much stock you have?',
   options: [
-    { value: Q4_OPTIONS.YES_STRICT, label: 'Yes â€” stock levels matter a lot', description: 'Low stock alerts, strict counts' },
-    { value: Q4_OPTIONS.YES_RELAXED, label: 'Yes â€” basic tracking is fine' },
+    { value: Q4_OPTIONS.YES_STRICT, label: 'Yes — stock levels matter a lot', description: 'Low stock alerts, strict counts' },
+    { value: Q4_OPTIONS.YES_RELAXED, label: 'Yes — basic tracking is fine' },
     { value: Q4_OPTIONS.PERIODIC, label: 'Periodically, not in real time' },
     { value: Q4_OPTIONS.NO, label: "No, I don't track stock" },
   ],
@@ -144,7 +144,7 @@ const Q4A: QuestionConfig = {
   title: 'How do you replenish stock when it runs low?',
   options: [
     { value: Q4A_OPTIONS.FORMAL_SUPPLIERS, label: 'From registered suppliers', description: 'You create purchase orders' },
-    { value: Q4A_OPTIONS.INFORMAL, label: 'Informally â€” cash buys, market runs', description: 'No formal supplier records' },
+    { value: Q4A_OPTIONS.INFORMAL, label: 'Informally — cash buys, market runs', description: 'No formal supplier records' },
   ],
 }
 
@@ -153,8 +153,8 @@ const Q4B: QuestionConfig = {
   type: 'single',
   title: 'Do you store stock in different areas or rooms?',
   options: [
-    { value: Q4B_OPTIONS.YES, label: 'Yes â€” warehouse, bodega, separate rooms' },
-    { value: Q4B_OPTIONS.NO, label: 'No â€” everything in one place' },
+    { value: Q4B_OPTIONS.YES, label: 'Yes — warehouse, bodega, separate rooms' },
+    { value: Q4B_OPTIONS.NO, label: 'No — everything in one place' },
   ],
 }
 
@@ -163,7 +163,7 @@ const Q4C: QuestionConfig = {
   type: 'single',
   title: 'Do any of your products have an expiry date?',
   options: [
-    { value: Q4C_OPTIONS.YES_MANY, label: 'Yes â€” most of my products do' },
+    { value: Q4C_OPTIONS.YES_MANY, label: 'Yes — most of my products do' },
     { value: Q4C_OPTIONS.SOME, label: 'A few do' },
     { value: Q4C_OPTIONS.NO, label: 'No, none of them do' },
   ],
@@ -174,9 +174,9 @@ const Q5: QuestionConfig = {
   type: 'single',
   title: 'Do different staff members need different levels of access?',
   options: [
-    { value: Q5_OPTIONS.YES, label: 'Yes â€” managers vs. cashiers, etc.' },
+    { value: Q5_OPTIONS.YES, label: 'Yes — managers vs. cashiers, etc.' },
     { value: Q5_OPTIONS.LATER, label: "Not yet, but I'll set this up later" },
-    { value: Q5_OPTIONS.NO, label: 'No â€” everyone has the same access' },
+    { value: Q5_OPTIONS.NO, label: 'No — everyone has the same access' },
   ],
 }
 
@@ -185,7 +185,7 @@ const Q5A: QuestionConfig = {
   type: 'single',
   title: 'Do certain actions need manager approval?',
   options: [
-    { value: Q5A_OPTIONS.YES_STRICT, label: 'Yes â€” most actions need sign-off' },
+    { value: Q5A_OPTIONS.YES_STRICT, label: 'Yes — most actions need sign-off' },
     { value: Q5A_OPTIONS.YES_SOME, label: 'Just a few key actions' },
     { value: Q5A_OPTIONS.NO, label: 'No approval workflows needed' },
   ],
@@ -207,8 +207,8 @@ const Q6A: QuestionConfig = {
   type: 'single',
   title: 'When you show prices, is tax already included?',
   options: [
-    { value: Q6A_OPTIONS.INCLUSIVE, label: 'Yes â€” prices include tax (inclusive)' },
-    { value: Q6A_OPTIONS.EXCLUSIVE, label: 'No â€” tax is added on top (exclusive)' },
+    { value: Q6A_OPTIONS.INCLUSIVE, label: 'Yes — prices include tax (inclusive)' },
+    { value: Q6A_OPTIONS.EXCLUSIVE, label: 'No — tax is added on top (exclusive)' },
   ],
 }
 
@@ -217,7 +217,7 @@ const Q6B: QuestionConfig = {
   type: 'single',
   title: 'Do you issue official receipts with regulatory numbers?',
   options: [
-    { value: Q6B_OPTIONS.BIR_COMPLIANT, label: 'Yes â€” BIR-registered receipts' },
+    { value: Q6B_OPTIONS.BIR_COMPLIANT, label: 'Yes — BIR-registered receipts' },
     { value: Q6B_OPTIONS.INFORMAL, label: 'Just informal receipts or none' },
     { value: Q6B_OPTIONS.NONE, label: "We don't issue receipts" },
   ],
@@ -250,8 +250,8 @@ const Q9: QuestionConfig = {
   title: 'Do you reconcile your cash at the end of each shift?',
   subtitle: 'This helps track how much cash your team collected each day.',
   options: [
-    { value: Q9_OPTIONS.YES, label: 'Yes â€” I count cash at end of shift' },
-    { value: Q9_OPTIONS.NO, label: "No â€” I don't track this" },
+    { value: Q9_OPTIONS.YES, label: 'Yes — I count cash at end of shift' },
+    { value: Q9_OPTIONS.NO, label: "No — I don't track this" },
   ],
 }
 
@@ -261,8 +261,8 @@ const Q10: QuestionConfig = {
   title: 'Do you use task lists to manage daily operations?',
   subtitle: 'For example: stock counts, shelf refills, opening/closing checklists.',
   options: [
-    { value: Q10_OPTIONS.YES, label: 'Yes â€” I track tasks or checklists regularly' },
-    { value: Q10_OPTIONS.NO, label: "No â€” I don't use task lists" },
+    { value: Q10_OPTIONS.YES, label: 'Yes — I track tasks or checklists regularly' },
+    { value: Q10_OPTIONS.NO, label: "No — I don't use task lists" },
   ],
 }
 
@@ -272,9 +272,9 @@ const Q11: QuestionConfig = {
   title: 'Do you prepare food items in batches ahead of time?',
   subtitle: 'For example: sandwiches, pastries, meal prep, or pre-cooked dishes.',
   options: [
-    { value: Q11_OPTIONS.YES_RECIPES, label: 'Yes â€” using recipes with ingredients', description: 'Track materials used in production' },
-    { value: Q11_OPTIONS.YES_NO_RECIPES, label: 'Yes â€” but without tracking ingredients' },
-    { value: Q11_OPTIONS.NO, label: 'No â€” we prepare items on-demand' },
+    { value: Q11_OPTIONS.YES_RECIPES, label: 'Yes — using recipes with ingredients', description: 'Track materials used in production' },
+    { value: Q11_OPTIONS.YES_NO_RECIPES, label: 'Yes — but without tracking ingredients' },
+    { value: Q11_OPTIONS.NO, label: 'No — we prepare items on-demand' },
   ],
 }
 
@@ -284,7 +284,7 @@ const Q12: QuestionConfig = {
   title: 'Is your business officially registered with the government?',
   subtitle: 'This helps us set up compliance features like tax receipts and BIR requirements.',
   options: [
-    { value: Q12_OPTIONS.REGISTERED, label: 'Yes â€” fully registered', description: 'Have TIN, permits, and official documents' },
+    { value: Q12_OPTIONS.REGISTERED, label: 'Yes — fully registered', description: 'Have TIN, permits, and official documents' },
     { value: Q12_OPTIONS.PENDING, label: 'Registration in progress', description: 'Applied but not yet complete' },
     { value: Q12_OPTIONS.UNREGISTERED, label: 'Not yet registered', description: 'Operating informally for now' },
   ],
@@ -335,24 +335,24 @@ function getVisibleQuestions(answers: SurveyAnswers): QuestionConfig[] {
     questions.push(Q6A, Q6B)
   }
 
-  // Q12: Business registration status â€” shown for all businesses
+  // Q12: Business registration status — shown for all businesses
   questions.push(Q12)
 
-  // Q7 (location) â€” only if team > solo (solo operators assumed single location)
-  // Q8 (expansion plans) â€” always shown, even solo users may plan to expand
+  // Q7 (location) — only if team > solo (solo operators assumed single location)
+  // Q8 (expansion plans) — always shown, even solo users may plan to expand
   if (answers.q2_team_size !== Q2_OPTIONS.JUST_ME) {
     questions.push(Q7)
   }
   questions.push(Q8)
 
-  // Q9: Cash reconciliation â€” shown when the business handles cash (everyone for now)
+  // Q9: Cash reconciliation — shown when the business handles cash (everyone for now)
   questions.push(Q9)
 
-  // Q10: Operational tasks â€” shown for all team sizes, including solo operators.
+  // Q10: Operational tasks — shown for all team sizes, including solo operators.
   // A solo operator may still want to manage personal checklists or future staff tasks.
   questions.push(Q10)
 
-  // Q11: Batch preparation â€” only shown for food & beverage businesses
+  // Q11: Batch preparation — only shown for food & beverage businesses
   const sellsFood = (answers.q1_business_type ?? []).includes(Q1_OPTIONS.FOOD_BEVERAGE)
   if (sellsFood) {
     questions.push(Q11)
@@ -383,7 +383,7 @@ export function SurveyWizard({ onComplete, isSubmitting = false, onBack }: Surve
   const questions = useMemo(() => getVisibleQuestions(answers), [answers])
   const current = questions[step]!
   const isLast = step === questions.length - 1
-  const _isFirst = step === 0
+  const __isFirst = step === 0
   const canProceed = current.id !== 'q1_business_type' || (answers.q1_business_type?.length ?? 0) > 0
   const totalSteps = questions.length
   const progress = Math.round(((step + 1) / (totalSteps + 1)) * 100)
@@ -407,7 +407,7 @@ export function SurveyWizard({ onComplete, isSubmitting = false, onBack }: Surve
       // Recompute questions with updated answers before advancing so branching
       // changes (e.g. picking "Just me" on Q2) take effect immediately.
       // Find the current question's position in the new list and move to the
-      // next one â€” avoids the Math.min clamp silently skipping to the last
+      // next one — avoids the Math.min clamp silently skipping to the last
       // question when the list shrinks.
       const nextQuestions = getVisibleQuestions(answers)
       const currentIdxInNext = nextQuestions.findIndex(q => q.id === current.id)
@@ -497,7 +497,7 @@ export function SurveyWizard({ onComplete, isSubmitting = false, onBack }: Surve
             {isSubmitting ? (
               <>
                 <Loader2 className='size-4 mr-2 animate-spin' />
-                Setting upâ€¦
+                Setting up…
               </>
             ) : isLast ? (
               "Let's go â†’"

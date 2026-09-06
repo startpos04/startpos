@@ -161,11 +161,11 @@ export const FinishedGoodsEngine = {
     // - none mode: skips validation (no inventory tracking)
     try {
       InventoryPolicy.validateDeduction(variantId, totalAvailable, quantity, inventoryMode)
-    } catch (error) {
+    } catch (_error) {
       // Validation failed (strict mode with insufficient stock)
       // DO NOT RETRY - this is out-of-stock, not a concurrency conflict
       throw new Error(
-        `Insufficient finished goods for variant ${variantId}. ` + `Available: ${totalAvailable}, Required: ${quantity}. ` + `Please prepare more inventory.`,
+        `Insufficient finished goods for variant ${variantId}. Available: ${totalAvailable}, Required: ${quantity}. Please prepare more inventory.`,
       )
     }
 
@@ -236,7 +236,7 @@ export const FinishedGoodsEngine = {
     // Verify we consumed exactly what was requested
     if (remaining > 0.000001) {
       throw new Error(
-        `Consumption verification failed: ${remaining} units remaining after FIFO consumption. ` + `This should not happen if total availability check passed.`,
+        `Consumption verification failed: ${remaining} units remaining after FIFO consumption. This should not happen if total availability check passed.`,
       )
     }
 
@@ -287,7 +287,7 @@ export const FinishedGoodsEngine = {
 
     for (const batch of finishedGoods) {
       const variant = productVariantCollection.get(batch.variantId)
-      if (!variant || !variant.shelfLifeHours) continue
+      if (!variant?.shelfLifeHours) continue
 
       const producedAt = batch.producedAt || batch.createdAt
       const expiresAt = new Date(producedAt.getTime() + variant.shelfLifeHours * 60 * 60 * 1000)

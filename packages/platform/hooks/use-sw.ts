@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 export const useSw = () => {
   useEffect(() => {
     // Completely disable service worker in development to prevent module resolution issues
-    const isDev = import.meta.env.DEV
+    const isDev = process.env['NODE_ENV']
     if (isDev) {
       console.log('[SW] Service worker disabled in development mode')
 

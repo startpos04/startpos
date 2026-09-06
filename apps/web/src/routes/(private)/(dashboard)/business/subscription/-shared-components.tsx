@@ -13,20 +13,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@platform/components/ui/alert-dialog'
-import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
-import { getAuthUser } from '@/lib/better-auth/auth-server'
-import { authStore, refreshUser } from '@platform/lib/better-auth/auth-store'
 import { SubscriptionStatus } from '@platform/lib/entitlement/entitlement-types'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import {
   AlertTriangleIcon,
-  ArrowRightIcon,
   CheckCircle2Icon,
   ClockIcon,
   CreditCardIcon,
@@ -34,19 +31,18 @@ import {
   FileTextIcon,
   GitBranchIcon,
   MailIcon,
-  PlusIcon,
   RefreshCwIcon,
   XCircleIcon,
   ZapIcon,
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { SubscriptionPolicy } from '@/lib/billing/policies/subscription-policy'
+import { getAuthUser } from '@/lib/better-auth/auth-server'
+import { authStore, refreshUser } from '@/lib/better-auth/auth-store'
 import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
-import MountManager, { type MountProps } from '@platform/lib/mount-manager'
 import { cancelSubscription } from '@/lib/server-fn/cancel-subscription'
 import { createBillingPortalSession } from '@/lib/server-fn/create-billing-portal-session'
-import { type AddonCatalogItem, fetchAddonCatalog, purchaseAddonSubscription } from '@/lib/server-fn/purchase-addon-subscription'
+import { type AddonCatalogItem, purchaseAddonSubscription } from '@/lib/server-fn/purchase-addon-subscription'
 import { fetchTxAddonPackages } from '@/lib/server-fn/purchase-tx-addon'
 
 type BadgeConfig = {
@@ -103,7 +99,7 @@ export function getStatusBadgeConfig(status: SubscriptionStatus): BadgeConfig {
 }
 
 export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return 'â€”'
+  if (!iso) return '—'
   return new Date(iso).toLocaleDateString('en-PH', {
     year: 'numeric',
     month: 'long',
@@ -310,13 +306,13 @@ export function AddonDialog({ addon, open, onClose }: MountProps & { addon: Addo
                   >
                     <div>
                       <p className='font-semibold text-sm'>{pkg.label}</p>
-                      <p className='text-xs text-muted-foreground mt-0.5'>+{pkg.txAmount.toLocaleString()} transactions/mo â€” auto-renews</p>
+                      <p className='text-xs text-muted-foreground mt-0.5'>+{pkg.txAmount.toLocaleString()} transactions/mo — auto-renews</p>
                     </div>
                     <span className='font-bold text-base tabular-nums text-primary'>{pkg.displayPrice}/mo</span>
                   </button>
                 )))}
 
-          {/* Capability addon â€” just a confirm */}
+          {/* Capability addon — just a confirm */}
           {!isTxGroup && !isPerUnit && (
             <div className='flex items-center justify-between rounded-lg border px-4 py-3 bg-card'>
               <div>
@@ -332,8 +328,8 @@ export function AddonDialog({ addon, open, onClose }: MountProps & { addon: Addo
 
           {isPerUnit && quantity > 1 && (
             <p className='text-xs text-muted-foreground text-right'>
-              Total: {addon.displayPrice.replace('â‚±', '')} Ã— {quantity} = â‚±
-              {(parseInt(addon.displayPrice.replace('â‚±', '').replace(',', ''), 10) * quantity).toLocaleString()}/mo
+              Total: {addon.displayPrice.replace('₱', '')} × {quantity} = ₱
+              {(parseInt(addon.displayPrice.replace('₱', '').replace(',', ''), 10) * quantity).toLocaleString()}/mo
             </p>
           )}
         </div>
@@ -344,7 +340,7 @@ export function AddonDialog({ addon, open, onClose }: MountProps & { addon: Addo
           </Button>
           <Button onClick={() => mutation.mutate()} disabled={!canProceed || mutation.isPending} className='gap-1.5'>
             {mutation.isPending ? (
-              'Redirectingâ€¦'
+              'Redirecting…'
             ) : (
               <>
                 <ExternalLinkIcon className='h-3.5 w-3.5' /> Proceed to payment
@@ -392,7 +388,7 @@ export function BillingCTAs({ status, isBlocked, cancelledAt }: { status: Subscr
 
   return (
     <div className='flex flex-wrap gap-2 pt-1'>
-      {/* Upgrade â€” shown during trial */}
+      {/* Upgrade — shown during trial */}
       {status === SubscriptionStatus.TRIAL && (
         <Button size='sm' variant='default' asChild>
           <Link to={'/business/subscription/plans'}>
@@ -402,7 +398,7 @@ export function BillingCTAs({ status, isBlocked, cancelledAt }: { status: Subscr
         </Button>
       )}
 
-      {/* Invoices link â€” shown when active */}
+      {/* Invoices link — shown when active */}
       {status === SubscriptionStatus.ACTIVE && (
         <Button size='sm' variant='outline' asChild>
           <Link to={'/billing/invoices'}>
@@ -412,7 +408,7 @@ export function BillingCTAs({ status, isBlocked, cancelledAt }: { status: Subscr
         </Button>
       )}
 
-      {/* Cancel subscription â€” only when ACTIVE and not already scheduled for cancellation */}
+      {/* Cancel subscription — only when ACTIVE and not already scheduled for cancellation */}
       {status === SubscriptionStatus.ACTIVE && !cancelledAt && (
         <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
           <AlertDialogTrigger asChild>
@@ -435,7 +431,7 @@ export function BillingCTAs({ status, isBlocked, cancelledAt }: { status: Subscr
                 onClick={() => cancelMutation.mutate()}
                 disabled={cancelMutation.isPending}
               >
-                {cancelMutation.isPending ? 'Cancellingâ€¦' : 'Yes, cancel'}
+                {cancelMutation.isPending ? 'Cancelling…' : 'Yes, cancel'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -494,7 +490,7 @@ export function GracePeriodPortalButton() {
   return (
     <Button size='sm' onClick={() => portalMutation.mutate()} disabled={portalMutation.isPending} className='gap-1.5'>
       <CreditCardIcon className='h-4 w-4' />
-      {portalMutation.isPending ? 'Openingâ€¦' : 'Update Payment Method'}
+      {portalMutation.isPending ? 'Opening…' : 'Update Payment Method'}
     </Button>
   )
 }

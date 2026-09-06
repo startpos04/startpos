@@ -8,12 +8,12 @@
 import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@platform/components/ui/tooltip'
-import { refreshAuthUser } from '@platform/lib/better-auth/auth-store'
 import { cn } from '@platform/lib/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, ChevronDown, ChevronUp, Info, Pause, Play, RefreshCw, TrendingUp, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { refreshAuthUser } from '@/lib/better-auth/auth-store'
 import { getCapabilityBenefits, getCapabilitySteps } from '@/lib/capabilities/capability-guide'
 import { acceptCapability, dismissCapability, enableCapability, pauseCapability, restoreCapability } from '@/lib/server-fn/capability-actions'
 import type { CapabilityStateRow } from '@/lib/server-fn/fetch-capability-states'
@@ -115,7 +115,7 @@ export function BusinessCapabilityDetailsSidebar({ capability, onClose }: Busine
       {/* Content */}
       <div className='flex-1 overflow-y-auto'>
         <div className='space-y-6'>
-          {/* Compact info row â€” status, category, learn more */}
+          {/* Compact info row — status, category, learn more */}
           <div className='flex items-center gap-4 px-4 py-2.5 border-b bg-muted/20'>
             <div>
               <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Status</p>

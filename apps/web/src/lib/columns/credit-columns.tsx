@@ -70,10 +70,10 @@ export const creditCols = {
         const id = info.getValue()
         return id ? (
           <span className='font-mono text-xs text-primary truncate max-w-30 block' title={id}>
-            {id.slice(0, 8)}â€¦
+            {id.slice(0, 8)}…
           </span>
         ) : (
-          <span className='text-muted-foreground text-xs'>â€”</span>
+          <span className='text-muted-foreground text-xs'>—</span>
         )
       },
     }),
@@ -82,7 +82,7 @@ export const creditCols = {
     h.display({
       id: 'cashier',
       header: 'Cashier',
-      cell: ({ row }) => <span className='text-sm'>{row.original.actorName ?? 'â€”'}</span>,
+      cell: ({ row }) => <span className='text-sm'>{row.original.actorName ?? '—'}</span>,
     }),
 
   date: (h: ColumnHelper<any>) =>

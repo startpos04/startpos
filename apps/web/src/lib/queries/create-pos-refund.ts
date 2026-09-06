@@ -7,13 +7,13 @@ import {
   transactionTaxLineCollection,
 } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
-import { sequenceAPI } from '@platform/lib/prisma-client/sequence-api'
 import type { TransactionComplianceData } from '@platform/lib/types'
 import { MovementType, SequenceType, type TaxCategory, type TaxLineType, TransactionType } from 'prisma/generated/prisma/enums'
 import { AuditAction, AuditTargetType } from '@/lib/audit/types'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { getComplianceAdapter } from '@/lib/compliance'
+import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
 import { writeAudit } from '@/lib/server-fn/write-audit'
 import { fetchStructuredId } from './fetch-structured-id'
 
@@ -24,7 +24,7 @@ import { fetchStructuredId } from './fetch-structured-id'
 //
 // Root cause of the original "transaction not found" error:
 //   transactionCollection is syncMode: 'on-demand'. The transaction detail
-//   sidebar is fed via crudAPI (server fetch) â€” those rows never land in the
+//   sidebar is fed via crudAPI (server fetch) — those rows never land in the
 //   local collection. Passing the snapshot in from the caller avoids the
 //   failed .get() lookup entirely.
 //
@@ -83,9 +83,9 @@ export type TransactionSnapshot = {
 }
 
 export const createPosRefund = async (snapshot: TransactionSnapshot) => {
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
 
-  // Check MANAGE_INVENTORY capability â€” gates the inventory restock step.
+  // Check MANAGE_INVENTORY capability — gates the inventory restock step.
   // The refund itself always completes; only the stock adjustment is skipped
   // when the user is on a plan that does not include inventory management.
   const canManageInventory = user?.entitlement?.capabilities?.includes(Capabilities.MANAGE_INVENTORY) ?? false
@@ -163,7 +163,7 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
       currentUser: { name: user.name },
     })
 
-    // 2. Create Refund Transaction â€” built from the snapshot, not the collection
+    // 2. Create Refund Transaction — built from the snapshot, not the collection
     transactionCollection.insert({
       id: transactionId,
       invoiceNo: refundInvoiceNo, // Use pre-allocated sequence from above
@@ -179,7 +179,7 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
       taxAmount: -snapshot.taxAmount,
       discount: snapshot.discount ? -snapshot.discount : 0,
 
-      // Carry over identity fields â€” orderId is required (NOT NULL) on Transaction
+      // Carry over identity fields — orderId is required (NOT NULL) on Transaction
       cashierId: snapshot.cashierId,
       orderId: snapshot.orderId ?? snapshot.id, // fall back to transaction id if orderId missing
       snapshotCustomerName: snapshot.snapshotCustomerName,
@@ -196,7 +196,7 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
         scPwdDiscount: snapshot.complianceData.scPwdDiscount ? -snapshot.complianceData.scPwdDiscount : 0,
       },
 
-      // Optional / nullable fields â€” null for refund transactions
+      // Optional / nullable fields — null for refund transactions
       customerId: null,
       snapshotCustomerTaxId: null,
       snapshotCustomerAddress: null,
@@ -213,7 +213,7 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
       updatedAt: new Date(),
     })
 
-    // 3. Revert Inventory â€” only when user has MANAGE_INVENTORY capability.
+    // 3. Revert Inventory — only when user has MANAGE_INVENTORY capability.
     //    The inventory movement records from the original sale are in the local
     //    collection because they were inserted there during checkout.
     if (canManageInventory) {
@@ -246,7 +246,7 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
       }
     }
 
-    // 4. Revert Tax Lines â€” built from the snapshot
+    // 4. Revert Tax Lines — built from the snapshot
     for (const line of snapshot.taxLines) {
       transactionTaxLineCollection.insert({
         id: crypto.randomUUID(),
@@ -269,7 +269,7 @@ export const createPosRefund = async (snapshot: TransactionSnapshot) => {
     // - No gaming of transaction limits through refund/re-purchase cycles
     // - Consistent credit consumption tracking
 
-    // 6. Create Negative Payment â€” mirrors the original payment method
+    // 6. Create Negative Payment — mirrors the original payment method
     const originalPayment = snapshot.payments[0]
     paymentCollection.insert({
       id: crypto.randomUUID(),

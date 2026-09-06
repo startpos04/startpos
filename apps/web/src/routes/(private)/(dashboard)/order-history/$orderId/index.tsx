@@ -4,6 +4,7 @@ import { Button } from '@platform/components/ui/button'
 import { orderCollection, orderItemCollection, paymentCollection, transactionCollection, userCollection } from '@platform/db/collections'
 import { useIsOnline } from '@platform/hooks/use-is-online'
 import dayjs from '@platform/lib/dayjs'
+import type { MountProps } from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -11,20 +12,19 @@ import { ClipboardList, X } from 'lucide-react'
 import type { OrderStatus, OrderType } from 'prisma/generated/prisma/enums'
 import { useMemo } from 'react'
 import { PriceEngine } from '@/lib/conversion/price-engine'
-import type { MountProps } from '@platform/lib/mount-manager'
 import { fetchOrderHistory, type OrderHistoryItem } from '@/lib/server-fn/fetch-order-history'
 import { closeOrderHistorySidebar } from '../-components/order-history-sidebar'
 import { DetailsTab } from './-details-tab'
 import { ItemsTab } from './-items-tab'
 
-// â”€â”€â”€ Route â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Route ───────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute('/(private)/(dashboard)/order-history/$orderId/')({
   loader: ({ params }) => ({ orderId: params.orderId }),
   component: () => <RouteComponent />,
 })
 
-// â”€â”€â”€ Sidebar export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Sidebar export ───────────────────────────────────────────────────────────
 
 interface OrderDetailsSidebarProps extends MountProps {
   order: OrderHistoryItem
@@ -39,7 +39,7 @@ export function OrderDetailsSidebar({ open: _open, order, onClose }: OrderDetail
   return <RouteComponent order={order} onClose={onClose} />
 }
 
-// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_VARIANTS: Record<OrderStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   PENDING: 'outline',
@@ -54,10 +54,10 @@ const ORDER_TYPE_LABELS: Record<OrderType, string> = {
   DELIVERY: 'Delivery',
 }
 
-// â”€â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main component ───────────────────────────────────────────────────────────
 
 function RouteComponent({ order: propOrder, onClose }: RouteComponentProps) {
-  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context â€” used inside MountManager or route component
+  // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
   const loaderData = propOrder ? null : Route.useLoaderData()
   const orderId = propOrder ? null : (loaderData?.orderId ?? '')
   const isOnline = useIsOnline()
@@ -83,6 +83,7 @@ function RouteComponent({ order: propOrder, onClose }: RouteComponentProps) {
       .filter(i => i.orderId === ord.id)
       .map(item => ({
         ...item,
+        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
         variant: null as any, // Skip deep variant/product joins offline
         selectedAddons: [],
       }))
@@ -147,7 +148,7 @@ function RouteComponent({ order: propOrder, onClose }: RouteComponentProps) {
               </Badge>
             </div>
             <p className='text-xs text-muted-foreground mt-0.5'>
-              {ORDER_TYPE_LABELS[order.orderType]} Â· {dayjs(order.createdAt).format('MMM DD, YYYY HH:mm')}
+              {ORDER_TYPE_LABELS[order.orderType]} · {dayjs(order.createdAt).format('MMM DD, YYYY HH:mm')}
             </p>
           </div>
         </div>
@@ -166,7 +167,7 @@ function RouteComponent({ order: propOrder, onClose }: RouteComponentProps) {
         <div>
           <p className='text-[9px] font-bold uppercase tracking-wider text-muted-foreground'>Total</p>
           <p className={cn('text-sm font-black font-mono', totalAmount != null ? 'text-primary' : 'text-muted-foreground')}>
-            {totalAmount != null ? PriceEngine.format(totalAmount) : 'â€”'}
+            {totalAmount != null ? PriceEngine.format(totalAmount) : '—'}
           </p>
         </div>
         {order.customerReference && (

@@ -1,5 +1,5 @@
 /**
- * welcome-modal.tsx â€” First-login welcome modal (Phase 1 BOS UI)
+ * welcome-modal.tsx — First-login welcome modal (Phase 1 BOS UI)
  *
  * Fires once when a new user lands on the app after completing registration.
  * Condition: user.onboardingCompletedAt is set (registration went through
@@ -9,27 +9,27 @@
  *
  * Content:
  *   - Welcome greeting with business name
- *   - Profile-aware subtitle â€” tells the user which path fits their business
+ *   - Profile-aware subtitle — tells the user which path fits their business
  *   - Single "Go to dashboard" button to dismiss
  *
  * Architecture:
  *   - Rendered in the private shell (route.tsx).
  *   - Reads onboardingCompletedAt and currentProfile from ServerUser.
- *   - Stores dismissal in localStorage â€” persists across logins.
- *   - No server call on dismiss â€” purely client-side gate.
+ *   - Stores dismissal in localStorage — persists across logins.
+ *   - No server call on dismiss — purely client-side gate.
  */
 
 import { Button } from '@platform/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
-import { authStore } from '@platform/lib/better-auth/auth-store'
 import { Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { SparklesIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { authStore } from '@/lib/better-auth/auth-store'
 import type { OperationalProfile } from '@/lib/onboarding/types'
 
 // ---------------------------------------------------------------------------
-// localStorage key â€” scoped to userId so each account tracks independently
+// localStorage key — scoped to userId so each account tracks independently
 // ---------------------------------------------------------------------------
 
 function getStorageKey(userId: string): string {
@@ -48,7 +48,7 @@ function markDismissed(userId: string): void {
   try {
     localStorage.setItem(getStorageKey(userId), 'true')
   } catch {
-    // ignore â€” private mode or storage full
+    // ignore — private mode or storage full
   }
 }
 
@@ -60,7 +60,7 @@ function getProfileSubtitle(profile: string | null): string {
   switch (profile as OperationalProfile | null) {
     case 'LITE_POS':
     case 'SERVICE_BUSINESS':
-      return 'Your store is ready. Head to the POS and start selling â€” no catalog setup needed.'
+      return 'Your store is ready. Head to the POS and start selling — no catalog setup needed.'
     case 'SIMPLE_RETAILER':
     case 'QUICK_SERVICE':
       return 'You can start selling immediately or set up your catalog first. The dashboard will guide you.'
@@ -68,7 +68,7 @@ function getProfileSubtitle(profile: string | null): string {
       return 'Your order queue is ready. Take orders at the POS, your team prepares them, and customers pay at the end.'
     case 'INVENTORY_INTENSIVE':
     case 'WHOLESALE_DISTRIBUTION':
-      return 'Check the dashboard for your setup steps â€” adding products and stock first will give you full tracking from day one.'
+      return 'Check the dashboard for your setup steps — adding products and stock first will give you full tracking from day one.'
     case 'MULTI_BRANCH_ENTERPRISE':
       return 'Your store is configured. Check the dashboard to finish setting up your catalog and team access.'
     default:

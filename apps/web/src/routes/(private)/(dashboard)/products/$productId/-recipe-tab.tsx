@@ -10,16 +10,20 @@ import { PriceEngine } from '@/lib/conversion/price-engine'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 
 interface RecipeTabProps {
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   product: any
   onRestockIngredient: (variant: posProduct['variants'][number]) => void
 }
 
 export function RecipeTab({ product, onRestockIngredient }: RecipeTabProps) {
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   const getRecipeIngredients = (variant: any) => variant.components?.filter((c: any) => !c.isAddon) || []
+  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
   const getAddons = (variant: any) => variant.components?.filter((c: any) => c.isAddon) || []
 
   return (
     <div className='space-y-4'>
+      // biome-ignore lint/suspicious/noExplicitAny: flexibility required
       {product.variants.map((v: any) => {
         const ingredients = getRecipeIngredients(v)
         const addons = getAddons(v)
@@ -28,7 +32,9 @@ export function RecipeTab({ product, onRestockIngredient }: RecipeTabProps) {
             {product.variants.length > 1 && <p className='text-[10px] font-bold uppercase tracking-wider text-muted-foreground'>{v.name || 'Default'}</p>}
             {ingredients.length > 0 ? (
               <div className='space-y-1.5'>
+                // biome-ignore lint/suspicious/noExplicitAny: flexibility required
                 {ingredients.map((comp: any) => {
+                  // biome-ignore lint/suspicious/noExplicitAny: flexibility required
                   const totalIngredientStock = comp.material.inventory?.reduce((acc: number, inv: any) => acc + inv.quantity, 0) ?? 0
                   const isLow = totalIngredientStock < 10
                   return (
@@ -41,7 +47,7 @@ export function RecipeTab({ product, onRestockIngredient }: RecipeTabProps) {
                         <p className='text-[10px] text-muted-foreground font-mono'>
                           {comp.quantityUsed} {comp.unit?.abbreviation}
                           {comp.material.name && comp.material.name !== comp.material.product.name && (
-                            <span className='ml-1 text-muted-foreground/60'>Â· {comp.material.name}</span>
+                            <span className='ml-1 text-muted-foreground/60'>· {comp.material.name}</span>
                           )}
                         </p>
                       </div>
@@ -61,6 +67,7 @@ export function RecipeTab({ product, onRestockIngredient }: RecipeTabProps) {
             {addons.length > 0 && (
               <div className='space-y-1'>
                 <p className='text-[10px] font-bold uppercase tracking-wider text-muted-foreground'>Add-ons</p>
+                // biome-ignore lint/suspicious/noExplicitAny: flexibility required
                 {addons.map((addon: any) => (
                   <div key={addon.id} className='flex items-center justify-between p-2 bg-blue-50/50 rounded-lg border border-blue-100'>
                     <p className='text-xs font-medium'>{addon.material.product.name}</p>

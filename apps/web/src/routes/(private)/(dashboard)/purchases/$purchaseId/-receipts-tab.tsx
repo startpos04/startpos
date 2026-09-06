@@ -10,11 +10,11 @@ import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@platform/components/ui/table'
 import dayjs from '@platform/lib/dayjs'
+import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { AlertTriangle, CheckCircle2, ClipboardCheck } from 'lucide-react'
 import { GoodsReceiptStatus } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import MountManager from '@platform/lib/mount-manager'
 import { confirmGoodsReceipt, disputeGoodsReceipt } from '@/lib/queries/confirm-goods-receipt'
 import { type feGoodsReceipt, fetchGoodsReceipts } from '@/lib/queries/fetch-goods-receipts'
 import type { fePurchase } from '@/lib/queries/fetch-purchases'
@@ -59,7 +59,7 @@ export function ReceiptsTab({ purchase, user }: ReceiptsTabProps) {
           })
           return false
         }
-        toast.success('Goods receipt confirmed â€” inventory credited')
+        toast.success('Goods receipt confirmed — inventory credited')
         return true
       },
     })
@@ -99,7 +99,7 @@ export function ReceiptsTab({ purchase, user }: ReceiptsTabProps) {
             <div className='flex items-center justify-between'>
               <div className='flex items-center gap-2'>
                 <ClipboardCheck className='size-3.5 text-muted-foreground' />
-                <span className='text-xs font-semibold'>{dayjs(receipt.createdAt).format('MMM DD, YYYY Â· HH:mm')}</span>
+                <span className='text-xs font-semibold'>{dayjs(receipt.createdAt).format('MMM DD, YYYY · HH:mm')}</span>
               </div>
               <Badge variant='outline' className={cn('text-[10px] py-0 h-4', colorClass)}>
                 {statusLabel}
@@ -123,12 +123,13 @@ export function ReceiptsTab({ purchase, user }: ReceiptsTabProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                // biome-ignore lint/suspicious/noExplicitAny: flexibility required
                 {receipt.items.map((item: any) => {
                   const hasDiscrepancy = item.receivedQty !== item.orderedQty
                   return (
                     <TableRow key={item.id}>
                       <TableCell className='py-1.5'>
-                        <p className='text-[11px] font-medium leading-tight'>{item.product?.name ?? 'â€”'}</p>
+                        <p className='text-[11px] font-medium leading-tight'>{item.product?.name ?? '—'}</p>
                         {item.variant?.name && <p className='text-[9px] text-muted-foreground font-mono'>{item.variant.name}</p>}
                       </TableCell>
                       <TableCell className='text-right font-mono text-[11px] py-1.5 text-muted-foreground'>
@@ -150,7 +151,7 @@ export function ReceiptsTab({ purchase, user }: ReceiptsTabProps) {
             {receipt.notes && !receipt.notes.startsWith('[DISPUTED]') && <p className='text-[11px] text-muted-foreground italic'>{receipt.notes}</p>}
             {receipt.notes?.startsWith('[DISPUTED]') && <p className='text-[11px] text-destructive font-medium'>{receipt.notes.replace('[DISPUTED] ', '')}</p>}
 
-            {/* GRN action buttons â€” only for PENDING receipts */}
+            {/* GRN action buttons — only for PENDING receipts */}
             {allowedActions.length > 0 && (
               <div className='flex gap-2 pt-1'>
                 {allowedActions

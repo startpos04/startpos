@@ -4,7 +4,7 @@
  * Returns all active subscription plans with their entitlements, used by
  * /billing/plans to render the tier selection page.
  *
- * Public â€” no auth required. Uses coreAPI (platform-level, no tenant scope).
+ * Public — no auth required. Uses coreAPI (platform-level, no tenant scope).
  */
 
 import { coreAPI } from '@platform/lib/prisma-client/core-api'
@@ -15,7 +15,7 @@ export type PlanWithEntitlements = {
   description: string
   sortOrder: number
   monthlyPrice: number
-  /** Annual fee in cents. null = no annual discount configured; compute as monthlyPrice Ã— 12 in the UI. */
+  /** Annual fee in cents. null = no annual discount configured; compute as monthlyPrice × 12 in the UI. */
   annualPrice: number | null
   includedTxPerMonth: number
   entitlements: Array<{

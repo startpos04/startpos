@@ -28,6 +28,7 @@ export function DetailsTab({ purchase }: DetailsTabProps) {
             </div>
             <div>
               <p className='text-sm font-semibold leading-tight'>{purchase.supplier.name}</p>
+              // biome-ignore lint/suspicious/noExplicitAny: flexibility required
               {(purchase.supplier as any).contactEmail && <p className='text-[11px] text-muted-foreground mt-0.5'>{(purchase.supplier as any).contactEmail}</p>}
             </div>
           </div>
