@@ -1,9 +1,8 @@
 import { operationalTaskCollection } from '@platform/db/collections'
 import { createFileRoute } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { closeTaskSidebar } from '../-components/task-sidebar'
 import { CreateTask, type CreateTaskFormData } from './-create-task'
 
@@ -12,7 +11,7 @@ export const Route = createFileRoute('/(private)/tasks/create/')({
 })
 
 export function CreateTaskSidebar() {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
 
   const handleSubmit = async ({ value }: { value: CreateTaskFormData }) => {
     const { type, clerkId, approverId, notes, ...subTaskMetadata } = value

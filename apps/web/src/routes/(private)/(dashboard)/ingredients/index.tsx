@@ -3,12 +3,14 @@ import { TableView } from '@platform/components/custom/data-view/table-view'
 import { WarningPrompt } from '@platform/components/custom/prompt/warning-prompt'
 import { Button } from '@platform/components/ui/button'
 import { productCollection } from '@platform/db/collections'
+import { Capabilities } from '@platform/lib/entitlement/capability-keys'
 import MountManager from '@platform/lib/mount-manager'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Database, Package, Plus, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { productCols } from '@/lib/columns/product-columns'
 import { tableCols } from '@/lib/columns/table-columns'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
@@ -20,8 +22,8 @@ import { CreateIngredientSidebar } from './create'
 export const Route = createFileRoute('/(private)/(dashboard)/ingredients/')({
   component: RouteComponent,
   beforeLoad: () => {
-    const { user } = authStore.state
-    if (!user?.entitlement?.capabilities?.includes(Capabilities.MANAGE_INVENTORY)) {
+    const user = getAuthenticatedUser()
+    if (!user.entitlement.capabilities.includes(Capabilities.MANAGE_INVENTORY)) {
       throw redirect({ to: '/unauthorized' })
     }
   },

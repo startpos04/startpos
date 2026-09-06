@@ -10,7 +10,7 @@ import dayjs from '@platform/lib/dayjs'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
 import type { MountProps } from '@platform/lib/mount-manager'
 import { and, count, eq, gte, inArray, lte, sum, useLiveQuery } from '@tanstack/react-db'
-import { formOptions, useStore } from '@tanstack/react-form'
+import { formOptions } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 import { AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react'
 import type { VendorSession } from 'prisma/generated/prisma/browser'
@@ -18,7 +18,7 @@ import { NotificationType, Role, SessionStatus, TaskStatus } from 'prisma/genera
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { logout } from '@/lib/better-auth/auth-engine'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { authStore, useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
 
@@ -33,7 +33,7 @@ type SubmissionType = 'CREATE_TASK' | 'INSTANT_RECONCILE'
 
 export function ReconcileLater({ onClose }: MountProps) {
   const [submissionType, setSubmissionType] = useState<SubmissionType>('CREATE_TASK')
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const navigate = useNavigate()
   const canCreateTask = useCapability(Capabilities.CREATE_TASK)
 

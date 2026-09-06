@@ -19,10 +19,9 @@ import { cn } from '@platform/lib/utils'
 import { useLiveQuery } from '@tanstack/react-db'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { BoxIcon, ChevronLeftIcon, ChevronRightIcon, CreditCardIcon, LifeBuoyIcon, LightbulbIcon, SparklesIcon, UsersIcon, ZapIcon } from 'lucide-react'
 import { useState } from 'react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { HEALTH_STAGE_HINTS } from '@/lib/evolution/business-health-model'
 import { fetchCapabilityStates } from '@/lib/server-fn/fetch-capability-states'
 import { fetchDashboardHints } from '@/lib/server-fn/fetch-dashboard-hints'
@@ -36,7 +35,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/dashboard')({
 })
 
 function DashboardPage() {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const qc = useQueryClient()
   const { isVisible: firstRunVisible } = useFirstRun()
 
@@ -81,9 +80,9 @@ function DashboardPage() {
   // Fall back to the authStore entitlement value when the collection is empty
   // (e.g. the user hasn't done any checkout this session yet).
   const latestLedgerEntry = (creditLedgerEntries.data ?? [])
-    .filter(e => e.businessId === user.business?.id)
+    .filter(e => e.businessId === user.business.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
-  const creditBalance = latestLedgerEntry?.balanceAfter ?? user.entitlement?.creditBalance
+  const creditBalance = latestLedgerEntry?.balanceAfter ?? user.entitlement.creditBalance
 
   // Use server hints when online, fall back to collection when offline
   // Filter and sort offline hints in JavaScript
@@ -108,7 +107,7 @@ function DashboardPage() {
   return (
     <div className='flex flex-col gap-6 px-4'>
       {/* Welcome banner */}
-      <WelcomeBanner name={user.name} businessName={user.business?.name} />
+      <WelcomeBanner name={user.name} businessName={user.business.name} />
 
       {/* Health stage hint — contextual next-step based on operational maturity */}
       {healthHint && (
@@ -126,7 +125,7 @@ function DashboardPage() {
         <StatCard
           icon={<CreditCardIcon className='h-4 w-4' />}
           label={creditBalance !== null ? 'Credits remaining' : 'Subscription'}
-          value={creditBalance !== null ? creditBalance : (user.entitlement?.status ?? '—')}
+          value={creditBalance !== null ? creditBalance : (user.entitlement.status ?? '—')}
         />
       </div>
 

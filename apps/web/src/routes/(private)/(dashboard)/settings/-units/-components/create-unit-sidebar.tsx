@@ -8,7 +8,7 @@ import { Plus, X } from 'lucide-react'
 import { UnitType } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { closeUnitSidebar } from './unit-sidebar'
 
 const defaultForm: { name: string; abbreviation: string; type: UnitType; conversionFactor: number; isBaseUnit: boolean } = {
@@ -27,7 +27,7 @@ export function CreateUnitSidebar() {
     if (!form.name.trim() || !form.abbreviation.trim()) return
     setSaving(true)
     try {
-      const { user } = authStore.state
+      const user = getAuthenticatedUser()
       unitCollection.insert({
         id: crypto.randomUUID(),
         name: form.name.trim(),

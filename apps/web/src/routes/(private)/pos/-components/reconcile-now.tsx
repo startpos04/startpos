@@ -9,7 +9,7 @@ import { useAppForm } from '@platform/hooks/form'
 import dayjs from '@platform/lib/dayjs'
 import MountManager, { type MountProps } from '@platform/lib/mount-manager'
 import { and, count, eq, gte, inArray, lte, sum, useLiveQuery } from '@tanstack/react-db'
-import { formOptions, useStore } from '@tanstack/react-form'
+import { formOptions } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 import { AlertCircle, ShieldCheck } from 'lucide-react'
 import { Role, SessionStatus, TaskStatus } from 'prisma/generated/prisma/enums'
@@ -17,7 +17,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { AuthPrompt } from '@/components/custom/prompt/auth-prompt'
 import { logout } from '@/lib/better-auth/auth-engine'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 
 export const closeSessionFormOpts = formOptions({
@@ -29,7 +29,7 @@ export const closeSessionFormOpts = formOptions({
 
 export function ReconcileNow({ onClose }: MountProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const navigate = useNavigate()
 
   const members = useLiveQuery(q => q.from({ member: membershipCollection }).where(({ member }) => inArray(member.role, [Role.ADMIN, Role.SUPERVISOR])), [])
@@ -37,7 +37,7 @@ export function ReconcileNow({ onClose }: MountProps) {
     q =>
       q
         .from({ session: vendorSessionCollection })
-        .where(({ session }) => eq(session.id, user.vendorSession?.id))
+        .where(({ session }) => eq(session.id, user.vendorSession.id))
         .leftJoin({ task: operationalTaskCollection }, ({ task, session }) => eq(session.operationalTaskId, task.id))
         .select(({ session, task }) => ({ ...session, operationalTask: task })),
     [],

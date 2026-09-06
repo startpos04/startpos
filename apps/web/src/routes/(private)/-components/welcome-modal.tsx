@@ -22,10 +22,9 @@
 import { Button } from '@platform/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
 import { Link } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { SparklesIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import type { OperationalProfile } from '@/lib/onboarding/types'
 
 // ---------------------------------------------------------------------------
@@ -81,28 +80,28 @@ function getProfileSubtitle(profile: string | null): string {
 // ---------------------------------------------------------------------------
 
 export function WelcomeModal() {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    if (!user?.id) return
+    if (!user.id) return
     // Only show when onboarding was completed (v2 survey path) AND not yet dismissed
     if (!user.onboardingCompletedAt) return
     if (hasBeenDismissed(user.id)) return
     // Small delay so the dashboard finishes rendering before the modal appears
     const timer = setTimeout(() => setOpen(true), 800)
     return () => clearTimeout(timer)
-  }, [user?.id, user?.onboardingCompletedAt])
+  }, [user.id, user.onboardingCompletedAt])
 
   const handleDismiss = () => {
-    if (user?.id) markDismissed(user.id)
+    if (user.id) markDismissed(user.id)
     setOpen(false)
   }
 
   if (!open) return null
 
-  const businessName = user?.business?.name ?? 'your store'
-  const subtitle = getProfileSubtitle(user?.currentProfile ?? null)
+  const businessName = user.business.name ?? 'your store'
+  const subtitle = getProfileSubtitle(user.currentProfile ?? null)
 
   return (
     <Dialog

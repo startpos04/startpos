@@ -7,11 +7,10 @@ import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { AlertTriangle, Clock, Lock, Package, ShoppingCart, TrendingUp } from 'lucide-react'
 import numeral from 'numeral'
 import { useMemo } from 'react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser, useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { FinishedGoodsEngine } from '@/lib/production'
 import { fetchBatchPreparedProducts } from '@/lib/queries/fetch-batch-prepared-products'
 import { PREPARATION_ASIDE_ID, showPreparationSidebar } from './-components/preparation-sidebar'
@@ -21,8 +20,8 @@ import { RecordWasteSidebar } from './-components/record-waste-sidebar'
 export const Route = createFileRoute('/(private)/(dashboard)/preparation/')({
   component: RouteComponent,
   beforeLoad: () => {
-    const { user } = authStore.state
-    if (!user?.entitlement?.capabilities?.includes(Capabilities.MANAGE_INVENTORY)) {
+    const user = getAuthenticatedUser()
+    if (!user.entitlement.capabilities.includes(Capabilities.MANAGE_INVENTORY)) {
       throw redirect({ to: '/unauthorized' })
     }
   },
@@ -43,7 +42,7 @@ interface BatchPreparationSummary {
 }
 
 function RouteComponent() {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const navigate = Route.useNavigate()
   const hasBatchPreparation = useCapability(Capabilities.BATCH_PREPARATION)
 

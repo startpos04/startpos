@@ -23,7 +23,7 @@ import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { Ban, CheckCheck, ChevronDown, Clock, CreditCard, DollarSign, Play, SquarePen, Undo2, User } from 'lucide-react'
 import { OrderStatus } from 'prisma/generated/prisma/browser'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { createPosRefund } from '@/lib/queries/create-pos-refund'
 import { fetchActiveOrders } from '@/lib/queries/fetch-active-orders'
@@ -44,8 +44,8 @@ interface RouteComponentProps {
 export const Route = createFileRoute('/(private)/orders/')({
   component: OrdersPageGate,
   beforeLoad: () => {
-    const { user } = authStore.state
-    if (!user?.entitlement?.capabilities?.includes(Capabilities.CREATE_ORDER)) {
+    const user = getAuthenticatedUser()
+    if (!user.entitlement.capabilities.includes(Capabilities.CREATE_ORDER)) {
       throw redirect({ to: '/unauthorized' })
     }
   },

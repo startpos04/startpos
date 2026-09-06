@@ -19,7 +19,7 @@ import { useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { handleBarcodeScan, mergeCartItem } from '@/lib/barcode-handler'
 import { logout } from '@/lib/better-auth/auth-engine'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { getBluetoothPrinter } from '@/lib/bluetooth-printer'
 import type { posItem } from '@/lib/conversion/pos-stock-engine'
 import { createPosOrder } from '@/lib/queries/create-pos-order'
@@ -69,7 +69,7 @@ function POSPageGate() {
 function POSPage() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const canReconcile = useCapability(Capabilities.START_VENDOR_SESSION)
   const canPrintReceipt = useCapability(Capabilities.PRINT_RECEIPT)
   const canCreateOrder = useCapability(Capabilities.CREATE_ORDER)

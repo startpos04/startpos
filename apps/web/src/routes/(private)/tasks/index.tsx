@@ -8,13 +8,12 @@ import { Capabilities } from '@platform/lib/entitlement/capability-keys'
 import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { Calendar, ClipboardList, Plus, Trash2 } from 'lucide-react'
 import { Role, TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Dashboard } from '@/components/dashboard'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser, useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { fetchTasks } from '@/lib/queries/fetch-tasks'
 import { showTaskSidebar, TASK_ASIDE_ID } from './-components/task-sidebar'
 import { TaskDetailsSidebar } from './$taskId'
@@ -32,13 +31,13 @@ const TYPE_CONFIG: Record<string, string> = {
 
 export const Route = createFileRoute('/(private)/tasks/')({
   beforeLoad: () => {
-    const { user } = authStore.state
-    if (!user?.entitlement?.capabilities?.includes(Capabilities.CREATE_TASK)) {
+    const user = getAuthenticatedUser()
+    if (!user.entitlement.capabilities.includes(Capabilities.CREATE_TASK)) {
       throw redirect({ to: '/unauthorized' })
     }
   },
   component: () => {
-    const user = useStore(authStore, state => state.user)
+    const user = useAuthenticatedUser()
     if (user.role === Role.CASHIER) return <RouteComponent />
     return (
       <Dashboard>
@@ -55,7 +54,7 @@ const DELETABLE_ROLES: Role[] = [Role.ADMIN, Role.SUPERVISOR]
 
 function RouteComponent() {
   const { data, isLoading } = fetchTasks()
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const [selectedId, setSelectedId] = useState<string>('')
 
   const handleAdd = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -236,7 +235,7 @@ function RouteComponent() {
           id: 'actions',
           header: () => <div className='text-right pr-4'>Actions</div>,
           cell: ({ row }) => {
-            const canDelete = DELETABLE_ROLES.includes(user?.role as Role) && DELETABLE_STATUSES.includes(row.original.status as TaskStatus)
+            const canDelete = DELETABLE_ROLES.includes(user.role as Role) && DELETABLE_STATUSES.includes(row.original.status as TaskStatus)
 
             if (!canDelete) return <div className='pr-2 h-8' />
 
@@ -246,7 +245,7 @@ function RouteComponent() {
                 description: 'Are you sure you want to remove this task? This action cannot be undone.',
                 onConfirm: async () => {
                   // B3: re-check at confirmation time in case status changed while prompt was open
-                  if (!DELETABLE_ROLES.includes(user?.role as Role) || !DELETABLE_STATUSES.includes(row.original.status as TaskStatus)) {
+                  if (!DELETABLE_ROLES.includes(user.role as Role) || !DELETABLE_STATUSES.includes(row.original.status as TaskStatus)) {
                     toast.error('This task can no longer be deleted.')
                     return false
                   }

@@ -6,9 +6,8 @@ import { Button } from '@platform/components/ui/button'
 import type { MountProps } from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { createFileRoute } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { Box, Edit, Plus, X } from 'lucide-react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { fetchIngredients } from '@/lib/queries/fetch-ingredients'
 import { closeIngredientSidebar, showIngredientSidebar } from '../-components/ingredient-sidebar'
@@ -41,7 +40,7 @@ export function IngredientDetailsSidebar({ open: _open, onClose, ingredientId }:
 function RouteComponent({ ingredientId: propId, onClose }: RouteComponentProps & { onClose?: () => void }) {
   // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
   const ingredientId = propId || Route.useLoaderData().ingredientId
-  const user = useStore(authStore, s => s.user)
+  const user = useAuthenticatedUser()
   const { data: ingredients, isLoading } = fetchIngredients(ingredientId)
   const ingredient = ingredients.find(ing => ing.id === ingredientId)
 

@@ -99,12 +99,11 @@ export type FetchInventoryReportsReturn = ReturnType<typeof fetchInventoryReport
 export type InventoryData = NonNullable<FetchInventoryReportsReturn['data']>
 
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
-import { authStore } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/inventory-reports/')({
   beforeLoad: () => {
-    const { user } = authStore.state
-    if (!user?.entitlement?.capabilities?.includes(Capabilities.MANAGE_INVENTORY)) {
+    const user = getAuthenticatedUser()
+    if (!user.entitlement.capabilities.includes(Capabilities.MANAGE_INVENTORY)) {
       throw redirect({ to: '/unauthorized' })
     }
   },

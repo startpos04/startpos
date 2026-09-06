@@ -1,12 +1,10 @@
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Link } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { AlertCircleIcon, CircleDashedIcon, ExternalLinkIcon, XCircleIcon } from 'lucide-react'
 import { Role } from 'prisma/generated/prisma/enums'
 import * as React from 'react'
-import { authStore } from '@/lib/better-auth/auth-store'
-import type { UserContext } from '@/lib/compliance'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { getComplianceAdapter } from '@/lib/compliance'
 
 /**
@@ -25,26 +23,26 @@ import { getComplianceAdapter } from '@/lib/compliance'
  * Dismissible for UNREGISTERED status (saved to localStorage).
  */
 export function RegistrationStatusCard() {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const [dismissed, setDismissed] = React.useState(false)
 
   // Only show for ADMIN and OWNER roles
-  const canSee = user?.role === Role.ADMIN || user?.role === Role.OWNER
+  const canSee = user.role === Role.ADMIN || user.role === Role.OWNER
 
   // Get registration status from business
-  const registrationStatus = user?.business?.registrationStatus ?? 'UNREGISTERED'
+  const registrationStatus = user.business.registrationStatus ?? 'UNREGISTERED'
 
   // Check if compliance data is complete (for REGISTERED status)
   // Hooks must run before any conditional return
   const isComplianceComplete = React.useMemo(() => {
-    if (!canSee || !user?.business || registrationStatus !== 'REGISTERED') return true
+    if (!canSee || !user.business || registrationStatus !== 'REGISTERED') return true
 
     try {
       const adapter = getComplianceAdapter(user.business.countryCode)
       const complianceData = adapter.extractComplianceData({
-        business: user.business as UserContext['business'],
-        branch: user.branch as UserContext['branch'],
-        user: user as UserContext['user'],
+        business: user.business,
+        branch: user.branch,
+        user: user,
       })
       const missingFields = adapter.validateCompliance(complianceData)
       return missingFields.length === 0
@@ -153,21 +151,18 @@ function UnregisteredCard({ onDismiss }: UnregisteredCardProps) {
 // ---------------------------------------------------------------------------
 
 function PendingCard() {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
 
   // Get missing fields from compliance validation
   const missingFields = React.useMemo(() => {
-    if (!user?.business) return []
+    if (!user.business) return []
 
     try {
       const adapter = getComplianceAdapter(user.business.countryCode)
       const complianceData = adapter.extractComplianceData({
-        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
-        business: user.business as any,
-        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
-        branch: user.branch as any,
-        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
-        user: user as any,
+        business: user.business,
+        branch: user.branch,
+        user,
       })
       return adapter.validateCompliance(complianceData)
     } catch {
@@ -210,21 +205,18 @@ function PendingCard() {
 // ---------------------------------------------------------------------------
 
 function RegisteredIncompleteCard() {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
 
   // Get missing fields from compliance validation
   const missingFields = React.useMemo(() => {
-    if (!user?.business) return []
+    if (!user.business) return []
 
     try {
       const adapter = getComplianceAdapter(user.business.countryCode)
       const complianceData = adapter.extractComplianceData({
-        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
-        business: user.business as any,
-        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
-        branch: user.branch as any,
-        // biome-ignore lint/suspicious/noExplicitAny: flexibility required
-        user: user as any,
+        business: user.business,
+        branch: user.branch,
+        user,
       })
       return adapter.validateCompliance(complianceData)
     } catch {

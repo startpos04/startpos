@@ -1,7 +1,7 @@
 import { uuid } from '@tanstack/react-form'
 import _ from 'lodash'
 import type { posItem } from './conversion/pos-stock-engine'
-import { PosStockEngine } from './conversion/pos-stock-engine'
+import { PosStockEngine, stockResultToNumber } from './conversion/pos-stock-engine'
 import type { posProduct } from './queries/fetch-pos-products'
 
 export interface BarcodeHandlerResult {
@@ -104,13 +104,14 @@ export function handleBarcodeScan(options: BarcodeHandlerOptions): BarcodeHandle
 
   // Calculate remaining stock for the specific variant
   const remainingYield = PosStockEngine.calculateRemainingYield(matchedProduct, matchedVariant, [], cartItems, orderItems)
+  const remainingQty = stockResultToNumber(remainingYield)
 
   // Check if out of stock
-  if (remainingYield < quantity) {
+  if (remainingQty < quantity) {
     return {
       action: 'out-of-stock',
       product: matchedProduct,
-      message: `${matchedProduct.name} (${matchedVariant.name || 'Default'}) is out of stock${remainingYield > 0 ? ` (only ${remainingYield} available)` : ''}`,
+      message: `${matchedProduct.name} (${matchedVariant.name || 'Default'}) is out of stock${remainingQty > 0 ? ` (only ${remainingQty} available)` : ''}`,
     }
   }
 
@@ -181,7 +182,7 @@ export function mergeCartItem(existingItems: posItem[], newItem: posItem): posIt
     const updatedItems = [...existingItems]
     updatedItems[existingItemIndex] = {
       ...updatedItems[existingItemIndex]!,
-      quantity: updatedItems[existingItemIndex]?.quantity + newItem.quantity,
+      quantity: (updatedItems[existingItemIndex]?.quantity ?? 0) + newItem.quantity,
     }
     return updatedItems
   }

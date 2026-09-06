@@ -21,7 +21,6 @@ import type { MountProps } from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
@@ -38,7 +37,7 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { getAuthUser } from '@/lib/better-auth/auth-server'
-import { authStore, refreshUser } from '@/lib/better-auth/auth-store'
+import { refreshUser, useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
 import { cancelSubscription } from '@/lib/server-fn/cancel-subscription'
 import { createBillingPortalSession } from '@/lib/server-fn/create-billing-portal-session'
@@ -114,8 +113,8 @@ export function formatDate(iso: string | null | undefined): string {
 // ---------------------------------------------------------------------------
 
 export function BranchTransactionQuotaView() {
-  const user = useStore(authStore, state => state.user)
-  const canManageBranches = user?.entitlement?.capabilities?.includes('MANAGE_BRANCHES')
+  const user = useAuthenticatedUser()
+  const canManageBranches = user.entitlement.capabilities.includes('MANAGE_BRANCHES')
 
   const { data: branchCredits, isLoading } = useQuery({
     queryKey: ['consolidated-branch-credits'],

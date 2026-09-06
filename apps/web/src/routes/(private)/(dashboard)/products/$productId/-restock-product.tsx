@@ -5,12 +5,12 @@ import { Button } from '@platform/components/ui/button'
 import { Separator } from '@platform/components/ui/separator'
 import dayjs from '@platform/lib/dayjs'
 import type { MountProps } from '@platform/lib/mount-manager'
-import { useForm, useStore } from '@tanstack/react-form'
+import { useForm } from '@tanstack/react-form'
 import { ArrowLeft, CalendarDays, Hash, Package, ReceiptIndianRupee, Save, X } from 'lucide-react'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { fetchLocationOptions } from '@/lib/queries/fetch-location-options'
 import type { posProduct } from '@/lib/queries/fetch-pos-products'
 import { fetchSupplierOptions } from '@/lib/queries/fetch-supplier-options'
@@ -37,7 +37,7 @@ interface RestockProductSidebarProps extends MountProps {
 }
 
 export function RestockProductSidebar({ open: _open, onClose, variant, product, onBack }: RestockProductSidebarProps) {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const { data: unitOptions = [] } = fetchUnitOptions()
   const { data: locationOptions = [] } = fetchLocationOptions()
   const { data: supplierOptions = [] } = fetchSupplierOptions()

@@ -23,11 +23,11 @@ import MountManager from '@platform/lib/mount-manager'
 import { AlertTriangle, FileText, Loader2, ShieldAlert, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { requestAccountDeletion } from '@/lib/server-fn/request-account-deletion'
 
 export function AccountPage() {
-  const { user } = authStore.state
+  const user = useAuthenticatedUser()
   const [isRequesting, setIsRequesting] = useState(false)
 
   const handleRequestDeletion = () => {

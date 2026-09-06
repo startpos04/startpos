@@ -12,11 +12,10 @@ import type { MountProps } from '@platform/lib/mount-manager'
 import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { createFileRoute } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { CheckCircle2, Package, ShoppingCart, Undo2, X } from 'lucide-react'
 import { PurchaseStatus } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { createGoodsReceipt } from '@/lib/queries/create-goods-receipt'
 import { type fePurchase, fetchPurchases } from '@/lib/queries/fetch-purchases'
@@ -121,7 +120,7 @@ function RouteComponent({ purchaseId: propId, onClose }: RouteComponentProps) {
   const loaderData = propId ? null : Route.useLoaderData()
   const purchaseId = propId ?? loaderData?.purchaseId ?? ''
 
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const { data: purchases = [], isLoading } = fetchPurchases()
   const purchase = purchases.find(p => p.id === purchaseId)
 

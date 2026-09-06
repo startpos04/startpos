@@ -7,7 +7,7 @@ import { downloadCsv } from '@platform/lib/utils/download-csv'
 import { createFileRoute, redirect, useNavigate, useSearch } from '@tanstack/react-router'
 import { Download, PackageCheck } from 'lucide-react'
 import { useMemo } from 'react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { downloadTransactionsCSV } from '@/lib/server-fn/download-tranasctions'
 import { AverageOrderSize } from './-components/average-order-size'
 import { GrossProfit } from './-components/gross-profit'
@@ -22,8 +22,8 @@ import { fetchTransactionReport } from './-utils/fetch-transaction-reports'
 
 export const Route = createFileRoute('/(private)/(dashboard)/sales-reports/')({
   beforeLoad: () => {
-    const { user } = authStore.state
-    if (!user?.entitlement?.capabilities?.includes(Capabilities.VIEW_SALES_REPORTS)) {
+    const user = getAuthenticatedUser()
+    if (!user.entitlement.capabilities.includes(Capabilities.VIEW_SALES_REPORTS)) {
       throw redirect({ to: '/unauthorized' })
     }
   },

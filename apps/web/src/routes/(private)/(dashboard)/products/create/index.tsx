@@ -5,7 +5,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { closeProductSidebar } from '../-components/product-sidebar'
 import { CreateProduct, type CreateProductFormData } from './-create-product'
 
@@ -32,7 +32,7 @@ export function CreateProductSidebar({ onClose }: CreateProductSidebarProps) {
       shelfLifeHours,
       ...productData
     } = value
-    const { user } = authStore.state
+    const user = getAuthenticatedUser()
 
     const result = await dbTransaction(() => {
       const productId = crypto.randomUUID()

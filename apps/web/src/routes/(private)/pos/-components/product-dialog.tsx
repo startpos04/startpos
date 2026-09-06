@@ -13,7 +13,7 @@ import { useSearch } from '@tanstack/react-router'
 import { ImageIcon, Minus, Plus, Sparkles, X } from 'lucide-react'
 import { useMemo } from 'react'
 import { usePOS } from '@/hooks/use-pos'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { isUnlimitedStock, PosStockEngine, type posItem, stockResultToNumber } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { getInventoryMode } from '@/lib/inventory'
@@ -28,8 +28,8 @@ interface ProductDialogProps extends MountProps {
 export function ProductDialog({ open, onClose, cartItems, product, onConfirm }: ProductDialogProps) {
   const { orderId, search = '', page = 1, pageSize = 20 } = useSearch({ from: '/(private)/pos/' })
   const { orderItems } = usePOS({ orderId, searchQuery: search, page, pageSize })
-  const user = useStore(authStore, state => state.user)
-  const inventoryMode = useMemo(() => getInventoryMode(user?.business?.id ?? ''), [user?.business?.id])
+  const user = useAuthenticatedUser()
+  const inventoryMode = useMemo(() => getInventoryMode(user.business.id ?? ''), [user.business.id])
 
   const hasMultipleVariants = useMemo(() => (product.variants?.length ?? 0) > 1, [product])
 

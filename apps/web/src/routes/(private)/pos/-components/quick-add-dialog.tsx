@@ -27,12 +27,11 @@ import { categoryCollection, productCollection, productVariantCollection, unitCo
 import { dbTransaction } from '@platform/db/local-db-transaction'
 import type { MountProps } from '@platform/lib/mount-manager'
 import { useForm, uuid } from '@tanstack/react-form'
-import { useStore } from '@tanstack/react-store'
 import { PackagePlus, X } from 'lucide-react'
 import { ResourceType, TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/browser'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import type { posItem } from '@/lib/conversion/pos-stock-engine'
 
 // ---------------------------------------------------------------------------
@@ -88,7 +87,7 @@ const schema = z.object({
 // ---------------------------------------------------------------------------
 
 export function QuickAddDialog({ open, onClose, searchQuery, sku, onConfirm }: QuickAddDialogProps) {
-  const user = useStore(authStore, s => s.user)
+  const user = useAuthenticatedUser()
 
   const form = useForm({
     defaultValues: {
@@ -100,7 +99,7 @@ export function QuickAddDialog({ open, onClose, searchQuery, sku, onConfirm }: Q
       onChange: schema,
     },
     onSubmit: async ({ value }) => {
-      const businessId = user?.business?.id
+      const businessId = user.business.id
       if (!businessId) return
 
       const defaults = resolveDefaults(businessId)

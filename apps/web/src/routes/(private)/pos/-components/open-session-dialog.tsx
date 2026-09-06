@@ -6,14 +6,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { operationalTaskCollection, vendorSessionCollection } from '@platform/db/collections'
 import { dbTransaction } from '@platform/db/local-db-transaction'
 import type { MountProps } from '@platform/lib/mount-manager'
-import { useForm, useStore } from '@tanstack/react-form'
+import { useForm } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 import { Info, LayoutDashboard, LogOut, PlayCircle } from 'lucide-react'
 import { Role, SessionStatus, TaskStatus, TaskType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { logout } from '@/lib/better-auth/auth-engine'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { authStore, useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 
 export const createSessionSchema = z
   .object({
@@ -34,7 +34,7 @@ export const createSessionSchema = z
 export type CreateSessionFormData = z.infer<typeof createSessionSchema>
 
 export function OpenSessionDialog({ open, onClose }: MountProps) {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const navigate = useNavigate()
 
   const form = useForm({

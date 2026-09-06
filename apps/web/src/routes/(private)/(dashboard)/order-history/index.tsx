@@ -13,7 +13,7 @@ import { createFileRoute, redirect, useNavigate, useSearch } from '@tanstack/rea
 import { ClipboardList } from 'lucide-react'
 import { OrderStatus, type OrderType } from 'prisma/generated/prisma/enums'
 import { useCallback, useMemo, useState } from 'react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { orderCols } from '@/lib/columns/order-columns'
 import { fetchOrderHistory, type OrderHistoryItem } from '@/lib/server-fn/fetch-order-history'
 import { closeOrderHistorySidebar, ORDER_HISTORY_ASIDE_ID, showOrderHistorySidebar } from './-components/order-history-sidebar'
@@ -27,8 +27,8 @@ const ORDER_TYPE_LABELS: Record<OrderType, string> = {
 
 export const Route = createFileRoute('/(private)/(dashboard)/order-history/')({
   beforeLoad: () => {
-    const { user } = authStore.state
-    if (!user?.entitlement?.capabilities?.includes(Capabilities.VIEW_ORDER_HISTORY)) {
+    const user = getAuthenticatedUser()
+    if (!user.entitlement.capabilities.includes(Capabilities.VIEW_ORDER_HISTORY)) {
       throw redirect({ to: '/unauthorized' })
     }
   },

@@ -9,7 +9,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { authStore, getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { employeeCols } from '@/lib/columns/employee-columns'
 import { tableCols } from '@/lib/columns/table-columns'
 import { closeEmployeeSidebar, EMPLOYEE_ASIDE_ID, showEmployeeSidebar } from './-components/employee-sidebar'
@@ -19,8 +19,8 @@ import { CreateEmployeeSidebar } from './create'
 export const Route = createFileRoute('/(private)/(dashboard)/employees/')({
   component: RouteComponent,
   beforeLoad: () => {
-    const { user } = authStore.state
-    if (!user?.entitlement?.capabilities?.includes(Capabilities.MANAGE_EMPLOYEES)) {
+    const user = getAuthenticatedUser()
+    if (!user.entitlement.capabilities.includes(Capabilities.MANAGE_EMPLOYEES)) {
       throw redirect({ to: '/unauthorized' })
     }
   },
@@ -29,15 +29,15 @@ export const Route = createFileRoute('/(private)/(dashboard)/employees/')({
 function RouteComponent() {
   const { data, isLoading } = useLiveQuery(q => q.from({ user: userCollection }))
   const [selectedId, setSelectedId] = useState<string>('')
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
 
   // Calculate employee usage and limits
   const activeEmployees = data?.filter(u => !u.deletedAt) ?? []
   const currentEmployeeCount = activeEmployees.length
 
   // Get employee limit from user entitlement
-  const employeeEntitlement = user?.entitlement?.planFeatures?.find(f => f === 'MANAGE_EMPLOYEES')
-  const employeeUsageLimit = user?.entitlement?.usageLimits?.MANAGE_EMPLOYEES
+  const employeeEntitlement = user.entitlement.planFeatures?.find(f => f === 'MANAGE_EMPLOYEES')
+  const employeeUsageLimit = user.entitlement.usageLimits?.MANAGE_EMPLOYEES
   const planEmployeeLimit = employeeUsageLimit ?? (employeeEntitlement ? -1 : 0) // -1 = unlimited, 0 = no access
 
   // Note: Add-on calculation would require a separate query, for now just show plan limits

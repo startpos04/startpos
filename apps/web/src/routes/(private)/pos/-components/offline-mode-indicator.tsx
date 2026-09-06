@@ -12,14 +12,13 @@
 
 import { Badge } from '@platform/components/ui/badge'
 import { Card } from '@platform/components/ui/card'
-import { useStore } from '@tanstack/react-store'
 import { AlertCircle, CheckCircle, WifiOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 
 export function OfflineModeIndicator() {
   const [isOffline, setIsOffline] = useState(false)
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
 
   useEffect(() => {
     // Check initial online status

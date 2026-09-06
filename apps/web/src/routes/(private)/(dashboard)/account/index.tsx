@@ -25,7 +25,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { AlertTriangle, FileText, Loader2, ShieldAlert, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { requestAccountDeletion } from '@/lib/server-fn/request-account-deletion'
 
 export const Route = createFileRoute('/(private)/(dashboard)/account/')({
@@ -33,7 +33,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/account/')({
 })
 
 function AccountPage() {
-  const { user } = authStore.state
+  const user = useAuthenticatedUser()
   const [isRequesting, setIsRequesting] = useState(false)
 
   const handleRequestDeletion = () => {

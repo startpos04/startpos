@@ -26,13 +26,12 @@ import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Separator } from '@platform/components/ui/separator'
 import { createFileRoute, Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { ArrowRightIcon, BuildingIcon, CheckCircle2Icon, CrownIcon, GitBranchIcon, MinusIcon, PlusIcon, SparklesIcon, UsersIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { getAuthUser } from '@/lib/better-auth/auth-server'
-import { authStore, refreshUser } from '@/lib/better-auth/auth-store'
+import { refreshUser, useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { purchaseAddonSubscription } from '@/lib/server-fn/purchase-addon-subscription'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/subscription/success/')({
@@ -105,8 +104,8 @@ function BillingSuccessPage() {
   const planName = search.plan ?? 'your plan'
   const billingMethod = search.billing ?? 'monthly'
 
-  const user = useStore(authStore, state => state.user)
-  const configs = user?.configs
+  const user = useAuthenticatedUser()
+  const configs = user.configs
 
   // Refresh authStore on mount so the billing dashboard reflects the new status.
   // We use a short delay to allow the Stripe webhook to complete before reading.

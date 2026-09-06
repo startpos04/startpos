@@ -8,19 +8,18 @@ import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { useNavigate } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { AlertCircleIcon, Banknote, CheckCircleIcon, CreditCardIcon, SettingsIcon, ShieldCheckIcon, ZapIcon } from 'lucide-react'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { paymentProviderRegistry } from '@/lib/billing/payment-provider-registry'
 import { getEnabledProviderConfigs } from '@/lib/billing/provider-config'
 
 export function OverviewTab() {
   const navigate = useNavigate()
-  const user = useStore(authStore, s => s.user)
+  const user = useAuthenticatedUser()
 
   // Get current business payment preferences
-  const currentProvider = user?.business?.preferredPaymentProvider || null
+  const currentProvider = user.business.preferredPaymentProvider || null
   const enabledProviders = getEnabledProviderConfigs()
 
   const getProviderIcon = (providerId: string) => {

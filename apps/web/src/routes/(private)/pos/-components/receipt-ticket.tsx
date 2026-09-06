@@ -2,8 +2,7 @@ import { useCapability } from '@platform/hooks/use-capability'
 import dayjs from '@platform/lib/dayjs'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
-import { useStore } from '@tanstack/react-store'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { getComplianceLines, getReceiptFooterText, getTaxRateLabel } from '@/lib/compliance/receipt-helper'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import type { CreatePosTransactionResponse } from '@/lib/queries/create-pos-transaction'
@@ -45,7 +44,7 @@ const styles = StyleSheet.create({
 })
 
 export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionResponse; data: NonNullable<(typeof posFormOpts)['defaultValues']> }) => {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const canCreateOrder = useCapability(Capabilities.CREATE_ORDER)
   if (result.error || !result.data || !user) return null
   const { transaction, payments } = result.data
@@ -53,7 +52,7 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
 
   // --- Phase 11: Get country-agnostic compliance lines for receipt header ---
   const complianceLines = getComplianceLines(user.compliance, user.branch.serialNumber)
-  const footerText = getReceiptFooterText(user.business?.registrationStatus)
+  const footerText = getReceiptFooterText(user.business.registrationStatus)
   const taxLabel = getTaxRateLabel()
 
   // --- ACCURATE HEIGHT CALCULATION ---
@@ -88,8 +87,8 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
       {/* CUSTOMER RECEIPT */}
       <Page size={[PAGE_WIDTH, totalHeight]} style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.storeName}>{user?.branch.name}</Text>
-          <Text style={styles.address}>{user?.branch.address}</Text>
+          <Text style={styles.storeName}>{user.branch.name}</Text>
+          <Text style={styles.address}>{user.branch.address}</Text>
           {complianceLines.map((line, index) => (
             <Text key={index} style={styles.address}>
               {line.label}: {line.value}
@@ -152,18 +151,18 @@ export const ReceiptPDF = ({ result, data }: { result: CreatePosTransactionRespo
         <View style={styles.totalsContainer}>
           <View style={styles.infoRow}>
             <Text>Taxable Sales</Text>
-            <Text>{PriceEngine.toDollars(transaction.totalAmount / (1 + (user.configs?.VAT_RATE ?? 0.12))).toFixed(2)}</Text>
+            <Text>{PriceEngine.toDollars(transaction.totalAmount / (1 + (user.configs.VAT_RATE ?? 0.12))).toFixed(2)}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text>
-              {taxLabel} Amount ({(user.configs?.VAT_RATE ?? 0.12) * 100}%)
+              {taxLabel} Amount ({(user.configs.VAT_RATE ?? 0.12) * 100}%)
             </Text>
             <Text>{PriceEngine.toDollars(transaction.taxAmount).toFixed(2)}</Text>
           </View>
           <View style={[styles.infoRow, styles.totalText]}>
             <Text>TOTAL AMOUNT</Text>
             <Text>
-              {user?.configs?.CURRENCY} {PriceEngine.toDollars(transaction.totalAmount).toFixed(2)}
+              {user.configs.CURRENCY} {PriceEngine.toDollars(transaction.totalAmount).toFixed(2)}
             </Text>
           </View>
           <View style={{ marginTop: 5, borderTopWidth: 0.5, borderTopStyle: 'dashed', paddingTop: 5 }}>

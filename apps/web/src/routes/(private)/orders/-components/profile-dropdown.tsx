@@ -3,15 +3,13 @@ import { useCapabilities } from '@platform/hooks/use-capability'
 import { Capabilities } from '@platform/lib/entitlement/capability-keys'
 import MountManager from '@platform/lib/mount-manager'
 import { Link } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { ClipboardPenLine, LayoutDashboard, PanelTopClose } from 'lucide-react'
 import { Role, SessionStatus } from 'prisma/generated/prisma/enums'
 import { ProfileDropdown as BaseProfileDropdown } from '@/components/dashboard/profile-dropdown'
-import { authStore } from '@/lib/better-auth/auth-store'
 import { CloseSessionDialog } from '../../pos/-components/close-session-dialog'
 
 export const ProfileDropdown = () => {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const caps = useCapabilities([Capabilities.START_VENDOR_SESSION, Capabilities.CREATE_TASK])
 
   const handleEndShift = () => {

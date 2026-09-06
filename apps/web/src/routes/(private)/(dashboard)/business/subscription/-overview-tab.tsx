@@ -14,7 +14,6 @@ import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import {
   AlertTriangleIcon,
   ArrowRightIcon,
@@ -29,14 +28,14 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { authStore, refreshAuthUser } from '@/lib/better-auth/auth-store'
+import { refreshAuthUser, useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { SubscriptionPolicy } from '@/lib/billing/policies/subscription-policy'
 import { SubscriptionStatusVO } from '@/lib/billing/value-objects/subscription-status'
 import { type AddonCatalogItem, fetchAddonCatalog } from '@/lib/server-fn/purchase-addon-subscription'
 import { AddonDialog, BillingCTAs, formatDate, getStatusBadgeConfig } from './-shared-components'
 
 export function OverviewTab() {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const entitlement = user?.entitlement
 
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -258,8 +257,8 @@ function PlanFeatureRow({ label, value }: { label: string; value: string }) {
 // ---------------------------------------------------------------------------
 
 function SubscriptionSidebar() {
-  const user = useStore(authStore, state => state.user)
-  const entitlement = user?.entitlement
+  const user = useAuthenticatedUser()
+  const entitlement = user.entitlement
 
   const periodEnd = entitlement?.currentPeriodEnd
   const txRemaining = entitlement?.txRemaining
@@ -369,8 +368,8 @@ function SubscriptionSidebar() {
 // ---------------------------------------------------------------------------
 
 function ActiveAddons() {
-  const user = useStore(authStore, state => state.user)
-  const entitlement = user?.entitlement
+  const user = useAuthenticatedUser()
+  const entitlement = user.entitlement
 
   const { data: catalog = [] } = useQuery({
     queryKey: ['addon-catalog'],

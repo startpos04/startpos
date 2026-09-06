@@ -5,7 +5,7 @@ import { categoryCollection } from '@platform/db/collections'
 import { Plus, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { closeCategorySidebar } from './category-sidebar'
 
 export function CreateCategorySidebar() {
@@ -18,7 +18,7 @@ export function CreateCategorySidebar() {
     if (!trimmed) return
     setSaving(true)
     try {
-      const { user } = authStore.state
+      const user = getAuthenticatedUser()
       categoryCollection.insert({
         id: crypto.randomUUID(),
         name: trimmed,

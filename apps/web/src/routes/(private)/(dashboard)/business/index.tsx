@@ -4,17 +4,16 @@ import { usePermission } from '@platform/hooks/use-permission'
 import { Permissions } from '@platform/lib/authorization/permission-keys'
 import { useLiveQuery } from '@tanstack/react-db'
 import { createFileRoute } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { Building2, CreditCard, Shield, Sparkles, Users } from 'lucide-react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/business/')({
   component: BusinessOverview,
 })
 
 function BusinessOverview() {
-  const user = useStore(authStore, state => state.user)
-  const business = user?.business
+  const user = useAuthenticatedUser()
+  const business = user.business
   const canManagePermissions = usePermission(Permissions.USER_MANAGE_PERMISSIONS)
 
   // Query branch count

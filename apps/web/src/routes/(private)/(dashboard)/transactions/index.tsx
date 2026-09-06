@@ -22,7 +22,7 @@ import { createFileRoute, redirect, useNavigate, useSearch } from '@tanstack/rea
 import { Download, Receipt } from 'lucide-react'
 import type { PaymentMethod, TransactionType } from 'prisma/generated/prisma/enums'
 import { useCallback, useMemo, useState } from 'react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { transactionCols } from '@/lib/columns/transaction-columns'
 import { downloadTransactionsCSV } from '@/lib/server-fn/download-tranasctions'
 import { fetchTransactionHistory, type TransactionHistoryItem } from '@/lib/server-fn/fetch-transaction-history'
@@ -44,8 +44,8 @@ const METHOD_LABELS: Record<PaymentMethod, string> = {
 
 export const Route = createFileRoute('/(private)/(dashboard)/transactions/')({
   beforeLoad: () => {
-    const { user } = authStore.state
-    if (!user?.entitlement?.capabilities?.includes(Capabilities.VIEW_TRANSACTION_HISTORY)) {
+    const user = getAuthenticatedUser()
+    if (!user.entitlement.capabilities.includes(Capabilities.VIEW_TRANSACTION_HISTORY)) {
       throw redirect({ to: '/unauthorized' })
     }
   },

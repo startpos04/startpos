@@ -13,7 +13,6 @@ import { Capabilities } from '@platform/lib/entitlement/capability-keys'
 import MountManager from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { createFileRoute, redirect, useSearch } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import type { ColumnDef } from '@tanstack/react-table'
 import { AlertCircle, Coffee, Database, Info, Layers, Sparkles, Trash2 } from 'lucide-react'
 import numeral from 'numeral'
@@ -21,7 +20,7 @@ import { ResourceType } from 'prisma/generated/prisma/enums'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { usePOS } from '@/hooks/use-pos'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser, useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { productCols } from '@/lib/columns/product-columns'
 import { tableCols } from '@/lib/columns/table-columns'
 import { PosStockEngine } from '@/lib/conversion/pos-stock-engine'
@@ -33,8 +32,8 @@ import { CreateProductSidebar } from './create'
 
 export const Route = createFileRoute('/(private)/(dashboard)/products/')({
   beforeLoad: () => {
-    const { user } = authStore.state
-    if (!user?.entitlement?.capabilities?.includes(Capabilities.MANAGE_PRODUCTS)) {
+    const user = getAuthenticatedUser
+    if (!user.entitlement.capabilities.includes(Capabilities.MANAGE_PRODUCTS)) {
       throw redirect({ to: '/unauthorized' })
     }
   },
@@ -67,7 +66,7 @@ function isProvisionalProduct(product: posProduct): boolean {
 
 function RouteComponent() {
   const { view = 'table', search = '', page = 1, pageSize = 20, provisional = false } = useSearch({ from: '/(private)/(dashboard)/products/' })
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const { orderItems, posProducts, totalItemsPosProducts, isLoading } = usePOS({ page, pageSize, searchQuery: search, all: true })
   const navigate = Route.useNavigate()
   const [selectedId, setSelectedId] = useState<string>('')

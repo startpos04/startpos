@@ -12,13 +12,13 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { AlertCircle, GitBranchIcon, ShoppingCartIcon, TrendingUp, Zap } from 'lucide-react'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { getBranchCreditPackages } from '@/lib/billing/credit-packages'
 import { fetchEntitlementDetails } from '@/lib/server-fn/fetch-entitlement-details'
 import { getBranchCreditBalance } from '@/lib/server-fn/get-branch-credit-balance'
 
 export function OverviewTab() {
-  const user = authStore.state.user
+  const user = useAuthenticatedUser()
 
   // Query branch credit balance
   const {
@@ -38,7 +38,7 @@ export function OverviewTab() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 
-  if (!user?.branch) {
+  if (!user.branch) {
     toast.error('Unable to load branch information. Please contact support if this issue persists.')
     return (
       <div className='flex items-center justify-center h-full p-6'>

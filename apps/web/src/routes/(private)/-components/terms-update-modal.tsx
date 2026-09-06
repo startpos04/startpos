@@ -21,11 +21,10 @@
 import { Button } from '@platform/components/ui/button'
 import { Checkbox } from '@platform/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@platform/components/ui/dialog'
-import { useStore } from '@tanstack/react-store'
 import { FileText, Loader2, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { authStore, refreshAuthUser } from '@/lib/better-auth/auth-store'
+import { refreshAuthUser, useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { acceptTerms } from '@/lib/server-fn/accept-terms'
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '@/lib/server-fn/complete-registration'
 
@@ -45,11 +44,11 @@ export function isTermsOutdated(userTermsVersion: string | null | undefined): bo
 // ---------------------------------------------------------------------------
 
 export function TermsUpdateModal() {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const [accepted, setAccepted] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  const needsAcceptance = isTermsOutdated(user?.termsVersion)
+  const needsAcceptance = isTermsOutdated(user.termsVersion)
 
   const handleAccept = async () => {
     if (!accepted) return

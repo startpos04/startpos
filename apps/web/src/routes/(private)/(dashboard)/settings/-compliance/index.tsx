@@ -5,11 +5,10 @@ import { Label } from '@platform/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@platform/components/ui/select'
 import { Separator } from '@platform/components/ui/separator'
 import { Switch } from '@platform/components/ui/switch'
-import { useStore } from '@tanstack/react-store'
 import { AlertCircleIcon, CheckCircleIcon, SaveIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { authStore, refreshAuthUser } from '@/lib/better-auth/auth-store'
+import { refreshAuthUser, useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { extractComplianceFromForm, getComplianceErrorMessage, validateComplianceData } from '@/lib/compliance'
 import { fetchComplianceData } from '@/lib/server-fn/fetch-compliance-data'
 import { saveComplianceData } from '@/lib/server-fn/save-compliance-data'
@@ -32,9 +31,9 @@ import { saveComplianceData } from '@/lib/server-fn/save-compliance-data'
  * - Save & mark registered button (requires complete data)
  */
 export function CompliancePage() {
-  const user = useStore(authStore, state => state.user)
-  const business = user?.business
-  const branch = user?.branch
+  const user = useAuthenticatedUser()
+  const business = user.business
+  const branch = user.branch
 
   // Form state
   const [registrationStatus, setRegistrationStatus] = useState(business?.registrationStatus ?? 'UNREGISTERED')

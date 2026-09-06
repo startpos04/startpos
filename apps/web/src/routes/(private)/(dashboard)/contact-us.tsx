@@ -9,9 +9,8 @@ import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Separator } from '@platform/components/ui/separator'
 import { createFileRoute } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { BuildingIcon, ExternalLinkIcon, KeyRoundIcon, LifeBuoyIcon, LightbulbIcon, MailIcon, MessageCircleIcon, ServerIcon } from 'lucide-react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 
 export const Route = createFileRoute('/(private)/(dashboard)/contact-us')({
   component: ContactUsPage,
@@ -75,8 +74,8 @@ const REASONS = [
 // ---------------------------------------------------------------------------
 
 function ContactUsPage() {
-  const user = useStore(authStore, state => state.user)
-  const businessName = user?.business?.name
+  const user = useAuthenticatedUser()
+  const businessName = user.business.name
 
   function buildMailto(email: string, subjectSuffix: string) {
     const subject = businessName ? `[${subjectSuffix}] ${businessName}` : `[${subjectSuffix}]`

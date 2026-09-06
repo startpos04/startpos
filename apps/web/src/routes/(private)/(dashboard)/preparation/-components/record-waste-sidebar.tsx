@@ -10,7 +10,7 @@ import { AlertTriangle, Loader2, Trash2, X } from 'lucide-react'
 import { MovementType } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { FinishedGoodsEngine } from '@/lib/production'
 import { closePreparationSidebar } from './preparation-sidebar'
 
@@ -24,7 +24,7 @@ interface RecordWasteSidebarProps extends MountProps {
 }
 
 export function RecordWasteSidebar({ variantId, productName, availableQuantity, unit, open: _open, onClose }: RecordWasteSidebarProps) {
-  const user = authStore.state.user
+  const user = useAuthenticatedUser()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Form state

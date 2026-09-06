@@ -5,11 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { productionOrderCollection, productionOrderItemCollection, productVariantCollection } from '@platform/db/collections'
 import { cn } from '@platform/lib/utils'
 import { createFileRoute } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { Calendar, Clock, Package, TrendingDown, TrendingUp } from 'lucide-react'
 import { ProductionStatus } from 'prisma/generated/prisma/enums'
 import { useMemo, useState } from 'react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 
 export const Route = createFileRoute('/(private)/(dashboard)/preparation/history')({
@@ -19,7 +18,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/preparation/history
 type FilterStatus = 'ALL' | ProductionStatus
 
 function RouteComponent() {
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('ALL')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
 

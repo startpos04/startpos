@@ -7,11 +7,10 @@ import { useAppForm } from '@platform/hooks/form'
 import type { MountProps } from '@platform/lib/mount-manager'
 import { cn } from '@platform/lib/utils'
 import { createFileRoute } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { AlertCircle, CheckCircle2, ClipboardList, FileCheck, Play, ShieldAlert, X } from 'lucide-react'
 import { TaskStatus } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { getInventoryMode } from '@/lib/inventory'
 import { InventoryEngine } from '@/lib/inventory/inventory-engine'
 import { NotificationEngine } from '@/lib/notification/notification-engine'
@@ -44,7 +43,7 @@ export function TaskDetailsSidebar({ open: _open, onClose, taskId }: TaskDetails
 function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
   // biome-ignore lint/correctness/useHookAtTopLevel: guaranteed React context — used inside MountManager or route component
   const taskId = propId ?? Route.useLoaderData().taskId
-  const user = useStore(authStore, state => state.user)
+  const user = useAuthenticatedUser()
 
   const {
     data: [task],
@@ -90,25 +89,25 @@ function RouteComponent({ taskId: propId, onClose }: RouteComponentProps) {
         draft.status = nextStatus
         draft.updatedAt = timestamp
 
-        if (nextStatus === 'PENDING') draft.creatorId = user?.id
+        if (nextStatus === 'PENDING') draft.creatorId = user.id
         if (nextStatus === 'APPROVED') {
-          draft.approverId = user?.id
+          draft.approverId = user.id
           draft.approvedAt = timestamp
         }
         if (nextStatus === 'IN_PROGRESS') {
-          if (!draft.clerkId) draft.clerkId = user?.id
+          if (!draft.clerkId) draft.clerkId = user.id
           draft.inProgressAt = timestamp
         }
         if (nextStatus === 'FULFILLED') {
-          if (!draft.clerkId) draft.clerkId = user?.id
+          if (!draft.clerkId) draft.clerkId = user.id
           draft.fulfilledAt = timestamp
         }
         if (nextStatus === 'REVIEWED') {
-          draft.reviewerId = user?.id
+          draft.reviewerId = user.id
           draft.reviewedAt = timestamp
         }
         if (nextStatus === 'CANCELLED') {
-          draft.cancelerId = user?.id
+          draft.cancelerId = user.id
           draft.canceledAt = timestamp
         }
       })

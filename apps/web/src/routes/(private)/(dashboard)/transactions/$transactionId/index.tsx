@@ -20,12 +20,11 @@ import { cn } from '@platform/lib/utils'
 import { downloadCsv } from '@platform/lib/utils/download-csv'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { AlertTriangle, Download, Receipt, RotateCcw, X } from 'lucide-react'
 import { TransactionType } from 'prisma/generated/prisma/enums'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { createPosRefund } from '@/lib/queries/create-pos-refund'
 import { downloadTransactionsCSV } from '@/lib/server-fn/download-tranasctions'
@@ -185,9 +184,9 @@ function RouteComponent({ transaction: propTransaction, onClose }: RouteComponen
   const isLoading_ = propTransaction ? false : isOnline ? onlineLoading : false
 
   // Auth — check ISSUE_REFUND and MANAGE_INVENTORY capabilities
-  const user = useStore(authStore, state => state.user)
-  const canRefund = user?.entitlement?.capabilities?.includes(Capabilities.ISSUE_REFUND) ?? false
-  const canManageInventory = user?.entitlement?.capabilities?.includes(Capabilities.MANAGE_INVENTORY) ?? false
+  const user = useAuthenticatedUser()
+  const canRefund = user.entitlement.capabilities.includes(Capabilities.ISSUE_REFUND) ?? false
+  const canManageInventory = user.entitlement.capabilities.includes(Capabilities.MANAGE_INVENTORY) ?? false
 
   const queryClient = useQueryClient()
 

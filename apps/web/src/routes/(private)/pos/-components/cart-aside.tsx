@@ -11,7 +11,7 @@ import { CreditCard, Minus, Plus, UserPlus } from 'lucide-react'
 import { PriceConfiguration } from 'prisma/generated/prisma/enums'
 import { useRef } from 'react'
 import { usePOS } from '@/hooks/use-pos'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { isUnlimitedStock, PosStockEngine, stockResultToNumber } from '@/lib/conversion/pos-stock-engine'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { TaxEngine, type TaxEngineConfig } from '@/lib/conversion/tax-engine'
@@ -25,14 +25,14 @@ export const CartAside = withForm({
     const order = useStore(form.store, s => s.values.order)
     const { search = '', page = 1, pageSize = 20 } = useSearch({ from: '/(private)/pos/' })
     const { orderItems } = usePOS({ orderId: order?.id, searchQuery: search, page, pageSize })
-    const user = useStore(authStore, s => s.user)
+    const user = useAuthenticatedUser()
     const navigate = useNavigate()
     const isProcessing = useRef(false)
 
     const vatConfig: TaxEngineConfig = {
-      vatRate: (user?.configs?.VAT_RATE ?? 12) / 100,
-      priceConfiguration: user?.configs?.PRICE_CONFIGURATION || PriceConfiguration.INCLUSIVE,
-      isVatRegistered: user?.configs?.IS_VAT_REGISTERED ?? true,
+      vatRate: (user.configs.VAT_RATE ?? 12) / 100,
+      priceConfiguration: user.configs.PRICE_CONFIGURATION || PriceConfiguration.INCLUSIVE,
+      isVatRegistered: user.configs.IS_VAT_REGISTERED ?? true,
     }
 
     const handleConfirm = (total: number) => {

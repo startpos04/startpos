@@ -40,7 +40,7 @@ export const Route = createFileRoute('/(private)/(dashboard)/billing/manual-paym
 function ManualPaymentPage() {
   const navigate = useNavigate()
   const { planId, amount, periodsAdvancePaid: initialPeriods } = useSearch({ from: Route.fullPath })
-  const user = useStore(authStore, s => s.user)
+  const user = useAuthenticatedUser()
 
   // Form state
   const [paymentMethod, setPaymentMethod] = useState<'GCASH' | 'BANK_TRANSFER' | 'MAYA'>('GCASH')
@@ -380,7 +380,7 @@ function ManualPaymentPage() {
                   )}
                   {periodsAdvancePaid === 1 && <> Once approved, your subscription will be activated.</>}
                 </p>
-                {user?.business?.preferredPaymentProvider === 'stripe' && periodsAdvancePaid > 1 && (
+                {user.business.preferredPaymentProvider === 'stripe' && periodsAdvancePaid > 1 && (
                   <p className='mt-2 text-blue-700 dark:text-blue-300'>
                     ðŸ”„ <strong>Auto-sync enabled:</strong> Your advance payment will be synced to Stripe to prevent duplicate charges during the advance
                     period.

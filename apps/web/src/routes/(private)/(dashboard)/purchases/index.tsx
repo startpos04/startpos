@@ -6,7 +6,7 @@ import { Capabilities } from '@platform/lib/entitlement/capability-keys'
 import MountManager from '@platform/lib/mount-manager'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useCallback, useMemo, useState } from 'react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { PriceEngine } from '@/lib/conversion/price-engine'
 import { type fePurchase, fetchPurchases } from '@/lib/queries/fetch-purchases'
 import { getPurchaseStatusUIMetadata } from '@/lib/server-fn/purchase-workflow'
@@ -17,8 +17,8 @@ import { CreatePurchaseSidebar } from './create/-index'
 export const Route = createFileRoute('/(private)/(dashboard)/purchases/')({
   component: RouteComponent,
   beforeLoad: () => {
-    const { user } = authStore.state
-    if (!user?.entitlement?.capabilities?.includes(Capabilities.CREATE_PURCHASE)) {
+    const user = getAuthenticatedUser()
+    if (!user.entitlement.capabilities.includes(Capabilities.CREATE_PURCHASE)) {
       throw redirect({ to: '/unauthorized' })
     }
   },

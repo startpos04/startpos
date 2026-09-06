@@ -8,13 +8,12 @@ import { Badge } from '@platform/components/ui/badge'
 import { Button } from '@platform/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@platform/components/ui/card'
 import { Link } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
 import { CreditCardIcon, MailIcon } from 'lucide-react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 
 export function PaymentMethodsTab() {
-  const user = useStore(authStore, state => state.user)
-  const preferredProvider = user?.business?.preferredPaymentProvider
+  const user = useAuthenticatedUser()
+  const preferredProvider = user.business.preferredPaymentProvider
 
   return (
     <div className='h-full overflow-y-auto px-4 py-1'>

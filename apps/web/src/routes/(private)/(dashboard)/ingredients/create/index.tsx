@@ -5,7 +5,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { closeIngredientSidebar } from '../-components/ingredient-sidebar'
 import { CreateIngredient, type CreateIngredientFormData } from './-create-ingredients'
 
@@ -22,7 +22,7 @@ export function CreateIngredientSidebar({ onClose }: CreateIngredientSidebarProp
 
   const handleSubmit = async ({ value }: { value: CreateIngredientFormData }) => {
     const { sku, price, ...productData } = value
-    const { user } = authStore.state
+    const user = getAuthenticatedUser()
 
     const result = await dbTransaction(() => {
       const productId = crypto.randomUUID()

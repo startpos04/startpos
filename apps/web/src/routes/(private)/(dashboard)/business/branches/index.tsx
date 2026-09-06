@@ -27,7 +27,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Building2, MapPin } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { BRANCH_ASIDE_ID, showBranchSidebar } from './-components/branch-sidebar'
 import { CreateBranchSidebar } from './-components/create-branch-sidebar'
 import { EditBranchSidebar } from './-components/edit-branch-sidebar'
@@ -70,7 +70,7 @@ type BranchRow = {
 
 export function BranchesPage() {
   const { data, isLoading } = useLiveQuery(q => q.from({ branch: branchCollection }))
-  const { user } = authStore.state
+  const user = getAuthenticatedUser()
   const [selectedId, setSelectedId] = useState<string>('')
 
   // Calculate branch usage and limits
@@ -78,8 +78,8 @@ export function BranchesPage() {
   const currentBranchCount = activeBranches.length
 
   // Get branch limit from user entitlement
-  const branchEntitlement = user?.entitlement?.planFeatures?.find(f => f === 'MANAGE_BRANCHES')
-  const branchUsageLimit = user?.entitlement?.usageLimits?.MANAGE_BRANCHES
+  const branchEntitlement = user.entitlement?.planFeatures?.find(f => f === 'MANAGE_BRANCHES')
+  const branchUsageLimit = user.entitlement?.usageLimits?.MANAGE_BRANCHES
   const planBranchLimit = branchUsageLimit ?? (branchEntitlement ? -1 : 0) // -1 = unlimited, 0 = no access
 
   // Note: Add-on calculation would require a separate query, for now just show plan limits

@@ -5,7 +5,7 @@ import type { MountProps } from '@platform/lib/mount-manager'
 import { ArrowLeft, X } from 'lucide-react'
 import { TaxCategory, VariantAttributeType } from 'prisma/generated/prisma/enums'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { getAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { closeProductSidebar } from '../-components/product-sidebar'
 import { CreateProduct, type CreateProductFormData } from '../create/-create-product'
 
@@ -18,7 +18,7 @@ interface EditProductSidebarProps extends MountProps {
 
 export function EditProductSidebar({ productId, variantId, defaultValues, open: _open, onClose, onBack }: EditProductSidebarProps) {
   const handleSubmit = async ({ value }: { value: CreateProductFormData }) => {
-    const { user } = authStore.state
+    const user = getAuthenticatedUser()
     const { sku, price, costPrice, variants, ingredients, allowedAddons, isBatchPrepared, shelfLifeHours, ...productData } = value
 
     const result = await dbTransaction(() => {

@@ -28,7 +28,7 @@ import { Link } from '@tanstack/react-router'
 import { useStore } from '@tanstack/react-store'
 import { ArrowRightIcon, BookOpenIcon, PackageIcon, ShoppingCartIcon, XIcon } from 'lucide-react'
 import { useEffect } from 'react'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import type { FirstRunConfig } from '@/lib/tutorial/first-run-resolver'
 import { resolveFirstRun } from '@/lib/tutorial/first-run-resolver'
 import { dismissTutorial, isTutorialDismissed, tutorialStore } from '@/lib/tutorial/tutorial-store'
@@ -52,7 +52,7 @@ const PATH_ICONS = {
 // ---------------------------------------------------------------------------
 
 export function useFirstRun() {
-  const user = useStore(authStore, s => s.user)
+  const user = useAuthenticatedUser()
   const dismissed = useStore(tutorialStore, s => s.dismissed)
 
   const ordersQuery = useLiveQuery(q => q.from({ o: orderCollection }).select(({ o }) => o))
@@ -66,8 +66,8 @@ export function useFirstRun() {
   }, [hasOrders])
 
   const config = resolveFirstRun(
-    user?.currentProfile as import('@/lib/onboarding/types').OperationalProfile | null,
-    (user?.entitlement?.capabilities ?? []) as string[],
+    user.currentProfile as import('@/lib/onboarding/types').OperationalProfile | null,
+    (user.entitlement.capabilities ?? []) as string[],
   )
 
   const isVisible = config !== null && !dismissed.has(DISMISS_ID) && !hasOrders

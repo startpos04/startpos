@@ -16,7 +16,7 @@ import { AlertTriangle, Check, Loader2, X } from 'lucide-react'
 import { SequenceType } from 'prisma/generated/prisma/enums'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { authStore } from '@/lib/better-auth/auth-store'
+import { useAuthenticatedUser } from '@/lib/better-auth/auth-store'
 import { sequenceAPI } from '@/lib/prisma-client/sequence-api'
 import { ProductionEngine } from '@/lib/production'
 import type { BatchPreparedProduct } from '@/lib/queries/fetch-batch-prepared-products'
@@ -29,7 +29,7 @@ interface PrepareProductSidebarProps extends MountProps {
 }
 
 export function PrepareProductSidebar({ products, preSelectedVariantId, open: _open, onClose }: PrepareProductSidebarProps) {
-  const user = authStore.state.user
+  const user = useAuthenticatedUser()
   const [step, setStep] = useState<'select' | 'confirm'>('select')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
