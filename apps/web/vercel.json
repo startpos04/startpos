@@ -1,6 +1,6 @@
 {
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm --filter @startpos/web run build",
+  "buildCommand": "cd ../.. && printf 'SCHEMA_AUTO_CONFIRM=yes\\nDEPLOYMENT_COUNTRY=PH\\n' > .env.config && pnpm prisma:generate && pnpm --filter @startpos/web run build",
   "outputDirectory": ".output/public",
   "crons": [
     {
